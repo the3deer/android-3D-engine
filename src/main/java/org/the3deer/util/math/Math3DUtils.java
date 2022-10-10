@@ -322,7 +322,7 @@ public class Math3DUtils {
     public static void normalize(float[] a) {
         float length = length(a);
         if (length == 0) {
-            throw new IllegalArgumentException("vector length is zero");
+            return;
         }
         a[0] = a[0] / length;
         a[1] = a[1] / length;
@@ -776,6 +776,128 @@ public class Math3DUtils {
 
         Log.i("HoleCutter", "normal: " + Arrays.toString(normal) + ", angle: " + angle + ", axis: " + Arrays.toString(cross));
         return rotationMatrix;
+    }
+
+    public static float[] extractRotationMatrix(float[] matrix) {
+        float[] s = new float[]{Matrix.length(matrix[0],matrix[4],matrix[8]),Matrix.length(matrix[1],matrix[5],matrix[9]),Matrix.length
+                (matrix[2],matrix[6],matrix[10])};
+        return new float[]{
+                matrix[0]/s[0], matrix[1]/s[1], matrix[2]/s[2], 0,
+                matrix[4]/s[0], matrix[5]/s[1], matrix[6]/s[2], 0,
+                matrix[8]/s[0], matrix[9]/s[1], matrix[10]/s[2], 0,
+                0,0,0,1
+        };
+    }
+
+    public static float[] extractAxisAngle(float[] rotationMatrix){
+        float[] ret = new float[4];
+        ret[0] = rotationMatrix[9]-rotationMatrix[6];
+        ret[1] = rotationMatrix[2]-rotationMatrix[8];
+        ret[2] = rotationMatrix[4]-rotationMatrix[1];
+        normalize(ret);
+        float trace = rotationMatrix[0]+rotationMatrix[5]+rotationMatrix[10];
+        ret[3] = (float)Math.acos((trace-1)/2);
+        return ret;
+    }
+
+    /**
+     * Calculate face normal
+     *
+     * @param v0
+     * @param v1
+     * @param v2
+     * @return
+     */
+    public static float[] normal(float[] v0, float[] v1, float[] v2) {
+
+        // calculate perpendicular vector to the face. That is to calculate the cross product of v1-v0 x v2-v0
+        float[] va = substract(v1,v0);
+        float[] vb = substract(v2,v0);
+        float nx = va[1] * vb[2] - va[2] * vb[1];
+        float ny = va[2] * vb[0] - va[0] * vb[2];
+        float nz = va[0] * vb[1] - va[1] * vb[0];
+        float[] n = new float[]{nx, ny, nz};
+        normalize(n);
+        return n;
+    }
+
+    public static float[] transform(float x, float y, float z, float[] matrix){
+        float[] xyz1 = new float[]{x, y, z, 1};
+        Matrix.multiplyMV(xyz1, 0, matrix, 0, xyz1, 0);
+        round(xyz1, 100000);
+        return new float[]{xyz1[0], xyz1[1], xyz1[2]};
+    }
+
+    public static float[] centroid(float[] v0, float[] v1, float[] v2) {
+        return new float[]{(v0[0] + v1[0] + v2[0]) / 3, (v0[1] + v1[1] + v2[1]) / 3, (v0[2] + v1[2] + v2[2]) / 3};
+    }
+
+    public static boolean isCoplanar(float[] v1, float[] v2, float[] v3, float[] p1, float[] p2){
+        float[] n1 = normal(v1, v2, v3);
+        return dot(n1, substract(p2, p1)) == 0;
+    }
+
+    public static boolean hasLine(float[] v1, float[] v2, float[] v3, float[] p1, float[] p2){
+        return lineEquals(v1, v2, p1, p2) || lineEquals(v2, v3, p1, p2) || lineEquals(v3, v1, p1, p2);
+    }
+
+    public static boolean areCollinear(float[] v1, float[] v2, float[] v3, float[] v4){
+        return isCollinear(v1,v2,v3) && isCollinear(v1,v2,v4);
+    }
+
+    public static boolean isZero(float[] v){
+        return v[0] == 0 && v[1] == 0 && v[2] == 0;
+    }
+
+    public static boolean isCollinear(float[] v1, float[] v2, float[] v3){
+        // v1-v2-p1 are collinear?
+        float[] v2v1 = substract(v2,v1);
+        float[] v3v1 = substract(v3,v1);
+        return isZero(cross(v2v1, v3v1));
+    }
+
+    public static boolean coplanar(float[] n1, float[] n2) {
+        if (equals(n1, n2)){
+            return true;
+        }
+        invert(n1);
+        return equals(n1, n2);
+    }
+
+    private static void invert(float[] v) {
+        v[0] = -v[0];
+        v[1] = -v[1];
+        v[2] = -v[2];
+    }
+
+    public static boolean hasAreaZero(float[] v1, float[] v2, float[] v3){
+        if (equals(v1,v2) || equals(v1,v3) || equals(v2,v3)){
+            return true;
+        }
+
+        float[] v12 = substract(v2,v1);
+        float[] v23 = substract(v3,v2);
+        float[] v31 = substract(v1,v3);
+        float l12 = length(v12);
+        float l23 = length(v23);
+        float l31 = length(v31);
+        float area;
+        if (l12 >= l23 && l12 >= l31){
+            area = l12-l23-l31;
+        } else if (l23 >= l12 && l23 >= l31){
+            area = l23-l12-l31;
+        } else if (l31 >= l12 && l31 >= l23){
+            area = l31-l12-l23;
+        } else {
+            // equilateral triangle have area
+            return false;
+        }
+        return Math.abs(area)<0.001f;
+    }
+
+    public static boolean equals(float[] v1, float[] v2, float factor) {
+        return v1 == v2 || v1[0]*factor/factor == v2[0]*factor/factor  && v1[1]*factor/factor  == v2[1]*factor/factor
+                && v1[2]*factor/factor  == v2[2]*factor/factor ;
     }
 }
 

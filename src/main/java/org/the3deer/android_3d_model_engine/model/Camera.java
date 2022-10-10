@@ -18,7 +18,6 @@ public class Camera {
 
     private Animation<Camera> animation;
 
-    private final float[] buffer = new float[12 + 12 + 16 + 16];
     private boolean changed = false;
 
     // new vector model
