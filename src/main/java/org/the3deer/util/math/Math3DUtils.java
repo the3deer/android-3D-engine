@@ -322,6 +322,7 @@ public class Math3DUtils {
     public static void normalize(float[] a) {
         float length = length(a);
         if (length == 0) {
+//            throw new IllegalArgumentException("vector length is zero");
             return;
         }
         a[0] = a[0] / length;
@@ -800,14 +801,6 @@ public class Math3DUtils {
         return ret;
     }
 
-    /**
-     * Calculate face normal
-     *
-     * @param v0
-     * @param v1
-     * @param v2
-     * @return
-     */
     public static float[] normal(float[] v0, float[] v1, float[] v2) {
 
         // calculate perpendicular vector to the face. That is to calculate the cross product of v1-v0 x v2-v0
@@ -824,7 +817,7 @@ public class Math3DUtils {
     public static float[] transform(float x, float y, float z, float[] matrix){
         float[] xyz1 = new float[]{x, y, z, 1};
         Matrix.multiplyMV(xyz1, 0, matrix, 0, xyz1, 0);
-        round(xyz1, 100000);
+        Math3DUtils.round(xyz1, 100000);
         return new float[]{xyz1[0], xyz1[1], xyz1[2]};
     }
 
@@ -833,35 +826,16 @@ public class Math3DUtils {
     }
 
     public static boolean isCoplanar(float[] v1, float[] v2, float[] v3, float[] p1, float[] p2){
-        float[] n1 = normal(v1, v2, v3);
+        float[] n1 = Math3DUtils.normal(v1, v2, v3);
         return dot(n1, substract(p2, p1)) == 0;
     }
 
-    public static boolean hasLine(float[] v1, float[] v2, float[] v3, float[] p1, float[] p2){
-        return lineEquals(v1, v2, p1, p2) || lineEquals(v2, v3, p1, p2) || lineEquals(v3, v1, p1, p2);
-    }
-
-    public static boolean areCollinear(float[] v1, float[] v2, float[] v3, float[] v4){
-        return isCollinear(v1,v2,v3) && isCollinear(v1,v2,v4);
-    }
-
-    public static boolean isZero(float[] v){
-        return v[0] == 0 && v[1] == 0 && v[2] == 0;
-    }
-
-    public static boolean isCollinear(float[] v1, float[] v2, float[] v3){
-        // v1-v2-p1 are collinear?
-        float[] v2v1 = substract(v2,v1);
-        float[] v3v1 = substract(v3,v1);
-        return isZero(cross(v2v1, v3v1));
-    }
-
     public static boolean coplanar(float[] n1, float[] n2) {
-        if (equals(n1, n2)){
+        if (Math3DUtils.equals(n1, n2)){
             return true;
         }
         invert(n1);
-        return equals(n1, n2);
+        return Math3DUtils.equals(n1, n2);
     }
 
     private static void invert(float[] v) {
@@ -893,6 +867,25 @@ public class Math3DUtils {
             return false;
         }
         return Math.abs(area)<0.001f;
+    }
+
+    public static boolean hasLine(float[] v1, float[] v2, float[] v3, float[] p1, float[] p2){
+        return lineEquals(v1, v2, p1, p2) || lineEquals(v2, v3, p1, p2) || lineEquals(v3, v1, p1, p2);
+    }
+
+    public static boolean isZero(float[] v){
+        return v[0] == 0 && v[1] == 0 && v[2] == 0;
+    }
+
+    public static boolean isCollinear(float[] v1, float[] v2, float[] v3){
+        // v1-v2-p1 are collinear?
+        float[] v2v1 = substract(v2,v1);
+        float[] v3v1 = substract(v3,v1);
+        return isZero(cross(v2v1, v3v1));
+    }
+
+    public static boolean areCollinear(float[] v1, float[] v2, float[] v3, float[] v4){
+        return isCollinear(v1,v2,v3) && isCollinear(v1,v2,v4);
     }
 
     public static boolean equals(float[] v1, float[] v2, float factor) {

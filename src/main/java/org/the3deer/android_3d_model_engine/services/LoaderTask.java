@@ -32,8 +32,8 @@ public abstract class LoaderTask extends AsyncTask<Void, String, List<Object3DDa
 
 	/**
 	 * Build a new progress dialog for loading the data model asynchronously
-     * @param uri        the URL pointing to the 3d model
-     *
+	 * @param uri        the URL pointing to the 3d model
+	 *
 	 */
 	public LoaderTask(Activity parent, URI uri, LoadListener callback) {
 		this.uri = uri;
@@ -55,13 +55,16 @@ public abstract class LoaderTask extends AsyncTask<Void, String, List<Object3DDa
 	@Override
 	protected List<Object3DData> doInBackground(Void... params) {
 		try {
-		    callback.onStart();
+			callback.onStart();
 			List<Object3DData> data = build();
-            callback.onLoadComplete();
+			callback.onLoadComplete();
 			return  data;
 		} catch (Exception ex) {
 			Log.e("LoaderTask",ex.getMessage(),ex);
-            callback.onLoadError(ex);
+			callback.onLoadError(ex);
+			return null;
+		} catch (OutOfMemoryError err){
+			callback.onLoadError(new RuntimeException("Out Of Memory Error",err));
 			return null;
 		}
 	}

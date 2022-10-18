@@ -16,6 +16,10 @@ import java.util.ArrayList;
 import java.util.EventObject;
 import java.util.List;
 
+/**
+ * <p>Android Generic Touch Screen Controller</p>
+ * <p>It fires events of this type @{@link TouchEvent}</p>
+ */
 public class TouchController implements EventListener {
 
 	private static final String TAG = TouchController.class.getSimpleName();
@@ -32,27 +36,27 @@ public class TouchController implements EventListener {
 	private final List<EventListener> listeners = new ArrayList<>();
 
 	private float x1 = Float.MIN_VALUE;
-    private float y1 = Float.MIN_VALUE;
-    private float x2 = Float.MIN_VALUE;
-    private float y2 = Float.MIN_VALUE;
-    private float dx1 = Float.MIN_VALUE;
-    private float dy1 = Float.MIN_VALUE;
-    private float dx2 = Float.MIN_VALUE;
-    private float dy2 = Float.MIN_VALUE;
+	private float y1 = Float.MIN_VALUE;
+	private float x2 = Float.MIN_VALUE;
+	private float y2 = Float.MIN_VALUE;
+	private float dx1 = Float.MIN_VALUE;
+	private float dy1 = Float.MIN_VALUE;
+	private float dx2 = Float.MIN_VALUE;
+	private float dy2 = Float.MIN_VALUE;
 
-    private float length = Float.MIN_VALUE;
-    private float previousLength = Float.MIN_VALUE;
-    private float currentPress1 = Float.MIN_VALUE;
-    private float currentPress2 = Float.MIN_VALUE;
+	private float length = Float.MIN_VALUE;
+	private float previousLength = Float.MIN_VALUE;
+	private float currentPress1 = Float.MIN_VALUE;
+	private float currentPress2 = Float.MIN_VALUE;
 
-    private float rotation = 0;
-    private int currentSquare = Integer.MIN_VALUE;
+	private float rotation = 0;
+	private int currentSquare = Integer.MIN_VALUE;
 
-    private boolean isOneFixedAndOneMoving = false;
-    private boolean fingersAreClosing = false;
-    private boolean isRotating = false;
+	private boolean isOneFixedAndOneMoving = false;
+	private boolean fingersAreClosing = false;
+	private boolean isRotating = false;
 
-    private boolean gestureChanged = false;
+	private boolean gestureChanged = false;
 	private boolean moving = false;
 	private boolean simpleTouch = false;
 	private long lastActionTime;
@@ -63,8 +67,8 @@ public class TouchController implements EventListener {
 	private float previousY1;
 	private float previousX2;
 	private float previousY2;
-    private float[] previousVector = new float[4];
-    private float[] vector = new float[4];
+	private float[] previousVector = new float[4];
+	private float[] vector = new float[4];
 	private float previousRotationSquare;
 
 	public TouchController(Activity parent) {
@@ -199,28 +203,28 @@ public class TouchController implements EventListener {
 			fireEvent(new TouchEvent(this, TouchEvent.CLICK, width, height, x1, y1));
 		} else {
 			//if (touchDelay > 1) {
-				// INFO: Process gesture
+			// INFO: Process gesture
 				/*if (pointerCount == 1 && currentPress1 > 4.0f) {
 				} else */if (pointerCount == 1) {
-					fireEvent(new TouchEvent(this, TouchEvent.MOVE, width, height, previousX1, previousY1,
-							x1, y1, dx1, dy1, 0,
-							0f));
-					touchStatus = TOUCH_STATUS_MOVING_WORLD;
-				} else if (pointerCount == 2) {
+				fireEvent(new TouchEvent(this, TouchEvent.MOVE, width, height, previousX1, previousY1,
+						x1, y1, dx1, dy1, 0,
+						0f));
+				touchStatus = TOUCH_STATUS_MOVING_WORLD;
+			} else if (pointerCount == 2) {
 				if (fingersAreClosing) {
-						fireEvent(new TouchEvent(this, TouchEvent.PINCH, width, height, previousX1, previousY1,
-								x1, y1, dx1, dy1, (previousLength - length), 0f));
-						touchStatus = TOUCH_STATUS_ZOOMING_CAMERA;
-						fingersAreClosing = false;
-					} else if (isRotating) {
-						final double angle = Math3DUtils.calculateAngleBetween(previousVector, vector);
-						if (Math.abs(angle) >= Math.PI / 180) {
-							fireEvent(new TouchEvent(this, TouchEvent.ROTATE, width, height, previousX1, previousY1
-									, x1, y1, dx1, dy1, 0, (float) angle));
-							touchStatus = TOUCH_STATUS_ROTATING_CAMERA;
-						}
+					fireEvent(new TouchEvent(this, TouchEvent.PINCH, width, height, previousX1, previousY1,
+							x1, y1, dx1, dy1, (previousLength - length), 0f));
+					touchStatus = TOUCH_STATUS_ZOOMING_CAMERA;
+					fingersAreClosing = false;
+				} else if (isRotating) {
+					final double angle = Math3DUtils.calculateAngleBetween(previousVector, vector);
+					if (Math.abs(angle) >= Math.PI / 180) {
+						fireEvent(new TouchEvent(this, TouchEvent.ROTATE, width, height, previousX1, previousY1
+								, x1, y1, dx1, dy1, 0, (float) angle));
+						touchStatus = TOUCH_STATUS_ROTATING_CAMERA;
 					}
 				}
+			}
 			//}
 		}
 

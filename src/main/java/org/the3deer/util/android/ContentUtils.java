@@ -1,15 +1,18 @@
 package org.the3deer.util.android;
 
+import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Build;
+import android.provider.OpenableColumns;
 import android.util.Log;
 import android.widget.ImageView;
 import android.widget.ListAdapter;
@@ -33,6 +36,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Scanner;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -44,6 +48,11 @@ public class ContentUtils {
      * Documents opened by the user. This list helps finding the relative filenames found in the model
      */
     private static Map<String, Uri> documentsProvided = new HashMap<>();
+    /**
+     * Binary files provided by the user.
+     * Example: zip file names together with their binary data
+     */
+    private static Map<Uri, byte[]> binariesProvided = new HashMap<>();
 
     private static ThreadLocal<Context> currentActivity = new ThreadLocal<>();
 
@@ -65,6 +74,7 @@ public class ContentUtils {
     public static void clearDocumentsProvided() {
         // clear documents provided by user (kitkat only)
         documentsProvided.clear();
+        binariesProvided.clear();
     }
 
     public static void provideAssets(Activity activity) {
@@ -103,8 +113,30 @@ public class ContentUtils {
         Log.i("ContentUtils", "Added (" + name + ") " + uri);
     }
 
+    /**
+     * Gets the Uri linked to the filename.
+     * If the Uri is not found, then a fallback mechanism replacing back slashes
+     * to forward slashes (standard) is tried ('\' to '/')
+     * @param name the file name
+     * @return the linked Uri
+     */
     public static Uri getUri(String name) {
-        return documentsProvided.get(name);
+
+        // default try
+        Uri uri = documentsProvided.get(name);
+        if (uri != null) return uri;
+
+        // try replacing back-slashes
+        return documentsProvided.get(name.replaceAll("\\\\","/"));
+    }
+
+    public static void addData(Uri uri, byte[] data) {
+        binariesProvided.put(uri, data);
+        Log.i("ContentUtils", "Added (" + uri + ") " + data.length + " bytes");
+    }
+
+    public static byte[] getData(Uri uri) {
+        return binariesProvided.get(uri);
     }
 
     /**
@@ -119,17 +151,16 @@ public class ContentUtils {
         if (uri == null) {
             uri = getUri("models/"+path);
         }
-        if (uri == null) {
-            uri = getUri("models/"+path.replaceAll("\\\\","/"));
-        }
         if (uri == null && currentDir != null) {
             uri = Uri.parse("file://" + new File(currentDir, path).getAbsolutePath());
         }
         if (uri != null) {
             return getInputStream(uri);
         }
+
         Log.e("ContentUtils", "Media not found: " + path);
         Log.d("ContentUtils", "Available media: " + documentsProvided);
+        Log.d("ContentUtils", "Available media: " + binariesProvided);
         throw new FileNotFoundException("File not found: " + path);
     }
 
@@ -141,6 +172,11 @@ public class ContentUtils {
         if (getCurrentActivity() == null){
             throw new IllegalStateException("There is no context configured. Did you call #setContext() before?");
         }
+        if (getData(uri) != null){
+            Log.i("ContentUtils", "Returning binary: " + uri);
+            return new ByteArrayInputStream(getData(uri));
+        }
+
         Log.i("ContentUtils", "Opening stream ..." + uri);
         if (uri.getScheme().equals("android")) {
             if (uri.getPath().startsWith("/assets/")) {
@@ -247,7 +283,7 @@ public class ContentUtils {
     }
 
     public static AlertDialog.Builder createChooserDialog(Context context, String title, CharSequence message, List<String> fileListAssets,
-                                           String fileRegex, AssetUtils.Callback callback) {
+                                                          String fileRegex, AssetUtils.Callback callback) {
         final AlertDialog.Builder builder = new AlertDialog.Builder(context);
         builder.setTitle(title);
         builder.setMessage(message);
@@ -394,6 +430,7 @@ public class ContentUtils {
                 ZipInputStream zis = new ZipInputStream(new BufferedInputStream(is));
                 ZipEntry ze;
                 while ((ze = zis.getNextEntry()) != null) {
+                    if (ze.isDirectory()) continue;
                     final String name = ze.getName();
                     final ByteArrayOutputStream bos = new ByteArrayOutputStream();
                     int readed = 0;
@@ -411,4 +448,31 @@ public class ContentUtils {
             return null;
         }
     }
+
+    /**
+     * Get filename from the Android Content Provider response
+     * @param uri content provider returned uri
+     * @return the filename of the Uri
+     */
+    @SuppressLint("Range")
+    public static String getFileName(Uri uri) {
+        String result = null;
+        if (uri.getScheme().equals("content") && currentActivity != null) {
+            try (Cursor cursor = Objects.requireNonNull(currentActivity.get()).
+                    getContentResolver().query(uri, null, null, null, null)) {
+                if (cursor != null && cursor.moveToFirst()) {
+                    result = cursor.getString(cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME));
+                }
+            }
+        }
+        if (result == null) {
+            result = uri.getPath();
+            int cut = result.lastIndexOf('/');
+            if (cut != -1) {
+                result = result.substring(cut + 1);
+            }
+        }
+        return result;
+    }
+
 }

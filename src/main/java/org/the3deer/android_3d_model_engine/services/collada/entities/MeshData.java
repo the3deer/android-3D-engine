@@ -794,7 +794,7 @@ public class MeshData {
                     if (index >= 0 && index < normals.size()) {
                         normal = normals.get(index);
                     } else {
-                        Log.e("MeshData", "Wrong normal index: " + index);
+                        Log.v("MeshData", "Wrong normal index: " + index);
                     }
                     this.normalsBuffer.put(normal);
                 }
@@ -825,7 +825,7 @@ public class MeshData {
                 if (index >= 0 && index < normals.size()) {
                     normal = this.normals.get(index);
                 } else {
-                    Log.e("MeshData", "Wrong normal index: " + index);
+                    Log.v("MeshData", "Wrong normal index: " + index);
                 }
                 this.normalsBuffer.put(i * 3, normal[0]);
                 this.normalsBuffer.put(i * 3 + 1, normal[1]);
