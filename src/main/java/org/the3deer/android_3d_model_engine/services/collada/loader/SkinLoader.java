@@ -3,6 +3,7 @@ package org.the3deer.android_3d_model_engine.services.collada.loader;
 import android.opengl.Matrix;
 import android.util.Log;
 
+import org.the3deer.android_3d_model_engine.model.Constants;
 import org.the3deer.android_3d_model_engine.services.collada.entities.JointData;
 import org.the3deer.android_3d_model_engine.services.collada.entities.MeshData;
 import org.the3deer.android_3d_model_engine.services.collada.entities.SkeletonData;
@@ -191,7 +192,7 @@ public class SkinLoader {
 					Log.v("SkinLoader", "vertex_weights not found. Using root joint effect");
 					weightsData = new VertexSkinData();
 					weightsData.addJointEffect(jointData.getIndex(), 1);
-					weightsData.limitJointNumber(3);
+					weightsData.limitJointNumber(Constants.MAX_VERTEX_WEIGHTS);
 				}
 			}
 

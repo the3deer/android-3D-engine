@@ -253,7 +253,7 @@ public class MeshData {
             }
 
             // normalize smooth normals
-            Math3DUtils.normalize(smoothNormal);
+            Math3DUtils.normalizeVector(smoothNormal);
 
 
             // add new normal
@@ -288,7 +288,7 @@ public class MeshData {
     private static float[] calculateNormalFailsafe(float[] v1, float[] v2, float[] v3) {
         float[] normal = Math3DUtils.calculateNormal(v1, v2, v3);
         try {
-            Math3DUtils.normalize(normal);
+            Math3DUtils.normalizeVector(normal);
         } catch (Exception e) {
             Log.w("MeshData", "Error calculating normal. " + e.getMessage()
                     + "," + Math3DUtils.toString(v1)
@@ -622,7 +622,7 @@ public class MeshData {
 
             // smooth normal
             final float[] newSmoothNormal = Math3DUtils.mean(smoothNormal, normal);
-            Math3DUtils.normalize(newSmoothNormal);
+            Math3DUtils.normalizeVector(newSmoothNormal);
 
             // update smoothed normal
             smoothNormal[0] = newSmoothNormal[0];
@@ -683,7 +683,7 @@ public class MeshData {
             // otherwise, calculate normal average and save
             final float[] smoothNormal = Math3DUtils.mean(normals);
             //final float[] smoothNormal = new float[]{1,0,0};
-            Math3DUtils.normalize(smoothNormal);
+            Math3DUtils.normalizeVector(smoothNormal);
 
             vertexSmooths.put(entry.getKey(), smoothNormal);
         }

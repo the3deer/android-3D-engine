@@ -207,19 +207,21 @@ public class WavefrontLoader {
                         element.setMaterial(elementMaterial);
 
                         // check if element has texture mapped
-                        if (elementMaterial.getTextureFile() != null) {
+                        if (elementMaterial != null && elementMaterial.getColorTexture() != null
+                            && elementMaterial.getColorTexture().getFile() != null) {
+
 
                             // log event
-                            Log.i("WavefrontLoader", "Reading texture file... " + elementMaterial.getTextureFile());
+                            Log.i("WavefrontLoader", "Reading texture file... " + elementMaterial.getColorTexture().getFile());
 
                             // read texture data
-                            try (InputStream stream = ContentUtils.getInputStream(elementMaterial.getTextureFile())) {
+                            try (InputStream stream = ContentUtils.getInputStream(elementMaterial.getColorTexture().getFile())) {
 
                                 // read data
-                                elementMaterial.setTextureData(IOUtils.read(stream));
+                                elementMaterial.getColorTexture().setData(IOUtils.read(stream));
 
                                 // log event
-                                Log.i("WavefrontLoader", "Texture linked... " + element.getMaterial().getTextureFile());
+                                Log.i("WavefrontLoader", "Texture linked... " + elementMaterial.getColorTexture().getFile());
 
                             } catch (Exception ex) {
                                 Log.e("WavefrontLoader", String.format("Error reading texture file: %s", ex.getMessage()));

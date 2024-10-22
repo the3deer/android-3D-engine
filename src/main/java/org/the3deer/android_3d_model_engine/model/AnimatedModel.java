@@ -2,11 +2,12 @@ package org.the3deer.android_3d_model_engine.model;
 
 import org.the3deer.android_3d_model_engine.animation.Animation;
 import org.the3deer.android_3d_model_engine.animation.Joint;
+import org.the3deer.android_3d_model_engine.services.collada.entities.JointData;
 import org.the3deer.android_3d_model_engine.services.collada.entities.SkeletonData;
 import org.the3deer.util.math.Math3DUtils;
 
+import java.nio.Buffer;
 import java.nio.FloatBuffer;
-import java.nio.IntBuffer;
 
 /**
  * This class represents an entity in the world that can be animated. It
@@ -21,20 +22,22 @@ import java.nio.IntBuffer;
 public class AnimatedModel extends Object3DData {
 
     // skeleton
-    private SkeletonData jointsData;
+    private SkeletonData skeleton;
 
     // bind_shape_matrix
 	/* The bind shape matrix describes how to transform the geometry into the right
 	coordinate system for use with the joints */
     private float[] bindShapeMatrix;
 
-    private FloatBuffer jointIds;
-    private FloatBuffer vertexWeigths;
+    private Buffer jointIds;
+    private Buffer vertexWeigths;
     private Animation animation;
 
     // cache
     private Joint rootJoint;
     private float[][] jointMatrices;
+    private int jointComponents = Constants.MAX_VERTEX_WEIGHTS;
+    private int weightsComponents = Constants.MAX_VERTEX_WEIGHTS;
 
     public AnimatedModel() {
         super();
@@ -44,7 +47,7 @@ public class AnimatedModel extends Object3DData {
         super(vertexBuffer);
     }
 
-    public AnimatedModel(FloatBuffer vertexBuffer, IntBuffer drawOrderBuffer) {
+    public AnimatedModel(FloatBuffer vertexBuffer, Buffer drawOrderBuffer) {
         super(vertexBuffer, drawOrderBuffer);
     }
 
@@ -69,42 +72,46 @@ public class AnimatedModel extends Object3DData {
         return this;
     }
 
-    public void setJointsData(SkeletonData jointsData) {
-        this.jointsData = jointsData;
+    public void setSkeleton(SkeletonData jointsData) {
+        this.skeleton = jointsData;
     }
 
-    public SkeletonData getJointsData() {
-        return jointsData;
+    public SkeletonData getSkeleton() {
+        return skeleton;
     }
 
     public int getJointCount() {
-        return jointsData.getJointCount();
+        return skeleton.getJointCount();
     }
 
     public int getBoneCount() {
-        return jointsData.getBoneCount();
+        if (skeleton != null) {
+            return skeleton.getBoneCount();
+        }
+        return 0;
     }
 
-    public AnimatedModel setJointIds(FloatBuffer jointIds) {
+    public AnimatedModel setJoints(Buffer jointIds) {
         this.jointIds = jointIds;
         return this;
     }
 
-    public FloatBuffer getJointIds() {
+    public Buffer getJointIds() {
         return jointIds;
     }
 
-    public AnimatedModel setVertexWeights(FloatBuffer vertexWeigths) {
+    public AnimatedModel setWeights(Buffer vertexWeigths) {
         this.vertexWeigths = vertexWeigths;
         return this;
     }
 
-    public FloatBuffer getVertexWeights() {
+    public Buffer getVertexWeights() {
         return vertexWeigths;
     }
 
-    public AnimatedModel doAnimation(Animation animation) {
+    public AnimatedModel setAnimation(Animation animation) {
         this.animation = animation;
+        propagate(new ChangeEvent(this));
         return this;
     }
 
@@ -118,8 +125,12 @@ public class AnimatedModel extends Object3DData {
      * joint.
      */
     public Joint getRootJoint() {
-        if (this.rootJoint == null && this.jointsData != null) {
-            this.rootJoint = Joint.buildJoints(this.jointsData.getHeadJoint());
+        if (this.rootJoint == null && this.skeleton != null) {
+            if (this.skeleton.getHeadJoint() != null) {
+                this.rootJoint = Joint.buildJoints(this.skeleton.getHeadJoint());
+            } else if (this.skeleton != null){
+                this.rootJoint = Joint.buildJoints(this.skeleton.getJoints().get(0));
+            }
         }
         return rootJoint;
     }
@@ -134,13 +145,18 @@ public class AnimatedModel extends Object3DData {
      * animation pose.
      */
     public float[][] getJointTransforms() {
-        if (jointMatrices == null) {
-            this.jointMatrices = new float[getBoneCount()][16];
+        if (getJointMatrices() == null) {
+            this.setJointMatrices(new float[getBoneCount()][16]);  // 16 is the size of the matrix
         }
-        return jointMatrices;
+        return getJointMatrices();
     }
 
     public void updateAnimatedTransform(Joint joint) {
+
+        // check
+        if (joint.getIndex() >= getBoneCount()) return;
+
+        // update
         getJointTransforms()[joint.getIndex()] = joint.getAnimatedTransform();
     }
 
@@ -148,15 +164,42 @@ public class AnimatedModel extends Object3DData {
     public AnimatedModel clone() {
         final AnimatedModel ret = new AnimatedModel();
         super.copy(ret);
-        ret.setJointsData(this.getJointsData());
+        ret.setJoints(this.getJointIds());
+        ret.setWeights(this.getVertexWeights());
         ret.setRootJoint(this.getRootJoint());
-        ret.setJointIds(this.getJointIds());
-        ret.setVertexWeights(this.getVertexWeights());
-        ret.doAnimation(this.getAnimation());
-        ret.jointMatrices = this.jointMatrices;
-        ret.bindShapeMatrix = this.bindShapeMatrix;
+        ret.setSkeleton(this.getSkeleton());
+        ret.setAnimation(this.getAnimation());
+        ret.setJointMatrices(this.getJointTransforms());
+        //ret.setBindShapeMatrix(this.getBindShapeMatrix());
         return ret;
     }
 
 
+    public float[][] getJointMatrices() {
+        return jointMatrices;
+    }
+
+    public void setJointMatrices(float[][] jointMatrices) {
+        this.jointMatrices = jointMatrices;
+    }
+
+    public void setJointIdsComponents(int numComponents) {
+        this.jointComponents = numComponents;
+    }
+
+    public void setWeightsComponents(int numComponents) {
+        this.weightsComponents = numComponents;
+    }
+
+    public int getJointComponents() {
+        return jointComponents;
+    }
+
+    public int getWeightsComponents() {
+        return weightsComponents;
+    }
+
+    public JointData getBone(String jointId) {
+        return skeleton.find(jointId);
+    }
 }

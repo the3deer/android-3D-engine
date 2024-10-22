@@ -4,6 +4,7 @@ import android.util.Log;
 
 import org.the3deer.android_3d_model_engine.model.Element;
 import org.the3deer.android_3d_model_engine.model.Material;
+import org.the3deer.android_3d_model_engine.model.Texture;
 import org.the3deer.android_3d_model_engine.services.collada.entities.JointData;
 import org.the3deer.android_3d_model_engine.services.collada.entities.MeshData;
 import org.the3deer.android_3d_model_engine.services.collada.entities.SkeletonData;
@@ -181,7 +182,7 @@ public class MaterialLoader {
 
             // get texture image
             String textureFile = null;
-            if (textureNode != null) {
+            if (imagesNode != null && textureNode != null) {
                 String texture = textureNode.getAttribute("texture");
                 XmlNode newParamNode = profile_common.getChildWithAttribute("newparam", "sid", texture);
                 if (newParamNode != null) {
@@ -204,7 +205,7 @@ public class MaterialLoader {
             final Material ret = new Material(materialId);
             ret.setDiffuse(color);
             ret.setAlpha(alpha);
-            ret.setTextureFile(textureFile);
+            ret.setColorTexture(new Texture().setFile(textureFile));
             return ret;
 
             // fallback to ambient color

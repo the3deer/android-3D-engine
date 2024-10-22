@@ -3,7 +3,7 @@ precision highp float;
 const int MAX_JOINTS = 60;
 //const int MAX_WEIGHTS = 3;
 
-// data
+// MVP matrices
 uniform mat4 u_MMatrix;
 uniform mat4 u_VMatrix;
 uniform mat4 u_PMatrix;
@@ -29,16 +29,18 @@ varying vec3 v_Normal;
 
 // normalMap
 uniform bool u_NormalTextured;
-uniform sampler2D u_NormalTexture;
+//uniform sampler2D u_NormalTexture;
+attribute vec3 a_Tangent;
+varying vec3 v_Tangent;
 
 // emissiveMap
-uniform bool u_EmissiveTextured;
-uniform sampler2D u_EmissiveTexture;
+//uniform bool u_EmissiveTextured;
+//uniform sampler2D u_EmissiveTexture;
 
 // animation
 uniform bool u_Animated;
-attribute vec3 in_jointIndices;
-attribute vec3 in_weights;
+attribute vec4 in_jointIndices;
+attribute vec4 in_weights;
 uniform mat4 u_BindShapeMatrix;
 uniform mat4 jointTransforms[MAX_JOINTS];
 
@@ -53,6 +55,8 @@ void main(){
         animatedPos += posePosition * in_weights[1];
         posePosition = jointTransforms[int(in_jointIndices[2])] * bindPos;
         animatedPos += posePosition * in_weights[2];
+        posePosition = jointTransforms[int(in_jointIndices[3])] * bindPos;
+        animatedPos += posePosition * in_weights[3];
     }
 
     // calculate MVP matrix
@@ -63,20 +67,25 @@ void main(){
     gl_Position = u_MVPMatrix * animatedPos;
     v_Position = vec3(animatedPos);
 
-    // colours
+    // colour
     if (u_Coloured){
         v_Color = a_Color;
     }
 
-    // normals
+    // texture
+    if (u_Textured) {
+        v_TexCoordinate = a_TexCoordinate;
+    }
+
+    // normal
     if (u_Lighted){
         // Normal = mat3(transpose(inverse(model))) * aNormal;
         //v_Normal = u_MMatrix_Normal * a_Normal;
         v_Normal = a_Normal;
     }
 
-    // textures
-    if (u_Textured) {
-        v_TexCoordinate = a_TexCoordinate;
+    // texture normal
+    if (u_NormalTextured) {
+        v_Tangent = a_Tangent;
     }
 }

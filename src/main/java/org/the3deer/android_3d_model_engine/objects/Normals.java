@@ -11,8 +11,10 @@ import org.the3deer.android_3d_model_engine.model.Object3DData;
 import org.the3deer.util.io.IOUtils;
 import org.the3deer.util.math.Math3DUtils;
 
+import java.nio.Buffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
+import java.nio.ShortBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -79,11 +81,23 @@ public final class Normals {
 
             final List<Integer> normalsIndices = new ArrayList<>();
 
-            final IntBuffer indices = element.getIndexBuffer();
+            final
+            Buffer indices = element.getIndexBuffer();
             for (int i = 0; i < indices.capacity(); i += 3) {
-                int offsetV1 = indices.get(i) * COORDS_PER_VERTEX;
-                int offsetV2 = indices.get(i + 1) * COORDS_PER_VERTEX;
-                int offsetV3 = indices.get(i + 2) * COORDS_PER_VERTEX;
+                final int offsetV1;
+                final int offsetV2;
+                final int offsetV3;
+                if (indices instanceof IntBuffer){
+                    offsetV1 = ((IntBuffer)indices).get(i) * COORDS_PER_VERTEX;
+                    offsetV2 = ((IntBuffer)indices).get(i + 1) * COORDS_PER_VERTEX;
+                    offsetV3 = ((IntBuffer)indices).get(i + 2) * COORDS_PER_VERTEX;
+                }else if (indices instanceof ShortBuffer){
+                    offsetV1 = ((ShortBuffer)indices).get(i) * COORDS_PER_VERTEX;
+                    offsetV2 = ((ShortBuffer)indices).get(i + 1) * COORDS_PER_VERTEX;
+                    offsetV3 = ((ShortBuffer)indices).get(i + 2) * COORDS_PER_VERTEX;
+                } else {
+                    throw new IllegalStateException("The IndexBuffer is of unknown type");
+                }
 
                 float[] normal1 = new float[]{obj.getNormalsBuffer().get(offsetV1), obj.getNormalsBuffer().get(offsetV1 + 1), obj.getNormalsBuffer().get(offsetV1 + 2)};
                 float[] v1 = {obj.getVertexBuffer().get(offsetV1), obj.getVertexBuffer().get(offsetV1 + 1), obj.getVertexBuffer().get(offsetV1 + 2)};
@@ -167,16 +181,27 @@ public final class Normals {
             Log.i("Normals", "Adding additional vertices and normals... element: "+element.getId());
 
             // current triangle indices
-            final IntBuffer indexBuffer = element.getIndexBuffer();
+            final Buffer indexBuffer = element.getIndexBuffer();
 
             // new lines indices
             final List<Integer> normalsIndices = new ArrayList<>();
 
             for (int i = 0; i < indexBuffer.capacity(); i += 3) {
 
-                final int idxV1 = indexBuffer.get(i);
-                final int idxV2 = indexBuffer.get(i + 1);
-                final int idxV3 = indexBuffer.get(i + 2);
+                final int idxV1;
+                final int idxV2;
+                final int idxV3;
+                if (indexBuffer instanceof IntBuffer){
+                    idxV1 = ((IntBuffer)indexBuffer).get(i);
+                    idxV2 = ((IntBuffer)indexBuffer).get(i + 1);
+                    idxV3 = ((IntBuffer)indexBuffer).get(i + 2);
+                }else if (indexBuffer instanceof ShortBuffer){
+                    idxV1 = ((ShortBuffer)indexBuffer).get(i);
+                    idxV2 = ((ShortBuffer)indexBuffer).get(i + 1);
+                    idxV3 = ((ShortBuffer)indexBuffer).get(i + 2);
+                } else {
+                    throw new IllegalStateException("The IndexBuffer is of unknown type");
+                }
 
                 final int offsetV1 = idxV1 * 3;
                 final int offsetV2 = idxV2 * 3;
@@ -230,8 +255,8 @@ public final class Normals {
         normalsObj.setReadOnly(true);
         normalsObj.setElements(newElements);
         normalsObj.setDrawUsingArrays(false);
-        normalsObj.doAnimation(obj.getAnimation());
-        normalsObj.setJointsData(obj.getJointsData());
+        normalsObj.setAnimation(obj.getAnimation());
+        normalsObj.setSkeleton(obj.getSkeleton());
         normalsObj.setRootJoint(obj.getRootJoint());
         normalsObj.setBindShapeMatrix(obj.getBindShapeMatrix());
 
@@ -242,7 +267,8 @@ public final class Normals {
             final FloatBuffer newVertexWeights = IOUtils.createFloatBuffer(obj.getVertexWeights().capacity() * 2);
             final FloatBuffer newJointIds = IOUtils.createFloatBuffer(obj.getJointIds().capacity() * 2);
 
-            for (int i = 0; i < obj.getJointIds().capacity(); i += 3) {
+            // FIXME:
+            /*for (int i = 0; i < obj.getJointIds().capacity(); i += 3) {
                 newJointIds.put(new float[]{obj.getJointIds().get(i), obj.getJointIds().get(i + 1), obj.getJointIds().get(i + 2)});
             }
             for (int i = 0; i < obj.getJointIds().capacity(); i += 3) {
@@ -254,10 +280,10 @@ public final class Normals {
             }
             for (int i = 0; i < obj.getVertexWeights().capacity(); i += 3) {
                 newVertexWeights.put(new float[]{obj.getVertexWeights().get(i), obj.getVertexWeights().get(i + 1), obj.getVertexWeights().get(i + 2)});
-            }
+            }*/
 
-            normalsObj.setJointIds(newJointIds);
-            normalsObj.setVertexWeights(newVertexWeights);
+            normalsObj.setJoints(newJointIds);
+            normalsObj.setWeights(newVertexWeights);
         }
 
         Log.i("Normals", "New animated normal lines object created");
@@ -301,9 +327,20 @@ public final class Normals {
         FloatBuffer normalsLines = IOUtils.createFloatBuffer(obj.getDrawOrder().capacity() * 3);
 
         for (int i = 0; i < obj.getDrawOrder().capacity(); i += 3) {
-            int v1 = obj.getDrawOrder().get(i) * COORDS_PER_VERTEX;
-            int v2 = obj.getDrawOrder().get(i + 1) * COORDS_PER_VERTEX;
-            int v3 = obj.getDrawOrder().get(i + 2) * COORDS_PER_VERTEX;
+            final int v1;
+            final int v2;
+            final int v3;
+            if (obj.getDrawOrder() instanceof IntBuffer){
+                v1 = ((IntBuffer)obj.getDrawOrder()).get(i)* COORDS_PER_VERTEX;
+                v2 = ((IntBuffer)obj.getDrawOrder()).get(i + 1)* COORDS_PER_VERTEX;
+                v3 = ((IntBuffer)obj.getDrawOrder()).get(i + 2)* COORDS_PER_VERTEX;
+            }else if (obj.getDrawOrder() instanceof ShortBuffer){
+                v1 = ((ShortBuffer)obj.getDrawOrder()).get(i)* COORDS_PER_VERTEX;
+                v2 = ((ShortBuffer)obj.getDrawOrder()).get(i + 1)* COORDS_PER_VERTEX;
+                v3 = ((ShortBuffer)obj.getDrawOrder()).get(i + 2)* COORDS_PER_VERTEX;
+            } else {
+                throw new IllegalStateException("The IndexBuffer is of unknown type");
+            }
 
             float[][] normalLine = Math3DUtils.calculateNormalLine(
                     new float[]{obj.getVertexBuffer().get(v1), obj.getVertexBuffer().get(v1 + 1), obj.getVertexBuffer().get(v1 + 2)},

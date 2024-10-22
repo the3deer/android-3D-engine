@@ -6,8 +6,10 @@ import org.the3deer.android_3d_model_engine.model.BoundingBox;
 import org.the3deer.android_3d_model_engine.model.Object3DData;
 import org.the3deer.util.math.Math3DUtils;
 
+import java.nio.Buffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
+import java.nio.ShortBuffer;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -78,21 +80,33 @@ public class Octree {
             ret.pending.addAll(triangles);
         } else {
             // faces are built
-            final IntBuffer drawOrder = object.getDrawOrder().asReadOnlyBuffer();
+            final Buffer drawOrder = object.getDrawOrder();
             final FloatBuffer buffer = object.getVertexBuffer().asReadOnlyBuffer();
             final List<float[]> triangles = new ArrayList<>(drawOrder.capacity() / 3 * 4);
             //final float[] modelMatrix = object.getModelMatrix();
             //final float[] modelMatrix = Math3DUtils.IDENTITY_MATRIX;
             for (int i = 0; i < drawOrder.capacity(); i += 3) {
-                float[] triangle = new float[]{
-                        buffer.get(drawOrder.get(i)), buffer.get(drawOrder.get(i)+1), buffer.get(drawOrder.get(i)+2), 1,
-                        buffer.get(drawOrder.get(i+1)), buffer.get(drawOrder.get(i+1)+1), buffer.get(drawOrder.get(i+1)+2), 1,
-                        buffer.get(drawOrder.get(i+2)), buffer.get(drawOrder.get(i+2)+1), buffer.get(drawOrder.get(i+2)+2), 1,
-                };
-                //Matrix.multiplyMV(triangle, 0, modelMatrix, 0, triangle, 0);
-                //Matrix.multiplyMV(triangle, 4, modelMatrix, 0, triangle, 4);
-                //Matrix.multiplyMV(triangle, 8, modelMatrix, 0, triangle, 8);
-                triangles.add(triangle);
+                if (drawOrder instanceof IntBuffer) {
+                    float[] triangle = new float[]{
+                            buffer.get(((IntBuffer)drawOrder).get(i)), buffer.get(((IntBuffer)drawOrder).get(i) + 1), buffer.get(((IntBuffer)drawOrder).get(i) + 2), 1,
+                            buffer.get(((IntBuffer)drawOrder).get(i + 1)), buffer.get(((IntBuffer)drawOrder).get(i + 1) + 1), buffer.get(((IntBuffer)drawOrder).get(i + 1) + 2), 1,
+                            buffer.get(((IntBuffer)drawOrder).get(i + 2)), buffer.get(((IntBuffer)drawOrder).get(i + 2) + 1), buffer.get(((IntBuffer)drawOrder).get(i + 2) + 2), 1,
+                    };
+                    //Matrix.multiplyMV(triangle, 0, modelMatrix, 0, triangle, 0);
+                    //Matrix.multiplyMV(triangle, 4, modelMatrix, 0, triangle, 4);
+                    //Matrix.multiplyMV(triangle, 8, modelMatrix, 0, triangle, 8);
+                    triangles.add(triangle);
+                } else if (drawOrder instanceof ShortBuffer){
+                    float[] triangle = new float[]{
+                            buffer.get(((ShortBuffer)drawOrder).get(i)), buffer.get(((ShortBuffer)drawOrder).get(i) + 1), buffer.get(((ShortBuffer)drawOrder).get(i) + 2), 1,
+                            buffer.get(((ShortBuffer)drawOrder).get(i + 1)), buffer.get(((ShortBuffer)drawOrder).get(i + 1) + 1), buffer.get(((ShortBuffer)drawOrder).get(i + 1) + 2), 1,
+                            buffer.get(((ShortBuffer)drawOrder).get(i + 2)), buffer.get(((ShortBuffer)drawOrder).get(i + 2) + 1), buffer.get(((ShortBuffer)drawOrder).get(i + 2) + 2), 1,
+                    };
+                    //Matrix.multiplyMV(triangle, 0, modelMatrix, 0, triangle, 0);
+                    //Matrix.multiplyMV(triangle, 4, modelMatrix, 0, triangle, 4);
+                    //Matrix.multiplyMV(triangle, 8, modelMatrix, 0, triangle, 8);
+                    triangles.add(triangle);
+                }
             }
             ret.pending.addAll(triangles);
         }

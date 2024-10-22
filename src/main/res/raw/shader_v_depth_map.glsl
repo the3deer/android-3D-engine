@@ -3,7 +3,7 @@ precision highp float;
 const int MAX_JOINTS = 60;
 //const int MAX_WEIGHTS = 3;
 
-// data
+// MVP matrices
 uniform mat4 u_MMatrix;
 uniform mat4 u_VMatrix;
 uniform mat4 u_PMatrix;
@@ -14,8 +14,8 @@ varying vec4 v_Position;
 
 // animation
 uniform bool u_Animated;
-attribute vec3 in_jointIndices;
-attribute vec3 in_weights;
+attribute vec4 in_jointIndices;
+attribute vec4 in_weights;
 uniform mat4 u_BindShapeMatrix;
 uniform mat4 jointTransforms[MAX_JOINTS];
 
@@ -30,11 +30,13 @@ void main(){
         animatedPos += posePosition * in_weights[1];
         posePosition = jointTransforms[int(in_jointIndices[2])] * bindPos;
         animatedPos += posePosition * in_weights[2];
+        posePosition = jointTransforms[int(in_jointIndices[3])] * bindPos;
+        animatedPos += posePosition * in_weights[3];
     }
 
-	// calculate MVP matrix
-	mat4 u_MVMatrix = u_VMatrix * u_MMatrix;
-	mat4 u_MVPMatrix = u_PMatrix * u_MVMatrix;
+    // calculate MVP matrix
+    mat4 u_MVMatrix = u_VMatrix * u_MMatrix;
+    mat4 u_MVPMatrix = u_PMatrix * u_MVMatrix;
 
 	// calculate rendered position
 	gl_Position = u_MVPMatrix * animatedPos;

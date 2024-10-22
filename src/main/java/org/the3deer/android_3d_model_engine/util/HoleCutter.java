@@ -16,13 +16,13 @@ public class HoleCutter {
 
         // calculate polygon normal
         final float[] normal = Math3DUtils.calculateNormal(triangles.get(0), triangles.get(1), triangles.get(2));
-        Math3DUtils.normalize(normal);
+        Math3DUtils.normalizeVector(normal);
 
         // calculate 2D rotation
         final float dot = Math3DUtils.dotProduct(Constants.Z_NORMAL, normal);
         final float angle = (float) Math.acos(dot);
         final float[] cross = Math3DUtils.crossProduct(Constants.Z_NORMAL, normal);
-        Math3DUtils.normalize(cross);
+        Math3DUtils.normalizeVector(cross);
         cross[1] = 0;
         cross[2] = 0;
         float[] rotationMatrix = Math3DUtils.createRotationMatrixAroundVector(angle, cross[0], cross[1], cross[2]);

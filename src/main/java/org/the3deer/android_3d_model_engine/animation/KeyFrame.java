@@ -36,6 +36,10 @@ public class KeyFrame {
 		this.pose = jointKeyFrames;
 	}
 
+	public Map<String, JointTransform> getPose() {
+		return pose;
+	}
+
 	/**
 	 * @return The time in seconds of the keyframe in the animation.
 	 */

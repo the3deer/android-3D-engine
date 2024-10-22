@@ -4,6 +4,7 @@ import android.util.Log;
 
 import org.the3deer.android_3d_model_engine.model.Material;
 import org.the3deer.android_3d_model_engine.model.Materials;
+import org.the3deer.android_3d_model_engine.model.Texture;
 import org.the3deer.util.math.Math3DUtils;
 
 import java.io.BufferedReader;
@@ -58,15 +59,15 @@ final class WavefrontMaterialsParser {
                     currMaterial.setName(line.substring(6).trim());
 
                     // log event
-                    Log.d("WavefrontMaterialsParse", "New material found: " + currMaterial.getName());
+                    Log.v("WavefrontMaterialsParse", "New material found: " + currMaterial.getName());
 
                 } else if (line.startsWith("map_Kd ")) { // texture filename
 
                     // bind texture
-                    currMaterial.setTextureFile(line.substring(6).trim());
+                    currMaterial.setColorTexture(new Texture().setFile(line.substring(6).trim()));
 
                     // log event
-                    Log.v("WavefrontMaterialsParse", "Texture found: " + currMaterial.getTextureFile());
+                    Log.v("WavefrontMaterialsParse", "Texture found: " + currMaterial.getColorTexture().getFile());
 
                 } else if (line.startsWith("Ka ")) {
 

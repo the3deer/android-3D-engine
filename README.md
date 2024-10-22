@@ -1,7 +1,7 @@
 Android 3D Engine
 =================
 
-This is a 3D OpenGL ES 2.0 engine
+This is a 3D OpenGL ES 2.0/3.0 engine
 
 As this is my first android library and my first 3D engine and I'm still learning the OpenGL 2.0 language, it is highly probable that there are bugs;
 however, I will try to continue improving the library and adding more features. 
@@ -11,8 +11,8 @@ So please send me your comments, suggestions or complains by opening an [issue](
 Features
 ========
 
-- [x] Supports >= Android 4.1 (Ice Cream Sandwich) - Min API Level 16 -> Target API Level 31
-- [x] OpenGL ES 2.0 API
+- [x] Supports >= Android 5.0 (LOLLIPOP) - Min API Level 21 -> Target API Level 34
+- [x] OpenGL ES 2.0/3.0 API
 - [x] 3D model parser:
     - [x] OBJ (wavefront)
     - [x] STL (STereoLithography)
@@ -23,29 +23,20 @@ Features
 - [x] Colors support
 - [x] Textures support
 - [x] Lighting support
-- [x] Multiple Rendering Modes
-    - [x] triangles
+- [x] Debuggers
     - [x] wireframe
-    - [x] point cloud
     - [x] skeleton
-- [x] camera support
-    - [x] perspective
-    - [x] orthographic
-    - [x] isometric views
-    - [x] free
-- [x] skeletal animations (collada dae)
+- [x] skeletal animations (collada dae, gltf)
 - [x] ray collision detection
-- [x] stereoscopic 3D: anaglyph + cardboard
 - [x] other:
     - [x] Polygon with holes
-    - [x] Smoothing
     - [x] Bounding box
     - [x] Skybox
     - [x] Object picking
     - [x] file explorer
     - [x] repository explorer
-    - [x] texture loader
-    - [x] lightweight: only 1.3 Megabyte (embedded models excluded)
+    - [x] khronos explorer
+    - [x] lightweight: only 8 Megabyte (3d models excluded)
 
 
 Usage
@@ -95,6 +86,18 @@ copies or substantial portions of the Software.
 ChangeLog
 =========
 
+- 0.2.0 (22/10/2022)
+  - Full Engine refactoring. Component based. MVC Architecture.
+  - Full Android refactoring. Only 1 Activity and Fragments
+  - BeanFactory: Bean Factory and Bean Manager utility
+  - Updated GLTF parser with latest sources
+  - Refactoring: Usage generic Buffer of dynamic type
+  - Animation: Upgraded from vec3 to vec4 weights
+  - Animator: Fixes for gltf
+  - Shader: Normal mapping fixed
+  - CameraController projections (DISABLED): rotations not working properly
+  - Transformation rotation (DISABLED): Object rotation not working properly
+  - Collada loader bug fixes
 - 0.1.0 (18/10/2022)
   - Added support for ZIP files    
 

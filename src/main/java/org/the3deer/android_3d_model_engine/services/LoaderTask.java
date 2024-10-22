@@ -6,6 +6,7 @@ import android.os.AsyncTask;
 import android.util.Log;
 
 import org.the3deer.android_3d_model_engine.model.Object3DData;
+import org.the3deer.util.android.ContentUtils;
 
 import java.net.URI;
 import java.util.List;
@@ -55,9 +56,11 @@ public abstract class LoaderTask extends AsyncTask<Void, String, List<Object3DDa
 	@Override
 	protected List<Object3DData> doInBackground(Void... params) {
 		try {
+			ContentUtils.setThreadActivity(dialog.getContext());
 			callback.onStart();
 			List<Object3DData> data = build();
 			callback.onLoadComplete();
+			ContentUtils.setThreadActivity(null);
 			return  data;
 		} catch (Exception ex) {
 			Log.e("LoaderTask",ex.getMessage(),ex);

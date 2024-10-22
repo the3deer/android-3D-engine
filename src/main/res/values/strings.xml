@@ -1,3 +1,20 @@
 <resources>
     <string name="app_name">android-3d-model-engine</string>
+
+    <string name="dialog_title">Please select</string>
+    <string name="dialog_ok">Ok</string>
+    <string name="dialog_cancel">Cancel</string>
+
+    <string name="preferences">Preferences</string>
+
+    <string name="toggle_renderer">Toggle Renderer</string>
+    <string name="toggle_camera">Toggle Camera</string>
+    <string name="toggle_skybox">Toggle SkyBox</string>
+    <string name="toggle_view">Toggle View</string>
+
+    <!-- colors -->
+    <string name="gray">gray</string>
+    <string name="white">white</string>
+    <string name="black">black</string>
+
 </resources>

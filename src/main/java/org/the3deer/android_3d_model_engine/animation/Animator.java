@@ -66,7 +66,9 @@ public class Animator {
 		// if (true) return;
 		AnimatedModel animatedModel = (AnimatedModel)obj;
 
-		if (animatedModel.getAnimation() == null) return;
+		if (animatedModel.getAnimation() == null) {
+			return;
+		}
 
 		// add missing key transformations
 		initAnimation(animatedModel);
@@ -76,17 +78,22 @@ public class Animator {
 
 		Map<String, float[]> currentPose = calculateCurrentAnimationPose(animatedModel);
 
-		applyPoseToJoints(animatedModel, currentPose, animatedModel.getRootJoint(), Math3DUtils.IDENTITY_MATRIX,
-				Integer.MAX_VALUE);
+		applyPoseToJoints(animatedModel, currentPose, animatedModel.getRootJoint(),
+				Math3DUtils.IDENTITY_MATRIX,
+				Integer.MAX_VALUE, bindPoseOnly);
 	}
 
 	private void initAnimation(AnimatedModel animatedModel) {
 		if (animatedModel.getAnimation().isInitialized()) {
 			return;
 		}
+		animatedModel.getAnimation().setInitialized(true);
 
 		final KeyFrame[] keyFrames = animatedModel.getAnimation().getKeyFrames();
 		Log.i("Animator", "Initializing " + animatedModel.getId() + ". " + keyFrames.length + " key frames...");
+
+		// debug
+		animatedModel.getAnimation().debugKeyFrames();
 
 		// get all joint names in the different key frames
 		final Set<String> allJointIds = new HashSet<>();
@@ -110,7 +117,7 @@ public class Animator {
 					continue;
 				}
 
-				// if not complete, but first frame we just complete transforms with join data
+				// if not complete, but first frame we just complete transforms with joint data
 				if (currentTransform != null && i == 0){
 					currentTransform.complete(rootJoint.find(jointId));
 					continue;
@@ -157,27 +164,35 @@ public class Animator {
 					JointTransform candidate = keyFrames[k].getTransforms().get(jointId);
 					if (candidate == null) continue;
 					if (candidate.getScale() != null) {
-						if (!hasScaleX && keyFrameNextScaleX == null && candidate.getScale()[0] != null)
+						if (keyFrameNextScaleX == null && candidate.getScale()[0] != null)
 							keyFrameNextScaleX = keyFrames[k];
-						if (!hasScaleY && keyFrameNextScaleY == null && candidate.getScale()[1] != null)
+						if (keyFrameNextScaleY == null && candidate.getScale()[1] != null)
 							keyFrameNextScaleY = keyFrames[k];
-						if (!hasScaleZ && keyFrameNextScaleZ == null && candidate.getScale()[2] != null)
+						if (keyFrameNextScaleZ == null && candidate.getScale()[2] != null)
 							keyFrameNextScaleZ = keyFrames[k];
 					}
-					if (candidate.getRotation() != null) {
-						if (!hasRotationX && keyFrameNextRotationX == null && candidate.getRotation()[0] != null)
+					if (candidate.getQRotation() != null) {
+						if (keyFrameNextRotationX == null)
 							keyFrameNextRotationX = keyFrames[k];
-						if (!hasRotationY && keyFrameNextRotationY == null && candidate.getRotation()[1] != null)
+						if (keyFrameNextRotationY == null)
 							keyFrameNextRotationY = keyFrames[k];
-						if (!hasRotationZ && keyFrameNextRotationZ == null && candidate.getRotation()[2] != null)
+						if (keyFrameNextRotationZ == null)
+							keyFrameNextRotationZ = keyFrames[k];
+					}
+					else if (candidate.getRotation() != null) {
+						if (keyFrameNextRotationX == null && candidate.getRotation()[0] != null)
+							keyFrameNextRotationX = keyFrames[k];
+						if (keyFrameNextRotationY == null && candidate.getRotation()[1] != null)
+							keyFrameNextRotationY = keyFrames[k];
+						if (keyFrameNextRotationZ == null && candidate.getRotation()[2] != null)
 							keyFrameNextRotationZ = keyFrames[k];
 					}
 					if (candidate.getLocation() != null) {
-						if (!hasLocationX && keyFrameNextLocationX == null && candidate.getLocation()[0] != null)
+						if (keyFrameNextLocationX == null && candidate.getLocation()[0] != null)
 							keyFrameNextLocationX = keyFrames[k];
-						if (!hasLocationY && keyFrameNextLocationY == null && candidate.getLocation()[1] != null)
+						if (keyFrameNextLocationY == null && candidate.getLocation()[1] != null)
 							keyFrameNextLocationY = keyFrames[k];
-						if (!hasLocationZ && keyFrameNextLocationZ == null && candidate.getLocation()[2] != null)
+						if (keyFrameNextLocationZ == null && candidate.getLocation()[2] != null)
 							keyFrameNextLocationZ = keyFrames[k];
 					}
 					if (keyFrameNextScaleX != null && keyFrameNextScaleY != null && keyFrameNextScaleZ != null
@@ -221,28 +236,26 @@ public class Animator {
 
 				// interpolate
 				final JointTransform missingFrameTransform = JointTransform.ofInterpolation(
-						previousTransform, keyFrameNextScaleX.getTransforms().get(jointId), scaleProgressionX,
-						previousTransform, keyFrameNextScaleY.getTransforms().get(jointId), scaleProgressionY,
-						previousTransform, keyFrameNextScaleZ.getTransforms().get(jointId), scaleProgressionZ,
-						previousTransform, keyFrameNextRotationX.getTransforms().get(jointId), rotationProgressionX,
-						previousTransform, keyFrameNextRotationY.getTransforms().get(jointId), rotationProgressionY,
-						previousTransform, keyFrameNextRotationZ.getTransforms().get(jointId), rotationProgressionZ,
-						previousTransform, keyFrameNextLocationX.getTransforms().get(jointId), locationProgressionX,
-						previousTransform, keyFrameNextLocationY.getTransforms().get(jointId), locationProgressionY,
-						previousTransform, keyFrameNextLocationZ.getTransforms().get(jointId), locationProgressionZ
+						hasScaleX? currentTransform : previousTransform, keyFrameNextScaleX.getTransforms().get(jointId), scaleProgressionX,
+						hasScaleY? currentTransform : previousTransform, keyFrameNextScaleY.getTransforms().get(jointId), scaleProgressionY,
+						hasScaleZ? currentTransform : previousTransform, keyFrameNextScaleZ.getTransforms().get(jointId), scaleProgressionZ,
+						hasRotationX? currentTransform : previousTransform, keyFrameNextRotationX.getTransforms().get(jointId), rotationProgressionX,
+						hasRotationY? currentTransform : previousTransform, keyFrameNextRotationY.getTransforms().get(jointId), rotationProgressionY,
+						hasRotationZ? currentTransform : previousTransform, keyFrameNextRotationZ.getTransforms().get(jointId), rotationProgressionZ,
+						hasLocationX? currentTransform : previousTransform, keyFrameNextLocationX.getTransforms().get(jointId), locationProgressionX,
+						hasLocationY? currentTransform : previousTransform, keyFrameNextLocationY.getTransforms().get(jointId), locationProgressionY,
+						hasLocationZ? currentTransform : previousTransform, keyFrameNextLocationZ.getTransforms().get(jointId), locationProgressionZ
 				);
 
-				jointTransforms.put(jointId, missingFrameTransform);
-			}
+				if (currentTransform == null){
+					jointTransforms.put(jointId, missingFrameTransform);
+				} else {
+					currentTransform.complete(missingFrameTransform);
+				}
 
-			// log event
-			if (i<10) {
-				Log.d("Animator", "Completed Keyframe: " + keyFrameCurrent);
-			} else if (i==11){
-				Log.d("Animator", "Completed Keyframe... (omitted)");
 			}
 		}
-		animatedModel.getAnimation().setInitialized(true);
+
 		Log.i("Animator", "Initialized " + animatedModel.getId() + ". " + keyFrames.length + " key frames");
 	}
 
@@ -284,7 +297,7 @@ public class Animator {
 	/**
 	 * This is the method where the animator calculates and sets those all-
 	 * important "joint transforms" that I talked about so much in the tutorial.
-	 *
+	 * <p>
 	 * This method applies the current pose to a given joint, and all of its
 	 * descendants. It does this by getting the desired local-transform for the
 	 * current joint, before applying it to the joint. Before applying the
@@ -292,9 +305,9 @@ public class Animator {
 	 * (so that they are relative to the model's origin, rather than relative to
 	 * the parent joint). This can be done by multiplying the local-transform of
 	 * the joint with the model-space transform of the parent joint.
-	 *
+	 * <p>
 	 * The same thing is then done to all the child joints.
-	 *
+	 * <p>
 	 * Finally the inverse of the joint's bind transform is multiplied with the
 	 * model-space transform of the joint. This basically "subtracts" the
 	 * joint's original bind (no animation applied) transform from the desired
@@ -304,18 +317,16 @@ public class Animator {
 	 * loaded up to the vertex shader and used to transform the vertices into
 	 * the current pose.
 	 *
-	 * @param animatedModel
-	 *            - a map of the local-space transforms for all the joints for
-	 *            the desired pose. The map is indexed by the name of the joint
-	 *            which the transform corresponds to.
-	 * @param joint
-	 *            - the current joint which the pose should be applied to.
-	 * @param parentTransform
-	 *            - the desired model-space transform of the parent joint for
-	 *            the pose.
+	 * @param animatedModel   - a map of the local-space transforms for all the joints for
+	 *                        the desired pose. The map is indexed by the name of the joint
+	 *                        which the transform corresponds to.
+	 * @param joint           - the current joint which the pose should be applied to.
+	 * @param parentTransform - the desired model-space transform of the parent joint for
+	 *                        the pose.
+	 * @param bindPoseOnly
 	 */
 	private void applyPoseToJoints(AnimatedModel animatedModel, Map<String,float[]> currentPose, Joint joint, float[]
-			parentTransform, int limit) {
+			parentTransform, int limit, boolean bindPoseOnly) {
 
 		// memory optimization
 		float[] currentTransform = (float[])cache.get(joint.getName());
@@ -325,20 +336,28 @@ public class Animator {
 		}
 
 		// calculate animated transform
-		if (currentPose.get(joint.getName()) != null){
+		if (!bindPoseOnly && currentPose.get(joint.getName()) != null && limit >0) {
 			Matrix.multiplyMM(currentTransform, 0, parentTransform, 0, currentPose.get(joint.getName()), 0);
+			Matrix.multiplyMM(joint.getAnimatedTransform(), 0, currentTransform, 0, joint.getInverseBindTransform(), 0);
 		}else {
-			Matrix.multiplyMM(currentTransform, 0, parentTransform, 0, joint.getBindLocalTransform(), 0);
+			/*Matrix.multiplyMM(currentTransform, 0, parentTransform, 0, joint.getBindLocalTransform(), 0);
+			Matrix.multiplyMM(joint.getAnimatedTransform(), 0,  currentTransform, 0, joint.getInverseBindTransform(), 0);*/
+
+			Matrix.invertM(currentTransform,0,joint.getInverseBindTransform(), 0);
+			Matrix.multiplyMM(currentTransform, 0, parentTransform, 0, currentTransform, 0);
+			System.arraycopy(currentTransform,0, joint.getAnimatedTransform(), 0, 16);
+
+			// raptor patch - wtf!
+			//Matrix.multiplyMM(joint.getAnimatedTransform(), 0,  test, 0, joint.getInverseBindTransform(), 0);
 		}
 
-		if (limit >= 0) {
-			if (joint.getInverseBindTransform() == null)
-				Log.e("Animator","joint with inverseBindTransform null: " +joint.getName()+", index: "+joint.getIndex());
-			Matrix.multiplyMM(joint.getAnimatedTransform(), 0, currentTransform, 0, joint.getInverseBindTransform(), 0);
+		if (joint.getIndex() == -1) {
+			if (joint.getMeshes().contains(animatedModel.getId())){
+				animatedModel.setBindTransform(joint.getAnimatedTransform());
+			} else {
+				//animatedModel.setBindTransform(joint.getAnimatedTransform());
+			}
 		} else {
-			System.arraycopy(Math3DUtils.IDENTITY_MATRIX,0,joint.getAnimatedTransform(),0,16);
-		}
-		if (joint.getIndex() != -1) {
 			// setup only if its used by vertices. if no index no place for it into animated array
 			animatedModel.updateAnimatedTransform(joint);
 		}
@@ -346,7 +365,7 @@ public class Animator {
 		// transform children
 		for (int i=0; i<joint.getChildren().size(); i++) {
 			Joint childJoint = joint.getChildren().get(i);
-			applyPoseToJoints(animatedModel, currentPose, childJoint, currentTransform, limit-1);
+			applyPoseToJoints(animatedModel, currentPose, childJoint, currentTransform, limit-1, bindPoseOnly);
 		}
 	}
 
@@ -421,7 +440,7 @@ public class Animator {
 
 			// if there is no progression, we just return key transform
 			if (Math.signum(progression) == 0) {
-				currentPose.put(jointName, previousTransform.getMatrix());
+				currentPose.put(jointName, previousTransform.getTransform());
 				continue;
 			}
 

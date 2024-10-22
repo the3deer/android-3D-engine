@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
@@ -68,4 +69,26 @@ public final class IOUtils {
     }
 
 
+    public static void fill(Buffer buffer, int offset, int length, float value) {
+        for (int i = offset; i < buffer.capacity() && i < (offset + length); i++) {
+            if (buffer instanceof ShortBuffer){
+                ((ShortBuffer)buffer).put(i, (short) value);
+            } else if (buffer instanceof FloatBuffer) {
+                ((FloatBuffer)buffer).put(i, value);
+            }
+        }
+    }
+
+    public static void fill(Buffer buffer, int offset, int length, float[] value) {
+        for (int i = offset; i < buffer.capacity() && i < (offset + length); i+=value.length) {
+            for (int j=0; j<value.length; j++) {
+                if (buffer instanceof ShortBuffer){
+                    // FIXME
+                    //((ShortBuffer)buffer).put(i + j, value[j]);
+                } else if (buffer instanceof FloatBuffer) {
+                    ((FloatBuffer)buffer).put(i + j, value[j]);
+                }
+            }
+        }
+    }
 }

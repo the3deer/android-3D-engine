@@ -41,7 +41,15 @@ import java.util.Scanner;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
+import dalvik.system.ZipPathValidator;
+
 public class ContentUtils {
+
+    static {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            ZipPathValidator.clearCallback();
+        }
+    }
 
     public static final String MODELS_FOLDER = "models";
     /**

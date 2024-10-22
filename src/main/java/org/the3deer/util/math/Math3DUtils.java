@@ -35,6 +35,48 @@ public class Math3DUtils {
     }
 
     /**
+     * Matrix - column major order:
+     *
+     *          lhs[0] lhs[4] lhs[8] lhs[12]      rhs[0] rhs[4] rhs[8] rhs[12]
+     *   t   =  lhs[1] lhs[5] lhs[9] lhs[13]   x  rhs[1] ...
+     *          lhs[2] lhs[6] lhs[10] lhs[14]
+     *          lhs[3] lhs[7] lhs[11] lhs[15]
+     *
+     *   t[0]  t[4]  t[8]  t[12]
+     *   t[1]
+     *
+     * @param lhs
+     * @param rhs
+     * @param dest
+     */
+    public static void multiplyMM(float[] dest, float[] lhs, float[] rhs)
+    {
+        // first column
+        dest[0] = lhs[0] * rhs[0] + lhs[4] * rhs[1] + lhs[8] * rhs[2] + lhs[12] * rhs[3];
+        dest[1] = lhs[1] * rhs[0] + lhs[5] * rhs[1] + lhs[9] * rhs[2] + lhs[13] * rhs[3];
+        dest[2] = lhs[2] * rhs[0] + lhs[6] * rhs[1] + lhs[10] * rhs[2] + lhs[14] * rhs[3];
+        dest[3] = lhs[3] * rhs[0] + lhs[7] * rhs[1] + lhs[11] * rhs[2] + lhs[15] * rhs[3];
+
+        // second column
+        dest[4] = lhs[0] * rhs[4] + lhs[4] * rhs[5] + lhs[8] * rhs[6] + lhs[12] * rhs[7];
+        dest[5] = lhs[1] * rhs[4] + lhs[5] * rhs[5] + lhs[9] * rhs[6] + lhs[13] * rhs[7];
+        dest[6] = lhs[2] * rhs[4] + lhs[6] * rhs[5] + lhs[10] * rhs[6] + lhs[14] * rhs[7];
+        dest[7] = lhs[3] * rhs[4] + lhs[7] * rhs[5] + lhs[11] * rhs[6] + lhs[15] * rhs[7];
+
+        // third column
+        dest[8] = lhs[0] * rhs[8] + lhs[4] * rhs[9] + lhs[8] * rhs[10] + lhs[12] * rhs[11];
+        dest[9] = lhs[1] * rhs[8] + lhs[5] * rhs[9] + lhs[9] * rhs[10] + lhs[13] * rhs[11];
+        dest[10] = lhs[2] * rhs[8] + lhs[6] * rhs[9] + lhs[10] * rhs[10] + lhs[14] * rhs[11];
+        dest[11] = lhs[3] * rhs[8] + lhs[7] * rhs[9] + lhs[11] * rhs[10] + lhs[15] * rhs[11];
+
+        // forth column
+        dest[12] = lhs[0] * rhs[12] + lhs[4] * rhs[13] + lhs[8] * rhs[14] + lhs[12] * rhs[15];
+        dest[13] = lhs[1] * rhs[12] + lhs[5] * rhs[13] + lhs[9] * rhs[14] + lhs[13] * rhs[15];
+        dest[14] = lhs[2] * rhs[12] + lhs[6] * rhs[13] + lhs[10] * rhs[14] + lhs[14] * rhs[15];
+        dest[15] = lhs[3] * rhs[12] + lhs[7] * rhs[13] + lhs[11] * rhs[14] + lhs[15] * rhs[15];
+    };
+
+    /**
      * Calculate face normal
      * <p>
      * So for a triangle p1, p2, p3, if the vector U = p2 - p1 and the vector V = p3 - p1 then the normal N = U X V and can be calculated by:
@@ -319,7 +361,7 @@ public class Math3DUtils {
      *
      * @param a
      */
-    public static void normalize(float[] a) {
+    public static void normalizeVector(float[] a) {
         float length = length(a);
         if (length == 0) {
 //            throw new IllegalArgumentException("vector length is zero");
@@ -332,7 +374,7 @@ public class Math3DUtils {
 
     public static float[] normalize2(float[] a) {
         float[] copy = a.clone();
-        normalize(copy);
+        normalizeVector(copy);
         return copy;
     }
 
@@ -371,6 +413,12 @@ public class Math3DUtils {
         return new float[]{a[0] * t, a[1] * t, a[2] * t};
     }
 
+    /**
+     * Adds 2 vectors
+     * @param a vector 1
+     * @param b vector 2
+     * @return a new float the with result of the addition
+     */
     public static float[] add(float[] a, float[] b) {
         return new float[]{a[0] + b[0], a[1] + b[1], a[2] + b[2]};
     }
@@ -528,9 +576,9 @@ public class Math3DUtils {
     public static void interpolate(JointTransform result, JointTransform start, JointTransform end, float progression) {
         interpolate(result.getScale(), start.getScale(), end.getScale(), progression);
         interpolate(result.getLocation(), start.getLocation(), end.getLocation(), progression);
-        interpolate(result.getRotation1(), start.getRotation1(), end.getRotation1(), progression);
+        /*interpolate(result.getRotation1(), start.getRotation1(), end.getRotation1(), progression);
         interpolate(result.getRotation2(), start.getRotation2(), end.getRotation2(), progression);
-        interpolate(result.getRotation2Location(), start.getRotation2Location(), end.getRotation2Location(), progression);
+        interpolate(result.getRotation2Location(), start.getRotation2Location(), end.getRotation2Location(), progression);*/
         Quaternion.interpolate(result.getQRotation(), start.getQRotation(), end.getQRotation(), progression);
     }
 
@@ -545,6 +593,7 @@ public class Math3DUtils {
      * @return
      */
     public static void interpolate(Float result[], Float[] start, Float[] end, float progression) {
+        if (start == null || end == null) return;
         for (int i = 0; i < result.length; i++) {
             result[i] = start[i] + (end[i] - start[i]) * progression;
         }
@@ -563,6 +612,10 @@ public class Math3DUtils {
     }
 
     public static Float[] scaleFromMatrix(float[] matrix) {
+
+        // check
+        if (matrix == null) return null;
+
         // |A| = a(ei − fh) − b(di − fg) + c(dh − eg)
         Float[] ret = new Float[3];
         ret[0] = (float) Math.sqrt(Math.pow(matrix[0], 2) + Math.pow(matrix[1], 2) + Math.pow(matrix[2], 2));
@@ -759,7 +812,7 @@ public class Math3DUtils {
     public static float[] getRotation(float[] v1, float[] v2, float[] v3, float[] newOrientation){
         // calculate polygon normal
         final float[] normal = calculateNormal(v1, v2, v3);
-        Math3DUtils.normalize(normal);
+        Math3DUtils.normalizeVector(normal);
 
         // check if triangle is already facing the new orientation
         if (Math3DUtils.equals(normal, newOrientation)){
@@ -770,13 +823,33 @@ public class Math3DUtils {
         final float dot = Math3DUtils.dotProduct(newOrientation, normal);
         final float angle = (float) Math.acos(dot);
         final float[] cross = Math3DUtils.crossProduct(Constants.Z_NORMAL, normal);
-        Math3DUtils.normalize(cross);
+        Math3DUtils.normalizeVector(cross);
         //cross[1] = 0;
         //cross[2] = 0;
         float[] rotationMatrix = Math3DUtils.createRotationMatrixAroundVector(angle, cross[0], cross[1], cross[2]);
 
         Log.i("HoleCutter", "normal: " + Arrays.toString(normal) + ", angle: " + angle + ", axis: " + Arrays.toString(cross));
         return rotationMatrix;
+    }
+
+    public static float[] extractTranslation(float[] matrix, float[] ret) {
+        if (ret == null){
+            ret = new float[3];
+        }
+        ret[0]=matrix[12]; ret[1]=matrix[13]; ret[2]=matrix[14];
+        return ret;
+    }
+
+    public static Float[] extractTranslation2(float[] matrix, Float[] ret) {
+
+        // check
+        if (matrix == null) return null;
+
+        if (ret == null){
+            ret = new Float[3];
+        }
+        ret[0]=matrix[12]; ret[1]=matrix[13]; ret[2]=matrix[14];
+        return ret;
     }
 
     public static float[] extractRotationMatrix(float[] matrix) {
@@ -795,7 +868,7 @@ public class Math3DUtils {
         ret[0] = rotationMatrix[9]-rotationMatrix[6];
         ret[1] = rotationMatrix[2]-rotationMatrix[8];
         ret[2] = rotationMatrix[4]-rotationMatrix[1];
-        normalize(ret);
+        normalizeVector(ret);
         float trace = rotationMatrix[0]+rotationMatrix[5]+rotationMatrix[10];
         ret[3] = (float)Math.acos((trace-1)/2);
         return ret;
@@ -810,7 +883,7 @@ public class Math3DUtils {
         float ny = va[2] * vb[0] - va[0] * vb[2];
         float nz = va[0] * vb[1] - va[1] * vb[0];
         float[] n = new float[]{nx, ny, nz};
-        normalize(n);
+        normalizeVector(n);
         return n;
     }
 

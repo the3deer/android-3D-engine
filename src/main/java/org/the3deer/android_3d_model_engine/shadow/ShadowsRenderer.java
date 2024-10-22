@@ -5,16 +5,15 @@ import android.opengl.GLES20;
 import android.opengl.Matrix;
 import android.util.Log;
 
-import org.the3deer.android_3d_model_engine.drawer.Renderer;
-import org.the3deer.android_3d_model_engine.drawer.RendererFactory;
-import org.the3deer.android_3d_model_engine.drawer.Shader;
 import org.the3deer.android_3d_model_engine.model.Camera;
 import org.the3deer.android_3d_model_engine.model.Object3DData;
-import org.the3deer.android_3d_model_engine.services.SceneLoader;
+import org.the3deer.android_3d_model_engine.model.Scene;
+import org.the3deer.android_3d_model_engine.shader.Shader;
+import org.the3deer.android_3d_model_engine.shader.ShaderFactory;
+import org.the3deer.android_3d_model_engine.shader.ShaderResource;
 import org.the3deer.util.android.GLUtil;
 import org.the3deer.util.math.Math3DUtils;
 
-import java.io.IOException;
 import java.util.List;
 
 import javax.microedition.khronos.egl.EGLConfig;
@@ -24,23 +23,23 @@ public class ShadowsRenderer {
 
     private static final String TAG = "ShadowsRenderer";
 
-    private final RendererFactory shaderFactory;
+    private final ShaderFactory shaderFactory;
 
     //private FPSCounter mFPSCounter;
 
     /**
      * Handles to vertex and fragment shader programs
      */
-    private Shader mSimpleShadowProgram;
-    private Shader mPCFShadowProgram;
-    private Shader mSimpleShadowDynamicBiasProgram;
-    private Shader mPCFShadowDynamicBiasProgram;
+    private ShaderResource mSimpleShadowProgram;
+    private ShaderResource mPCFShadowProgram;
+    private ShaderResource mSimpleShadowDynamicBiasProgram;
+    private ShaderResource mPCFShadowDynamicBiasProgram;
 
     /**
      * The vertex and fragment shader to render depth map
      */
-    private Renderer mDepthMapProgram;
-    private Renderer mActiveRenderer;
+    private Shader mDepthMapProgram;
+    private Shader  mActiveRenderer;
 
     private int mActiveProgram;
 
@@ -156,8 +155,8 @@ public class ShadowsRenderer {
     private Camera camera = new Camera(100);
 
 
-    public ShadowsRenderer(Activity parent) throws IOException, IllegalAccessException {
-        this.shaderFactory = new RendererFactory(parent);
+    public ShadowsRenderer(Activity parent) {
+        this.shaderFactory = new ShaderFactory(parent);
     }
 
     public void onSurfaceCreated(GL10 unused, EGLConfig config) {
@@ -301,7 +300,7 @@ public class ShadowsRenderer {
     }
 
     //@Override
-    public void onSurfaceChanged(GL10 unused, int width, int height) {
+    public void onSurfaceChanged(int width, int height) {
         mDisplayWidth = width;
         mDisplayHeight = height;
 
@@ -331,7 +330,7 @@ public class ShadowsRenderer {
 
 
     // @Override
-    public void onDrawFrame(GL10 unused, float[] mProjectionMatrix, float[] mViewMatrix, float[] mActualLightPosition, SceneLoader scene) {
+    public void onDrawFrame(float[] mProjectionMatrix, float[] mViewMatrix, float[] mActualLightPosition, Scene scene) {
 
         // Cull back faces for normal render
      	//GLES20.glCullFace(GLES20.GL_FRONT_AND_BACK);
@@ -351,7 +350,7 @@ public class ShadowsRenderer {
 
     }
 
-    public void onPrepareFrame(GL10 unused, float[] mProjectionMatrix, float[] mViewMatrix, float[] mActualLightPosition, SceneLoader scene) {
+    public void onPrepareFrame(float[] mProjectionMatrix, float[] mViewMatrix, float[] mActualLightPosition, Scene scene) {
         // Write FPS information to console
         //mFPSCounter.logFrame();
 
@@ -397,16 +396,16 @@ public class ShadowsRenderer {
         Matrix.setIdentityM(mModelMatrix, 0);
 
         float[] look = Math3DUtils.negate(mActualLightPosition);
-        Math3DUtils.normalize(look);
+        Math3DUtils.normalizeVector(look);
 
         float[] upTemp = new float[]{0,1000000,0};
-        Math3DUtils.normalize(upTemp);
+        Math3DUtils.normalizeVector(upTemp);
 
         float[] right = Math3DUtils.crossProduct(look, upTemp);
-        Math3DUtils.normalize(right);
+        Math3DUtils.normalizeVector(right);
 
         float[] up = Math3DUtils.crossProduct(right, look);
-        Math3DUtils.normalize(up);
+        Math3DUtils.normalizeVector(up);
 
         //Set view matrix from light source position
         Matrix.setLookAtM(mLightViewMatrix, 0,
@@ -442,7 +441,7 @@ public class ShadowsRenderer {
     }
 
 
-    private void renderShadowMap(float[] mProjectionMatrix, SceneLoader scene) {
+    private void renderShadowMap(float[] mProjectionMatrix, Scene scene) {
         // bind the generated framebuffer
         GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, fboId[0]);
 
@@ -482,7 +481,7 @@ public class ShadowsRenderer {
 
 
             //this.mDepthMapProgram.draw(objData, mLightProjectionMatrix, mLightViewMatrix, -1,
-            this.mDepthMapProgram.draw(objData, mProjectionMatrix, mLightViewMatrix, -1,
+            this.mDepthMapProgram.draw(objData, mProjectionMatrix, mLightViewMatrix,
                     null, null, null, objData.getDrawMode(), objData.getDrawSize());
         }
 
@@ -506,7 +505,7 @@ public class ShadowsRenderer {
         mCube.render(shadow_positionAttribute, 0, 0, true);*/
     }
 
-    private void renderScene(SceneLoader scene, float[] mProjectionMatrix, float[] mViewMatrix, float[] mActualLightPosition) {
+    private void renderScene(Scene scene, float[] mProjectionMatrix, float[] mViewMatrix, float[] mActualLightPosition) {
 
         // bind default framebuffer
         GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0);
@@ -607,7 +606,7 @@ public class ShadowsRenderer {
             GLES20.glUniform1i(scene_textureUniform, 10);
             GLUtil.checkGlError("glUniform1i");
 
-            mActiveRenderer.draw(data,mProjectionMatrix,mViewMatrix, -1, mActualLightPosition, null, scene.getCamera().getPos(), data.getDrawMode(), data.getDrawSize());
+            mActiveRenderer.draw(data,mProjectionMatrix,mViewMatrix, mActualLightPosition, null, scene.getCamera().getPos(), data.getDrawMode(), data.getDrawSize());
 
             //mSmallCube0.render(scene_positionAttribute, scene_normalAttribute, scene_colorAttribute, false);
             //mSmallCube1.render(scene_positionAttribute, scene_normalAttribute, scene_colorAttribute, false);

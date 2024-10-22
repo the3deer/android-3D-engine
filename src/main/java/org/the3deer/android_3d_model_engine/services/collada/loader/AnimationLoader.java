@@ -13,9 +13,9 @@ import org.the3deer.android_3d_model_engine.services.collada.entities.KeyFrameDa
 import org.the3deer.util.xml.XmlNode;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.TreeSet;
 
 
@@ -109,7 +109,7 @@ public class AnimationLoader {
 	private KeyFrame[] buildKeyFrames() {
 		KeyFrame[] frames = new KeyFrame[this.keyFrames.length];
 		for (int i = 0; i < frames.length; i++) {
-			final Map<String, JointTransform> map = new HashMap<>();
+			final Map<String, JointTransform> map = new TreeMap<>();
 
 			// process matrix transformation (full transformation)
 			for (JointTransformData jointData : this.keyFrames[i].jointTransforms) {
@@ -122,7 +122,7 @@ public class AnimationLoader {
 					Matrix.setIdentityM(matrix, 0);
 				} else {
 					// accumulate transformations
-					matrix = current.getMatrix();
+					matrix = current.getTransform();
 				}
 				float[] newMatrix = new float[16];
 				Matrix.multiplyMM(newMatrix, 0, jointData.matrix, 0, matrix, 0);
@@ -167,15 +167,8 @@ public class AnimationLoader {
             }
 
 			frames[i] = new KeyFrame(this.keyFrames[i].time, map);
-
-            // log event
-            if (i<10) {
-                Log.d("AnimationLoader", "Loaded Keyframe: " + frames[i]);
-            } else if (i==11){
-                Log.d("AnimationLoader", "Loaded Keyframe... (omitted)");
-            }
-		}
-		return frames;
+        }
+        return frames;
 	}
 
     /**
@@ -189,11 +182,16 @@ public class AnimationLoader {
             if (animation.getChild("animation") != null) {
                 animation = animation.getChild("animation");
             }
-            XmlNode timeData = animation.getChild("source").getChild("float_array");
-            String[] rawTimes = timeData.getData().trim().split("\\s+");
-            for (String rawTime : rawTimes) {
-                ret.add(Float.parseFloat(rawTime));
-
+            final XmlNode sampler = animation.getChild("sampler");
+            if (sampler != null) {
+                XmlNode input = sampler.getChildWithAttribute("input", "semantic", "INPUT");
+                String sourceId = input.getAttribute("source");
+                XmlNode source = animation.getChildWithAttribute("source", "id", sourceId.replaceFirst("#", ""));
+                XmlNode timeData = source.getChild("float_array");
+                String[] rawTimes = timeData.getData().trim().split("\\s+");
+                for (String rawTime : rawTimes) {
+                    ret.add(Float.parseFloat(rawTime));
+                }
             }
         }
         return ret;
@@ -201,8 +199,15 @@ public class AnimationLoader {
 
 
     private void loadJointTransforms(XmlNode animationNode) {
+
+        if ("Camera".equals(animationNode.getAttribute("name"))) return;
+
         Log.v("AnimationLoader", "Loading animation... id: " + animationNode.getAttribute("id"));
         String[] target = getTarget(animationNode);
+        if (target == null) {
+            Log.e("AnimationLoader", "Target not found");
+            return;
+        };
         String jointNameId = target[0];
         String transform = target[1];
         String input = getInput(animationNode);
@@ -267,6 +272,8 @@ public class AnimationLoader {
      */
     private String[] getTarget(XmlNode animationNode) {
         XmlNode channelNode = animationNode.getChild("channel");
+        if (channelNode == null) return null;
+
         String data = channelNode.getAttribute("target");
         return data.split("/");
     }

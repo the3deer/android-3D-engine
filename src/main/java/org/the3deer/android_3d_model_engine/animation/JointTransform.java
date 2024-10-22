@@ -2,6 +2,7 @@ package org.the3deer.android_3d_model_engine.animation;
 
 import android.opengl.Matrix;
 
+import org.the3deer.android_3d_model_engine.model.Constants;
 import org.the3deer.android_3d_model_engine.services.collada.entities.JointData;
 import org.the3deer.util.math.Math3DUtils;
 import org.the3deer.util.math.Quaternion;
@@ -22,14 +23,14 @@ import java.util.Arrays;
 public class JointTransform {
 
     // remember, this position and rotation are relative to the parent bone!
-    private final float[] matrix;
-    private final Quaternion qRotation;
-
-    // Transformation = L x R x S
-    private final float[] calculatedMatrix;
+    private float[] matrix;
     private Float[] scale;
+    private Quaternion qRotation;
     private Float[] rotation;
     private Float[] location;
+
+    // Transformation = L x R x S
+    private float[] transform;
 
     // visibility transformation
     private boolean visible;
@@ -48,6 +49,13 @@ public class JointTransform {
     private static final Float[] tempLocation = new Float[3];
     private static final float[] tempMatrix = new float[16];
 
+    public JointTransform() {
+        refresh();
+    }
+
+    public JointTransform(Float[] floats, Object o, Float[] floats1) {
+        refresh();
+    }
 
     public static JointTransform ofScale(Float[] scale) {
         return new JointTransform(scale, (Float[]) null, null);
@@ -61,18 +69,23 @@ public class JointTransform {
         return new JointTransform(null, (Float[]) null, location);
     }
 
+    static JointTransform ofIdentity() {
+        return new JointTransform(new Float[]{1f,1f,1f}, new Float[]{0f,0f,0f}, new Float[]{0f,0f,0f});
+    }
+
     static JointTransform ofNull() {
-        return new JointTransform(new Float[]{1f, 1f, 1f}, new Float[3], new Float[3]);
+        return new JointTransform(new Float[3], new Float[3], new Float[3]);
     }
 
 
     public JointTransform(float[] matrix) {
         this.matrix = matrix;
-        this.qRotation = Quaternion.fromMatrix(matrix);
 
-        this.calculatedMatrix = null;
+        this.qRotation = Quaternion.fromMatrix(matrix);
         this.scale = Math3DUtils.scaleFromMatrix(matrix);
-        this.rotation = new Float[]{0f, 0f, 0f};  // FIXME: extract euler rotation from matrix
+        if (matrix != null) {
+            this.rotation = Quaternion.fromMatrix(matrix).normalize().toAngles2(null);
+        }
         this.location = new Float[]{matrix[12], matrix[13], matrix[14]};
         this.visible = true;
 
@@ -81,7 +94,7 @@ public class JointTransform {
         this.rotation2 = new Float[]{0f, 0f, 0f};
         this.rotation2Location = new Float[]{0f, 0f, 0f};
 
-        updateMatrix();
+        refresh();
     }
 
     private JointTransform(Float[] scale, Float[] rotation, Float[] location) {
@@ -93,23 +106,21 @@ public class JointTransform {
         this.location = location;
 
         this.visible = true;
-        this.calculatedMatrix = new float[16];
+        //this.calculatedMatrix = new float[16];
 
-        updateMatrix();
+        refresh();
     }
 
     private JointTransform(Float[] scale, Quaternion qRotation, Float[] location) {
-        this.matrix = new float[16];
-        this.qRotation = qRotation;
-
         this.scale = scale;
+        this.qRotation = qRotation;
         this.rotation = null;
         this.location = location;
 
         this.visible = true;
-        this.calculatedMatrix = null;
+        //this.calculatedMatrix = null;
 
-        updateMatrix();
+        refresh();
     }
 
     public Float[] getScale() {
@@ -120,6 +131,10 @@ public class JointTransform {
         this.setScale(scale[0], scale[1], scale[2]);
     }
 
+    public void setRotation(Float[] rotation) {
+        this.rotation = rotation;
+    }
+
     public void setScale(float x, float y, float z) {
         if (this.scale == null) {
             this.scale = new Float[3];
@@ -127,7 +142,7 @@ public class JointTransform {
         this.scale[0] = x;
         this.scale[1] = y;
         this.scale[2] = z;
-        updateMatrix();
+        refresh();
     }
 
     boolean isComplete() {
@@ -145,7 +160,6 @@ public class JointTransform {
     void complete(JointData jointData) {
         if (this.scale == null) {
             this.scale = new Float[]{1f, 1f, 1f};
-
         }
         if (this.rotation == null) {
             this.rotation = new Float[3];
@@ -154,13 +168,18 @@ public class JointTransform {
             this.location = new Float[3];
         }
 
-        if (jointData.getBindLocalLocation() != null) {
-            if (this.location[0] == null && jointData.getBindLocalLocation()[0] != null)
-                this.location[0] = jointData.getBindLocalLocation()[0];
-            if (this.location[1] == null && jointData.getBindLocalLocation()[1] != null)
-                this.location[1] = jointData.getBindLocalLocation()[1];
-            if (this.location[2] == null && jointData.getBindLocalLocation()[2] != null)
-                this.location[2] = jointData.getBindLocalLocation()[2];
+        if (jointData == null){
+            this.rotation[0] = this.rotation[1] = this.rotation[2] = 0f;
+            this.location[0] = this.location[1] = this.location[2] = 0f;
+        }
+
+        if (jointData.getBindLocalTranslation() != null) {
+            if (this.location[0] == null && jointData.getBindLocalTranslation()[0] != null)
+                this.location[0] = jointData.getBindLocalTranslation()[0];
+            if (this.location[1] == null && jointData.getBindLocalTranslation()[1] != null)
+                this.location[1] = jointData.getBindLocalTranslation()[1];
+            if (this.location[2] == null && jointData.getBindLocalTranslation()[2] != null)
+                this.location[2] = jointData.getBindLocalTranslation()[2];
         }
 
         if (jointData.getBindLocalScale() != null) {
@@ -172,6 +191,12 @@ public class JointTransform {
                 this.scale[2] = jointData.getBindLocalScale()[2];
         }
 
+        if (jointData.getBindLocalQuaternion() != null) {
+            if (this.qRotation == null) {
+                this.qRotation = jointData.getBindLocalQuaternion();
+            }
+        }
+
         if (jointData.getBindLocalRotation() != null) {
             if (this.rotation[0] == null && jointData.getBindLocalRotation()[0] != null)
                 this.rotation[0] = jointData.getBindLocalRotation()[0];
@@ -180,6 +205,53 @@ public class JointTransform {
             if (this.rotation[2] == null && jointData.getBindLocalRotation()[2] != null)
                 this.rotation[2] = jointData.getBindLocalRotation()[2];
         }
+        refresh();
+    }
+
+    void complete(JointTransform jointData) {
+        if (this.scale == null) {
+            this.scale = new Float[]{1f, 1f, 1f};
+        }
+        if (this.rotation == null) {
+            this.rotation = new Float[3];
+        }
+        if (this.location == null) {
+            this.location = new Float[3];
+        }
+
+        if (jointData.getLocation() != null) {
+            if (this.location[0] == null && jointData.getLocation()[0] != null)
+                this.location[0] = jointData.getLocation()[0];
+            if (this.location[1] == null && jointData.getLocation()[1] != null)
+                this.location[1] = jointData.getLocation()[1];
+            if (this.location[2] == null && jointData.getLocation()[2] != null)
+                this.location[2] = jointData.getLocation()[2];
+        }
+
+        if (jointData.getScale() != null) {
+            if (this.scale[0] == null && jointData.getScale()[0] != null)
+                this.scale[0] = jointData.getScale()[0];
+            if (this.scale[1] == null && jointData.getScale()[1] != null)
+                this.scale[1] = jointData.getScale()[1];
+            if (this.scale[2] == null && jointData.getScale()[2] != null)
+                this.scale[2] = jointData.getScale()[2];
+        }
+
+        if (jointData.getRotation() != null) {
+            if (this.rotation[0] == null && jointData.getRotation()[0] != null)
+                this.rotation[0] = jointData.getRotation()[0];
+            if (this.rotation[1] == null && jointData.getRotation()[1] != null)
+                this.rotation[1] = jointData.getRotation()[1];
+            if (this.rotation[2] == null && jointData.getRotation()[2] != null)
+                this.rotation[2] = jointData.getRotation()[2];
+        }
+
+        if (jointData.getQRotation() != null) {
+            if (this.qRotation == null) {
+                this.qRotation = jointData.getQRotation();
+            }
+        }
+        refresh();
     }
 
     public Float[] getRotation() {
@@ -214,40 +286,40 @@ public class JointTransform {
         return visible;
     }
 
-    public boolean hasScaleX(){
+    public boolean hasScaleX() {
         return scale != null && scale[0] != null;
     }
 
-    public boolean hasScaleY(){
+    public boolean hasScaleY() {
         return scale != null && scale[1] != null;
     }
 
-    public boolean hasScaleZ(){
+    public boolean hasScaleZ() {
         return scale != null && scale[2] != null;
     }
 
-    public boolean hasRotationX(){
-        return rotation != null && rotation[0] != null;
+    public boolean hasRotationX() {
+        return qRotation != null || rotation != null && rotation[0] != null;
     }
 
-    public boolean hasRotationY(){
-        return rotation != null && rotation[1] != null;
+    public boolean hasRotationY() {
+        return qRotation != null || rotation != null && rotation[1] != null;
     }
 
-    public boolean hasRotationZ(){
-        return rotation != null && rotation[2] != null;
+    public boolean hasRotationZ() {
+        return qRotation != null || rotation != null && rotation[2] != null;
     }
 
-    public boolean hasLocationX(){
+    public boolean hasLocationX() {
         return location != null && location[0] != null;
     }
 
-    public boolean hasLocationY(){
+    public boolean hasLocationY() {
         return location != null && location[1] != null;
     }
 
 
-    public boolean hasLocationZ(){
+    public boolean hasLocationZ() {
         return location != null && location[2] != null;
     }
 
@@ -273,7 +345,7 @@ public class JointTransform {
         } else {
             add(this.scale, extra);
         }
-        updateMatrix();
+        refresh();
     }
 
     public void addRotation(Float[] extra) {
@@ -282,7 +354,7 @@ public class JointTransform {
         } else {
             add(this.rotation, extra);
         }
-        updateMatrix();
+        refresh();
     }
 
     public void addLocation(Float[] extra) {
@@ -291,15 +363,11 @@ public class JointTransform {
         } else {
             add(this.location, extra);
         }
-        updateMatrix();
+        refresh();
     }
 
-    public float[] getMatrix() {
-        if (matrix != null) {
-            return matrix;
-        } else {
-            return calculatedMatrix;
-        }
+    public float[] getTransform() {
+        return transform;
     }
 
     /**
@@ -341,7 +409,7 @@ public class JointTransform {
         interpolateVector(location, locationAY.location, locationBY.location, locationProgressionY);
         interpolateVector(location, locationAZ.location, locationBZ.location, locationProgressionZ);
 
-        if (scaleAX.qRotation != null) {
+        if (Constants.PREFER_QUATERNION && rotationAX.qRotation != null) {
             final Quaternion qRotation = new Quaternion(0, 0, 0, 1);
             Quaternion.interpolate(qRotation, rotationAX.qRotation, rotationBX.qRotation, rotationProgressionX);
             return new JointTransform(scale, qRotation, location);
@@ -360,44 +428,48 @@ public class JointTransform {
         interpolateVector(tempScale, frameA.scale, frameB.scale, progression);
         interpolateVector(tempLocation, frameA.location, frameB.location, progression);
 
-        if (frameA.qRotation != null) {
+        Matrix.setIdentityM(ret, 0);
 
+        if (tempLocation[0] != null)
+            Matrix.translateM(ret, 0, tempLocation[0], 0, 0);
+        if (tempLocation[1] != null)
+            Matrix.translateM(ret, 0, 0, tempLocation[1], 0);
+        if (tempLocation[2] != null)
+            Matrix.translateM(ret, 0, 0, 0, tempLocation[2]);
+
+        if (tempScale[0] != null)
+            Matrix.scaleM(ret, 0, tempScale[0], 1, 1);
+        if (tempScale[1] != null)
+            Matrix.scaleM(ret, 0, 1, tempScale[1], 1);
+        if (tempScale[2] != null)
+            Matrix.scaleM(ret, 0, 1, 1, tempScale[2]);
+
+        if (Constants.PREFER_QUATERNION && Constants.PREFER_QUATERNION_MATRIX && frameA.qRotation != null) {
+            tempQRotation.setIdentity();
             Quaternion.interpolate(tempQRotation, frameA.qRotation, frameB.qRotation, progression);
-
-            Matrix.setIdentityM(ret, 0);
-            Matrix.translateM(ret, 0, tempLocation[0], tempLocation[1], tempLocation[2]);
-            Matrix.multiplyMM(ret, 0, ret, 0, tempQRotation.toRotationMatrix(tempMatrix), 0);
-            Matrix.scaleM(ret, 0, tempScale[0], tempScale[1], tempScale[2]);
+            tempQRotation.normalize();
+            Matrix.multiplyMM(ret, 0, ret, 0, tempQRotation.toRotationMatrix(), 0);
+        } else if (Constants.PREFER_QUATERNION && frameA.qRotation != null) {
+            tempQRotation.setIdentity();
+            Quaternion.interpolate(tempQRotation, frameA.qRotation, frameB.qRotation, progression);
+            tempQRotation.normalize();
+            Matrix.rotateM(ret, 0, tempQRotation.toAngles(null)[2], 0, 0, 1);
+            Matrix.rotateM(ret, 0, tempQRotation.toAngles(null)[1], 0, 1, 0);
+            Matrix.rotateM(ret, 0, tempQRotation.toAngles(null)[0], 1, 0, 0);
         } else {
-
             interpolateVector(tempRotation, frameA.rotation, frameB.rotation, progression);
-
-            Matrix.setIdentityM(ret, 0);
-            if (tempLocation[0] != null)
-                Matrix.translateM(ret, 0, tempLocation[0], 0, 0);
-            if (tempLocation[1] != null)
-                Matrix.translateM(ret, 0, 0, tempLocation[1], 0);
-            if (tempLocation[2] != null)
-                Matrix.translateM(ret, 0, 0, 0, tempLocation[2]);
             if (tempRotation[2] != null)
                 Matrix.rotateM(ret, 0, tempRotation[2], 0, 0, 1);
             if (tempRotation[1] != null)
                 Matrix.rotateM(ret, 0, tempRotation[1], 0, 1, 0);
             if (tempRotation[0] != null)
                 Matrix.rotateM(ret, 0, tempRotation[0], 1, 0, 0);
-            if (tempScale[0] != null)
-                Matrix.scaleM(ret, 0, tempScale[0], 1, 1);
-            if (tempScale[1] != null)
-                Matrix.scaleM(ret, 0, 1, tempScale[1], 1);
-            if (tempScale[2] != null)
-                Matrix.scaleM(ret, 0, 1, 1, tempScale[2]);
-
         }
 
         // INFO: cleanup - otherwise next interpolation will have undefined results
-        tempScale[0]=tempScale[1]=tempScale[2]=null;
-        tempRotation[0]=tempRotation[1]=tempRotation[2]=null;
-        tempLocation[0]=tempLocation[1]=tempLocation[2]=null;
+        tempScale[0] = tempScale[1] = tempScale[2] = null;
+        tempRotation[0] = tempRotation[1] = tempRotation[2] = null;
+        tempLocation[0] = tempLocation[1] = tempLocation[2] = null;
     }
 
     /**
@@ -411,76 +483,105 @@ public class JointTransform {
      */
     private static void interpolateVector(Float[] ret, Float[] start, Float[] end, float progression) {
         if (progression == 0) {
-            if (ret[0] == null) ret[0] = start[0];
-            if (ret[1] == null) ret[1] = start[1];
-            if (ret[2] == null) ret[2] = start[2];
+            if (start != null) {
+                if (ret[0] == null) ret[0] = start[0];
+                if (ret[1] == null) ret[1] = start[1];
+                if (ret[2] == null) ret[2] = start[2];
+            }
         } else {
-            if (start[0] != null && end[0] != null) {
-                ret[0] = start[0] + (end[0] - start[0]) * progression;
-            }
-            if (start[1] != null && end[1] != null) {
-                ret[1] = start[1] + (end[1] - start[1]) * progression;
-            }
-            if (start[2] != null && end[2] != null) {
-                ret[2] = start[2] + (end[2] - start[2]) * progression;
+            if (start != null && end != null) {
+                if (start[0] != null && end[0] != null) {
+                    ret[0] = start[0] + (end[0] - start[0]) * progression;
+                }
+                if (start[1] != null && end[1] != null) {
+                    ret[1] = start[1] + (end[1] - start[1]) * progression;
+                }
+                if (start[2] != null && end[2] != null) {
+                    ret[2] = start[2] + (end[2] - start[2]) * progression;
+                }
             }
         }
     }
 
     public void setLocation(float[] location) {
+        if (location == null) return;
+        this.location = new Float[3];
         this.location[0] = location[0];
         this.location[1] = location[1];
         this.location[2] = location[2];
-        updateMatrix();
+        refresh();
     }
 
-    private void updateMatrix() {
-        if (matrix != null) {
-            Matrix.setIdentityM(matrix, 0);
-            Matrix.translateM(matrix, 0, location[0], location[1], location[2]);
-            // FIXME: matrix overlaps
-            Matrix.multiplyMM(matrix, 0, matrix, 0, qRotation.toRotationMatrix(new float[16]), 0);
-            Matrix.scaleM(matrix, 0, scale[0], scale[1], scale[2]);
-        } else {
-            Matrix.setIdentityM(calculatedMatrix, 0);
-            if (this.location != null) {
-                if (this.location[0] != null)
-                    Matrix.translateM(calculatedMatrix, 0, location[0], 0, 0);
-                if (this.location[1] != null)
-                    Matrix.translateM(calculatedMatrix, 0, 0, location[1], 0);
-                if (this.location[2] != null)
-                    Matrix.translateM(calculatedMatrix, 0, 0, 0, location[2]);
-            }
-            if (this.rotation != null) {
-                if (this.rotation[0] != null)
-                    Matrix.rotateM(calculatedMatrix, 0, rotation[0], 1, 0, 0);
-                if (this.rotation[1] != null)
-                    Matrix.rotateM(calculatedMatrix, 0, rotation[1], 0, 1, 0);
-                if (this.rotation[2] != null)
-                    Matrix.rotateM(calculatedMatrix, 0, rotation[2], 0, 0, 1);
-            }
-            if (this.scale != null) {
-                if (this.scale[0] != null)
-                    Matrix.scaleM(calculatedMatrix, 0, scale[0], 0, 0);
-                if (this.scale[1] != null)
-                    Matrix.scaleM(calculatedMatrix, 0, 0, scale[1], 0);
-                if (this.scale[2] != null)
-                    Matrix.scaleM(calculatedMatrix, 0, 0, 0, scale[2]);
-            }
-            //Matrix.multiplyMM(matrix,0,matrix,0, qRotation.toRotationMatrix(new float[16]),0);
+    private void refresh() {
+        if (transform == null) {
+            transform = new float[16];
+        }
+        Matrix.setIdentityM(transform, 0);
+        if (this.location != null) {
+            if (this.location[0] != null)
+                Matrix.translateM(transform, 0, location[0], 0, 0);
+            if (this.location[1] != null)
+                Matrix.translateM(transform, 0, 0, location[1], 0);
+            if (this.location[2] != null)
+                Matrix.translateM(transform, 0, 0, 0, location[2]);
+        }
+
+        if (this.scale != null) {
+            if (this.scale[0] != null)
+                Matrix.scaleM(transform, 0, scale[0], 1, 1);
+            if (this.scale[1] != null)
+                Matrix.scaleM(transform, 0, 1, scale[1], 1);
+            if (this.scale[2] != null)
+                Matrix.scaleM(transform, 0, 1, 1, scale[2]);
+        }
+        if (Constants.PREFER_QUATERNION && this.qRotation != null) {
+            //this.qRotation.normalize();
+            //Matrix.multiplyMM(transform,0, transform, 0, this.qRotation.getMatrix(), 0);
+            Matrix.rotateM(transform, 0, this.qRotation.toAngles(null)[2], 0, 0, 1);
+            Matrix.rotateM(transform, 0, this.qRotation.toAngles(null)[1], 0, 1, 0);
+            Matrix.rotateM(transform, 0, this.qRotation.toAngles(null)[0], 1, 0, 0);
+        }
+        else if (this.rotation != null) {
+            if (this.rotation[2] != null)
+                Matrix.rotateM(transform, 0, rotation[2], 0, 0, 1);
+            if (this.rotation[1] != null)
+                Matrix.rotateM(transform, 0, rotation[1], 0, 1, 0);
+            if (this.rotation[0] != null)
+                Matrix.rotateM(transform, 0, rotation[0], 1, 0, 0);
+        }
+
+        if (matrix != null){
+            Matrix.multiplyMM(tempMatrix, 0, tempMatrix, 0, matrix, 0);
         }
     }
-
 
 
     @Override
     public String toString() {
         return "JointTransform{" +
-                "scale=" + Arrays.toString(scale) +
+                "location=" + Arrays.toString(location) +
+                ", scale=" + Arrays.toString(scale) +
                 ", rotation=" + Arrays.toString(rotation) +
-                ", location=" + Arrays.toString(location) +
+                ", quaternion=" + qRotation +
+                //", matrix=" + Arrays.toString(matrix) +
                 '}';
     }
 
 
+    public void setQuaternion(Quaternion quaternion) {
+        this.qRotation = quaternion;
+        if (quaternion != null) {
+            this.rotation = quaternion.toAngles2(this.rotation);
+        }
+        refresh();
+    }
+
+    /*public JointTransform setRotation(Float[] angles) {
+        this.rotation = angles;
+        if (angles != null) {
+            this.qRotation = Quaternion.fromEuler();
+        }
+        updateMatrix();
+        return this;
+    }*/
 }

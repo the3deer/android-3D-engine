@@ -98,8 +98,16 @@ public class Joint {
         return data.getIndex();
     }
 
-    public String getName() {
+    public String getId() {
         return data.getId();
+    }
+
+    public String getName() {
+        return data.getName();
+    }
+
+    public List<String> getMeshes(){
+        return data.getMeshes();
     }
 
     public List<Joint> getChildren() {

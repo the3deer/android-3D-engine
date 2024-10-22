@@ -5,45 +5,115 @@ package org.the3deer.android_3d_model_engine.model;
 import android.opengl.Matrix;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
+
+import org.the3deer.util.android.AndroidUtils;
+import org.the3deer.util.event.EventListener;
 import org.the3deer.util.math.Math3DUtils;
+import org.the3deer.util.math.Quaternion;
+
+import java.util.ArrayList;
+import java.util.EventObject;
+import java.util.List;
+
+import javax.inject.Inject;
 
 public class Camera {
+
+    /**
+     * Controls the camera
+     */
+    public interface Controller {
+
+        default void move(float dX, float dY) {
+        }
+
+        default void zoom(float direction) {
+        }
+
+        default void rotate(float angle) {
+        }
+    }
+
+    /**
+     * Triggers on any camera update
+     */
+    public static class CameraUpdatedEvent extends EventObject {
+
+        /**
+         * Constructs a prototypical Event.
+         *
+         * @param source the object on which the Event initially occurred
+         * @throws IllegalArgumentException if source is null
+         */
+        public CameraUpdatedEvent(Object source) {
+            super(source);
+        }
+    }
 
     private final BoundingBox centerBox = new BoundingBox("scene", -Constants.ROOM_CENTER_SIZE, Constants.ROOM_CENTER_SIZE,
             -Constants.ROOM_CENTER_SIZE, Constants.ROOM_CENTER_SIZE, -Constants.ROOM_CENTER_SIZE, Constants.ROOM_CENTER_SIZE);
     private final BoundingBox roomBox = new BoundingBox("scene", -Constants.ROOM_SIZE, Constants.ROOM_SIZE,
             -Constants.ROOM_SIZE, Constants.ROOM_SIZE, -Constants.ROOM_SIZE, Constants.ROOM_SIZE);
 
-    private Camera delegate;
-
-    private Animation<Camera> animation;
-
-    private boolean changed = false;
-
     // new vector model
-	protected float[] pos = new float[]{0,0,0,1};
-    protected float[] view = new float[]{0,0,0,1};
-    protected float[] up = new float[]{0,0,0,1};
+    protected float[] pos = new float[]{0, 0, 1, 1};
+    protected float[] view = new float[]{0, 0, 0, 1};
+    protected float[] up = new float[]{0, 1, 0, 1};
 
     // transformation matrix
-    protected float[] matrix = new float[16];
+    public float[] viewMatrix = new float[16];
+    public float[] projectionMatrix = new float[16];
+    //public final float[] projectionViewMatrix = new float[16];
 
     // camera mode
     private Projection projection = Projection.PERSPECTIVE;
+
+    // @Inject
+    private List<EventListener> listeners = new ArrayList<>();
+    /**
+     * The new orientation of the device.
+     * <p>
+     * Please check @{@link android.view.OrientationEventListener}
+     */
+    private int deviceOrientation;
+
+    // camera orientation
+    private float[] orientationMatrix = new float[16];
+    private Quaternion orientation = new Quaternion();
+
+    @Inject
+    private Screen screen;
+
+    //@Inject
+    private Controller controller;
+
+    private boolean changed = false;
+
+    private Dimensions dimensions2D = new Dimensions();
+    private Dimensions dimensions3D = new Dimensions();
+
+    public Camera() {
+        this(Constants.UNIT);
+    }
 
     public Camera(float distance) {
         // Initialize variables...
         this(0, 0, distance, 0, 0, 0, 0, 1, 0);
     }
 
-    public Camera(Camera source) {
-        this.pos = source.pos;
-        this.view = source.view;
-        this.up = source.up;
+    public Camera(Camera cam2) {
+        this.screen = cam2.screen;
+        this.pos = cam2.pos;
+        this.view = cam2.view;
+        this.up = cam2.up;
+        this.viewMatrix = cam2.viewMatrix;
+        this.projectionMatrix = cam2.projectionMatrix;
     }
 
     public Camera(float xPos, float yPos, float zPos, float xView, float yView, float zView, float xUp, float yUp,
                   float zUp) {
+
         // Here we set the camera to the values sent in to us. This is mostly
         // used to set up a
         // default position.
@@ -58,31 +128,99 @@ public class Camera {
         this.up[2] = zUp;
     }
 
-    public Camera getDelegate() {
-        return delegate;
+    public Projection getProjection() {
+        return projection;
     }
 
-    public void setDelegate(Camera delegate) {
-        this.delegate = delegate;
+    public void setProjection(Projection projection) {
+        this.projection = projection;
     }
 
-    public void setAnimation(Animation<Camera> animation) {
-        this.animation = animation;
-    }
-    public Animation<Camera> getAnimation() {
-        return this.animation;
+    public Controller getController() {
+        return controller;
     }
 
-    public void enable(){
+    public void setController(Controller controller) {
+        this.controller = controller;
     }
 
-    public synchronized void animate() {
-        if (getAnimation() != null){
-            getAnimation().animate();
+    public void setUp() {
+        refresh();
+    }
+
+    public void addListener(EventListener eventListener) {
+        this.listeners.add(eventListener);
+    }
+
+    public void move(float dX, float dY) {
+        if (controller != null)
+            controller.move(dX, dY);
+    }
+
+    public void zoom(float direction) {
+        if (controller != null)
+            controller.zoom(direction);
+    }
+
+    public void rotate(float angle) {
+        if (controller != null)
+            controller.rotate(angle);
+    }
+
+    protected void refresh() {
+
+        // check
+        if (screen == null) return;
+
+        // setup projection matrix
+        switch (projection) {
+            case ORTHOGRAPHIC:
+            case ISOMETRIC:
+                Matrix.orthoM(projectionMatrix, 0,
+                        -Constants.UNIT * screen.getRatio(),
+                        Constants.UNIT * screen.getRatio(),
+                        -Constants.UNIT,
+                        Constants.UNIT,
+                        Constants.near, Constants.far);
+                break;
+            case PERSPECTIVE:
+            case FREE:
+                Matrix.frustumM(projectionMatrix, 0,
+                        -screen.getRatio(), screen.getRatio(),
+                        -1f, 1f, Constants.near, Constants.far);
+                break;
         }
+
+        // setup view matrix
+        Matrix.setLookAtM(viewMatrix, 0,
+                getxPos(), getyPos(), getzPos(),
+                getxView(), getyView(), getzView(),
+                getxUp(), getyUp(), getzUp());
+
+
+        // update orientation
+        Matrix.setLookAtM(orientationMatrix, 0,
+                0, 0, 0,
+                -getxPos() + getxView(), -getyPos() + getyView(), -getzPos() + getzView(),
+                getxUp(), getyUp(), getzUp());
+        this.orientation = new Quaternion(orientationMatrix);
+
+
+        // dimensions
+        this.dimensions2D = new Dimensions(-Constants.UNIT * screen.getRatio(), Constants.UNIT * screen.getRatio(),
+                Constants.UNIT, -Constants.UNIT, 0, 1);
+        this.dimensions3D = new Dimensions(0, screen.getWidth(), screen.getHeight(), 0, Constants.near, Constants.far);
+
+        //Log.v("Camera","Camera refreshed: "+this.projection);
     }
 
-    public synchronized void MoveCameraZ(float direction) {
+    public Quaternion getOrientation() {
+        return orientation;
+    }
+
+
+
+    public void enable() {
     }
 
     /**
@@ -93,7 +231,7 @@ public class Camera {
      * @param z z position
      * @return true if specified position is outside room "walls" or in the very center of the room
      */
-    protected boolean isOutOfBounds(float x, float y, float z) {
+    public boolean isOutOfBounds(float x, float y, float z) {
         if (roomBox.outOfBound(x, y, z)) {
             Log.v("Camera", "Out of room walls. " + x + "," + y + "," + z);
             return true;
@@ -121,9 +259,6 @@ public class Camera {
      * @param dY the Y component of the user 2D vector, that is, a value between [-1,1]
      */
     public synchronized void translateCamera(float dX, float dY) {
-        if (getDelegate() != null){
-            getDelegate().translateCamera(dX, dY);
-        }
     }
 
     public boolean hasChanged() {
@@ -132,16 +267,10 @@ public class Camera {
 
     public void setChanged(boolean changed) {
         this.changed = changed;
-        if (getDelegate()!=null) {
-            getDelegate().setChanged(this.changed);
-        }
+        refresh();
+        AndroidUtils.fireEvent(listeners, new CameraUpdatedEvent(this));
     }
 
-    @Override
-    public String toString() {
-        return "Camera [xPos=" + pos[0] + ", yPos=" + pos[1] + ", zPos=" + pos[2] + ", xView=" + getxView() + ", yView=" + getyView()
-                + ", zView=" + view[2] + ", xUp=" + getxUp() + ", yUp=" + getyUp() + ", zUp=" + getzUp() + "]";
-    }
 
     public synchronized void Rotate(float angle) {
     }
@@ -155,7 +284,7 @@ public class Camera {
 
         // right vector
         float[] crossRight = Math3DUtils.crossProduct(xLook, yLook, zLook, getxUp(), getyUp(), getzUp());
-        Math3DUtils.normalize(crossRight);
+        Math3DUtils.normalizeVector(crossRight);
 
         // new left pos
         float xPosLeft = pos[0] - crossRight[0] * eyeSeparation / 2;
@@ -243,20 +372,14 @@ public class Camera {
         this.up[0] = xUp;
         this.up[1] = yUp;
         this.up[2] = zUp;
+
         setChanged(true);
     }
 
-    public void set(float[] pos, float[] view, float[] up){
-        this.set(pos[0], pos[1], pos[2],view[0], view[1], view[2], up[0],up[1], up[2]);
+    public void set(float[] pos, float[] view, float[] up) {
+        this.set(pos[0], pos[1], pos[2], view[0], view[1], view[2], up[0], up[1], up[2]);
     }
 
-    public Projection getProjection() {
-        return projection;
-    }
-
-    public void setProjection(Projection projection) {
-        this.projection = projection;
-    }
 
     public float getDistance() {
         return Math3DUtils.length(this.pos);
@@ -279,19 +402,19 @@ public class Camera {
     }
 
     // cellphone orientation
-    private int orientation;
+
     /**
      * Rotate using the current view vector
      *
      * @param angle angle in degrees
      */
-    public void setOrientation(int angle) {
+    public void setDeviceOrientation(int angle) {
 
-        if (angle == this.orientation) return;
-        else if (Math.abs(this.orientation-angle)<5) return;
-            else{
-            int previous = this.orientation;
-            this.orientation = angle;
+        if (angle == this.deviceOrientation) return;
+        else if (Math.abs(this.deviceOrientation - angle) < 5) return;
+        else {
+            int previous = this.deviceOrientation;
+            this.deviceOrientation = angle;
             angle = previous - angle;
         }
 
@@ -307,12 +430,12 @@ public class Camera {
 
         // rotation matrix
         float[] matrix = new float[16];
-        Matrix.setIdentityM(matrix,0);
-        Matrix.setRotateM(matrix,0, angle, getxPos(),getyPos(),getzPos());
+        Matrix.setIdentityM(matrix, 0);
+        Matrix.setRotateM(matrix, 0, angle, getxPos(), getyPos(), getzPos());
 
         float[] newUp = new float[4];
-        Matrix.multiplyMV(newUp,0,matrix,0,up,0);
-        Math3DUtils.normalize(newUp);
+        Matrix.multiplyMV(newUp, 0, matrix, 0, up, 0);
+        Math3DUtils.normalizeVector(newUp);
 
         this.up[0] = newUp[0];
         this.up[1] = newUp[1];
@@ -342,9 +465,32 @@ public class Camera {
         setChanged(true);*/
     }
 
-    public float[] getMatrix() {
-        Matrix.setLookAtM(this.matrix,0,getxPos(),getyPos(),getzPos(),
-                getxView(),getyView(),getzView(),getxUp(),getyUp(),getzUp());
-        return matrix;
+    public float[] getViewMatrix() {
+        /*Matrix.setLookAtM(this.viewMatrix,0,getxPos(),getyPos(),getzPos(),
+                getxView(),getyView(),getzView(),getxUp(),getyUp(),getzUp());*/
+        return viewMatrix;
+    }
+
+    public float[] getProjectionMatrix() {
+        return projectionMatrix;
+    }
+
+/*    public float[] getProjectionViewMatrix() {
+        return projectionViewMatrix;
+    }*/
+
+    // from gui
+
+    public Dimensions getDimensions2D() {
+        return dimensions2D;
+    }
+
+    @NonNull
+    @Override
+    public String toString() {
+        return "Camera [projection="+projection+", xPos=" + pos[0] + ", yPos=" + pos[1] + ", zPos=" + pos[2] +
+                ", xView=" + getxView() + ", yView=" + getyView() +
+                ", zView=" + view[2] + ", xUp=" + getxUp() +
+                ", yUp=" + getyUp() + ", zUp=" + getzUp() + "]";
     }
 }

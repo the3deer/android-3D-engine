@@ -98,7 +98,7 @@ public final class GLUtil {
 
         int[] compiled = new int[1];
         GLES20.glGetShaderiv(shader, GLES20.GL_COMPILE_STATUS, compiled, 0);
-        Log.d("GLUtil", "Shader compilation info: " + GLES20.glGetShaderInfoLog(shader));
+        Log.v("GLUtil", "Shader compilation info: " + GLES20.glGetShaderInfoLog(shader));
         if (compiled[0] == 0) {
             Log.e("GLUtil", "Shader error: " + GLES20.glGetShaderInfoLog(shader) + "\n" + shaderCode);
             GLES20.glDeleteShader(shader);
@@ -115,7 +115,7 @@ public final class GLUtil {
     public static int loadTexture(final InputStream is) {
         Log.v("GLUtil", "Loading texture from stream...");
 
-        final Bitmap bitmap = loadBitmap(is);
+        final Bitmap bitmap = AndroidUtils.decodeBitmap(is);
         int ret = loadTexture(bitmap);
         bitmap.recycle();
 
@@ -133,7 +133,7 @@ public final class GLUtil {
             throw new RuntimeException("Error loading texture.");
         }
 
-        Log.v("GLUtil", "New texture: " + textureHandle[0]);
+        //Log.v("GLUtil", "New texture: " + textureHandle[0]);
 
         // Bind to the texture in OpenGL
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureHandle[0]);
@@ -141,12 +141,12 @@ public final class GLUtil {
         GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, bitmap, 0);
         GLUtil.checkGlError("texImage2D");
         bitmap.recycle();
-        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_NEAREST);
-        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_NEAREST);
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR);
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR);
         GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,GLES20.GL_TEXTURE_WRAP_S,GLES20.GL_REPEAT);
         GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,GLES20.GL_TEXTURE_WRAP_T,GLES20.GL_REPEAT);
 
-        Log.v("GLUtil", "Loaded texture ok");
+        Log.v("GLUtil", "Loaded texture: "+textureHandle[0]);
         return textureHandle[0];
     }
 
@@ -159,21 +159,6 @@ public final class GLUtil {
 
         // Read in the resource
         final Bitmap bitmap = BitmapFactory.decodeByteArray(is, 0, is.length, options);
-        if (bitmap == null) {
-            throw new RuntimeException("couldn't load bitmap");
-        }
-        return bitmap;
-    }
-
-    public static Bitmap loadBitmap(InputStream is) {
-        final BitmapFactory.Options options = new BitmapFactory.Options();
-        // By default, Android applies pre-scaling to bitmaps depending on the resolution of your device and which
-        // resource folder you placed the image in. We don’t want Android to scale our bitmap at all, so to be sure,
-        // we set inScaled to false.
-        options.inScaled = false;
-
-        // Read in the resource
-        final Bitmap bitmap = BitmapFactory.decodeStream(is, null, options);
         if (bitmap == null) {
             throw new RuntimeException("couldn't load bitmap");
         }

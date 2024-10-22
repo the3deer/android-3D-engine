@@ -2,6 +2,7 @@ package org.the3deer.android_3d_model_engine.gui;
 
 import android.util.Log;
 
+import org.the3deer.android_3d_model_engine.animation.JointTransform;
 import org.the3deer.android_3d_model_engine.model.Dimensions;
 import org.the3deer.android_3d_model_engine.model.Object3DData;
 import org.the3deer.util.io.IOUtils;
@@ -14,7 +15,8 @@ public class Rotator extends Widget {
     private final Widget widget;
     private final Dimensions widget_dimensions;
 
-    private Rotator(Widget widget) {
+    private Rotator(Widget parent, Widget widget) {
+        super(parent);
         this.widget = widget;
         this.widget_dimensions = widget.getCurrentDimensions();
         try {
@@ -33,8 +35,8 @@ public class Rotator extends Widget {
         }
     }
 
-    public static Rotator build(Widget widget) {
-        Rotator rotator = new Rotator(widget);
+    public static Rotator build(Widget parent, Widget widget) {
+        Rotator rotator = new Rotator(parent, widget);
         rotator.setParent(widget);
         return rotator;
     }
@@ -44,11 +46,11 @@ public class Rotator extends Widget {
 
         if (event.getSource() != this.widget) return super.onEvent(event);
 
-        if (event instanceof ChangeEvent){
+        if (event instanceof ChangeEvent) {
             Object3DData source = (Object3DData) event.getSource();
             if (this.widget_dimensions != source.getCurrentDimensions()) {
-                Log.d("Rotator","["+getId()+"] this dim: "+widget_dimensions);
-                Log.d("Rotator","["+source.getId()+"] dimensions: "+source.getCurrentDimensions());
+                //Log.d("Rotator","["+getId()+"] this dim: "+widget_dimensions);
+                //Log.d("Rotator","["+source.getId()+"] dimensions: "+source.getCurrentDimensions());
                 //build(getVertexArrayBuffer(), getVertexColorsArrayBuffer(), getColor(), source.getDimensions());
                 //setVertexArrayBuffer(getVertexArrayBuffer());
             }
@@ -57,10 +59,10 @@ public class Rotator extends Widget {
             //this.setRotation(source.getRotation());
             //this.setRotation2(source.getRotation2(), source.getRotation2Location());
             this.setVisible(source.isVisible());
-        } else if (event instanceof GUI.ClickEvent){
+        } else if (event instanceof Widget.ClickEvent) {
 
-            /*GUI.ClickEvent clickEvent = (GUI.ClickEvent) event;
-            if (clickEvent.getWidget() != this) return  true;
+            Widget.ClickEvent clickEvent = (Widget.ClickEvent) event;
+            if (clickEvent.getWidget() != this) return true;
 
             float[] position = unproject(clickEvent);
 
@@ -68,31 +70,31 @@ public class Rotator extends Widget {
             JointTransform end = new JointTransform(new float[16]);
             if (position[0] > widget_dimensions.getMax()[0]) {
 
-                start.setPosition(widget.getPosition());
+                start.setLocation(widget.getLocation());
                 start.setScale(widget.getScale());
-                start.setRotation2(widget.getRotation2(), widget.getCenter());
+                //start.setRotation2(widget.getRotation2(), widget.getCenter());
 
-                end.setPosition(widget.getPosition());
+                end.setLocation(widget.getLocation());
                 end.setScale(widget.getScale());
-                end.setRotation2(new float[]{
+                /*end.setRotation2(new float[]{
                         start.getRotation2()[0],
                         start.getRotation2()[1] + 90f,
-                        start.getRotation2()[2]}, start.getRotation2Location());
-                widget.animate(start, end, 125);
+                        start.getRotation2()[2]}, start.getRotation2Location());*/
+                //widget.animate(start, end, 125);
             } else if (position[0] < widget_dimensions.getMin()[0]) {
 
-                start.setPosition(widget.getPosition());
+                start.setLocation(widget.getLocation());
                 start.setScale(widget.getScale());
-                start.setRotation2(widget.getRotation2(), widget.getCenter());
+                //start.setRotation2(widget.getRotation2(), widget.getCenter());
 
-                end.setPosition(widget.getPosition());
+                end.setLocation(widget.getLocation());
                 end.setScale(widget.getScale());
-                end.setRotation2(new float[]{
+                /*end.setRotation2(new float[]{
                         start.getRotation2()[0],
                         start.getRotation2()[1] - 90f,
                         start.getRotation2()[2]}, start.getRotation2Location());
-                widget.animate(start, end, 125);
-            }*/
+                widget.animate(start, end, 125);*/
+            }
         }
         return true;
     }
@@ -108,9 +110,9 @@ public class Rotator extends Widget {
         vertexBuffer.position(0);
         colorBuffer.position(0);
 
-        Glyph.build(vertexBuffer, colorBuffer, Glyph.GLYPH_LESS_THAN_CODE,
-                color, min[0]-1f, centerY - 0.3f, maxZ);
-        Glyph.build(vertexBuffer, colorBuffer, Glyph.GLYPH_GREATER_THAN_CODE,
+        Glyph.build(vertexBuffer, 0, colorBuffer, Glyph.GLYPH_LESS_THAN_CODE,
+                color, min[0] - 1f, centerY - 0.3f, maxZ);
+        Glyph.build(vertexBuffer, 0, colorBuffer, Glyph.GLYPH_GREATER_THAN_CODE,
                 color, max[0] + 0.5f, centerY - 0.3f, maxZ);
     }
 }

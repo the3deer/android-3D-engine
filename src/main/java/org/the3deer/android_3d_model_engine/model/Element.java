@@ -1,7 +1,10 @@
 package org.the3deer.android_3d_model_engine.model;
 
+import androidx.annotation.NonNull;
+
 import org.the3deer.util.io.IOUtils;
 
+import java.nio.Buffer;
 import java.nio.IntBuffer;
 import java.util.List;
 
@@ -52,13 +55,16 @@ public class Element {
     }
 
     // polygon
-    private final String id;
-    private final List<Integer> indicesArray;
-    private IntBuffer indexBuffer;
+    private String id;
+    private List<Integer> indicesArray;
+    private Buffer indexBuffer;
 
     // material
     private String materialId;
     private Material material;
+
+    public Element(){
+    }
 
     public Element(String id, List<Integer> indexBuffer, String material) {
         this.id = id;
@@ -66,7 +72,7 @@ public class Element {
         this.materialId = material;
     }
 
-    public Element(String id, IntBuffer indexBuffer, String material) {
+    public Element(String id, Buffer indexBuffer, String material) {
         this.id = id;
         this.indicesArray = null;
         this.indexBuffer = indexBuffer;
@@ -81,13 +87,16 @@ public class Element {
         return this.indicesArray;
     }
 
+    public void setIndexBuffer(Buffer indexBuffer) {
+        this.indexBuffer = indexBuffer;
+    }
 
-    public IntBuffer getIndexBuffer() {
+    public Buffer getIndexBuffer() {
         if (indexBuffer == null) {
             this.indexBuffer = IOUtils.createIntBuffer(indicesArray.size());
             this.indexBuffer.position(0);
             for (int i = 0; i < indicesArray.size(); i++) {
-                this.indexBuffer.put(i, indicesArray.get(i));
+                ((IntBuffer)this.indexBuffer).put(i, indicesArray.get(i));
             }
         }
         return indexBuffer;
@@ -113,5 +122,18 @@ public class Element {
                 ", indexBuffer="+indexBuffer+
                 ", material=" + material +
                 '}';
+    }
+
+    @NonNull
+    @Override
+    protected Element clone() {
+        final Element ret = new Element();
+        if (this.getMaterial() != null)
+            ret.setMaterial(this.getMaterial().clone());
+        ret.setIndexBuffer(this.getIndexBuffer());
+        ret.materialId = this.materialId;
+        ret.id = this.id;
+        ret.indicesArray = this.indicesArray;
+        return ret;
     }
 }

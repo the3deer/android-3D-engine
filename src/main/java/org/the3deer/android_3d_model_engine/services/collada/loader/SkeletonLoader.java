@@ -260,7 +260,7 @@ public class SkeletonLoader {
        		Matrix.multiplyMM(bindTransform, 0, parent.getBindTransform(), 0, bindLocalTransform, 0);
 		}
 
-        return new JointData(nodeId, nodeName, nodeSid, bindLocalMatrix, bindLocalScale, bindLocalRotation, bindLocalLocation, bindLocalTransform, bindTransform, geometryId, materials
+        return new JointData(nodeId, nodeId, nodeSid, bindLocalMatrix, bindLocalScale, bindLocalRotation, bindLocalLocation, bindLocalTransform, bindTransform, geometryId, materials
 		);
 	}
 

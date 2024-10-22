@@ -1,6 +1,8 @@
 package org.the3deer.android_3d_model_engine.animation;
 
 
+import android.util.Log;
+
 /**
  * 
  * Represents an animation that can applied to an {@link org.the3deer.android_3d_model_engine.model.AnimatedModel} . It
@@ -51,6 +53,16 @@ public class Animation {
 	 */
 	public KeyFrame[] getKeyFrames() {
 		return keyFrames;
+	}
+
+	public void debugKeyFrames(){
+		if (keyFrames == null) return;
+
+		for (int i=0; i<keyFrames.length; i++){
+			if (i<10) {
+				Log.v("Animation", "Keyframe["+i+"] : " + keyFrames[i]);
+			}
+		}
 	}
 
 }

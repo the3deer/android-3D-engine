@@ -23,12 +23,12 @@ public class Plane2 {
 
 	static float[] planePositionData = {
 			// X, Y, Z,
-			-200.0f, -50f,  -200.0f + translateZ,
-			-200.0f, -50f,  200.0f + translateZ,
-			200.0f, -50f,  -200.0f + translateZ,
-			-200.0f, -50f,  200.0f + translateZ,
-			200.0f, -50f,  200.0f + translateZ,
-			200.0f, -50f,  -200.0f + translateZ
+			-Constants.UNIT, 0f,  -Constants.UNIT + translateZ,
+			-Constants.UNIT, 0f,  Constants.UNIT + translateZ,
+			Constants.UNIT, 0f,  Constants.UNIT + translateZ,
+			-Constants.UNIT, 0f,  -Constants.UNIT + translateZ,
+			Constants.UNIT, 0f,  Constants.UNIT + translateZ,
+			Constants.UNIT, 0f,  -Constants.UNIT + translateZ
 			};
 
 	static float[] planeNormalData = {

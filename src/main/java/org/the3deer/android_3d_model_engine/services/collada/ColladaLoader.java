@@ -7,6 +7,7 @@ import androidx.annotation.NonNull;
 
 import org.the3deer.android_3d_model_engine.animation.Animation;
 import org.the3deer.android_3d_model_engine.model.AnimatedModel;
+import org.the3deer.android_3d_model_engine.model.Constants;
 import org.the3deer.android_3d_model_engine.model.Element;
 import org.the3deer.android_3d_model_engine.model.Object3DData;
 import org.the3deer.android_3d_model_engine.services.LoadListener;
@@ -269,8 +270,9 @@ public final class ColladaLoader {
                     final MeshData meshData = meshDatas.get(i);
                     for (int e = 0; e < meshData.getElements().size(); e++) {
                         final Element element = meshData.getElements().get(e);
-                        if (element.getMaterial() != null && element.getMaterial().getTextureFile() != null) {
-                            final String textureFile = element.getMaterial().getTextureFile();
+                        if (element.getMaterial() != null && element.getMaterial().getColorTexture() != null &&
+                        element.getMaterial().getColorTexture().getFile() != null) {
+                            final String textureFile = element.getMaterial().getColorTexture().getFile();
                             // log event
                             Log.i("ColladaLoaderTask", "Reading texture file... " + textureFile);
 
@@ -278,10 +280,10 @@ public final class ColladaLoader {
                             try (InputStream stream = ContentUtils.getInputStream(textureFile)) {
 
                                 // read data
-                                element.getMaterial().setTextureData(IOUtils.read(stream));
+                                element.getMaterial().getColorTexture().setData(IOUtils.read(stream));
 
                                 // log event
-                                Log.i("ColladaLoaderTask", "Texture linked... " + element.getMaterial().getTextureData().length + " (bytes)");
+                                Log.i("ColladaLoaderTask", "Texture linked... " + element.getMaterial().getColorTexture().getData().length + " (bytes)");
 
                             } catch (Exception ex) {
                                 Log.e("ColladaLoaderTask", String.format("Error reading texture file: %s", ex.getMessage()));
@@ -310,7 +312,7 @@ public final class ColladaLoader {
                     callback.onProgress("Loading skinning data...");
 
                     // load skin data
-                    SkinLoader skinLoader = new SkinLoader(library_controllers, 3);
+                    SkinLoader skinLoader = new SkinLoader(library_controllers, Constants.MAX_VERTEX_WEIGHTS);
                     skins = skinLoader.loadSkinData();
 
                     // update bind_shape_matrix
@@ -368,8 +370,8 @@ public final class ColladaLoader {
                         // load skin arrays
                         SkinLoader.loadSkinningArrays(meshData);
                         
-                        data3D.setJointIds(meshData.getJointsBuffer());
-                        data3D.setVertexWeights(meshData.getWeightsBuffer());
+                        data3D.setJoints(meshData.getJointsBuffer());
+                        data3D.setWeights(meshData.getWeightsBuffer());
                         Log.d("ColladaLoader", "Loaded skinning data: "
                                 + "jointIds: " + (meshData.getJointsArray() != null ? meshData.getJointsArray().length : 0)
                                 + ", weights: " + (meshData.getWeightsArray() != null ? meshData.getWeightsArray().length : 0));
@@ -406,8 +408,8 @@ public final class ColladaLoader {
                             skeletonData = skeletons.get("default");
                         }
 
-                        data3D.setJointsData(skeletonData);
-                        data3D.doAnimation(animation);
+                        data3D.setSkeleton(skeletonData);
+                        data3D.setAnimation(animation);
 
                         // FIXME: this should be handled differently - this must be null for iris mechanical + countdown timer
                         data3D.setBindTransform(null);

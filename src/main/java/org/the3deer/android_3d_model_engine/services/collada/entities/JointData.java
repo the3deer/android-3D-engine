@@ -1,8 +1,13 @@
 package org.the3deer.android_3d_model_engine.services.collada.entities;
 
 import android.opengl.Matrix;
+import android.util.Log;
+
+import org.the3deer.util.math.Math3DUtils;
+import org.the3deer.util.math.Quaternion;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -17,22 +22,29 @@ import java.util.Map;
 public class JointData {
 
 	// attributes
-	private final String id;
-	private final String name;
-	private final String sid;
-	private final String instance_geometry;
-	private final Map<String,String> materials;
+	private String id;
+	private String name;
+	private String sid;
+	private String instance_geometry;
+	private Map<String,String> materials;
 
-	// local transforms
-	private final float[] bindLocalMatrix;
-	private final Float[] bindLocalScale;
-	private final Float[] bindLocalRotation;
-	private final Float[] bindLocalLocation;
+	// local transforms (matrix)
+	private float[] bindLocalMatrix;
 
-	// calculated: sump up of all local transforms
-	private final float[] bindLocalTransform;
+	// local transforms (detailed)
+	private Float[] bindLocalScale;
+	private Float[] bindLocalRotation;
+	private Quaternion bindLocalQuaternion;
+	private Float[] bindLocalTranslation;
+
+	// calculated: sump up of all local transforms - again?
+	private float[] bindLocalTransform = Math3DUtils.IDENTITY_MATRIX;
+
 	// calculated: sum up of all matrix up to the "root"
-	private final float[] bindTransform;
+	private float[] bindTransform;
+	private Float[] bindScale;
+	private Float[] bindRotation;
+	private Float[] bindLocation;
 
 	// used in Animation
 	// index referenced by skinning data
@@ -42,8 +54,44 @@ public class JointData {
 
 	public final List<JointData> children = new ArrayList<>();
 
+	public JointData() {
+		refresh();
+	}
+
+	public static JointData fromMatrix(float[] matrix){
+
+		JointData ret = new JointData();
+
+		ret.bindLocalMatrix = matrix;
+		ret.bindLocalQuaternion = Quaternion.fromMatrix(matrix);
+		ret.bindScale = Math3DUtils.scaleFromMatrix(matrix);
+		ret.bindLocalRotation = ret.bindLocalQuaternion.toAngles2(null);
+		ret.bindLocalTranslation = Math3DUtils.extractTranslation2(matrix, null);
+
+		ret.refresh();
+
+		return ret;
+	}
+
+	public static JointData fromTransforms(float[] scale, Quaternion quaternion, float[] translation) {
+
+		JointData ret = new JointData();
+
+		// local transforms
+		ret.bindLocalQuaternion = quaternion;
+		ret.bindLocalScale = scale != null? new Float[]{scale[0], scale[1], scale[2]} : null;
+		if (quaternion != null) {
+			ret.bindLocalRotation = quaternion.toAngles2(null);
+		}
+		ret.bindLocalTranslation = translation != null? new Float[] {translation[0], translation[1], translation[2]} : null;
+
+		ret.refresh();
+
+		return ret;
+	}
+
 	public JointData(String id, String name, String sid,
-					 float[] bindLocalMatrix, Float[] bindLocalScale, Float[] bindLocalRotation, Float[] bindLocalLocation,
+					 float[] bindLocalMatrix, Float[] bindLocalScale, Float[] bindLocalRotation, Float[] bindLocalTranslation,
 					 final float[] bindLocalTransform, final float[] bindTransform,
 					 String geometryId, Map<String, String> materials) {
 		this.id = id;
@@ -54,13 +102,66 @@ public class JointData {
 		this.bindLocalMatrix = bindLocalMatrix;
 		this.bindLocalScale = bindLocalScale;
 		this.bindLocalRotation = bindLocalRotation;
-		this.bindLocalLocation = bindLocalLocation;
+		this.bindLocalTranslation = bindLocalTranslation;
 
 		this.instance_geometry = geometryId;
 		this.materials = materials;
 
 		this.bindLocalTransform = bindLocalTransform;
 		this.bindTransform = bindTransform;
+	}
+
+	public JointData setId(String id) {
+		this.id = id;
+		return this;
+	}
+
+	public JointData setName(String name) {
+		this.name = name;
+		return this;
+	}
+
+	public List<String> getMeshes() {
+		if (instance_geometry != null) {
+			return Collections.singletonList(instance_geometry);
+		} else {
+			return Collections.emptyList();
+		}
+	}
+
+	public void setMesh(String instance_geometry) {
+		this.instance_geometry = instance_geometry;
+	}
+
+	private void refresh() {
+
+		this.bindLocalTransform = new float[16];
+		Matrix.setIdentityM(this.bindLocalTransform, 0);
+
+		if (bindLocalTranslation != null) {
+			Matrix.translateM(this.bindLocalTransform, 0, this.bindLocalTranslation[0], this.bindLocalTranslation[1], this.bindLocalTranslation[2]);
+		}
+
+		if (bindLocalScale != null){
+			Matrix.scaleM(this.bindLocalTransform, 0, this.bindLocalScale[0], this.bindLocalScale[1], this.bindLocalScale[2]);
+		}
+
+		if (bindLocalRotation != null) {
+			Matrix.rotateM(this.bindLocalTransform, 0, this.bindLocalRotation[2], 0, 0, 1);
+			Matrix.rotateM(this.bindLocalTransform, 0, this.bindLocalRotation[1], 0, 1, 0);
+			Matrix.rotateM(this.bindLocalTransform, 0, this.bindLocalRotation[0], 1, 0, 0);
+		}
+/*
+		if (bindLocalQuaternion != null) {
+			*//*bindLocalQuaternion.normalize();
+			Matrix.multiplyMM(this.bindLocalTransform, 0, this.bindLocalTransform, 0, bindLocalQuaternion.getMatrix(), 0);*//*
+			float[] temp = new float[16];
+			Matrix.multiplyMM(this.bindLocalTransform, 0, this.bindLocalTransform, 0, bindLocalQuaternion.getMatrix(), 0);
+		} else if (bindLocalRotation != null) {
+			Matrix.rotateM(this.bindLocalTransform, 0, this.bindLocalRotation[0], 1, 0, 0);
+			Matrix.rotateM(this.bindLocalTransform, 0, this.bindLocalRotation[1], 0, 1, 0);
+			Matrix.rotateM(this.bindLocalTransform, 0, this.bindLocalRotation[2], 0, 0, 1);
+		}*/
 	}
 
 	/**
@@ -79,7 +180,7 @@ public class JointData {
 		Matrix.setIdentityM(this.bindLocalMatrix,0);
 		this.bindLocalScale = new Float[]{1f,1f,1f};
 		this.bindLocalRotation = new Float[3];
-		this.bindLocalLocation = new Float[3];
+		this.bindLocalTranslation = new Float[3];
 		this.inverseBindTransform = new float[16];
 		Matrix.setIdentityM(this.inverseBindTransform, 0);
 
@@ -124,8 +225,12 @@ public class JointData {
 		return bindLocalRotation;
 	}
 
-	public Float[] getBindLocalLocation() {
-		return bindLocalLocation;
+	public Quaternion getBindLocalQuaternion() {
+		return bindLocalQuaternion;
+	}
+
+	public Float[] getBindLocalTranslation() {
+		return bindLocalTranslation;
 	}
 
 	public String getGeometryId() {
@@ -137,6 +242,15 @@ public class JointData {
 	}
 
 	public float[] getInverseBindTransform() {
+		if (this.inverseBindTransform == null){
+			this.inverseBindTransform = new float[16];
+			Matrix.setIdentityM(this.inverseBindTransform,0);
+			if (this.bindLocalTransform != null){
+				if(!Matrix.invertM(this.inverseBindTransform, 0, this.bindLocalTransform, 0)){
+					Log.e("JointData", "Couldn't invert matrix for inverseBindTransform");
+				}
+			}
+		}
 		return inverseBindTransform;
 	}
 
@@ -199,7 +313,11 @@ public class JointData {
 	}
 
 	public float[] getBindLocalTransform() {
-		return bindLocalTransform;
+		if (bindLocalMatrix != null){
+			return bindLocalMatrix;
+		} else {
+			return bindLocalTransform;
+		}
 	}
 
 
@@ -212,4 +330,7 @@ public class JointData {
 				'}';
 	}
 
+	public void setBindTransform(float[] matrix) {
+		this.bindTransform = matrix;
+	}
 }

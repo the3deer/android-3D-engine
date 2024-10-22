@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">Visor de modelos 3D</string>
+
+    <!-- dialog -->
+    <string name="dialog_title">Por favor seleccione</string>
+    <string name="dialog_ok">Ok</string>
+    <string name="dialog_cancel">Cancelar</string>
+
+    <string name="preferences">Preferencias</string>
+
+    <!-- GL Settings -->
+    <string name="toggle_renderer">Cambiar Renderizado</string>
+    <string name="toggle_camera">Cambiar Cámara</string>
+    <string name="toggle_skybox">Cambiar SkyBox</string>
+    <string name="toggle_view">Cambiar Vista</string>
+
+    <!-- colors -->
+    <string name="gray">gris</string>
+    <string name="white">blanco</string>
+    <string name="black">negro</string>
+
+</resources>

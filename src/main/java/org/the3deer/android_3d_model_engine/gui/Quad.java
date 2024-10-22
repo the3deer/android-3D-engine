@@ -13,10 +13,12 @@ public class Quad extends Widget {
 
     private final Dimensions dimensions;
 
-    private Quad(Dimensions dimensions) {
+    private Quad(Widget parent, Dimensions dimensions) {
+        super(parent);
+
         this.dimensions = dimensions;
         // buffers
-        int size = 4;
+        int size = 8;
         final FloatBuffer vertexBuffer = IOUtils.createNativeByteBuffer(size * 3 * 4).asFloatBuffer();
         // build
         build(vertexBuffer, dimensions);
@@ -26,8 +28,8 @@ public class Quad extends Widget {
         setDrawMode(GLES20.GL_TRIANGLE_STRIP);
     }
 
-    public static Quad build(Dimensions dimensions) {
-        return new Quad(dimensions);
+    public static Quad build(Widget parent, Dimensions dimensions) {
+        return new Quad(parent, dimensions);
     }
 
     @Override

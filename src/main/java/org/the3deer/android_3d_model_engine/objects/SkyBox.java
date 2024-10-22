@@ -5,6 +5,7 @@ import android.util.Log;
 
 import org.the3deer.android_3d_model_engine.model.CubeMap;
 import org.the3deer.android_3d_model_engine.model.Object3DData;
+import org.the3deer.android_3d_model_engine.model.Texture;
 import org.the3deer.util.android.ContentUtils;
 import org.the3deer.util.io.IOUtils;
 
@@ -133,7 +134,7 @@ public class SkyBox {
 
         Object3DData ret = new Object3DData(IOUtils.createFloatBuffer(VERTEX_DATA.length).put(VERTEX_DATA)).setId("skybox");
         ret.setDrawMode(GLES20.GL_TRIANGLES);
-        ret.getMaterial().setTextureId(skyBox.getCubeMap().getTextureId());
+        ret.getMaterial().setColorTexture(new Texture().setId(skyBox.getCubeMap().getTextureId()));
 
 
         Log.i("SkyBox", "Skybox : " + ret.getDimensions());

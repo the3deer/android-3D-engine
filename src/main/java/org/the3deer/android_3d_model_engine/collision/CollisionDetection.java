@@ -34,7 +34,7 @@ public class CollisionDetection {
         float[] nearHit = unProject(width, height, modelViewMatrix, modelProjectionMatrix, windowX, windowY, 0);
         float[] farHit = unProject(width, height, modelViewMatrix, modelProjectionMatrix, windowX, windowY, 1);
         float[] direction = Math3DUtils.substract(farHit, nearHit);
-        Math3DUtils.normalize(direction);
+        Math3DUtils.normalizeVector(direction);
         return getBoxIntersection(objects, nearHit, farHit, direction);
     }
 
@@ -62,7 +62,7 @@ public class CollisionDetection {
             Matrix.multiplyMV(nearAA, 0, invertedModelMatrix, 0, nearHit, 0);
             Matrix.multiplyMV(farAA, 0, invertedModelMatrix, 0, farHit, 0);
             float[] dirAA = Math3DUtils.substract(farAA, nearAA);
-            Math3DUtils.normalize(dirAA);
+            Math3DUtils.normalizeVector(dirAA);
 
             float[] intersection = getBoxIntersection(nearAA, dirAA, obj.getBoundingBox());
             if (intersection[0] > 0 && intersection[0] <= intersection[1] && intersection[0] < min) {
@@ -206,7 +206,7 @@ public class CollisionDetection {
         float[] nearHit = unProject(width, height, modelViewMatrix, modelProjectionMatrix, windowX, windowY, 0);
         float[] farHit = unProject(width, height, modelViewMatrix, modelProjectionMatrix, windowX, windowY, 1);
         float[] direction = Math3DUtils.substract(farHit, nearHit);
-        Math3DUtils.normalize(direction);
+        Math3DUtils.normalizeVector(direction);
         Object3DData intersected = getBoxIntersection(objects, nearHit, farHit, direction);
         if (intersected != null) {
             return getTriangleIntersection(intersected, nearHit, farHit, direction);
@@ -218,7 +218,7 @@ public class CollisionDetection {
         float[] nearHit = unProject(width, height, viewMatrix, projectionMatrix, windowX, windowY, 0);
         float[] farHit = unProject(width, height, viewMatrix, projectionMatrix, windowX, windowY, 1);
         float[] direction = Math3DUtils.substract(farHit, nearHit);
-        Math3DUtils.normalize(direction);
+        Math3DUtils.normalizeVector(direction);
         return getTriangleIntersection(hit, nearHit, farHit, direction);
     }
 
@@ -242,7 +242,7 @@ public class CollisionDetection {
         Matrix.multiplyMV(nearAA, 0, inverted, 0, nearHit, 0);
         Matrix.multiplyMV(farAA, 0, inverted, 0, farHit, 0);
         float[] dirAA = Math3DUtils.substract(farAA, nearAA);
-        Math3DUtils.normalize(dirAA);
+        Math3DUtils.normalizeVector(dirAA);
 
         float intersection = getTriangleIntersectionForOctree(octree, nearAA, dirAA);
         if (intersection != -1) {
@@ -397,8 +397,8 @@ public class CollisionDetection {
     private static boolean sameSide(float[] p1, float[] p2, float[] a, float[] b) {
         float[] cp1 = Math3DUtils.cross(Math3DUtils.substract(b, a), Math3DUtils.substract(p1, a));
         float[] cp2 = Math3DUtils.cross(Math3DUtils.substract(b, a), Math3DUtils.substract(p2, a));
-        Math3DUtils.normalize(cp1);
-        Math3DUtils.normalize(cp2);
+        Math3DUtils.normalizeVector(cp1);
+        Math3DUtils.normalizeVector(cp2);
         return Math3DUtils.equals(cp1, cp2);
     }
 

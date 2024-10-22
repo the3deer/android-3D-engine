@@ -5,15 +5,16 @@ import android.opengl.Matrix;
 import android.util.Log;
 
 import org.the3deer.android_3d_model_engine.collision.Octree;
-import org.the3deer.android_3d_model_engine.drawer.RendererFactory;
 import org.the3deer.android_3d_model_engine.services.collada.entities.MeshData;
+import org.the3deer.android_3d_model_engine.shader.ShaderFactory;
 import org.the3deer.util.android.AndroidUtils;
 import org.the3deer.util.event.EventListener;
-import org.the3deer.util.io.IOUtils;
 import org.the3deer.util.math.Math3DUtils;
 import org.the3deer.util.math.Quaternion;
 
 import java.net.URI;
+import java.nio.Buffer;
+import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.nio.ShortBuffer;
@@ -21,22 +22,29 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EventObject;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * This is the basic 3D data necessary to build the 3D object
- *
+ * <p>
  * Transforms are applied as follows:
- *
+ * <p>
  * MATRIX = ROTATION X LOCATION X SCALE X ORIENTATION [X CENTER] X OBJECT
  *
  * @author andresoviedo
  */
 public class Object3DData {
 
-    protected static class ChangeEvent extends EventObject {
-        ChangeEvent(Object source) {
+    public static class ChangeEvent extends EventObject {
+        public ChangeEvent(Object3DData source) {
             super(source);
+        }
+
+        @Override
+        public Object3DData getSource() {
+            return (Object3DData) super.getSource();
         }
     }
 
@@ -47,7 +55,11 @@ public class Object3DData {
     /**
      * Parent object if hierarchy of objects
      */
-    protected Object3DData parent;
+    protected Object3DData parent = null;
+    /**
+     * Bind transformation to parent
+     */
+    private boolean isParentBound;
     /**
      * model resource locator
      */
@@ -65,11 +77,27 @@ public class Object3DData {
      */
     private boolean drawUsingArrays = false;
     /**
-     * Whether the object is to be drawn
+     * Whether the object is to be drawn (and children)
      */
     private boolean isVisible = true;
 
+    /**
+     * Whether the object is to be rendered (not children)
+     */
+    private boolean render = true;
+
+    /**
+     * can be hit by collision colliders
+     */
     private boolean isSolid = true;
+    /**
+     * responds to click
+     */
+    private boolean isClickable = false;
+    /**
+     * responds to movement
+     */
+    private boolean isMovable = false;
 
     /**
      * The minimum thing we can draw in space is a vertex (or point).
@@ -83,7 +111,8 @@ public class Object3DData {
     // Model data
     protected FloatBuffer vertexBuffer = null;
     private FloatBuffer normalsBuffer = null;
-    private FloatBuffer colorsBuffer = null;
+    private FloatBuffer tangentBuffer = null;
+    protected Buffer colorsBuffer = null;
     private FloatBuffer textureBuffer = null;
     protected List<Element> elements;
     /**
@@ -93,8 +122,7 @@ public class Object3DData {
 
     // simple object variables for drawing using arrays
     private Material material = new Material("default");
-    private IntBuffer indexBuffer = null;
-    private ShortBuffer indexShortBuffer = null;  // in case system doesn't support ints
+    private Buffer indexBuffer = null;
 
     // Processed arrays
     private List<int[]> drawModeList = null;
@@ -103,10 +131,13 @@ public class Object3DData {
     private BoundingBox boundingBox;
 
     // Transformation data (ordered from top to bottom)
-    protected Quaternion orientation = new Quaternion(0,0,0,1);
+    protected Quaternion orientation = new Quaternion(0, 0, 0, 1);
     protected float[] scale = new float[]{1, 1, 1};
     protected float[] location = new float[]{0f, 0f, 0f};
     protected float[] rotation = new float[]{0f, 0f, 0f};
+
+    // Transformation data (relative to parent)
+    protected float[] relativeScale;
 
     // extra transforms
     // FIXME: can we remove this?
@@ -119,9 +150,13 @@ public class Object3DData {
      */
     private final float[] orientationMatrix = new float[16];
     /**
-     * This is the local transformation
+     * This is the local transformation (M=TSR)
      */
     private final float[] modelMatrix = new float[16];
+    /**
+     * This is the local transformation (M=SR), except translation
+     */
+    private final float[] modelMatrix2 = new float[16];
     /**
      * This is the local transformation when we have node hierarchy (ie. {@code <visual_scene><node><transform></transform></node></visual_scene>}
      */
@@ -134,6 +169,7 @@ public class Object3DData {
     {
         //
         Matrix.setIdentityM(modelMatrix, 0);
+        Matrix.setIdentityM(modelMatrix2, 0);
         Matrix.setIdentityM(newModelMatrix, 0);
         Matrix.setIdentityM(orientationMatrix, 0);
     }
@@ -147,13 +183,15 @@ public class Object3DData {
     // fixed place
     private boolean pinned;
 
-    // defines whether the transformations are relative to it's mass center
+    /**
+     * Defines whether the transformations are relative to it's bounding box center
+     * Impacts the {@link #modelMatrix} calculation
+     */
     private boolean centered;
 
     // Async Loader
     // current dimensions
     private Dimensions dimensions = null;
-    //protected Dimensions currentDimensions = null;
 
     // collision detection
     private Octree octree = null;
@@ -162,7 +200,7 @@ public class Object3DData {
     private List<String> errors = new ArrayList<>();
 
     // event listeners
-    private List<EventListener> listeners = new ArrayList<>();
+    private final Set<EventListener> listeners = new HashSet<>();
 
 
     public Object3DData() {
@@ -190,7 +228,7 @@ public class Object3DData {
         updateDimensions();
     }
 
-    public Object3DData(FloatBuffer vertexBuffer, IntBuffer drawOrder) {
+    public Object3DData(FloatBuffer vertexBuffer, Buffer drawOrder) {
         this.vertexBuffer = vertexBuffer;
         this.indexBuffer = drawOrder;
         this.setDrawUsingArrays(false);
@@ -200,7 +238,7 @@ public class Object3DData {
     public Object3DData(FloatBuffer vertexBuffer, FloatBuffer textureBuffer, byte[] texData) {
         this.vertexBuffer = vertexBuffer;
         this.textureBuffer = textureBuffer;
-        this.getMaterial().setTextureData(texData);
+        this.getMaterial().setColorTexture(new Texture().setData(texData));
         this.setDrawUsingArrays(true);
         updateDimensions();
     }
@@ -210,7 +248,7 @@ public class Object3DData {
         this.vertexBuffer = vertexBuffer;
         this.colorsBuffer = colorsBuffer;
         this.textureBuffer = textureBuffer;
-        this.getMaterial().setTextureData(texData);
+        this.getMaterial().setColorTexture(new Texture().setData(texData));
         this.setDrawUsingArrays(true);
         updateDimensions();
     }
@@ -229,9 +267,19 @@ public class Object3DData {
         return parent;
     }
 
-    public void setParent(Object3DData parent) {
+    public Object3DData setParent(Object3DData parent) {
         this.parent = parent;
+        return this;
     }
+
+    public void setParentBound(boolean bind) {
+        this.isParentBound = bind;
+    }
+
+    public boolean isParentBound() {
+        return this.isParentBound;
+    }
+
 
     public Object3DData setId(String id) {
         this.id = id;
@@ -290,72 +338,131 @@ public class Object3DData {
         return isSolid;
     }
 
+
+    public boolean isClickable() {
+        return isClickable;
+    }
+
+    public void setClickable(boolean clickable) {
+        isClickable = clickable;
+    }
+
+    public boolean isMovable() {
+        return isMovable;
+    }
+
+    public void setMovable(boolean movable) {
+        isMovable = movable;
+        isSolid = true;
+    }
+
     // ---------------------------- dimensions ----------------------------- //
-
-    public float getWidth() {
-        return getCurrentDimensions().getWidth() * getScaleX();
-    }
-
-    public float getHeight() {
-        return getCurrentDimensions().getHeight() * getScaleY();
-    }
-
-    public float getDepth() {
-        return getCurrentDimensions().getDepth() * getScaleZ();
-    }
-
-    public void setCurrentDimensions(Dimensions currentDimensions) {
-        //this.currentDimensions = currentDimensions;
-    }
 
     public void setDimensions(Dimensions dimensions) {
         this.dimensions = dimensions;
-        setCurrentDimensions(dimensions);
-        Log.d("Object3DData", "New fixed dimensions for " + getId() + ": " + this.dimensions);
+        //Log.d("Object3DData", "New fixed dimensions for " + getId() + ": " + this.dimensions);
     }
 
     public Dimensions getDimensions() {
         if (dimensions == null) {
-
-            final Dimensions dimensions = new Dimensions();
-
-            if (this.elements == null || this.elements.isEmpty()) {
-                for (int i = 0; i < vertexBuffer.capacity(); i += 3) {
-                    dimensions.update(vertexBuffer.get(i), vertexBuffer.get(i + 1), vertexBuffer.get(i + 2));
-                }
-            } else {
-                for (Element element : getElements()) {
-                    final IntBuffer indexBuffer = element.getIndexBuffer();
-                    for (int i = 0; i < indexBuffer.capacity(); i++) {
-                        final int idx = indexBuffer.get(i);
-                        dimensions.update(vertexBuffer.get(idx * 3), vertexBuffer.get(idx * 3 + 1), vertexBuffer.get(idx * 3 + 2));
-                    }
-                }
-            }
-            this.dimensions = dimensions;
-
-            Log.d("Object3DData", "New dimensions for '" + getId() + "': " + this.dimensions);
+            refreshDimensions();
+            Log.v("Object3DData", "New dimensions for '" + getId() + "': " + this.dimensions);
         }
         return dimensions;
     }
 
-    public Object3DData setRelativeScale(float[] scale){
+    private void refreshDimensions() {
+        final Dimensions dimensions = new Dimensions();
+
+        if (vertexBuffer != null) {
+
+            if (this.elements == null || this.elements.isEmpty()) {
+                for (int i = 0; i < vertexBuffer.capacity() - 2; i += 3) {
+                    dimensions.update(vertexBuffer.get(i), vertexBuffer.get(i + 1), vertexBuffer.get(i + 2));
+                }
+            } else {
+                for (Element element : getElements()) {
+                    final Buffer indexBuffer = element.getIndexBuffer();
+                    for (int i = 0; i < indexBuffer.capacity(); i++) {
+                        final int idx;
+                        if (indexBuffer instanceof IntBuffer) {
+                            idx = ((IntBuffer) indexBuffer).get(i);
+                        } else if (indexBuffer instanceof ShortBuffer) {
+                            idx = ((ShortBuffer) indexBuffer).get(i);
+                        } else if (indexBuffer instanceof ByteBuffer) {
+                            idx = ((ByteBuffer) indexBuffer).get(i);
+                        } else {
+                            throw new IllegalStateException("IndexBuffer is of unknown type");
+                        }
+                        if (idx < 0 || idx >= vertexBuffer.capacity()) {
+                            Log.w("Object3DData", "Wrong index: " + idx);
+                            continue;
+                        }
+                        dimensions.update(vertexBuffer.get(idx * 3), vertexBuffer.get(idx * 3 + 1), vertexBuffer.get(idx * 3 + 2));
+                    }
+                }
+            }
+        }
+
+        this.dimensions = dimensions;
+    }
+
+    public Object3DData setRelativeScale(float[] relativeScale) {
+        this.relativeScale = relativeScale;
+
         // default scale
-        if (getParent() == null)
-            return setScale(scale);
+        /*if (getParent() != null) {
+
+            // recalculate based on parent
+            // That is, -1+1 is 100% parent dimension
+            Dimensions parentDim = getParent().getCurrentDimensions();
+            float relScale = parentDim.getRelationTo(getCurrentDimensions());
+            Log.v("Object3DData", "Relative scale for '" + getId() + "': " + relScale);
+            float[] newScale = Math3DUtils.multiply(relativeScale, relScale);
+
+            setScale(newScale);
+        }*/
+
+        refreshRelativeScale();
+
+        return this;
+    }
+
+    public void refresh() {
+        refreshRelativeScale();
+        updateModelMatrix();
+    }
+
+    protected void refreshRelativeScale() {
+        // checks
+        if (getParent() == null) return;
+        if (relativeScale == null) return;
+        if (getParent().getCurrentDimensions().getLargest() == 0) return;
 
         // recalculate based on parent
         // That is, -1+1 is 100% parent dimension
         Dimensions parentDim = getParent().getCurrentDimensions();
-        float relScale = parentDim.getRelationTo(getCurrentDimensions());
-        Log.v("Object3DData","Relative scale for '"+getId()+"': "+relScale);
-        float[] newScale = Math3DUtils.multiply(scale, relScale);
-
-        return setScale(newScale);
+        //Log.v("Widget", "Relative scale. Parent dim (" + parentDim + ")");
+        //Log.v("Widget", "Relative scale. Current dim (" + getDimensions() + ")");
+        float realScale = getDimensions().getRelationTo(parentDim);
+        //Log.v("Widget", "Real scale (" + getId() + "): " + realScale);
+        //Log.v("Widget", "Current scale (" + getId() + "): " + Arrays.toString(getScale()));
+        float[] newScale = Math3DUtils.divide(relativeScale, realScale);
+        //Log.v("Widget", "New scale (" + getId() + "): " + Arrays.toString(newScale));
+        setScale(newScale);
+        //Log.v("Widget", "New dim (" + getId() + "): " + getCurrentDimensions());
     }
 
     public Dimensions getCurrentDimensions() {
         return new Dimensions(getDimensions(), getModelMatrix());
+    }
+
+    /**
+     * @return the current dimensions of the object including the current scaling,
+     * but not translation
+     */
+    public Dimensions getCurrentDimensions2() {
+        return new Dimensions(getDimensions(), modelMatrix2);
     }
 
     public void setOctree(Octree octree) {
@@ -367,20 +474,26 @@ public class Object3DData {
     }
 
     public void addListener(EventListener listener) {
-        Log.d("Object3DData", "Listener for " + getId() + " --> " + listener);
         this.listeners.add(listener);
     }
 
-    protected void fireEvent(EventObject event) {
-        AndroidUtils.fireEvent(listeners, event);
+    public void removeListener(EventListener listener) {
+        this.listeners.remove(listener);
     }
 
-    public void render(RendererFactory drawer, Camera camera, float[] lightPosInWorldSpace, float[] colorMask) {
+    /**
+     * Fires the event to all the registered listeners
+     *
+     * @param event the event
+     * @return true if the event was handled, false otherwise
+     */
+    protected boolean propagate(EventObject event) {
+        return AndroidUtils.fireEvent(listeners, event);
     }
 
-    public boolean isVisible() {
-        return isVisible;
+    public void render(ShaderFactory drawer, Camera camera, float[] lightPosInWorldSpace, float[] colorMask) {
     }
+
 
     public Object3DData hide() {
         return this.setVisible(false);
@@ -390,9 +503,25 @@ public class Object3DData {
         return this.setVisible(true);
     }
 
+
+    public void setRender(boolean render) {
+        this.render = render;
+    }
+
+    public boolean isRender() {
+        return this.render;
+    }
+
+    public boolean isVisible() {
+        if (isParentBound && parent != null) {
+            return parent.isVisible();
+        }
+        return isVisible;
+    }
+
     public Object3DData setVisible(boolean isVisible) {
         this.isVisible = isVisible;
-        fireEvent(new ChangeEvent(this));
+        propagate(new ChangeEvent(this));
         return this;
     }
 
@@ -463,13 +592,7 @@ public class Object3DData {
         return 0;
     }
 
-    // -----------
-
-    public byte[] getTextureData() {
-        return getMaterial().getTextureData();
-    }
-
-    public void setTextureData(byte[] textureData) {
+    /*public void setTextureData(byte[] textureData) {
         Log.i("Object3DData","New texture: "+textureData.length+" (bytes)");
         this.getMaterial().setTextureData(textureData);
         if (this.getElements() != null && this.getElements().size() == 1){
@@ -482,7 +605,7 @@ public class Object3DData {
                 Log.i("Object3DData","New texture for element ("+i+"): "+getElements().get(i).getMaterial());
             }
         }
-    }
+    }*/
 
     public Object3DData setModelMatrix(float[] modelMatrix) {
         this.newModelMatrix = modelMatrix;
@@ -490,20 +613,17 @@ public class Object3DData {
     }
 
     public Object3DData setLocation(float[] location) {
-        this.location = location;
+        return this.setLocation(location[0], location[1], location[2]);
+    }
+
+    public Object3DData setLocation(float locx, float locy, float locz) {
+        this.location[0] = locx;
+        this.location[1] = locy;
+        this.location[2] = locz;
         this.updateModelMatrix();
         //this.updateModelDimensions();
         this.changed = true;
         return this;
-    }
-
-    public void translate(float[] translation) {
-        this.location[0] += translation[0];
-        this.location[1] += translation[1];
-        this.location[2] += translation[2];
-        this.updateModelMatrix();
-        //this.updateModelDimensions();
-        this.changed = true;
     }
 
     public float[] getLocation() {
@@ -527,15 +647,17 @@ public class Object3DData {
     }
 
     public Object3DData setScale(float[] scale) {
-        this.scale = scale;
+        return this.setScale(scale[0], scale[1], scale[2]);
+    }
+
+    public Object3DData setScale(float sx, float sy, float sz) {
+        this.scale[0] = sx;
+        this.scale[1] = sy;
+        this.scale[2] = sz;
         updateModelMatrix();
         //updateModelDimensions();
         this.changed = true;
         return this;
-    }
-
-    public Object3DData setScale(float x, float y, float z) {
-        return this.setScale(new float[]{x, y, z});
     }
 
     public float[] getScale() {
@@ -613,39 +735,48 @@ public class Object3DData {
         return bindTransform;
     }
 
-    private void updateModelMatrix() {
+    protected void updateModelMatrix() {
 
         if (isReadOnly()) return;
 
-        Matrix.setIdentityM(modelMatrix, 0);
+        if (this.isParentBound && this.parent != null) {
+            // geometries not linked to any joint does not have bind transform
+            System.arraycopy(this.parent.modelMatrix, 0, this.newModelMatrix, 0, 16);
+        } else {
+            Matrix.setIdentityM(modelMatrix, 0);
+            Matrix.setIdentityM(modelMatrix2, 0);
 
-        //float[] axisAngle = orientation.toAxisAngle();
-        //Matrix.rotateM(modelMatrix, 0, axisAngle[3], axisAngle[0], axisAngle[1], axisAngle[2]);
-        //Log.v("Object3DData","angle:"+Arrays.toString(axisAngle))
+            //float[] axisAngle = orientation.toAxisAngle();
+            //Matrix.rotateM(modelMatrix, 0, axisAngle[3], axisAngle[0], axisAngle[1], axisAngle[2]);
+            //Log.v("Object3DData","angle:"+Arrays.toString(axisAngle))
 
-        if (getRotation() != null) {
-            Matrix.rotateM(modelMatrix, 0, getRotation()[2], 0, 0, 1f);
-            Matrix.rotateM(modelMatrix, 0, getRotation()[1], 0, 1f, 0f);
-            Matrix.rotateM(modelMatrix, 0, getRotation()[0], 1f, 0f, 0f);
-        }
+            if (getLocation() != null) {
+                Matrix.translateM(modelMatrix, 0, getLocationX(), getLocationY(), getLocationZ());
+            }
 
-        if (getLocation() != null) {
-            Matrix.translateM(modelMatrix, 0, getLocationX(), getLocationY(), getLocationZ());
-        }
+            if (getRotation() != null) {
+                Matrix.rotateM(modelMatrix, 0, getRotation()[2], 0, 0, 1f);
+                Matrix.rotateM(modelMatrix, 0, getRotation()[1], 0, 1f, 0f);
+                Matrix.rotateM(modelMatrix, 0, getRotation()[0], 1f, 0f, 0f);
+                Matrix.rotateM(modelMatrix2, 0, getRotation()[2], 0, 0, 1f);
+                Matrix.rotateM(modelMatrix2, 0, getRotation()[1], 0, 1f, 0f);
+                Matrix.rotateM(modelMatrix2, 0, getRotation()[0], 1f, 0f, 0f);
+            }
 
-        if (getScale() != null) {
-            Matrix.scaleM(modelMatrix, 0, getScaleX(), getScaleY(), getScaleZ());
-        }
+            if (orientation != null) {
+                Matrix.multiplyMM(modelMatrix, 0, modelMatrix, 0, orientation.getMatrix(), 0);
+            }
 
-        float[] orientationFix = new float[16];
-        orientation.toRotationMatrix(orientationMatrix);
-        Matrix.multiplyMM(orientationFix,0,modelMatrix,0,orientationMatrix,0);
-        System.arraycopy(orientationFix,0,modelMatrix,0,orientationFix.length);
+            if (getScale() != null) {
+                Matrix.scaleM(modelMatrix, 0, getScaleX(), getScaleY(), getScaleZ());
+                Matrix.scaleM(modelMatrix2, 0, getScaleX(), getScaleY(), getScaleZ());
+            }
 
-        if (isCentered()) {
-            Matrix.translateM(modelMatrix, 0, -getDimensions().getCenter()[0],
-                -getDimensions().getCenter()[1], -getDimensions().getCenter()[2]);
-        }
+            if (isCentered()) {
+                float[] center = getDimensions().getCenter();
+                Matrix.translateM(modelMatrix, 0, -center[0], -center[1], -center[2]);
+                Matrix.translateM(modelMatrix2, 0, -center[0], -center[1], -center[2]);
+            }
 
         /*
 
@@ -661,7 +792,7 @@ public class Object3DData {
         /*Matrix.translateM(modelMatrix, 0, -getDimensions().getCenter()[0],
                 -getDimensions().getCenter()[1], -getDimensions().getCenter()[2]);*/
 
-        // apply rotation (euler)
+            // apply rotation (euler)
         /*if (rotation1 != null) {
             //Matrix.rotateM(modelMatrix, 0, rotation1[0], 1f, 0f, 0f);
             Matrix.rotateM(modelMatrix, 0, rotation1[1], 0, 1f, 0f);
@@ -687,49 +818,33 @@ public class Object3DData {
             Matrix.rotateM(modelMatrix, 0, getRotationZ(), 0, 0, 1f);
         }*/
 
-        // apply orientation (quaternion)
+            // apply orientation (quaternion)
 
 
-
-
-        if (this.bindTransform == null) {
-            // geometries not linked to any joint does not have bind transform
-            System.arraycopy(this.modelMatrix, 0, this.newModelMatrix, 0, 16);
-        } else {
-            Matrix.multiplyMM(newModelMatrix, 0, this.modelMatrix, 0, this.bindTransform, 0);
+            if (this.bindTransform == null) {
+                // geometries not linked to any joint does not have bind transform
+                System.arraycopy(this.modelMatrix, 0, this.newModelMatrix, 0, 16);
+            } else {
+                Matrix.multiplyMM(newModelMatrix, 0, this.modelMatrix, 0, this.bindTransform, 0);
+            }
         }
 
-        fireEvent(new ChangeEvent(this));
+        propagate(new ChangeEvent(this));
     }
 
     public float[] getModelMatrix() {
         return newModelMatrix;
     }
 
-    public Transform getTransform(){
+    public Transform getTransform() {
         return new Transform(this.scale, this.rotation, this.location);
     }
 
-    public IntBuffer getDrawOrder() {
+    public Buffer getDrawOrder() {
         return indexBuffer;
     }
 
-    /**
-     * In case OpenGL doesn't support using GL_UNSIGNED_INT for glDrawElements(), then use this buffer
-     *
-     * @return the draw buffer as short
-     */
-    public ShortBuffer getDrawOrderAsShort() {
-        if (indexShortBuffer == null && indexBuffer != null) {
-            indexShortBuffer = IOUtils.createShortBuffer(indexBuffer.capacity());
-            for (int i = 0; i < indexBuffer.capacity(); i++) {
-                indexShortBuffer.put((short) indexBuffer.get(i));
-            }
-        }
-        return indexShortBuffer;
-    }
-
-    public Object3DData setDrawOrder(IntBuffer drawBuffer) {
+    public Object3DData setDrawOrder(Buffer drawBuffer) {
         this.indexBuffer = drawBuffer;
         return this;
     }
@@ -751,8 +866,17 @@ public class Object3DData {
         return normalsBuffer;
     }
 
+    public FloatBuffer getTangentBuffer() {
+        return tangentBuffer;
+    }
+
     public Object3DData setNormalsBuffer(FloatBuffer normalsBuffer) {
         this.normalsBuffer = normalsBuffer;
+        return this;
+    }
+
+    public Object3DData setTangentBuffer(FloatBuffer buffer) {
+        this.tangentBuffer = buffer;
         return this;
     }
 
@@ -774,11 +898,11 @@ public class Object3DData {
         return this;
     }
 
-    public FloatBuffer getColorsBuffer() {
+    public Buffer getColorsBuffer() {
         return colorsBuffer;
     }
 
-    public Object3DData setColorsBuffer(FloatBuffer colorsBuffer) {
+    public Object3DData setColorsBuffer(Buffer colorsBuffer) {
         if (colorsBuffer != null && colorsBuffer.capacity() % 4 != 0)
             throw new IllegalArgumentException("Color buffer not multiple of 4 floats");
         this.colorsBuffer = colorsBuffer;
@@ -835,7 +959,11 @@ public class Object3DData {
     }
 
     public Object3DData setOrientation(Quaternion orientation) {
-        this.orientation = orientation;
+        if (this.orientation == null) {
+            this.orientation = orientation;
+        } else {
+            this.orientation.update(orientation);
+        }
         updateModelMatrix();
         setChanged(true);
         return this;
@@ -850,18 +978,39 @@ public class Object3DData {
 
     void copy(Object3DData ret) {
         ret.setId(this.getId());
-        ret.setLocation(this.getLocation().clone());
-        ret.setScale(this.getScale().clone());
-        ret.setRotation(this.getRotation().clone());
+        ret.location = this.location;
+        ret.scale = this.scale;
+        ret.rotation = this.rotation;
+        ret.bindTransform = this.bindTransform;
+        ret.centered = this.centered;
+        ret.orientation = this.orientation;
+
         //ret.setCurrentDimensions(this.getCurrentDimensions());
         ret.setVertexBuffer(this.getVertexBuffer());
+        ret.setDrawOrder(this.getDrawOrder());
         ret.setNormalsBuffer(this.getNormalsBuffer());
         ret.setColorsBuffer(this.getColorsBuffer());
         ret.setTextureBuffer(this.getTextureBuffer());
+        if (this.getElements() != null) {
+            ret.setElements(new ArrayList<>());
+            for (int i = 0; i < this.getElements().size(); i++) {
+                ret.getElements().add(this.getElements().get(i).clone());
+            }
+        }
         ret.setMaterial(this.getMaterial());
-        ret.setElements(this.getElements());
         ret.setDrawMode(this.getDrawMode());
         ret.setDrawUsingArrays(this.isDrawUsingArrays());
+        //ret.setDrawUsingArrays(this.isDrawUsingArrays());
+    }
+
+    public void dispose() {
+        //Log.v("Object3DData","Disposing object... "+getId());
+        this.listeners.clear();
+        this.parent = null;
+
+        this.vertexBuffer = null;
+        this.colorsBuffer = null;
+        this.indexBuffer = null;
     }
 
     @Override
@@ -870,7 +1019,7 @@ public class Object3DData {
                 "id='" + id + "'" +
                 ", name=" + getName() +
                 ", isVisible=" + isVisible +
-                ", color=" + (getColorsBuffer() != null? getColorsBuffer().toString() : Arrays.toString(getMaterial().getColor())) +
+                ", color=" + (getColorsBuffer() != null ? getColorsBuffer().toString() : Arrays.toString(getMaterial().getColor())) +
                 ", position=" + Arrays.toString(location) +
                 ", scale=" + Arrays.toString(scale) +
                 ", indexed=" + !isDrawUsingArrays() +

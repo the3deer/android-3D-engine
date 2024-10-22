@@ -1,10 +1,27 @@
 package org.the3deer.android_3d_model_engine.model;
 
-import android.graphics.Bitmap;
+import androidx.annotation.NonNull;
 
 import java.util.Arrays;
 
 public class Material {
+
+    public enum AlphaMode {
+        /**
+         * Opaque mode
+         */
+        OPAQUE,
+
+        /**
+         * Masking mode
+         */
+        MASK,
+
+        /**
+         * Blend mode
+         */
+        BLEND
+    }
 
     // material name
     private String name;
@@ -15,19 +32,23 @@ public class Material {
     private float[] specular;
     private float shininess;
     private float alpha = 1.0f;
+    private float alphaCutoff = 0f;
+    private AlphaMode alphaMode = AlphaMode.BLEND;
+
+    // final color
+    private float[] color;
 
     // texture info
-    private Bitmap colorTexture;
-    private String textureFile;
-    private byte[] textureData;
-    private Bitmap normalTexture;
-    private Bitmap emissiveTexture;
+    private Texture colorTexture;
+    private Texture normalTexture;
+    private Texture emissiveTexture;
+    private float[] emissiveFactor;
 
-    // // Loaded by ModelRenderer (GLThread)
-    private int textureId = -1;
-    private int normalTextureId = -1;
-    private int emissiveTextureId = -1;
-    private float[] color;
+    // volume
+    private Texture transmissionTexture;
+    private float thicknessFactor;
+    private float attenuationDistance;
+    private float[] attenuationColor;
 
     public Material() {
     }
@@ -44,6 +65,22 @@ public class Material {
 
     public float getAlpha() {
         return alpha;
+    }
+
+    public float getAlphaCutoff() {
+        return alphaCutoff;
+    }
+
+    public void setAlphaCutoff(float alphaCutoff) {
+        this.alphaCutoff = alphaCutoff;
+    }
+
+    public AlphaMode getAlphaMode() {
+        return alphaMode;
+    }
+
+    public void setAlhaMode(AlphaMode alphaMode) {
+        this.alphaMode = alphaMode;
     }
 
     public void setShininess(float val) {
@@ -86,85 +123,92 @@ public class Material {
         this.specular = specular;
     }
 
-    public void setColorTexture(Bitmap colorTexture){
+    public void setColorTexture(Texture colorTexture) {
         this.colorTexture = colorTexture;
     }
 
-    public Bitmap getColorTexture() {
+    public Texture getColorTexture() {
         return this.colorTexture;
     }
 
-    public Bitmap getNormalTexture() {
+    public void setTransmissionTexture(Texture transmissionTexture) {
+        this.transmissionTexture = transmissionTexture;
+    }
+
+    public float getAttenuationDistance() {
+        return attenuationDistance;
+    }
+
+    public void setAttenuationDistance(float attenuationDistance) {
+        this.attenuationDistance = attenuationDistance;
+    }
+
+    public float[] getAttenuationColor() {
+        return attenuationColor;
+    }
+
+    public void setAttenuationColor(float[] attenuationColor) {
+        this.attenuationColor = attenuationColor;
+    }
+
+    public float getThicknessFactor() {
+        return thicknessFactor;
+    }
+
+    public void setThicknessFactor(float thicknessFactor) {
+        this.thicknessFactor = thicknessFactor;
+    }
+
+    public Texture getTransmissionTexture() {
+        return this.transmissionTexture;
+    }
+
+    public Texture getNormalTexture() {
         return normalTexture;
     }
 
-    public void setNormalTexture(Bitmap normalTexture) {
+    public void setNormalTexture(Texture normalTexture) {
         this.normalTexture = normalTexture;
     }
 
-    public String getTextureFile() {
-        return textureFile;
-    }
-
-    public void setTextureFile(String textureFile) {
-        this.textureFile = textureFile;
-    }
-
-    public void setTextureData(byte[] data) {
-        this.textureData = data;
-    }
-
-    public byte[] getTextureData() {
-        return this.textureData;
-    }
-
-    public int getTextureId() {
-        return textureId;
-    }
-
-    public void setTextureId(int textureId) {
-        this.textureId = textureId;
-    }
-
-    public int getNormalTextureId() {
-        return normalTextureId;
-    }
-
-    public void setNormalTextureId(int normalTextureId) {
-        this.normalTextureId = normalTextureId;
-    }
-
-    public Bitmap getEmissiveTexture() {
+    public Texture getEmissiveTexture() {
         return emissiveTexture;
     }
 
-    public void setEmissiveTexture(Bitmap emissiveTexture) {
+    public void setEmissiveTexture(Texture emissiveTexture) {
         this.emissiveTexture = emissiveTexture;
     }
 
-    public int getEmissiveTextureId() {
-        return emissiveTextureId;
+    public float[] getEmissiveFactor() {
+        return emissiveFactor;
     }
 
-    public void setEmissiveTextureId(int emissiveTextureId) {
-        this.emissiveTextureId = emissiveTextureId;
+    public void setEmissiveFactor(float[] emissiveFactor) {
+        this.emissiveFactor = emissiveFactor;
     }
 
-    public float[] getColor(){
-        if (this.color == null){
+    /**
+     * @return the material color or white if not set (default)
+     */
+    public float[] getColor() {
+        if (this.color == null) {
             this.color = Constants.COLOR_WHITE.clone();
         }
-        if (this.diffuse != null){
+        if (this.diffuse != null) {
             this.color[0] = this.diffuse[0];
             this.color[1] = this.diffuse[1];
             this.color[2] = this.diffuse[2];
+            if (this.diffuse.length >= 4)
+                this.color[3] = this.diffuse[3];
         }
-        if (this.ambient != null){
+        if (this.ambient != null) {
             this.color[0] += this.ambient[0];
             this.color[1] += this.ambient[1];
             this.color[2] += this.ambient[2];
+            if (this.ambient.length >= 4)
+                this.color[3] += this.ambient[3];
         }
-        this.color[3] = this.alpha;
+        this.color[3] *= this.alpha;
         return color;
     }
 
@@ -177,9 +221,19 @@ public class Material {
                 ", specular=" + Arrays.toString(specular) +
                 ", shininess=" + shininess +
                 ", alpha=" + alpha +
-                ", textureFile='" + textureFile + '\'' +
-                ", textureData="+(textureData != null? textureData.length+" (bytes)":null)+
-                ", textureId=" + textureId +
+                ", alphaCutoff=" + alphaCutoff +
+                ", colorTexture='" + colorTexture + '\'' +
                 '}';
+    }
+
+    @NonNull
+    @Override
+    protected Material clone() {
+        final Material ret = new Material();
+        ret.setColorTexture(this.getColorTexture());
+        ret.setEmissiveTexture(this.getEmissiveTexture());
+        ;
+        ret.setNormalTexture(this.getNormalTexture());
+        return ret;
     }
 }

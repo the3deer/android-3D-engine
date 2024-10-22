@@ -24,6 +24,7 @@ public class CameraAnimation extends Animation<Camera> {
             Log.v("CameraAnimation","Starting animation: "+ Arrays.toString(args));
         }
         else if (animationCounter == -1 || animationCounter > Constants.TOTAL_ANIMATION_FRAMES) {
+            Log.v("CameraAnimation","Animation finished: "+ Arrays.toString(args));
             animationCounter = -1;
             finished = true;
             return;

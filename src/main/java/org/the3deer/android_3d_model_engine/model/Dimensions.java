@@ -13,12 +13,10 @@ public class Dimensions {
     private float farPt = Float.MAX_VALUE, nearPt = -Float.MAX_VALUE; // on z-axis
 
     // min max center
-    private final float[] center = new float[]{0,0,0,1};
-    private final float[] min = new float[]{0,0,0,1};
-    private final float[] max = new float[]{0,0,0,1};
-
-    // whether at least 1 vertex was processed
-    private boolean initialized = false;
+    private final float[] center = new float[]{0, 0, 0, 1};
+    private float[] min = new float[]{0, 0, 0, 1};
+    private float[] max = new float[]{0, 0, 0, 1};
+    private final float[] middle = new float[]{0, 0, 0, 1};
 
     // for reporting
     private static final DecimalFormat df = new DecimalFormat("0.##"); // 2 dp
@@ -27,24 +25,30 @@ public class Dimensions {
         //();
     }
 
-    public Dimensions(Dimensions original, float[] matrix){
+    public Dimensions(Dimensions original, float[] matrix) {
+
         float[] newMin = new float[4];
         float[] newMax = new float[4];
-        Matrix.multiplyMV(newMin,0,matrix,0,original.getMin(),0);
-        Matrix.multiplyMV(newMax,0,matrix,0,original.getMax(),0);
-        float[][] points = new float[8][4];
+        Matrix.multiplyMV(newMin, 0, matrix, 0, original.getMin(), 0);
+        Matrix.multiplyMV(newMax, 0, matrix, 0, original.getMax(), 0);
+        float[][] points = new float[2][4];
         points[0] = new float[]{newMin[0], newMin[1], newMin[2], newMin[3]};
-        points[1] = new float[]{newMax[0], newMin[1], newMin[2], newMin[3]};
-        points[2] = new float[]{newMin[0], newMax[1], newMin[2], newMin[3]};
-        points[3] = new float[]{newMin[0], newMin[1], newMax[2], newMin[3]};
-
-        points[4] = new float[]{newMax[0], newMax[1], newMax[2], newMax[3]};
-        points[5] = new float[]{newMin[0], newMax[1], newMax[2], newMax[3]};
-        points[6] = new float[]{newMax[0], newMin[1], newMax[2], newMax[3]};
-        points[7] = new float[]{newMax[0], newMax[1], newMin[2], newMax[3]};
-        for (int i=0; i<points.length; i++){
-            update(points[i][0],points[i][1],points[i][2]);
+        points[1] = new float[]{newMax[0], newMax[1], newMax[2], newMax[3]};
+        for (int i = 0; i < points.length; i++) {
+            update(points[i][0], points[i][1], points[i][2]);
         }
+    }
+
+    public Dimensions(float[] min, float[] max){
+        this.min = min;
+        this.max = max;
+        this.leftPt = min[0];
+        this.rightPt = max[0];
+        this.topPt = max[1];
+        this.bottomPt = min[1];
+        this.nearPt = max[2];
+        this.farPt = min[2];
+        refresh();;
     }
 
     public Dimensions(float leftPt, float rightPt, float topPt, float bottomPt, float nearPt, float farPt) {
@@ -54,7 +58,6 @@ public class Dimensions {
         this.bottomPt = bottomPt;
         this.nearPt = nearPt;
         this.farPt = farPt;
-        initialized = true;
         refresh();
     }
 
@@ -66,7 +69,7 @@ public class Dimensions {
         return max;
     }
 
-    public void update(float x, float y, float z){
+    public void update(float x, float y, float z) {
         if (x > rightPt)
             rightPt = x;
         if (x < leftPt)
@@ -86,33 +89,35 @@ public class Dimensions {
     }
 
     private void refresh() {
-        this.min[0] = getLeftPt();
-        this.min[1] = getBottomPt();
-        this.min[2] = getFarPt();
+        this.min[0] = leftPt;
+        this.min[1] = bottomPt;
+        this.min[2] = farPt;
 
-        this.max[0] = getRightPt();
-        this.max[1] = getTopPt();
-        this.max[2] = getNearPt();
+        this.max[0] = rightPt;
+        this.max[1] = topPt;
+        this.max[2] = nearPt;
 
-        this.center[0] = (getRightPt() + getLeftPt()) / 2.0f;
-        this.center[1] = (getTopPt() + getBottomPt()) / 2.0f;
-        this.center[2] = (getNearPt() + getFarPt()) / 2.0f;
+        this.center[0] = (this.max[0] + this.min[0]) / 2.0f;
+        this.center[1] = (this.max[1] + this.min[1]) / 2.0f;
+        this.center[2] = (this.max[2] + this.min[2]) / 2.0f;
 
-        initialized = true;
+        this.middle[0] = this.center[0] - min[0];
+        this.middle[1] = this.center[1] - min[1];
+        this.middle[2] = this.center[2] - min[2];
     }
 
     // ------------- use the edge coordinates ----------------------------
 
     public float getWidth() {
-        return Math.abs(getRightPt() - getLeftPt());
+        return Math.abs(this.max[0] - this.min[0]);
     }
 
     public float getHeight() {
-        return Math.abs(getTopPt() - getBottomPt());
+        return Math.abs(this.max[1] - this.min[1]);
     }
 
     public float getDepth() {
-        return Math.abs(getNearPt() - getFarPt());
+        return Math.abs(this.max[2] - this.min[2]);
     }
 
     public float getLargest() {
@@ -128,36 +133,6 @@ public class Dimensions {
         return largest;
     }
 
-    private float getRightPt(){
-        if (!initialized) return 0;
-        return rightPt;
-    }
-
-    private float getLeftPt(){
-        if (!initialized) return 0;
-        return leftPt;
-    }
-
-    private float getTopPt(){
-        if (!initialized) return 0;
-        return topPt;
-    }
-
-    private float getBottomPt(){
-        if (!initialized) return 0;
-        return bottomPt;
-    }
-
-    private float getNearPt(){
-        if (!initialized) return 0;
-        return nearPt;
-    }
-
-    private float getFarPt(){
-        if (!initialized) return 0;
-        return farPt;
-    }
-
     /**
      * @return the center of the bounding box
      */
@@ -165,24 +140,32 @@ public class Dimensions {
         return center;
     }
 
+    /**
+     * This is the same as center()-min()
+     * @return the distance vector from min() to center()
+     */
+    public float[] getMiddle() {
+        return middle;
+    }
+
     public float[] getCornerLeftTopNearVector() {
-        return new float[]{getLeftPt(), getTopPt(), getNearPt(), 1};
+        return new float[]{leftPt, topPt, nearPt, 1};
     }
 
     public float[] getCornerRightBottomFar() {
-        return new float[]{getRightPt(), getBottomPt(), getFarPt(), 1};
+        return new float[]{rightPt, bottomPt, farPt, 1};
     }
 
     public Dimensions translate(float[] diff) {
-        return new Dimensions(leftPt+diff[0],rightPt+diff[0],
-                topPt+diff[1],bottomPt+diff[1],
-                nearPt+diff[2],farPt+diff[2]);
+        return new Dimensions(leftPt + diff[0], rightPt + diff[0],
+                topPt + diff[1], bottomPt + diff[1],
+                nearPt + diff[2], farPt + diff[2]);
     }
 
-    public Dimensions scale(float scale){
-        return new Dimensions(leftPt*scale,rightPt*scale,
-                topPt*scale,bottomPt*scale,
-                nearPt*scale,farPt*scale);
+    public Dimensions scale(float scale) {
+        return new Dimensions(leftPt * scale, rightPt * scale,
+                topPt * scale, bottomPt * scale,
+                nearPt * scale, farPt * scale);
     }
 
     @Override
@@ -191,9 +174,9 @@ public class Dimensions {
                 "min=" + Arrays.toString(min) +
                 ", max=" + Arrays.toString(max) +
                 ", center=" + Arrays.toString(center) +
-                ", width=" + getWidth()+
-                ", height="+ getHeight()+
-                ", depth="+getDepth()+
+                ", width=" + getWidth() +
+                ", height=" + getHeight() +
+                ", depth=" + getDepth() +
                 '}';
     }
 
