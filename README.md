@@ -86,7 +86,7 @@ copies or substantial portions of the Software.
 ChangeLog
 =========
 
-- 0.2.0 (22/10/2022)
+- 0.2.0 (22/10/2024)
   - Full Engine refactoring. Component based. MVC Architecture.
   - Full Android refactoring. Only 1 Activity and Fragments
   - BeanFactory: Bean Factory and Bean Manager utility
@@ -99,8 +99,7 @@ ChangeLog
   - Transformation rotation (DISABLED): Object rotation not working properly
   - Collada loader bug fixes
 - 0.1.0 (18/10/2022)
-  - Added support for ZIP files    
-
+  - Added support for ZIP files
 - 0.0.1 (10/10/2022)
   - initial version imported from android-3D-model-viewer application
 
