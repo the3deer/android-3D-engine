@@ -43,7 +43,7 @@ public class DefaultAnimationModel extends AbstractNamedModelElement
 {
     /**
      * Default implementation of a 
-     * {@link Sampler}
+     * {@link de.javagl.jgltf.model.AnimationModel.Sampler}
      */
     public static class DefaultSampler implements Sampler
     {
@@ -103,7 +103,7 @@ public class DefaultAnimationModel extends AbstractNamedModelElement
     
     /**
      * Default implementation of a 
-     * {@link Channel}
+     * {@link de.javagl.jgltf.model.AnimationModel.Channel}
      */
     public static class DefaultChannel implements Channel
     {
@@ -137,8 +137,9 @@ public class DefaultAnimationModel extends AbstractNamedModelElement
             this.sampler = Objects.requireNonNull(
                 sampler, "The sampler may not be null");
             this.nodeModel = nodeModel;
-            this.path = Objects.requireNonNull(
-                path, "The path may not be null");
+            this.path = path;
+            //this.path = Objects.requireNonNull(
+            //    path, "The path may not be null");
             
         }
         
@@ -163,7 +164,7 @@ public class DefaultAnimationModel extends AbstractNamedModelElement
     }
     
     /**
-     * The {@link Channel} instances
+     * The {@link de.javagl.jgltf.model.AnimationModel.Channel} instances 
      * of this animation
      */
     private final List<Channel> channels;
@@ -177,9 +178,9 @@ public class DefaultAnimationModel extends AbstractNamedModelElement
     }
     
     /**
-     * Add the given {@link Channel}
+     * Add the given {@link de.javagl.jgltf.model.AnimationModel.Channel}
      * 
-     * @param channel The {@link Channel}
+     * @param channel The {@link de.javagl.jgltf.model.AnimationModel.Channel}
      */
     public void addChannel(Channel channel)
     {

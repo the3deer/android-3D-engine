@@ -49,7 +49,7 @@ public class ByteBufferInputStream extends InputStream
      * 
      * @param byteBuffer The byte buffer from which this stream is reading
      */
-    public ByteBufferInputStream(ByteBuffer byteBuffer)
+    ByteBufferInputStream(ByteBuffer byteBuffer)
     {
         this.byteBuffer = Objects.requireNonNull(byteBuffer,
             "The byteBuffer may not be null");

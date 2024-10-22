@@ -67,7 +67,7 @@ public class ImageReaders
             ImageIO.createImageInputStream(inputStream);
         Iterator<ImageReader> imageReaders = 
             ImageIO.getImageReaders(imageInputStream);
-        if (imageReaders.hasNext())
+        if (imageReaders != null && imageReaders.hasNext())
         {
             ImageReader imageReader = imageReaders.next();
             imageReader.setInput(imageInputStream);

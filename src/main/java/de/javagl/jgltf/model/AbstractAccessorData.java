@@ -54,7 +54,7 @@ abstract class AbstractAccessorData implements AccessorData
     /**
      * The number of elements
      */
-    private final int numElements;
+    protected int numElements;
     
     /**
      * The {@link ElementType}

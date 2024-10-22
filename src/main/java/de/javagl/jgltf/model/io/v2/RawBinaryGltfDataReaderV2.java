@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Logger;
 
 import de.javagl.jgltf.model.io.Buffers;
 import de.javagl.jgltf.model.io.RawGltfData;
@@ -40,6 +41,12 @@ import de.javagl.jgltf.model.io.RawGltfData;
  */
 public class RawBinaryGltfDataReaderV2
 {
+    /**
+     * The logger used in this class
+     */
+    private static final Logger logger =
+        Logger.getLogger(RawBinaryGltfDataReaderV2.class.getName());
+
     /**
      * The length of the binary glTF header for glTF 2.0, in bytes
      */
@@ -68,20 +75,27 @@ public class RawBinaryGltfDataReaderV2
     public static RawGltfData readBinaryGltf(ByteBuffer data) 
         throws IOException
     {
+        ByteBuffer d = data;
         int headerLength = BINARY_GLTF_VERSION_2_HEADER_LENGTH_IN_BYTES;
-        if (data.capacity() < headerLength)
+        if (d.capacity() < headerLength)
         {
             throw new IOException("Expected header of size " + headerLength
-                + ", but only found " + data.capacity() + " bytes");
+                + ", but only found " + d.capacity() + " bytes");
         }
-        int length = data.getInt(8);
-        if (length != data.capacity())
+        int length = d.getInt(8);
+        if (length > d.capacity())
         {
             throw new IOException(
-                "Data length is " + data.capacity() + ", expected " + length);
+                "Data length is " + d.capacity() + ", expected " + length);
+        }
+        if (length < d.capacity())
+        {
+            logger.info("Data length is " + d.capacity() + ", expected "
+                + length + " - truncating");
+            d = Buffers.createSlice(d, 0, length);
         }
         
-        List<Chunk> chunks = readChunks(data);
+        List<Chunk> chunks = readChunks(d);
         if (chunks.isEmpty())
         {
             throw new IOException(
