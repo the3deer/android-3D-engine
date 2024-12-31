@@ -205,7 +205,11 @@ public class MaterialLoader {
             final Material ret = new Material(materialId);
             ret.setDiffuse(color);
             ret.setAlpha(alpha);
-            ret.setColorTexture(new Texture().setFile(textureFile));
+
+            if (textureFile != null) {
+                ret.setColorTexture(new Texture().setFile(textureFile));
+            }
+
             return ret;
 
             // fallback to ambient color

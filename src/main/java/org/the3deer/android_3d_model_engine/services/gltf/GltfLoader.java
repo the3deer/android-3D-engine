@@ -1,6 +1,7 @@
 package org.the3deer.android_3d_model_engine.services.gltf;
 
 import android.graphics.Bitmap;
+import android.net.Uri;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -19,6 +20,7 @@ import org.the3deer.util.android.AndroidUtils;
 import org.the3deer.util.android.ContentUtils;
 import org.the3deer.util.math.Quaternion;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.nio.Buffer;
@@ -48,6 +50,7 @@ import de.javagl.jgltf.model.TextureModel;
 import de.javagl.jgltf.model.io.Buffers;
 import de.javagl.jgltf.model.io.GltfAsset;
 import de.javagl.jgltf.model.io.GltfAssetReader;
+import de.javagl.jgltf.model.io.GltfReference;
 import de.javagl.jgltf.model.io.GltfReferenceResolver;
 import de.javagl.jgltf.model.io.IO;
 import de.javagl.jgltf.model.v2.MaterialModelV2;
@@ -56,7 +59,31 @@ public final class GltfLoader {
 
     public static final String TAG = GltfLoader.class.getSimpleName();
 
-    @NonNull
+    public static List<String> getAllReferences(Uri uri) {
+
+        final List<String> ret = new ArrayList<>();
+        // final List<MeshData> allMeshes = new ArrayList<>();
+
+        try (InputStream is = ContentUtils.getInputStream(uri)) {
+
+            Log.i(TAG, "Loading model file... " + uri);
+
+            // gltf ...
+            GltfAssetReader gltfAssetReader = new GltfAssetReader();
+            GltfAsset gltfAsset = gltfAssetReader.readWithoutReferences(is);
+
+            for (GltfReference ref : gltfAsset.getReferences()){
+                ret.add(ref.getUri());
+            }
+
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        return ret;
+    }
+
+            @NonNull
     public List<Object3DData> load(URI uri, LoadListener callback) {
 
         callback.onProgress("Loading file...");

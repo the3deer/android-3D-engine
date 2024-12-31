@@ -186,10 +186,10 @@ public class SkinLoader {
 					Log.v("SkinLoader", "Joint not found for " + geometryId + ". Using root joint");
 					jointData = skeletonData.getHeadJoint();
 				} else {
-					Log.v("SkinLoader", "Joint found for " + geometryId + ". Bone " + jointData.getName());
+					//Log.v("SkinLoader", "Joint found for " + geometryId + ". Bone " + jointData.getName());
 				}
 				if (jointData != null) {
-					Log.v("SkinLoader", "vertex_weights not found. Using root joint effect");
+					//Log.v("SkinLoader", "vertex_weights not found. Using root joint effect");
 					weightsData = new VertexSkinData();
 					weightsData.addJointEffect(jointData.getIndex(), 1);
 					weightsData.limitJointNumber(Constants.MAX_VERTEX_WEIGHTS);

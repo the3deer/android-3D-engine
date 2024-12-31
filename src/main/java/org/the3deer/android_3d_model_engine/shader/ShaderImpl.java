@@ -267,12 +267,11 @@ class ShaderImpl implements Shader {
         if (supportsTextures() && obj.getTextureBuffer() != null) {
 
             mTextureHandle = setVBO("a_TexCoordinate", obj.getTextureBuffer(), TEXTURE_COORDS_PER_VERTEX, GLES20.GL_FLOAT);
-            setFeatureFlag("u_Textured", texturesEnabled);
 
             if (obj.getMaterial().getColorTexture() != null) {
                 loadTexture(obj.getMaterial().getColorTexture());
                 setTexture(obj.getMaterial().getColorTexture(), "u_Texture", 0);
-                setFeatureFlag("u_Textured", true);
+                setFeatureFlag("u_Textured", texturesEnabled);
             }
 
             if (obj.getMaterial().getNormalTexture() != null) {
@@ -796,7 +795,9 @@ class ShaderImpl implements Shader {
                 setUniformInt(element.getMaterial().getAlphaMode().ordinal(), "u_AlphaMode");
             }
 
-            if (element.getMaterial().getColorTexture() != null) {
+            if (supportsTextures() && obj.getTextureBuffer() != null
+                    && element.getMaterial().getColorTexture() != null
+                    && texturesEnabled) {
                 loadTexture(element.getMaterial().getColorTexture());
                 setTexture(element.getMaterial().getColorTexture(), "u_Texture", textureCounter++);
                 setFeatureFlag("u_Textured", true);

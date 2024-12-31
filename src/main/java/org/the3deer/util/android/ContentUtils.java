@@ -205,7 +205,19 @@ public class ContentUtils {
             return new URL(uri.toString()).openStream();
         }
         if (uri.getScheme().equals("content")) {
-            return getCurrentActivity().getContentResolver().openInputStream(uri);
+
+            // check for url-2-url mapping (required by gltf parser)
+            if (documentsProvided.containsKey(uri.toString())){
+                uri = documentsProvided.get(uri.toString());
+            }
+
+            try {
+                return getCurrentActivity().getContentResolver().openInputStream(uri);
+            } catch (FileNotFoundException | SecurityException e) {
+                // security issue when not having permission (ACTION_OPEN_DOCUMENT)
+                throw new IOException(e);
+            }
+
         }
         return getCurrentActivity().getContentResolver().openInputStream(uri);
     }
@@ -224,12 +236,7 @@ public class ContentUtils {
 
 
     public static Intent createGetContentIntent(String mimeType) {
-        // check here to KITKAT or new version
-        final boolean isKitKat = Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT;
-        if (isKitKat) {
-            return createGetMultipleContentIntent(mimeType);
-        }
-        return createGetSingleContentIntent(mimeType);
+        return createGetMultipleContentIntent(mimeType);
     }
 
     /**
@@ -238,7 +245,6 @@ public class ContentUtils {
      * @return The intent for opening a file with Intent.createChooser()
      * @author andresoviedo
      */
-    @TargetApi(Build.VERSION_CODES.KITKAT)
     private static Intent createGetMultipleContentIntent(String mimeType) {
         // Implicitly allow the user to select a particular kind of data
         final Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
@@ -268,14 +274,16 @@ public class ContentUtils {
         return intent;
     }
 
-    public static void showDialog(Activity activity, String title, CharSequence message, String positiveButtonLabel,
-                                  String negativeButtonLabel, DialogInterface.OnClickListener listener) {
+    public static AlertDialog showDialog(Activity activity, String title, CharSequence message, String positiveButtonLabel,
+                                         String negativeButtonLabel, DialogInterface.OnClickListener listener) {
         AlertDialog.Builder builder = new AlertDialog.Builder(activity);
         builder.setTitle(title);
         builder.setMessage(message);
         builder.setPositiveButton(positiveButtonLabel, listener);
         builder.setNegativeButton(negativeButtonLabel, listener);
-        builder.create().show();
+        AlertDialog alertDialog = builder.create();
+        alertDialog.show();
+        return alertDialog;
     }
 
     public static void showListDialog(Activity activity, String title, String[] options, DialogInterface
@@ -283,6 +291,13 @@ public class ContentUtils {
         AlertDialog.Builder builder = new AlertDialog.Builder(activity);
         builder.setTitle(title).setItems(options, listener);
         builder.create().show();
+    }
+
+    public static AlertDialog createListDialog(Activity activity, String title, String[] options, DialogInterface
+            .OnClickListener listener) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(activity);
+        builder.setTitle(title).setItems(options, listener);
+        return builder.create();
     }
 
     @FunctionalInterface
