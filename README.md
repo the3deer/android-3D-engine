@@ -11,7 +11,7 @@ So please send me your comments, suggestions or complains by opening an [issue](
 Features
 ========
 
-- [x] Supports >= Android 5.0 (LOLLIPOP) - Min API Level 21 -> Target API Level 34
+- [x] Supports >= Android 5.0 (LOLLIPOP) - Min API Level 21 -> Target API Level 35
 - [x] OpenGL ES 2.0/3.0 API
 - [x] 3D model parser:
     - [x] OBJ (wavefront)
@@ -86,6 +86,10 @@ copies or substantial portions of the Software.
 ChangeLog
 =========
 
+- 0.2.1 (12/12/2024)
+  - Fixed rendering issue
+  - Fixed content loader to allow mapping content:// type uri
+  - Upgraded libraries
 - 0.2.0 (22/10/2024)
   - Full Engine refactoring. Component based. MVC Architecture.
   - Full Android refactoring. Only 1 Activity and Fragments
