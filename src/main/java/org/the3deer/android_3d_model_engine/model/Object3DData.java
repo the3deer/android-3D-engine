@@ -826,6 +826,7 @@ public class Object3DData {
                 System.arraycopy(this.modelMatrix, 0, this.newModelMatrix, 0, 16);
             } else {
                 Matrix.multiplyMM(newModelMatrix, 0, this.modelMatrix, 0, this.bindTransform, 0);
+                //System.arraycopy(this.bindTransform, 0, this.newModelMatrix, 0, 16);
             }
         }
 
@@ -1029,6 +1030,7 @@ public class Object3DData {
                 //", current dimensions: " + this.currentDimensions +
                 ", material=" + getMaterial() +
                 ", elements=" + this.elements +
+                ", matrix=" + Arrays.toString(newModelMatrix) +
                 '}';
     }
 }

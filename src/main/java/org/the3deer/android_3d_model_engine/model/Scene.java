@@ -11,7 +11,7 @@ import org.the3deer.android_3d_model_engine.collision.CollisionEvent;
 import org.the3deer.android_3d_model_engine.controller.TouchEvent;
 import org.the3deer.android_3d_model_engine.event.SelectedObjectEvent;
 import org.the3deer.android_3d_model_engine.objects.Point;
-import org.the3deer.android_3d_model_engine.renderer.RenderListener;
+import org.the3deer.android_3d_model_engine.view.RenderListener;
 import org.the3deer.util.android.ContentUtils;
 import org.the3deer.util.event.EventListener;
 import org.the3deer.util.event.EventManager;
@@ -190,7 +190,7 @@ public class Scene implements EventListener, RenderListener {
     public Scene() {
     }
 
-    public Scene(Activity main, Camera camera) {
+    /*public Scene(Activity main, Camera camera) {
         this(main, camera, null, -1);
     }
 
@@ -203,7 +203,7 @@ public class Scene implements EventListener, RenderListener {
         float light_distance = Constants.UNIT;
         lightBulb.setLocation(new float[]{light_distance / 2, light_distance, 0});
         lightBulb.setColor(Constants.COLOR_WHITE);
-    }
+    }*/
 
 
     /**
@@ -636,7 +636,7 @@ public class Scene implements EventListener, RenderListener {
         fixCoordinateSystem();
 
         // rescale objects so they all fit in the viewport
-        rescale(list, Constants.UNIT, new float[3]);
+        rescale(list, Constants.DEFAULT_MODEL_SIZE, new float[3]);
     }
 
     private void rescale(List<Object3DData> objs, float size) {

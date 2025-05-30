@@ -114,7 +114,7 @@ public final class GltfLoader {
                     Log.d(TAG, "Loading nodes...");
                     callback.onProgress("Loading nodes...");
 
-                    loadNodeModel(gltfModel, callback, ret, null, nodeModel);
+                    loadNodeModel(gltfModel, callback, ret, nodeModel.getMatrix(), nodeModel);
                 }
             }
 
@@ -150,7 +150,7 @@ public final class GltfLoader {
         }
 
         for (NodeModel childNode : nodeModel.getChildren()) {
-            loadNodeModel(gltfModel, callback, ret, nodeTransform, childNode);
+            loadNodeModel(gltfModel, callback, ret, childNode.getMatrix(), childNode);
         }
     }
 
@@ -161,14 +161,20 @@ public final class GltfLoader {
         Log.d(TAG, "Loading mesh primitives...");
         callback.onProgress("Loading mesh primitives...");
 
+        //final String nodeName = nodeModel.getName();
+        //final int nodeIdx = gltfModel.getNodeModels().indexOf(nodeModel);
 
         for (MeshPrimitiveModel meshPrimitiveModel : meshPrimitiveModels) {
 
             Object3DData model = loadMeshPrimitive(gltfModel, meshModel, meshPrimitiveModel);
-
-            //model.setBindTransform(nodeModel.computeGlobalTransform(null));
+            if (meshModel.getName() != null) {
+                model.setId(meshModel.getName());
+                model.setName(meshModel.getName());
+            } else {
+                model.setId(String.valueOf(meshModel.hashCode()));
+                model.setName(String.valueOf(meshModel.hashCode()));
+            }
             model.setBindTransform(nodeModel.computeGlobalTransform(null));
-            //model.setBindTransform(nodeModel.getMatrix());
 
             callback.onLoad(model);
 
@@ -227,13 +233,7 @@ public final class GltfLoader {
         model.setColorsBuffer(colorBuffer);
         model.setDrawOrder(drawBuffer);
         model.setDrawUsingArrays(drawBuffer == null);
-        if (meshModel.getName() != null) {
-            model.setId(meshModel.getName());
-            model.setName(meshModel.getName());
-        } else {
-            model.setId(String.valueOf(meshModel.hashCode()));
-            model.setName(String.valueOf(meshModel.hashCode()));
-        }
+
 
         model.setDrawMode(meshPrimitiveModel.getMode());
 
@@ -487,7 +487,6 @@ public final class GltfLoader {
         callback.onProgress("Loading animation data...");
         if (gltfModel.getAnimationModels() == null || gltfModel.getAnimationModels().isEmpty()) return;
 
-        final TreeMap<Float,KeyFrame> times = new TreeMap<>();
         for (AnimationModel temp : gltfModel.getAnimationModels()){
 
 
@@ -502,6 +501,9 @@ public final class GltfLoader {
             List<AnimationModel.Channel> channels = animationModel.getChannels();
             if (channels.isEmpty()) break;
 
+
+            final TreeMap<Float,KeyFrame> times = new TreeMap<>();
+
             for (int ch=0; ch<channels.size(); ch++) {
 
                 final AnimationModel.Channel animChannel = channels.get(ch);
@@ -511,6 +513,9 @@ public final class GltfLoader {
 
                 final AccessorModel output = animChannel.getSampler().getOutput();
                 final FloatBuffer transformData = output.getAccessorData().createByteBuffer().asFloatBuffer();
+
+                final String nodeName = animChannel.getNodeModel().getName();
+                final int nodeIdx = gltfModel.getNodeModels().indexOf(animChannel.getNodeModel());
 
                 for (int idx = 0; idx < input.getCount(); idx++) {
                     float timeStamp = bufferData.get(idx);
@@ -525,9 +530,9 @@ public final class GltfLoader {
                         times.put(timeStamp, keyFrame);
                     }
 
-                    String name = animChannel.getNodeModel().getName();
+                    String name = nodeName;
                     if (name == null){
-                        int nodeIdx = gltfModel.getNodeModels().indexOf(animChannel.getNodeModel());
+                        //int nodeIdx = gltfModel.getNodeModels().indexOf(animChannel.getNodeModel());
                         name = String.valueOf(nodeIdx);
                     }
                     JointTransform jointTransform = transformMap.get(name);

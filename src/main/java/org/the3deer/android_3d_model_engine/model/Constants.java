@@ -5,21 +5,29 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class Constants {
 
     /**
-     * Default unit factor for dimension on any axis
+     * Default unit factor for dimension on any axis. 1cm = 1f
      */
-    public static final float UNIT = 1 * 100f;
+    public static final float UNIT = 1f;
+    /**
+     * Default model size: 1 meter = 100 cm = 100f
+     */
+    public static final float DEFAULT_MODEL_SIZE = UNIT * 100f;
     /**
      * Perspective camera. Near clipping panel
      */
-    public static final float near = UNIT / 100;
+    public static final float near = UNIT;
     /**
      * Perspective camera. Far clipping panel
      */
-    public static final float far = UNIT * UNIT;
+    public static final float far = DEFAULT_MODEL_SIZE * 100f;
+    /**
+     * Stereoscopic camera: eye separation is about 6.4cm = 6.4f
+     */
+    public static float EYE_DISTANCE = 6.4f;
     /**
      * Default camera position on Z axis
      */
-    public static final float DEFAULT_CAMERA_POSITION = UNIT * 2;
+    public static final float DEFAULT_CAMERA_POSITION = DEFAULT_MODEL_SIZE;
     /**
      * Light bulb location (3d object) - it's a point in the center - location will be different
      */
@@ -27,8 +35,8 @@ public class Constants {
     /**
      * Default light location
      */
-    public static final float[] DEFAULT_LIGHT_LOCATION = new float[]{0,UNIT*1.25f,UNIT*1.25f};
-    public static final float SKYBOX_SIZE = UNIT * 100;
+    public static final float[] DEFAULT_LIGHT_LOCATION = new float[]{DEFAULT_MODEL_SIZE,DEFAULT_MODEL_SIZE,DEFAULT_MODEL_SIZE};
+    public static final float SKYBOX_SIZE = DEFAULT_MODEL_SIZE * 10f;
     public static final float[] Z_NORMAL = {0, 0, 1};
     public static final float[] VECTOR_ZERO = {0,0,0};
     public static final float[] VECTOR_ONE = {1,1,1};
@@ -37,7 +45,7 @@ public class Constants {
     public static final int MAX_VERTEX_WEIGHTS = 4;
 
 
-    static final float ROOM_CENTER_SIZE = 0.01f;
+    static final float ROOM_CENTER_SIZE = 0.001f;
 
     static final float ROOM_SIZE = SKYBOX_SIZE * 100;
     /**
@@ -83,8 +91,7 @@ public class Constants {
     public static final float[] COLOR_ALMOST_TRANSPARENT = {1f, 1f, 1f, 0.1f};
     public static final float[] COLOR_BIT_TRANSPARENT = {1f, 1f, 1f, 0.9f};
 
-    // stereoscopic variables
-    public static float EYE_DISTANCE = 6.4f;
+
 
     public static AtomicInteger MENU_ORDER_ID = new AtomicInteger(10);
     public static AtomicInteger MENU_ITEM_ID = new AtomicInteger(1000);

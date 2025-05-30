@@ -1,4 +1,4 @@
-package org.the3deer.android_3d_model_engine.renderer;
+package org.the3deer.android_3d_model_engine.view;
 
 /**
  * Called whenever there is a draw event

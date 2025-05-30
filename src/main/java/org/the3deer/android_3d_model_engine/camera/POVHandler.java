@@ -7,11 +7,15 @@ import org.the3deer.android_3d_model_engine.model.Projection;
 import org.the3deer.util.math.Math3DUtils;
 
 import javax.inject.Inject;
+import javax.inject.Named;
 
 public class POVHandler implements CameraController.Handler {
 
     @Inject
     private Camera camera;
+    @Inject
+    @Named("perspectiveProjection")
+    private Projection projection;
 
     private float[] savePos;
     private float[] saveUp;
@@ -26,7 +30,7 @@ public class POVHandler implements CameraController.Handler {
     @Override
     public void enable(){
         camera.setController(this);
-        camera.setProjection(Projection.PERSPECTIVE);
+        camera.setProjection(projection);
         camera.setChanged(true);
         saveAndAnimate(this.savePos[0], this.savePos[1], this.savePos[2], this.saveUp[0], this.saveUp[1], this.saveUp[2],
                 this.saveView[0], this.saveView[1], this.saveView[2]);

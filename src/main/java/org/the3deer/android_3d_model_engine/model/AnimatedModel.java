@@ -74,6 +74,7 @@ public class AnimatedModel extends Object3DData {
 
     public void setSkeleton(SkeletonData jointsData) {
         this.skeleton = jointsData;
+        this.setJointMatrices(new float[skeleton.getBoneCount()][16]);  // 16 is the size of the matrix
     }
 
     public SkeletonData getSkeleton() {
@@ -145,9 +146,6 @@ public class AnimatedModel extends Object3DData {
      * animation pose.
      */
     public float[][] getJointTransforms() {
-        if (getJointMatrices() == null) {
-            this.setJointMatrices(new float[getBoneCount()][16]);  // 16 is the size of the matrix
-        }
         return getJointMatrices();
     }
 

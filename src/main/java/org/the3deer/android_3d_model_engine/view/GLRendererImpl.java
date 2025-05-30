@@ -1,4 +1,4 @@
-package org.the3deer.android_3d_model_engine.renderer;
+package org.the3deer.android_3d_model_engine.view;
 
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
@@ -10,8 +10,6 @@ import android.view.SubMenu;
 
 import org.the3deer.android_3d_model_engine.R;
 import org.the3deer.android_3d_model_engine.model.Constants;
-import org.the3deer.android_3d_model_engine.model.Screen;
-import org.the3deer.android_3d_model_engine.preferences.PreferenceAdapter;
 import org.the3deer.android_3d_model_engine.toolbar.MenuAdapter;
 import org.the3deer.util.event.EventManager;
 
@@ -27,9 +25,9 @@ import javax.microedition.khronos.opengles.GL10;
  * GL renderer
  * It calls all the @{@link Renderer#onDrawFrame()} in the list
  */
-public class RendererImpl implements GLSurfaceView.Renderer, MenuAdapter, PreferenceAdapter {
+public class GLRendererImpl implements GLSurfaceView.Renderer, MenuAdapter {
 
-    private final static String TAG = RendererImpl.class.getSimpleName();
+    private final static String TAG = GLRendererImpl.class.getSimpleName();
 
     @Inject
     private EventManager eventManager;
@@ -37,8 +35,6 @@ public class RendererImpl implements GLSurfaceView.Renderer, MenuAdapter, Prefer
     private List<RenderListener> listeners;
     @Inject
     private List<Renderer> renderers;
-    @Inject
-    private Screen screen;
 
     /**
      * Background GL clear color. Default is light gray
@@ -62,16 +58,10 @@ public class RendererImpl implements GLSurfaceView.Renderer, MenuAdapter, Prefer
     private final Map<Integer, float[]> MENU_MAPPING = new HashMap<>();
     private SubMenu subMenu;
 
-    // debug
-    private boolean debug1 = true;
-    private boolean debug2 = true;
-    private boolean debug3 = true;
-
     /**
      * Construct a new renderer for the specified surface view
-     *
      */
-    public RendererImpl() {
+    public GLRendererImpl() {
     }
 
     public void setBackgroundColor(float[] backgroundColor) {
@@ -91,7 +81,6 @@ public class RendererImpl implements GLSurfaceView.Renderer, MenuAdapter, Prefer
     }
 
 
-
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         subMenu = menu.addSubMenu(MENU_GROUP_ID, MENU_ITEM_ID, MENU_ORDER_ID, R.string.toggle_renderer);
@@ -100,7 +89,7 @@ public class RendererImpl implements GLSurfaceView.Renderer, MenuAdapter, Prefer
         return true;
     }
 
-    private void initSubMenu(){
+    private void initSubMenu() {
         addItem(Constants.COLOR_WHITE, R.string.white);
         addItem(Constants.COLOR_GRAY, R.string.gray);
         addItem(Constants.COLOR_BLACK, R.string.black);
@@ -124,7 +113,7 @@ public class RendererImpl implements GLSurfaceView.Renderer, MenuAdapter, Prefer
         if (color == null) return false;
 
         // perform
-        Log.i(TAG,"New color: "+color);
+        Log.i(TAG, "New color: " + color);
         setBackgroundColor(color);
 
         // update
@@ -153,7 +142,7 @@ public class RendererImpl implements GLSurfaceView.Renderer, MenuAdapter, Prefer
 
     @Override
     public void onSurfaceChanged(GL10 unused, int width, int height) {
-        Log.i(TAG, "onSurfaceChanged. with: " + width + ", height: "+height);
+        Log.i(TAG, "onSurfaceChanged. with: " + width + ", height: " + height);
 
         this.width = width;
         this.height = height;
@@ -166,16 +155,13 @@ public class RendererImpl implements GLSurfaceView.Renderer, MenuAdapter, Prefer
         for (int i = 0; i < renderers.size(); i++) {
             try {
                 renderers.get(i).onSurfaceChanged(width, height);
-            } catch (Exception e) {
-                if(debug3){
-                    Log.e("RendererImpl", e.getMessage(), e);
-                    debug3 = false;
-                }
+            } catch (Exception ex) {
+                Log.e(TAG, "Exception on delegate: " + renderers.get(i), ex);
             }
         }
 
         // fire event
-        eventManager.propagate(new RenderEvent(this, RenderEvent.Code.SURFACE_CHANGED,
+        eventManager.propagate(new GLEvent(this, GLEvent.Code.SURFACE_CHANGED,
                 this.width, this.height));
     }
 
@@ -186,53 +172,49 @@ public class RendererImpl implements GLSurfaceView.Renderer, MenuAdapter, Prefer
             return;
         }
 
-        try {
+        // Default viewport
+        GLES20.glViewport(0, 0, width, height);
+        GLES20.glScissor(0, 0, width, height);
 
-            // Default viewport
-            GLES20.glViewport(0, 0, width, height);
-            GLES20.glScissor(0, 0, width, height);
+        // Default color
+        GLES20.glClearColor(backgroundColor[0], backgroundColor[1], backgroundColor[2], backgroundColor[3]);
+        GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
+        GLES20.glColorMask(true, true, true, true);
+        GLES20.glLineWidth((float) Math.PI);
 
-            // Default color
-            GLES20.glClearColor(backgroundColor[0], backgroundColor[1], backgroundColor[2], backgroundColor[3]);
-            GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
-            GLES20.glColorMask(true, true, true, true);
-            GLES20.glLineWidth((float) Math.PI);
+        // Default blending
+        GLES20.glEnable(GLES20.GL_BLEND);
+        GLES20.glBlendFunc(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA);
 
-            // Default blending
-            GLES20.glEnable(GLES20.GL_BLEND);
-            GLES20.glBlendFunc(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA);
-            //GLES20.glBlendFuncSeparate(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA, GLES20.GL_ZERO, GLES20.GL_ONE);
+        // enable depth testing
+        GLES20.glDepthMask(true);
+        GLES20.glEnable(GLES20.GL_DEPTH_TEST);
 
-            //GLES20.glBlendEquation(GLES20.GL_FUNC_ADD);
-
-            // event
-            for (int i=0; i<listeners.size() ; i++) {
-                try {
-                    listeners.get(i).onPrepareFrame();
-                } catch (Exception e) {
-                    if(debug1){
-                        Log.e("RendererImpl", e.getMessage(), e);
-                        debug1 = false;
-                    }
-                }
+        // prepare listeners
+        for (int i = 0; i < listeners.size(); i++) {
+            try {
+                listeners.get(i).onPrepareFrame();
+            } catch (Exception ex) {
+                Log.e(TAG, "Exception on delegate: " + renderers.get(i), ex);
+                renderers.get(i).setEnabled(false);
             }
+        }
 
-            // draw
-            for (int i = 0; i < renderers.size(); i++) {
-                try {
-                    renderers.get(i).onDrawFrame();
-                } catch (Exception e) {
-                    if(debug2){
-                        Log.e("RendererImpl", e.getMessage(), e);
-                        debug2 = false;
-                    }
-                }
+        // call all delegates
+        for (int i = 0; i < renderers.size(); i++) {
+            if (!renderers.get(i).isEnabled()) {
+                continue;
             }
-        } catch (Exception ex) {
-            Log.e(TAG, "Exception rendering: " + ex.getMessage(), ex);
-            throw ex;
-        } finally {
-            if (eventManager != null) {
+            try {
+                renderers.get(i).onDrawFrame();
+            } catch (Exception ex) {
+                Log.e(TAG, "Exception on delegate: " + renderers.get(i), ex);
+                renderers.get(i).setEnabled(false);
+            }
+        }
+
+        if (eventManager != null) {
+            try {
                 if (framesPerSecondTime == -1) {
                     framesPerSecondTime = SystemClock.elapsedRealtime();
                     framesPerSecondCounter++;
@@ -241,9 +223,12 @@ public class RendererImpl implements GLSurfaceView.Renderer, MenuAdapter, Prefer
                     framesPerSecondCounter = 1;
                     framesPerSecondTime = SystemClock.elapsedRealtime();
                     eventManager.propagate(new FPSEvent(this, framesPerSecond));
+                    //Log.v(TAG, "FPS: " + framesPerSecond);
                 } else {
                     framesPerSecondCounter++;
                 }
+            } catch (Exception e) {
+                Log.e(TAG, "Exception on fps: "+e.getMessage(), e);
             }
         }
     }

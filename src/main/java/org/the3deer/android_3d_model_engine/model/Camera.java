@@ -63,13 +63,12 @@ public class Camera {
 
     // transformation matrix
     public float[] viewMatrix = new float[16];
-    public float[] projectionMatrix = new float[16];
-    //public final float[] projectionViewMatrix = new float[16];
 
     // camera mode
-    private Projection projection = Projection.PERSPECTIVE;
+    @Inject
+    private Projection projection;
 
-    // @Inject
+    @Inject
     private List<EventListener> listeners = new ArrayList<>();
     /**
      * The new orientation of the device.
@@ -93,8 +92,11 @@ public class Camera {
     private Dimensions dimensions2D = new Dimensions();
     private Dimensions dimensions3D = new Dimensions();
 
+    // stereoscopic handlers
+    private Camera[] stereoCam;
+
     public Camera() {
-        this(Constants.UNIT);
+        this(Constants.UNIT * 2);
     }
 
     public Camera(float distance) {
@@ -108,7 +110,7 @@ public class Camera {
         this.view = cam2.view;
         this.up = cam2.up;
         this.viewMatrix = cam2.viewMatrix;
-        this.projectionMatrix = cam2.projectionMatrix;
+        this.projection = cam2.projection;
     }
 
     public Camera(float xPos, float yPos, float zPos, float xView, float yView, float zView, float xUp, float yUp,
@@ -172,25 +174,6 @@ public class Camera {
         // check
         if (screen == null) return;
 
-        // setup projection matrix
-        switch (projection) {
-            case ORTHOGRAPHIC:
-            case ISOMETRIC:
-                Matrix.orthoM(projectionMatrix, 0,
-                        -Constants.UNIT * screen.getRatio(),
-                        Constants.UNIT * screen.getRatio(),
-                        -Constants.UNIT,
-                        Constants.UNIT,
-                        Constants.near, Constants.far);
-                break;
-            case PERSPECTIVE:
-            case FREE:
-                Matrix.frustumM(projectionMatrix, 0,
-                        -screen.getRatio(), screen.getRatio(),
-                        -1f, 1f, Constants.near, Constants.far);
-                break;
-        }
-
         // setup view matrix
         Matrix.setLookAtM(viewMatrix, 0,
                 getxPos(), getyPos(), getzPos(),
@@ -199,17 +182,20 @@ public class Camera {
 
 
         // update orientation
-        Matrix.setLookAtM(orientationMatrix, 0,
+        Matrix.setLookAtM(this.orientationMatrix, 0,
                 0, 0, 0,
                 -getxPos() + getxView(), -getyPos() + getyView(), -getzPos() + getzView(),
                 getxUp(), getyUp(), getzUp());
-        this.orientation = new Quaternion(orientationMatrix);
-
+        this.orientation.setMatrix(orientationMatrix);
 
         // dimensions
-        this.dimensions2D = new Dimensions(-Constants.UNIT * screen.getRatio(), Constants.UNIT * screen.getRatio(),
-                Constants.UNIT, -Constants.UNIT, 0, 1);
-        this.dimensions3D = new Dimensions(0, screen.getWidth(), screen.getHeight(), 0, Constants.near, Constants.far);
+        this.dimensions2D.set(-Constants.UNIT * screen.getRatio(), Constants.UNIT * screen.getRatio(), Constants.UNIT, -Constants.UNIT, 0, 1);
+        this.dimensions3D.set(0, screen.getWidth(), screen.getHeight(), 0, Constants.near, Constants.far);
+
+        // projection
+        if (this.projection != null) {
+            this.projection.refresh();
+        }
 
         //Log.v("Camera","Camera refreshed: "+this.projection);
     }
@@ -275,46 +261,59 @@ public class Camera {
     public synchronized void Rotate(float angle) {
     }
 
-    public Camera[] toStereo(float eyeSeparation) {
+    public Camera[] toStereo(float eyeSeparation, float focalDistance) {
+
+        // lazy init
+        if (stereoCam == null) {
+            stereoCam = new Camera[]{new Camera(), new Camera()};
+        }
 
         // look vector
         float xLook = getxView() - pos[0];
         float yLook = getyView() - pos[1];
-        float zLook = view[2] - pos[2];
+        float zLook = getzView() - pos[2];
 
         // right vector
         float[] crossRight = Math3DUtils.crossProduct(xLook, yLook, zLook, getxUp(), getyUp(), getzUp());
         Math3DUtils.normalizeVector(crossRight);
 
+        // convergence point
+        float xConv = pos[0] + xLook * focalDistance;
+        float yConv = pos[1] + yLook * focalDistance;
+        float zConv = pos[2] + zLook * focalDistance;
+
         // new left pos
-        float xPosLeft = pos[0] - crossRight[0] * eyeSeparation / 2;
-        float yPosLeft = pos[1] - crossRight[1] * eyeSeparation / 2;
-        float zPosLeft = pos[2] - crossRight[2] * eyeSeparation / 2;
-        float xViewLeft = getxView() - crossRight[0] * eyeSeparation / 2;
-        float yViewLeft = getyView() - crossRight[1] * eyeSeparation / 2;
-        float zViewLeft = view[2] - crossRight[2] * eyeSeparation / 2;
+        float midEye = eyeSeparation / 2;
+        float xPosLeft = pos[0] - crossRight[0] * midEye;
+        float yPosLeft = pos[1] - crossRight[1] * midEye;
+        float zPosLeft = pos[2] - crossRight[2] * midEye;
+        float xViewLeft = xConv - xPosLeft;
+        float yViewLeft = yConv - yPosLeft;
+        float zViewLeft = zConv - zPosLeft;
 
         // new right pos
-        float xPosRight = pos[0] + crossRight[0] * eyeSeparation / 2;
-        float yPosRight = pos[1] + crossRight[1] * eyeSeparation / 2;
-        float zPosRight = pos[2] + crossRight[2] * eyeSeparation / 2;
-        float xViewRight = getxView() + crossRight[0] * eyeSeparation / 2;
-        float yViewRight = getyView() + crossRight[1] * eyeSeparation / 2;
-        float zViewRight = view[2] + crossRight[2] * eyeSeparation / 2;
+        float xPosRight = pos[0] + crossRight[0] * midEye;
+        float yPosRight = pos[1] + crossRight[1] * midEye;
+        float zPosRight = pos[2] + crossRight[2] * midEye;
+        float xViewRight = xConv - xPosRight;
+        float yViewRight = yConv - yPosRight;
+        float zViewRight = zConv - zPosRight;
 
-        //xViewLeft = getxView();
-        //yViewLeft = getyView();
-        //zViewLeft = view[2];
+        // update left
+        final Camera left = stereoCam[0];
+        left.screen = this.screen;
+        left.projection = this.projection;
+        left.set(xPosLeft, yPosLeft, zPosLeft, xViewLeft, yViewLeft, zViewLeft, getxUp(), getyUp(), getzUp());
+        //left.refresh();
 
-        //xViewRight = getxView();
-        //yViewRight = getyView();
-        //zViewRight = view[2];
+        // update right
+        final Camera right = stereoCam[1];
+        right.screen = this.screen;
+        right.projection = this.projection;
+        right.set(xPosRight, yPosRight, zPosRight, xViewRight, yViewRight, zViewRight, getxUp(), getyUp(), getzUp());
+        //right.refresh();
 
-
-        Camera left = new Camera(xPosLeft, yPosLeft, zPosLeft, xViewLeft, yViewLeft, zViewLeft, getxUp(), getyUp(), getzUp());
-        Camera right = new Camera(xPosRight, yPosRight, zPosRight, xViewRight, yViewRight, zViewRight, getxUp(), getyUp(), getzUp());
-
-        return new Camera[]{left, right};
+        return stereoCam;
     }
 
     public float getxView() {
@@ -472,7 +471,7 @@ public class Camera {
     }
 
     public float[] getProjectionMatrix() {
-        return projectionMatrix;
+        return projection.getMatrix();
     }
 
 /*    public float[] getProjectionViewMatrix() {

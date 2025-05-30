@@ -5,9 +5,12 @@ import android.opengl.GLES20;
 import android.opengl.Matrix;
 import android.util.Log;
 
+import org.the3deer.android_3d_model_engine.R;
 import org.the3deer.android_3d_model_engine.model.Camera;
+import org.the3deer.android_3d_model_engine.model.Constants;
 import org.the3deer.android_3d_model_engine.model.Object3DData;
 import org.the3deer.android_3d_model_engine.model.Scene;
+import org.the3deer.android_3d_model_engine.objects.Plane2;
 import org.the3deer.android_3d_model_engine.shader.Shader;
 import org.the3deer.android_3d_model_engine.shader.ShaderFactory;
 import org.the3deer.android_3d_model_engine.shader.ShaderResource;
@@ -114,7 +117,7 @@ public class ShadowsRenderer {
     private int scene_mvMatrixUniform;
     private int scene_normalMatrixUniform;
     private int scene_lightPosUniform;
-    private int scene_schadowProjMatrixUniform;
+    private int scene_schadowLightViewMatrixUniform;
     private int scene_textureUniform;
     private int scene_mapStepXUniform;
     private int scene_mapStepYUniform;
@@ -154,9 +157,16 @@ public class ShadowsRenderer {
     // point of view light
     private Camera camera = new Camera(100);
 
+    final Object3DData plane = Plane2.build();
+    {
+        //scene.getLightBulb().setLocation(new float[]{25f, 200f, 0f});
+        plane.setColor(Constants.COLOR_GRAY.clone());
+        plane.setLocation(new float[]{0f, -Constants.DEFAULT_MODEL_SIZE/2, 0f});
+        plane.setPinned(true);
+    }
 
-    public ShadowsRenderer(Activity parent) {
-        this.shaderFactory = new ShaderFactory(parent);
+    public ShadowsRenderer(Activity parent, ShaderFactory shaderFactory) {
+        this.shaderFactory = shaderFactory;
     }
 
     public void onSurfaceCreated(GL10 unused, EGLConfig config) {
@@ -242,8 +252,12 @@ public class ShadowsRenderer {
     /**
      * Sets up the framebuffer and renderbuffer to render to texture
      */
-    public void generateShadowFBO()
-    {
+    public void generateShadowFBO(){
+
+        if (fboId != null) {
+            return;
+        }
+
         mShadowMapWidth = Math.round(mDisplayWidth * this.mShadowMapRatio);
         mShadowMapHeight = Math.round(mDisplayHeight * this.mShadowMapRatio);
 
@@ -307,25 +321,6 @@ public class ShadowsRenderer {
         // Adjust the viewport based on geometry changes,
         // such as screen rotation
         GLES20.glViewport(0, 0, mDisplayWidth, mDisplayHeight);
-
-        // Generate buffer where depth values are saved for shadow calculation
-        generateShadowFBO();
-
-        float ratio = (float) mDisplayWidth / mDisplayHeight;
-
-        // this projection matrix is applied at rendering scene
-        // in the onDrawFrame() method
-        float bottom = -1.0f;
-        float top = 1.0f;
-        float near = 1.0f;
-        float far = 1000.0f;
-
-        //Matrix.frustumM(mProjectionMatrix, 0, -ratio, ratio, bottom, top, near, far);
-
-        // this projection matrix is used at rendering shadow map
-        //Matrix.frustumM(mLightProjectionMatrix, 0, -1.1f*ratio, 1.1f*ratio, 1.1f*bottom, 1.1f*top, near, far);
-        Matrix.frustumM(mLightProjectionMatrix, 0, -1.1f*ratio, 1.1f*ratio, 1.1f*bottom, 1.1f*top, near, far);
-        //Matrix.frustumM(mLightProjectionMatrix, 0, -ratio, ratio, bottom, top, near, far);
     }
 
 
@@ -354,7 +349,26 @@ public class ShadowsRenderer {
         // Write FPS information to console
         //mFPSCounter.logFrame();
 
-        mDepthMapProgram = shaderFactory.getShadowRenderer();
+        // Generate buffer where depth values are saved for shadow calculation
+        generateShadowFBO();
+
+        float ratio = (float) mDisplayWidth / mDisplayHeight;
+
+        // this projection matrix is applied at rendering scene
+        // in the onDrawFrame() method
+        float bottom = -1.0f;
+        float top = 1.0f;
+        float near = 1.0f;
+        float far = 1000.0f;
+
+        //Matrix.frustumM(mProjectionMatrix, 0, -ratio, ratio, bottom, top, near, far);
+
+        // this projection matrix is used at rendering shadow map
+        //Matrix.frustumM(mLightProjectionMatrix, 0, -1.1f*ratio, 1.1f*ratio, 1.1f*bottom, 1.1f*top, near, far);
+        Matrix.frustumM(mLightProjectionMatrix, 0, -1.1f*ratio, 1.1f*ratio, 1.1f*bottom, 1.1f*top, near, far);
+        //Matrix.frustumM(mLightProjectionMatrix, 0, -ratio, ratio, bottom, top, near, far);
+
+        mDepthMapProgram = shaderFactory.getShader(R.raw.shader_v_depth_map, R.raw.shader_f_depth_map);
         mDepthMapProgram.setAutoUseProgram(false);
 
         // Set program handles for cube drawing.
@@ -398,7 +412,7 @@ public class ShadowsRenderer {
         float[] look = Math3DUtils.negate(mActualLightPosition);
         Math3DUtils.normalizeVector(look);
 
-        float[] upTemp = new float[]{0,1000000,0};
+        float[] upTemp = new float[]{0,1,0};
         Math3DUtils.normalizeVector(upTemp);
 
         float[] right = Math3DUtils.crossProduct(look, upTemp);
@@ -469,21 +483,23 @@ public class ShadowsRenderer {
 
             // View matrix * Model matrix value is stored
             //Matrix.multiplyMM(mLightMvpMatrix_staticShapes, 0, mLightViewMatrix, 0, mModelMatrix, 0);
-            Matrix.multiplyMM(mLightMvpMatrix_staticShapes, 0, mLightViewMatrix, 0, objData.getModelMatrix(), 0);
+            //Matrix.multiplyMM(mLightMvpMatrix_staticShapes, 0, mLightViewMatrix, 0, objData.getModelMatrix(), 0);
 
             // Model * view * projection matrix stored and copied for use at rendering from camera point of view
             //Matrix.multiplyMM(tempResultMatrix, 0, mLightProjectionMatrix, 0, mLightMvpMatrix_staticShapes, 0);
-            Matrix.multiplyMM(tempResultMatrix, 0, mProjectionMatrix, 0, mLightMvpMatrix_staticShapes, 0);
-            System.arraycopy(tempResultMatrix, 0, mLightMvpMatrix_staticShapes, 0, 16);
+            //Matrix.multiplyMM(tempResultMatrix, 0, mProjectionMatrix, 0, mLightMvpMatrix_staticShapes, 0);
+            //System.arraycopy(tempResultMatrix, 0, mLightMvpMatrix_staticShapes, 0, 16);
 
             // Pass in the combined matrix.
-            GLES20.glUniformMatrix4fv(shadow_mvpMatrixUniform, 1, false, mLightMvpMatrix_staticShapes, 0);
+            //GLES20.glUniformMatrix4fv(shadow_mvpMatrixUniform, 1, false, mLightMvpMatrix_staticShapes, 0);
 
 
             //this.mDepthMapProgram.draw(objData, mLightProjectionMatrix, mLightViewMatrix, -1,
             this.mDepthMapProgram.draw(objData, mProjectionMatrix, mLightViewMatrix,
                     null, null, null, objData.getDrawMode(), objData.getDrawSize());
         }
+        // shadow plane
+
 
 
         /*// Calculate matrices for moving objects
@@ -530,97 +546,106 @@ public class ShadowsRenderer {
 
         float[] depthBiasMVP = new float[16];
 
+        // plane where the shadow is projected
+        //plane.setColor(Constants.COLOR_WHITE.clone());
+        drawObject(mProjectionMatrix, mViewMatrix, mActualLightPosition, plane, tempResultMatrix);
+
         for (int i=0; i<scene.getObjects().size(); i++) {
-
             final Object3DData data = scene.getObjects().get(i);
+            drawObject(mProjectionMatrix, mViewMatrix, mActualLightPosition, data, tempResultMatrix);
+        }
 
-            //Log.v("ShadowsRenderer","Rendering object "+data.getId());
 
-            final float[] mModelMatrix = data.getModelMatrix();
+    }
 
-            //calculate MV matrix
-            Matrix.multiplyMM(tempResultMatrix, 0, mViewMatrix, 0, mModelMatrix, 0);
-            System.arraycopy(tempResultMatrix, 0, mMVMatrix, 0, 16);
+    private void drawObject(float[] mProjectionMatrix, float[] mViewMatrix, float[] mActualLightPosition, Object3DData data, float[] tempResultMatrix) {
+        //Log.v("ShadowsRenderer","Rendering object "+data.getId());
 
-            mActiveRenderer = shaderFactory.getShadowRenderer2(data);
-            mActiveRenderer.setAutoUseProgram(false);
-            mActiveRenderer.useProgram();
+        final float[] mModelMatrix = data.getModelMatrix();
 
-            mActiveProgram = mActiveRenderer.getProgram();
+        //calculate MV matrix
+        Matrix.multiplyMM(tempResultMatrix, 0, mViewMatrix, 0, mModelMatrix, 0);
+        System.arraycopy(tempResultMatrix, 0, mMVMatrix, 0, 16);
 
-            scene_normalMatrixUniform = GLES20.glGetUniformLocation(mActiveProgram, RenderConstants.NORMAL_MATRIX_UNIFORM);
-            GLUtil.checkGlError("glGetUniformLocation");
-            //scene_lightPosUniform = GLES20.glGetUniformLocation(mActiveProgram, RenderConstants.LIGHT_POSITION_UNIFORM);
-            scene_schadowProjMatrixUniform = GLES20.glGetUniformLocation(mActiveProgram, RenderConstants.SHADOW_PROJ_MATRIX);
-            GLUtil.checkGlError("glGetUniformLocation");
-            scene_textureUniform = GLES20.glGetUniformLocation(mActiveProgram, RenderConstants.SHADOW_TEXTURE);
-            GLUtil.checkGlError("glGetUniformLocation");
-            //scene_positionAttribute = GLES20.glGetAttribLocation(mActiveProgram, RenderConstants.POSITION_ATTRIBUTE);
-            //scene_normalAttribute = GLES20.glGetAttribLocation(mActiveProgram, RenderConstants.NORMAL_ATTRIBUTE);
+        mActiveRenderer = shaderFactory.getShader(R.raw.shader_v_with_shadow, R.raw.shader_f_with_simple_shadow);
+        mActiveRenderer.setAutoUseProgram(false);
+        mActiveRenderer.useProgram();
 
-            //pass in MV Matrix as uniform
+        mActiveProgram = mActiveRenderer.getProgram();
+
+        scene_normalMatrixUniform = GLES20.glGetUniformLocation(mActiveProgram, RenderConstants.NORMAL_MATRIX_UNIFORM);
+        GLUtil.checkGlError("glGetUniformLocation");
+        //scene_lightPosUniform = GLES20.glGetUniformLocation(mActiveProgram, RenderConstants.LIGHT_POSITION_UNIFORM);
+        scene_schadowLightViewMatrixUniform = GLES20.glGetUniformLocation(mActiveProgram, RenderConstants.LIGHT_VIEW_MATRIX);
+        GLUtil.checkGlError("glGetUniformLocation");
+        scene_textureUniform = GLES20.glGetUniformLocation(mActiveProgram, RenderConstants.SHADOW_TEXTURE);
+        GLUtil.checkGlError("glGetUniformLocation");
+        //scene_positionAttribute = GLES20.glGetAttribLocation(mActiveProgram, RenderConstants.POSITION_ATTRIBUTE);
+        //scene_normalAttribute = GLES20.glGetAttribLocation(mActiveProgram, RenderConstants.NORMAL_ATTRIBUTE);
+
+        //pass in MV Matrix as uniform
         //GLES20.glUniformMatrix4fv(scene_mvMatrixUniform, 1, false, mMVMatrix, 0);
 
-            //calculate Normal Matrix as uniform (invert transpose MV)
-            Matrix.invertM(tempResultMatrix, 0, mMVMatrix, 0);
-            Matrix.transposeM(mNormalMatrix, 0, tempResultMatrix, 0);
+        //calculate Normal Matrix as uniform (invert transpose MV)
+        Matrix.invertM(tempResultMatrix, 0, mMVMatrix, 0);
+        Matrix.transposeM(mNormalMatrix, 0, tempResultMatrix, 0);
 
-            //pass in Normal Matrix as uniform
-            GLES20.glUniformMatrix4fv(scene_normalMatrixUniform, 1, false, mNormalMatrix, 0);
-            GLUtil.checkGlError("glUniformMatrix4fv");
+        //pass in Normal Matrix as uniform
+        GLES20.glUniformMatrix4fv(scene_normalMatrixUniform, 1, false, mNormalMatrix, 0);
+        GLUtil.checkGlError("glUniformMatrix4fv");
 
-            //calculate MVP matrix
-            Matrix.multiplyMM(tempResultMatrix, 0, mProjectionMatrix, 0, mMVMatrix, 0);
-            System.arraycopy(tempResultMatrix, 0, mMVPMatrix, 0, 16);
+        //calculate MVP matrix
+        Matrix.multiplyMM(tempResultMatrix, 0, mProjectionMatrix, 0, mMVMatrix, 0);
+        System.arraycopy(tempResultMatrix, 0, mMVPMatrix, 0, 16);
 
-            //pass in MVP Matrix as uniform
+        //pass in MVP Matrix as uniform
         //GLES20.glUniformMatrix4fv(scene_mvpMatrixUniform, 1, false, mMVPMatrix, 0);
 
-            //Matrix.multiplyMV(mLightPosInEyeSpace, 0, mViewMatrix, 0, mActualLightPosition, 0);
-            //pass in light source position
+        //Matrix.multiplyMV(mLightPosInEyeSpace, 0, mViewMatrix, 0, mActualLightPosition, 0);
+        //pass in light source position
         // GLES20.glUniform3f(scene_lightPosUniform, mLightPosInEyeSpace[0], mLightPosInEyeSpace[1], mLightPosInEyeSpace[2]);
 
-            Matrix.multiplyMM(mLightMvpMatrix_staticShapes, 0, mLightViewMatrix, 0, mModelMatrix, 0);
+        Matrix.multiplyMM(mLightMvpMatrix_staticShapes, 0, mLightViewMatrix, 0, mModelMatrix, 0);
 
-            // Model * view * projection matrix stored and copied for use at rendering from camera point of view
-            //Matrix.multiplyMM(tempResultMatrix, 0, mLightProjectionMatrix, 0, mLightMvpMatrix_staticShapes, 0);
-            Matrix.multiplyMM(tempResultMatrix, 0, mProjectionMatrix, 0, mLightMvpMatrix_staticShapes, 0);
-            System.arraycopy(tempResultMatrix, 0, mLightMvpMatrix_staticShapes, 0, 16);
+        // Model * view * projection matrix stored and copied for use at rendering from camera point of view
+        //Matrix.multiplyMM(tempResultMatrix, 0, mLightProjectionMatrix, 0, mLightMvpMatrix_staticShapes, 0);
+        Matrix.multiplyMM(tempResultMatrix, 0, mProjectionMatrix, 0, mLightMvpMatrix_staticShapes, 0);
+        System.arraycopy(tempResultMatrix, 0, mLightMvpMatrix_staticShapes, 0, 16);
 
-            if (mHasDepthTextureExtension) {
-                //Matrix.multiplyMM(depthBiasMVP, 0, bias, 0, mLightMvpMatrix_staticShapes, 0);
-                //System.arraycopy(depthBiasMVP, 0, mLightMvpMatrix_staticShapes, 0, 16);
-            }
+        if (mHasDepthTextureExtension) {
+            //Matrix.multiplyMM(depthBiasMVP, 0, bias, 0, mLightMvpMatrix_staticShapes, 0);
+            //System.arraycopy(depthBiasMVP, 0, mLightMvpMatrix_staticShapes, 0, 16);
+        }
 
-            //MVP matrix that was used during depth map render
-            GLES20.glUniformMatrix4fv(scene_schadowProjMatrixUniform, 1, false, mLightMvpMatrix_staticShapes, 0);
-            GLUtil.checkGlError("glUniformMatrix4fv");
+        //MVP matrix that was used during depth map render
+        GLES20.glUniformMatrix4fv(scene_schadowLightViewMatrixUniform, 1, false, mLightViewMatrix, 0);
+        GLUtil.checkGlError("glUniformMatrix4fv");
 
-            //pass in texture where depth map is stored
-            GLES20.glActiveTexture(GLES20.GL_TEXTURE0 + 10);
-            GLUtil.checkGlError("glActiveTexture");
+        //pass in texture where depth map is stored
+        GLES20.glActiveTexture(GLES20.GL_TEXTURE0 + 10);
+        GLUtil.checkGlError("glActiveTexture");
 
-            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, renderTextureId[0]);
-            GLUtil.checkGlError("glBindTexture");
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, renderTextureId[0]);
+        GLUtil.checkGlError("glBindTexture");
 
-            GLES20.glUniform1i(scene_textureUniform, 10);
-            GLUtil.checkGlError("glUniform1i");
+        GLES20.glUniform1i(scene_textureUniform, 10);
+        GLUtil.checkGlError("glUniform1i");
 
-            mActiveRenderer.draw(data,mProjectionMatrix,mViewMatrix, mActualLightPosition, null, scene.getCamera().getPos(), data.getDrawMode(), data.getDrawSize());
+        mActiveRenderer.draw(data, mProjectionMatrix, mViewMatrix, mActualLightPosition, null, camera.getPos(), data.getDrawMode(), data.getDrawSize());
 
-            //mSmallCube0.render(scene_positionAttribute, scene_normalAttribute, scene_colorAttribute, false);
-            //mSmallCube1.render(scene_positionAttribute, scene_normalAttribute, scene_colorAttribute, false);
-            //mSmallCube2.render(scene_positionAttribute, scene_normalAttribute, scene_colorAttribute, false);
-            //mSmallCube3.render(scene_positionAttribute, scene_normalAttribute, scene_colorAttribute, false);
-            //mPlane.render(scene_positionAttribute, scene_normalAttribute, scene_colorAttribute, false);
+        //mSmallCube0.render(scene_positionAttribute, scene_normalAttribute, scene_colorAttribute, false);
+        //mSmallCube1.render(scene_positionAttribute, scene_normalAttribute, scene_colorAttribute, false);
+        //mSmallCube2.render(scene_positionAttribute, scene_normalAttribute, scene_colorAttribute, false);
+        //mSmallCube3.render(scene_positionAttribute, scene_normalAttribute, scene_colorAttribute, false);
+        //mPlane.render(scene_positionAttribute, scene_normalAttribute, scene_colorAttribute, false);
 
-            // Pass uniforms for moving objects (center cube) which are different from previously used uniforms
-            // - MV matrix
-            // - MVP matrix
-            // - Normal matrix
-            // - Light MVP matrix for dynamic objects
+        // Pass uniforms for moving objects (center cube) which are different from previously used uniforms
+        // - MV matrix
+        // - MVP matrix
+        // - Normal matrix
+        // - Light MVP matrix for dynamic objects
 
-            // Rotate the model matrix with current rotation matrix
+        // Rotate the model matrix with current rotation matrix
             /*Matrix.multiplyMM(tempResultMatrix, 0, mModelMatrix, 0, mCubeRotation, 0);
 
             //calculate MV matrix
@@ -653,8 +678,6 @@ public class ShadowsRenderer {
             GLES20.glUniformMatrix4fv(scene_schadowProjMatrixUniform, 1, false, mLightMvpMatrix_dynamicShapes, 0);
 
             mCube.render(scene_positionAttribute, scene_normalAttribute, scene_colorAttribute, false);*/
-        }
-
     }
 
     /**

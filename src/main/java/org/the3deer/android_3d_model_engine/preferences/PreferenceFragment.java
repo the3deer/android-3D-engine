@@ -14,10 +14,14 @@ import android.widget.LinearLayout;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.preference.Preference;
+import androidx.preference.PreferenceCategory;
 import androidx.preference.PreferenceFragmentCompat;
+import androidx.preference.PreferenceGroup;
 import androidx.preference.PreferenceManager;
 import androidx.preference.PreferenceScreen;
 import androidx.preference.SwitchPreference;
+
+import org.the3deer.android_3d_model_engine.R;
 
 import java.util.List;
 import java.util.Map;
@@ -39,7 +43,7 @@ public class PreferenceFragment extends PreferenceFragmentCompat {
         setEnterTransition(new android.transition.Slide(Gravity.RIGHT));
     }
 
-    @Override
+   @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = super.onCreateView(inflater, container, savedInstanceState);
         view.setBackgroundColor(getResources().getColor(android.R.color.background_light));
@@ -69,30 +73,38 @@ public class PreferenceFragment extends PreferenceFragmentCompat {
     @Override
     public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
 
+        // create screen
+        final Context context = getPreferenceManager().getContext();
+
+        // main screen
+        final PreferenceScreen screen = getPreferenceManager().createPreferenceScreen(context);
+
+        // main preferences
+        final PreferenceGroup preferences = new PreferenceCategory(context);
+        preferences.setKey(this.getClass().getName());
+        preferences.setTitle(this.getClass().getSimpleName());
+        preferences.setLayoutResource(R.layout.preference_category);
+        screen.addPreference(preferences);
+
+        this.onCreatePreferences(savedInstanceState, rootKey, context, preferences);
+
         // check
         if (adapters == null || adapters.isEmpty()) return;
 
-        // create screen
-        Context context = getPreferenceManager().getContext();
-        //setPreferencesFromResource(R.xml.preferences, rootKey);
-        PreferenceScreen screen = getPreferenceManager().createPreferenceScreen(context);
-
-        // setup screen
-        screen.setIconSpaceReserved(false);
-
-        // global options
-        this.onCreatePreferences(savedInstanceState, rootKey, context, screen);
-
         // inflate
         for (PreferenceAdapter a : adapters){
-            a.onCreatePreferences(savedInstanceState,rootKey, context, screen);
+            try {
+                a.onCreatePreferences(savedInstanceState,rootKey, context, screen);
+            } catch (Exception e) {
+                Log.e(TAG,"Issue onCreatePreferences: "+e.getMessage(), e);
+            }
         }
 
         // update
         setPreferenceScreen(screen);
     }
 
-    public void onCreatePreferences(@Nullable Bundle savedInstanceState, @Nullable String rootKey, Context context, PreferenceScreen screen) {
+    public void onCreatePreferences(@Nullable Bundle savedInstanceState, @Nullable String rootKey, Context context, PreferenceGroup screen) {
 
         SwitchPreference immersiveSwitch = new SwitchPreference(context);
         immersiveSwitch.setKey("activity.immersive");

@@ -12,12 +12,12 @@ import androidx.annotation.NonNull;
 import org.the3deer.android_3d_model_engine.camera.CameraController;
 import org.the3deer.android_3d_model_engine.collision.CollisionController;
 import org.the3deer.android_3d_model_engine.controller.TouchController;
-import org.the3deer.android_3d_model_engine.drawer.BoundingBoxRenderer;
-import org.the3deer.android_3d_model_engine.drawer.LightBulbRenderer;
-import org.the3deer.android_3d_model_engine.drawer.SceneRenderer;
-import org.the3deer.android_3d_model_engine.drawer.SkeletonRenderer;
-import org.the3deer.android_3d_model_engine.drawer.SkyBoxRenderer;
-import org.the3deer.android_3d_model_engine.drawer.WireframeRenderer;
+import org.the3deer.android_3d_model_engine.drawer.BoundingBoxDrawer;
+import org.the3deer.android_3d_model_engine.drawer.LightBulbDrawer;
+import org.the3deer.android_3d_model_engine.drawer.SceneDrawer;
+import org.the3deer.android_3d_model_engine.drawer.SkeletonDrawer;
+import org.the3deer.android_3d_model_engine.drawer.SkyBoxDrawer;
+import org.the3deer.android_3d_model_engine.drawer.WireframeDrawer;
 import org.the3deer.android_3d_model_engine.gui.Axis;
 import org.the3deer.android_3d_model_engine.gui.FontFactory;
 import org.the3deer.android_3d_model_engine.gui.GUIDefault;
@@ -25,15 +25,20 @@ import org.the3deer.android_3d_model_engine.gui.GUISystem;
 import org.the3deer.android_3d_model_engine.model.Camera;
 import org.the3deer.android_3d_model_engine.model.Constants;
 import org.the3deer.android_3d_model_engine.model.Light;
-import org.the3deer.android_3d_model_engine.model.Projection;
 import org.the3deer.android_3d_model_engine.model.Scene;
 import org.the3deer.android_3d_model_engine.model.Screen;
+import org.the3deer.android_3d_model_engine.model.impl.OrthographicProjection;
+import org.the3deer.android_3d_model_engine.model.impl.PerspectiveProjection;
 import org.the3deer.android_3d_model_engine.objects.Point;
 import org.the3deer.android_3d_model_engine.preferences.PreferenceFragment;
-import org.the3deer.android_3d_model_engine.renderer.RendererController;
-import org.the3deer.android_3d_model_engine.renderer.RendererImpl;
+import org.the3deer.android_3d_model_engine.renderer.AnaglyphRenderer;
+import org.the3deer.android_3d_model_engine.renderer.DefaultRenderer;
+import org.the3deer.android_3d_model_engine.renderer.RendererPreferences;
 import org.the3deer.android_3d_model_engine.shader.ShaderFactory;
+import org.the3deer.android_3d_model_engine.shader.ShaderPreferences;
+import org.the3deer.android_3d_model_engine.shadow.ShadowDrawer;
 import org.the3deer.android_3d_model_engine.view.GLFragment;
+import org.the3deer.android_3d_model_engine.view.GLRendererImpl;
 import org.the3deer.util.android.AndroidURLStreamHandlerFactory;
 import org.the3deer.util.android.ContentUtils;
 import org.the3deer.util.bean.BeanFactory;
@@ -139,7 +144,7 @@ public class ModelEngine {
             // init resources
             ContentUtils.setThreadActivity(activity);
 
-            beanFactory.find(ShaderFactory.class).reset();
+            //beanFactory.find(ShaderFactory.class).reset();
 
             // start
             beanFactory.refresh();
@@ -173,47 +178,53 @@ public class ModelEngine {
         beanFactory.add("10.controller", ModelController.class);
         //beanFactory.add("surface", this.surface);
         //beanFactory.add("fragment_gl", GLFragment.class);
-        beanFactory.add("10.shaderFactory", new ShaderFactory(activity));
+        beanFactory.add("10.shaderFactory", ShaderFactory.class);
         beanFactory.add("10.screen", new Screen(640, 480));
-        beanFactory.add("10.renderer", RendererImpl.class);
+        beanFactory.add("10.renderer", GLRendererImpl.class);
         beanFactory.add("10.settings", PreferenceFragment.class);
 
+        beanFactory.add("10.shaderPreferences", ShaderPreferences.class);
         beanFactory.add("10.touchController", TouchController.class);
 
         // FIXME: this bean can be merged into renderer
-        beanFactory.add("10.renderer0.drawerController", RendererController.class);
+        beanFactory.add("10.renderer0.drawerController", RendererPreferences.class);
 
         // objects
         beanFactory.add("20.scene_0.scene", Scene.class);
-        //beanFactory.add("scene_0.loader", SceneLoader.class);
+        beanFactory.add("20.scene_0.projection", PerspectiveProjection.class);
         beanFactory.add("20.scene_0.camera", new Camera(Constants.DEFAULT_CAMERA_POSITION));
         beanFactory.add("20.scene_0.light", new Light(Constants.DEFAULT_LIGHT_LOCATION));
+
+        // projections
+        beanFactory.add("20.scene_0.projections.orthographic", OrthographicProjection.class);
 
         // controllers
         //beanFactory.add("20.controller.animationController", AnimationController.class);
         beanFactory.add("20.controller.cameraController", CameraController.class);
         beanFactory.add("20.controller.collisionController", CollisionController.class);
 
-        // renderers
-        beanFactory.add("30.renderer1.SkyBoxDrawer", SkyBoxRenderer.class);
-        beanFactory.add("30.renderer2.lightBulb", Point.build(Constants.VECTOR_ZERO)
+        // drawers
+        beanFactory.add("25.drawer0.SkyBoxDrawer", SkyBoxDrawer.class);
+        beanFactory.add("25.drawer1.SceneDrawer", SceneDrawer.class);
+        beanFactory.add("25.drawer3.lightBulb", Point.build(Constants.VECTOR_ZERO)
                 .setId("light").setColor(Constants.COLOR_YELLOW));
-        beanFactory.add("30.renderer2.lightBulbDrawer", LightBulbRenderer.class);
-        beanFactory.add("30.renderer3.sceneRenderer", SceneRenderer.class);
+        beanFactory.add("25.drawer4.lightBulbDrawer", LightBulbDrawer.class);
+        beanFactory.add("25.drawer5.boundingBoxDrawer", BoundingBoxDrawer.class);
+        beanFactory.add("25.drawer6.shadowRenderer", ShadowDrawer.class);
+        beanFactory.add("25.drawer7.wireframeDrawer", WireframeDrawer.class);
+        beanFactory.add("25.drawer8.skeleton", SkeletonDrawer.class);
 
-        // debuggers
-        beanFactory.add("50.renderer4.boundingBoxDrawer", BoundingBoxRenderer.class);
-        beanFactory.add("50.renderer5.wireframeDrawer", WireframeRenderer.class);
-        beanFactory.add("50.renderer6.skeleton", SkeletonRenderer.class);
-        //beanFactory.add("50.renderer7.shadowRenderer", ShadowRenderer.class);
+        // renderers
+        beanFactory.add("30.renderer0.sceneRenderer", DefaultRenderer.class);
+        beanFactory.add("30.renderer1.anaglyphRenderer", AnaglyphRenderer.class);
 
     }
 
     private void initGUI() {
-        final Camera camera = new Camera();
-        camera.setProjection(Projection.ORTHOGRAPHIC);
-        //camera.setScreenSize(screenWidth, screenHeight);
-        beanFactory.add("80.gui.camera", camera);
+
+        // visualization
+        beanFactory.add("80.gui.projection", OrthographicProjection.class);
+        beanFactory.add("80.gui.camera", Camera.class);
 
         final GUISystem guiSystem = new GUISystem();
         guiSystem.setEnabled(true);

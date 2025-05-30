@@ -1,10 +1,10 @@
-package org.the3deer.android_3d_model_engine.renderer;
+package org.the3deer.android_3d_model_engine.view;
 
 import org.the3deer.android_3d_model_engine.model.Projection;
 
 import java.util.EventObject;
 
-public class RenderEvent extends EventObject {
+public class GLEvent extends EventObject {
 
     private final Code code;
 
@@ -14,12 +14,12 @@ public class RenderEvent extends EventObject {
 
     public enum Code {SURFACE_CREATED, SURFACE_CHANGED, PROJECTION_CHANGED}
 
-    public RenderEvent(Object source, Code code) {
+    public GLEvent(Object source, Code code) {
         super(source);
         this.code = code;
     }
 
-    public RenderEvent(Object source, Code code, int width, int height) {
+    public GLEvent(Object source, Code code, int width, int height) {
         super(source);
         this.code = code;
         this.width = width;

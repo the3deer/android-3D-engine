@@ -19,7 +19,6 @@ import org.the3deer.android_3d_model_engine.model.Constants;
 import org.the3deer.android_3d_model_engine.model.Projection;
 import org.the3deer.android_3d_model_engine.model.Scene;
 import org.the3deer.android_3d_model_engine.model.Screen;
-import org.the3deer.android_3d_model_engine.preferences.PreferenceAdapter;
 import org.the3deer.android_3d_model_engine.toolbar.MenuAdapter;
 import org.the3deer.util.bean.BeanFactory;
 import org.the3deer.util.event.EventListener;
@@ -28,12 +27,12 @@ import java.util.Arrays;
 import java.util.EventObject;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 
 import javax.inject.Inject;
+import javax.inject.Named;
 
 public final class CameraController implements Camera.Controller, EventListener,
-        PreferenceAdapter, MenuAdapter {
+        MenuAdapter {
 
     interface Handler extends Camera.Controller {
 
@@ -53,6 +52,9 @@ public final class CameraController implements Camera.Controller, EventListener,
     private Scene scene;
     @Inject
     private Screen screen;
+    @Inject
+    @Named("perspectiveProjection")
+    private Projection perspective;
     /*@Inject
     private List<Camera.Controller> controllers;*/
 
@@ -64,7 +66,9 @@ public final class CameraController implements Camera.Controller, EventListener,
 
     // state
     private Handler handler;
+
     private Projection projection;
+
 
     public CameraController() {
     }
@@ -88,45 +92,45 @@ public final class CameraController implements Camera.Controller, EventListener,
         this.handlerOrtho = beanFactory.addAndGet("camera.handlerOrtho", OrthographicHandler.class);
         this.handlerPOV = beanFactory.addAndGet("camera.handlerPOV", POVHandler.class);
         this.handler = handlerDefault;
-        this.projection = Projection.PERSPECTIVE;
+        this.projection = perspective;
     }
 
-    @Override
+
     public void onRestoreInstanceState(Bundle state) {
         Log.v("CameraController", "Restoring state...");
 
         if (state.containsKey("camera.pos") && state.containsKey("camera.view") && state.containsKey("camera.up")
                 && state.containsKey("camera.projection")) {
-            updateHandler(Projection.valueOf(state.getString("camera.projection")),
+            /*updateHandler(Projection.valueOf(state.getString("camera.projection")),
                     Objects.requireNonNull(state.getFloatArray("camera.pos")),
                     Objects.requireNonNull(state.getFloatArray("camera.up")),
-                    Objects.requireNonNull(state.getFloatArray("camera.view")));
+                    Objects.requireNonNull(state.getFloatArray("camera.view")));*/
         } else {
             updateHandler(this.projection, null, null, null);
         }
         Log.v("CameraController","State restored");
     }
 
-    @Override
+
     public void onSaveInstanceState(Bundle outState) {
         Log.v("CameraController","Saving state...");
         if (scene != null && scene.getCamera() != null && projection != null) {
-            outState.putFloatArray("camera.pos", scene.getCamera().getPos());
+            /*outState.putFloatArray("camera.pos", scene.getCamera().getPos());
             outState.putFloatArray("camera.view", scene.getCamera().getView());
             outState.putFloatArray("camera.up", scene.getCamera().getUp());
-            outState.putString("camera.projection", projection.name());
+            outState.putString("camera.projection", projection.name());*/
         }
         Log.v("CameraController","State saved: "+outState);
     }
 
-    @Override
+
     public void onRestorePreferences(@Nullable Map<String, ?> preferences) {
-        PreferenceAdapter.super.onRestorePreferences(preferences);
+        //PreferenceAdapter.super.onRestorePreferences(preferences);
     }
 
-    @Override
+
     public void onCreatePreferences(@Nullable Bundle savedInstanceState, @Nullable String rootKey, Context context, PreferenceScreen screen) {
-        PreferenceAdapter.super.onCreatePreferences(savedInstanceState, rootKey, context, screen);
+        //PreferenceAdapter.super.onCreatePreferences(savedInstanceState, rootKey, context, screen);
 
         /*PreferenceCategory cameraCategory = new PreferenceCategory(context);
         cameraCategory.setKey("camera");
@@ -137,12 +141,12 @@ public final class CameraController implements Camera.Controller, EventListener,
         projectionList.setIconSpaceReserved(screen.isIconSpaceReserved());
         projectionList.setKey("projection");
         projectionList.setTitle("Projection");
-        projectionList.setEntries(new String[]{Projection.PERSPECTIVE.name(), Projection.ISOMETRIC.name(), Projection.ORTHOGRAPHIC.name(), Projection.FREE.name()});
-        projectionList.setEntryValues(new String[]{Projection.PERSPECTIVE.name(), Projection.ISOMETRIC.name(), Projection.ORTHOGRAPHIC.name(), Projection.FREE.name()});
+        /*projectionList.setEntries(new String[]{Projection.PERSPECTIVE.name(), Projection.ISOMETRIC.name(), Projection.ORTHOGRAPHIC.name(), Projection.FREE.name()});
+        projectionList.setEntryValues(new String[]{Projection.PERSPECTIVE.name(), Projection.ISOMETRIC.name(), Projection.ORTHOGRAPHIC.name(), Projection.FREE.name()});*/
         projectionList.setOnPreferenceChangeListener((preference, newValue) -> {
             // perform
             Log.i(TAG,"New projection: "+newValue);
-            updateHandler(Projection.valueOf((String) newValue), null, null, null);
+            //updateHandler(Projection.valueOf((String) newValue), null, null, null);
             return true;
         });
 
@@ -163,13 +167,13 @@ public final class CameraController implements Camera.Controller, EventListener,
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         final SubMenu subMenu = menu.addSubMenu(MENU_GROUP_ID, Constants.MENU_ITEM_ID.getAndIncrement(), Constants.MENU_ORDER_ID.getAndIncrement(), R.string.toggle_camera);
-        for (Projection p : Projection.values()) {
+        /*for (Projection p : Projection.values()) {
             int mappingId = Constants.MENU_ITEM_ID.getAndIncrement();
             this.MENU_MAPPING.put(mappingId, p);
             final MenuItem item = subMenu.add(MENU_GROUP_ID, mappingId, p.ordinal(), p.name());
             item.setCheckable(true);
             item.setChecked(p == this.projection);
-        }
+        }*/
         subMenu.setGroupCheckable(MENU_GROUP_ID, true, true);
         return true;
     }
@@ -192,7 +196,7 @@ public final class CameraController implements Camera.Controller, EventListener,
     private void updateHandler(Projection projection, float[] pos, float[] up, float[] view) {
         Log.i("CameraController", "Projection: "+projection);
         this.projection = projection;
-        switch (projection) {
+        /*switch (projection) {
             case PERSPECTIVE:
                 this.handler = handlerDefault;
                 break;
@@ -207,7 +211,7 @@ public final class CameraController implements Camera.Controller, EventListener,
                 break;
             default:
                 throw new UnsupportedOperationException("Unsupported projection: "+projection);
-        }
+        }*/
         Log.i("CameraController", "Handler: "+handler.getClass().getSimpleName());
         this.scene.getCamera().setController(this.handler);
         if (pos != null && up != null && view != null){
@@ -239,7 +243,7 @@ public final class CameraController implements Camera.Controller, EventListener,
                     break;
                 case PINCH:
                     final float zoomFactor = ((TouchEvent) event).getZoom();
-                    handler.zoom((float) (-zoomFactor/2 * Constants.near * Math.log(scene.getCamera().getDistance())));
+                    handler.zoom((float) (-zoomFactor/4 * Constants.near * Math.log(scene.getCamera().getDistance())));
                     break;
                 case SPREAD:
                     // TODO:

@@ -69,6 +69,16 @@ public class Dimensions {
         return max;
     }
 
+    public void set(float leftPt, float rightPt, float topPt, float bottomPt, float nearPt, float farPt){
+        this.leftPt = leftPt;
+        this.rightPt = rightPt;
+        this.topPt = topPt;
+        this.bottomPt = bottomPt;
+        this.nearPt = nearPt;
+        this.farPt = farPt;
+        refresh();
+    }
+
     public void update(float x, float y, float z) {
         if (x > rightPt)
             rightPt = x;

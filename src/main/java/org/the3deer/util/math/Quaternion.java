@@ -274,7 +274,7 @@ public class Quaternion {
         return this.x == 0 && this.y == 0 && this.z == 0 && w == 1;
     }
 
-    private Quaternion setMatrix(float[] matrix) {
+    public Quaternion setMatrix(float[] matrix) {
         this.matrix = matrix;
         return this;
     }

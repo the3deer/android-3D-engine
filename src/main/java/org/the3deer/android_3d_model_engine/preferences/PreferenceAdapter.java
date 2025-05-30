@@ -4,7 +4,7 @@ import android.content.Context;
 import android.os.Bundle;
 
 import androidx.annotation.Nullable;
-import androidx.preference.PreferenceScreen;
+import androidx.preference.PreferenceGroup;
 
 import java.util.Map;
 
@@ -19,6 +19,6 @@ public interface PreferenceAdapter {
     default void onRestorePreferences(@Nullable Map<String,?> preferences){
     }
 
-    default void onCreatePreferences(@Nullable Bundle savedInstanceState, @Nullable String rootKey, Context context, PreferenceScreen screen){
+    default void onCreatePreferences(@Nullable Bundle savedInstanceState, @Nullable String rootKey, Context context, PreferenceGroup screen){
     }
 }

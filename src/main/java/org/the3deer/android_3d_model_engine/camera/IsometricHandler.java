@@ -12,6 +12,7 @@ import org.the3deer.util.math.Math3DUtils;
 import java.util.Arrays;
 
 import javax.inject.Inject;
+import javax.inject.Named;
 
 /**
  * Isometric camera implementation that support rotation in all 3 axis
@@ -36,6 +37,11 @@ public class IsometricHandler implements CameraController.Handler {
 
     @Inject
     private Camera camera;
+
+    @Inject
+    @Named("orthographicProjection")
+    private Projection projection;
+
     @Inject
     private AnimationController animationController;
 
@@ -68,7 +74,7 @@ public class IsometricHandler implements CameraController.Handler {
     @Override
     public void enable(){
         camera.setController(this);
-        camera.setProjection(Projection.ORTHOGRAPHIC);
+        camera.setProjection(projection);
         camera.setChanged(true);
         saveAndAnimate(this.savePos[0], this.savePos[1], this.savePos[2], this.saveUp[0], this.saveUp[1], this.saveUp[2]);
     }

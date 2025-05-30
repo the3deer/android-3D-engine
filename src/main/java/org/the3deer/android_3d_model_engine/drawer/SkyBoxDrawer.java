@@ -13,7 +13,8 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.preference.ListPreference;
 import androidx.preference.Preference;
-import androidx.preference.PreferenceScreen;
+import androidx.preference.PreferenceCategory;
+import androidx.preference.PreferenceGroup;
 
 import org.the3deer.android_3d_model_engine.R;
 import org.the3deer.android_3d_model_engine.model.Camera;
@@ -22,7 +23,7 @@ import org.the3deer.android_3d_model_engine.model.Object3DData;
 import org.the3deer.android_3d_model_engine.model.Screen;
 import org.the3deer.android_3d_model_engine.objects.SkyBox;
 import org.the3deer.android_3d_model_engine.preferences.PreferenceAdapter;
-import org.the3deer.android_3d_model_engine.renderer.Renderer;
+import org.the3deer.android_3d_model_engine.renderer.Drawer;
 import org.the3deer.android_3d_model_engine.shader.Shader;
 import org.the3deer.android_3d_model_engine.shader.ShaderFactory;
 import org.the3deer.android_3d_model_engine.toolbar.MenuAdapter;
@@ -36,7 +37,7 @@ import java.util.Map;
 
 import javax.inject.Inject;
 
-public class SkyBoxRenderer implements Renderer, MenuAdapter, PreferenceAdapter {
+public class SkyBoxDrawer implements Drawer, MenuAdapter, PreferenceAdapter {
 
     // menu
     private final int MENU_ORDER_ID = Constants.MENU_ORDER_ID.getAndIncrement();
@@ -47,13 +48,16 @@ public class SkyBoxRenderer implements Renderer, MenuAdapter, PreferenceAdapter 
     // dependencies
 
     @Inject
+    private ShaderFactory shaderFactory;
+
+    @Inject
     private Screen screen;
 
     @Inject
     private Camera camera;
 
     // enablement
-    private boolean enabled = true;
+    private boolean enabled;
 
     // data
     private int skyboxId = 0;
@@ -67,7 +71,8 @@ public class SkyBoxRenderer implements Renderer, MenuAdapter, PreferenceAdapter 
 
     // preferences
     private ListPreference skyboxList;
-    private String[] skyBoxesNames = new String[]{"None", "Sea", "Sand"};;
+    private String[] skyBoxesNames = new String[]{"Sea", "Sand"};;
+    private Shader shader;
 
     public boolean isEnabled() {
         return enabled;
@@ -75,14 +80,10 @@ public class SkyBoxRenderer implements Renderer, MenuAdapter, PreferenceAdapter 
 
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
-        if (this.skyboxId == 0){
-            this.skyboxId = 1;
-        }
     }
 
     public void setSkyBox(int i) {
         skyboxId = i;
-        enabled = i != 0;
     }
 
 /*    @Override
@@ -95,7 +96,7 @@ public class SkyBoxRenderer implements Renderer, MenuAdapter, PreferenceAdapter 
 
     @BeanPostConstruct
     public void setUp(){
-        skyBoxes = new SkyBox[]{null, SkyBox.getSkyBox1(), SkyBox.getSkyBox2()};
+        skyBoxes = new SkyBox[]{SkyBox.getSkyBox1(), SkyBox.getSkyBox2()};
         skyBoxes3D = new Object3DData[skyBoxes.length];
         Matrix.frustumM(projectionMatrix, 0, -screen.getRatio(), screen.getRatio(),
                 -1f, 1f, Constants.near, Constants.far);
@@ -104,27 +105,37 @@ public class SkyBoxRenderer implements Renderer, MenuAdapter, PreferenceAdapter 
     @Override
     public void onRestorePreferences(@Nullable Map<String, ?> preferences) {
         PreferenceAdapter.super.onRestorePreferences(preferences);
-        if (preferences.containsKey("skybox")){
-            skyboxId = Integer.valueOf((String)preferences.get("skybox"));
+        if (preferences.containsKey(this.getClass().getName()+".skyboxId")){
+            skyboxId = Integer.valueOf((String)preferences.get(this.getClass().getName()+".skyboxId"));
             setSkyBox(skyboxId);
         }
     }
 
     @Override
-    public void onCreatePreferences(@Nullable Bundle savedInstanceState, @Nullable String rootKey, Context context, PreferenceScreen screen) {
+    public void onCreatePreferences(@Nullable Bundle savedInstanceState, @Nullable String rootKey, Context context, PreferenceGroup screen) {
         PreferenceAdapter.super.onCreatePreferences(savedInstanceState, rootKey, context, screen);
+
+        Preference category = screen.findPreference(this.getClass().getName());
+        if (category == null){
+            category = new PreferenceCategory(context);
+            category.setKey(this.getClass().getName());
+            category.setTitle(this.getClass().getSimpleName());
+            category.setLayoutResource(R.layout.preference_category);
+            screen.addPreference(category);
+        }
 
         skyboxList = new ListPreference(context);
         skyboxList.setIconSpaceReserved(screen.isIconSpaceReserved());
-        skyboxList.setKey("skybox");
-        skyboxList.setTitle("Skybox");
-
+        skyboxList.setKey(this.getClass().getName()+".skyboxId");
+        skyboxList.setTitle(this.getClass().getSimpleName());
         skyboxList.setEntries(this.skyBoxesNames);
-        skyboxList.setEntryValues(new String[]{"0", "1", "2"});
+        skyboxList.setEntryValues(new String[]{"0", "1"});
         skyboxList.setDefaultValue(String.valueOf(skyboxId));
+        skyboxList.setValue(String.valueOf(skyboxId));
+        skyboxList.setIconSpaceReserved(false);
 
         skyboxList.setSummary(skyboxId >= 0 && skyboxId < skyBoxesNames.length? skyBoxesNames[skyboxId] : "Unknown");
-        screen.addPreference(skyboxList);
+        ((PreferenceGroup)category).addPreference(skyboxList);
 
         skyboxList.setSummaryProvider(new Preference.SummaryProvider(){
             @Nullable
@@ -199,20 +210,31 @@ public class SkyBoxRenderer implements Renderer, MenuAdapter, PreferenceAdapter 
 
     @Override
     public void onDrawFrame() {
-        draw(null, null, null, -1, null, null, null, -1, -1);
+        this.onDrawFrame(null);
+    }
+
+    @Override
+    public void onDrawFrame(Config config) {
+        draw(config,null, null, null, -1, null, null, null, -1, -1);
     }
 
     //@Override
-    private void draw(Object3DData obj, float[] pMatrix, float[] vMatrix, int textureId, float[] lightPosInWorldSpace, float[] colorMask, float[] cameraPos, int drawType, int drawSize) {
+    private void draw(Config config, Object3DData obj, float[] pMatrix, float[] vMatrix, int textureId, float[] lightPosInWorldSpace, float[] colorMask, float[] cameraPos, int drawType, int drawSize) {
 
         // enabled?
         if (!enabled) return;
+
+        if (skyBoxes == null) return;
 
         // enabled?
         int skyBoxId = this.skyboxId;
 
         // assert
-        if (skyBoxId < 1 || skyBoxId >= skyBoxes.length) return;
+        if (skyBoxId < 0 || skyBoxId >= skyBoxes.length) return;
+
+        if (shader == null) {
+            shader = shaderFactory.getShader(R.raw.shader_skybox_vert, R.raw.shader_skybox_frag);
+        }
 
         try {
             // lazy building of the 3d object
@@ -232,15 +254,17 @@ public class SkyBoxRenderer implements Renderer, MenuAdapter, PreferenceAdapter 
             }
 
             // get drawer
-            Shader basicDrawer = ShaderFactory.getInstance().getSkyBoxDrawer();
+            //Shader basicDrawer = ShaderFactory.getInstance().getSkyBoxDrawer();
+
 
             // paint
             GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0);
-            GLES20.glClearColor(0, 0, 0, 1);
+            //GLES20.glClearColor(0, 0, 0, 1);
             GLES20.glDisable(GLES20.GL_CULL_FACE);
-            GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
+            //GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
 
-            basicDrawer.draw(skyBoxes3D[skyboxId], this.projectionMatrix, camera.getViewMatrix(),
+            final Camera camera = config != null && config.camera != null? config.camera : this.camera;
+            shader.draw(skyBoxes3D[skyboxId], this.projectionMatrix, camera.getViewMatrix(),
                     null, null, camera.getPos(), skyBoxes3D[skyboxId].getDrawMode(), skyBoxes3D[skyboxId].getDrawSize());
 
             // sensor stuff

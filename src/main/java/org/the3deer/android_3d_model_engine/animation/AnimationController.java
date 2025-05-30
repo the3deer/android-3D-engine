@@ -3,7 +3,7 @@ package org.the3deer.android_3d_model_engine.animation;
 import android.util.Log;
 
 import org.the3deer.android_3d_model_engine.model.Animation;
-import org.the3deer.android_3d_model_engine.renderer.RenderListener;
+import org.the3deer.android_3d_model_engine.view.RenderListener;
 
 import java.util.ArrayList;
 import java.util.Iterator;

@@ -85,7 +85,7 @@ public class ModelFragment extends Fragment {
         modelEngine.refresh();
 
         // restore state
-        modelEngine.getPreferenceFragment().onRestoreInstanceState(savedInstanceState);
+        //modelEngine.getPreferenceFragment().onRestoreInstanceState(savedInstanceState);
 
     }
 

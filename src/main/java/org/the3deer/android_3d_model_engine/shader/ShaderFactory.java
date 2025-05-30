@@ -10,10 +10,11 @@ import org.the3deer.android_3d_model_engine.model.AnimatedModel;
 import org.the3deer.android_3d_model_engine.model.Object3DData;
 import org.the3deer.util.io.IOUtils;
 
-import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
+
+import javax.inject.Inject;
 
 /**
  * Copyright 2013-2020 the3deer.org
@@ -31,27 +32,30 @@ import java.util.Map;
  */
 public class ShaderFactory {
 
-    /**
-     * singleton
-     */
-    private static ShaderFactory instance = null;
+    @Inject
+    private Context context;
     /**
      * shader code loaded from raw resources
      * resources are cached on activity thread
      */
-    private Map<Integer, String> shadersIds = new HashMap<>();
+    private Map<Integer, String> shadersCode = new HashMap<>();
     /**
-     * list of opengl drawers
+     * shader names loaded from raw resources
      */
-    private Map<ShaderResource, ShaderImpl> drawers = new HashMap<>();
+    private Map<Integer, String> shadersNames = new HashMap<>();
+    /**
+     * list of cached shaders
+     */
+    private Map<String, Shader> shaders = new HashMap<>();
 
     /**
      * Read all shader data from /raw folder (context required for IO).
-     * @param context the application context
-     * @throws IllegalAccessException if there is any issue accessing the R class
-     * @throws IOException if there is any issue reading the file
+     * if there is any issue accessing the date a log is generated.
      */
-    public ShaderFactory(Context context) {
+    public void setUp() {
+        if (context == null) {
+            throw new IllegalStateException("Context is null");
+        };
 
         Log.i("ShaderFactory", "Discovering shaders...");
         Field[] fields = R.raw.class.getFields();
@@ -62,21 +66,17 @@ public class ShaderFactory {
                 int shaderResId = field.getInt(field);
                 byte[] shaderBytes = IOUtils.read(context.getResources().openRawResource(shaderResId));
                 String shaderCode = new String(shaderBytes);
-                shadersIds.put(shaderResId, shaderCode);
+                shadersCode.put(shaderResId, shaderCode);
+                shadersNames.put(shaderResId, shaderId);
             } catch (Exception e) {
                 Log.e("ShaderFactory", "Issue loading shader... " + shaderId);
             }
         }
-        Log.i("ShaderFactory", "Shaders loaded: " + shadersIds.size());
-        instance = this;
-    }
-
-    public static ShaderFactory getInstance() {
-        return instance;
+        Log.i("ShaderFactory", "Shaders loaded: " + shadersCode.size());
     }
 
     public void reset(){
-        drawers.clear();
+        shaders.clear();
     }
 
     /**
@@ -112,19 +112,36 @@ public class ShaderFactory {
         }
 
         // get cached shaders
-        ShaderImpl renderer = drawers.get(shader);
+        Shader renderer = shaders.get(shader.id);
         if (renderer != null) {
+/*
             renderer.setTexturesEnabled(isTextured);
             renderer.setLightingEnabled(isLighted);
             renderer.setAnimationEnabled(isAnimated);
+*/
             return renderer;
         }
 
+        // load shader
+        renderer = loadShader(shader.id, shader.vertexShaderResourceId, shader.fragmentShaderResourceId, isTextured, isLighted, isAnimated);
+
+        // cache drawer
+        shaders.put(shader.id, renderer);
+
+        Log.i("ShaderFactory", "Loaded "+ shader.id+" size ("+shaders.size()+") this: "+this);
+
+        // return drawer
+        return renderer;
+    }
+
+    @NonNull
+    private ShaderImpl loadShader(String shaderId, int vertexShaderResourceId, int fragmentShaderResourceId, boolean isTextured, boolean isLighted, boolean isAnimated) {
+        ShaderImpl renderer;
         // build drawer
         String vertexShaderCode;
 
         // experimental: inject glPointSize
-        vertexShaderCode = shadersIds.get(shader.vertexShaderResourceId).replace("void main(){", "void main(){\n\tgl_PointSize = 5.0;");
+        vertexShaderCode = shadersCode.get(vertexShaderResourceId).replace("void main(){", "void main(){\n\tgl_PointSize = 5.0;");
 
         // use opengl constant to dynamically set up array size in shaders. That should be >=120
         vertexShaderCode = vertexShaderCode.replace("const int MAX_JOINTS = 60;", "const int MAX_JOINTS = gl_MaxVertexUniformVectors > 60 ? 60 : gl_MaxVertexUniformVectors;");
@@ -135,27 +152,36 @@ public class ShaderFactory {
         Log.v("RendererFactory", "---------- Fragment shader ----------\n");
         Log.v("RendererFactory", fragmentShaderCode);
         Log.v("RendererFactory", "-------------------------------------\n");*/
-        renderer = ShaderImpl.getInstance(shader.id, vertexShaderCode, shadersIds.get(shader.fragmentShaderResourceId));
-        renderer.setTexturesEnabled(isTextured);
+        renderer = ShaderImpl.getInstance(shaderId, vertexShaderCode, shadersCode.get(fragmentShaderResourceId));
+        /*renderer.setTexturesEnabled(isTextured);
         renderer.setLightingEnabled(isLighted);
-        renderer.setAnimationEnabled(isAnimated);
+        renderer.setAnimationEnabled(isAnimated);*/
 
-        // cache drawer
-        drawers.put(shader, renderer);
-
-        // return drawer
         return renderer;
+    }
+
+    /**
+     * Return the shader loaded in GPU.
+     * @param resIdVertexShader the shader resource id
+     * @return
+     */
+    public Shader getShader(int resIdVertexShader, int resIdFragmentShader){
+        final String shaderName = shadersNames.get(resIdVertexShader);
+        final Shader shader = shaders.get(shaderName);
+        if (shader == null){
+            final ShaderImpl impl = loadShader(shaderName, resIdVertexShader, resIdFragmentShader, true, true, true);
+            shaders.put(shaderName, impl);
+            Log.i("ShaderFactory", "Loaded "+ shaderName+" size ("+shaders.size()+") this: "+this);
+            return impl;
+        }
+        return shader;
     }
 
     @NonNull
     private ShaderResource getShader(boolean isTextured, boolean isLighted, boolean isAnimated, boolean isShadow, boolean isUsingShadows) {
 
         final ShaderResource ret;
-        if (isShadow) {
-            return ShaderResource.SHADOW;
-        } else if (isUsingShadows){
-            return ShaderResource.SHADOWED;
-        } else if (isAnimated || isTextured || isLighted){
+        if (isAnimated || isTextured || isLighted){
             ret = ShaderResource.ANIMATED;
         } else {
             ret = ShaderResource.BASIC;
@@ -163,28 +189,11 @@ public class ShaderFactory {
         return ret;
     }
 
-    public Shader  getBoundingBoxDrawer() {
-        return getShader(null, false, false, false, false, false, false);
+    public Map<String, Shader> getShaders() {
+        return shaders;
     }
 
-    public Shader  getFaceNormalsDrawer() {
-        return getShader(null, false, false, false, false, false, false);
+    public void setContext(Context parent) {
+        this.context = parent;
     }
-
-    public Shader  getBasicShader() {
-        return getShader(null, false, false, false, false, false, false);
-    }
-
-    public Shader  getSkyBoxDrawer() {
-        return getShader(null, true, false, false, false, false, false);
-    }
-
-    public Shader  getShadowRenderer(){
-        return getShader(null, false, false, false, true, true, false);
-    }
-
-    public Shader  getShadowRenderer2(Object3DData obj){
-        return getShader(obj, false, true, true, true, false, true);
-    }
-
 }

@@ -10,9 +10,10 @@ import org.the3deer.android_3d_model_engine.model.Constants;
 import org.the3deer.android_3d_model_engine.model.Object3DData;
 import org.the3deer.android_3d_model_engine.model.Scene;
 import org.the3deer.android_3d_model_engine.objects.Skeleton;
-import org.the3deer.android_3d_model_engine.renderer.Renderer;
+import org.the3deer.android_3d_model_engine.renderer.Drawer;
 import org.the3deer.android_3d_model_engine.shader.Shader;
 import org.the3deer.android_3d_model_engine.shader.ShaderFactory;
+import org.the3deer.util.bean.BeanOrder;
 import org.the3deer.util.event.EventListener;
 
 import java.util.Collections;
@@ -23,9 +24,10 @@ import java.util.Map;
 
 import javax.inject.Inject;
 
-public class SkeletonRenderer implements Renderer, EventListener {
+@BeanOrder(order=100)
+public class SkeletonDrawer implements Drawer, EventListener {
 
-    private final static String TAG = SkeletonRenderer.class.getSimpleName();
+    private final static String TAG = SkeletonDrawer.class.getSimpleName();
 
     /**
      * Animator
@@ -33,6 +35,8 @@ public class SkeletonRenderer implements Renderer, EventListener {
     private final Animator animator = new Animator();
 
     private boolean enabled = false;
+    @Inject
+    private ShaderFactory shaderFactory;
     @Inject
     private Scene scene;
     @Inject
@@ -60,6 +64,15 @@ public class SkeletonRenderer implements Renderer, EventListener {
 
     @Override
     public void onDrawFrame() {
+        this.onDrawFrame(null);
+    }
+
+    public void onDrawFrame(Camera camera, Object3DData object) {
+
+    }
+
+    @Override
+    public void onDrawFrame(Config config) {
 
         // enabled?
         if (!enabled) return;
@@ -69,14 +82,18 @@ public class SkeletonRenderer implements Renderer, EventListener {
             return;
         }
 
+        // we need to write on top of everything
+        GLES20.glClear(GLES20.GL_DEPTH_BUFFER_BIT);
+
         // draw
+        final Camera camera = config != null && config.camera != null ? config.camera : this.camera;
         List<Object3DData> objects = scene.getObjects();
         for (int i = 0; i < objects.size(); i++) {
-            drawObject(objects, i);
+            drawObject(camera, objects, i);
         }
     }
 
-    private void drawObject(List<Object3DData> objects, int i) {
+    private void drawObject(Camera camera, List<Object3DData> objects, int i) {
         Object3DData objData = null;
         try {
             objData = objects.get(i);
@@ -95,7 +112,7 @@ public class SkeletonRenderer implements Renderer, EventListener {
             if (((AnimatedModel) objData).getSkeleton().getHeadJoint() == null) return;
 
             // get shader
-            Shader drawerObject = ShaderFactory.getInstance().getShader(objData, false, false, false, true, false, false);
+            Shader drawerObject = shaderFactory.getShader(objData, false, false, false, true, false, false);
             if (drawerObject == null) {
                 Log.e(TAG, "No drawer for " + objData.getId());
                 return;
@@ -112,7 +129,7 @@ public class SkeletonRenderer implements Renderer, EventListener {
                 }
                 //GLES20.glEnable(GLES20.GL_DEPTH_TEST);
 
-                drawerObject.draw(skeletonModel, camera.projectionMatrix, camera.viewMatrix, Constants.COLOR_BLUE, null, camera.getPos(), skeletonModel.getDrawMode(), skeletonModel.getDrawSize());
+                drawerObject.draw(skeletonModel, camera.getProjectionMatrix(), camera.viewMatrix, Constants.COLOR_BLUE, null, camera.getPos(), skeletonModel.getDrawMode(), skeletonModel.getDrawSize());
 
             } catch (Error e) {
                 Log.e("WireframeDrawer", e.getMessage(), e);

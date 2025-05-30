@@ -10,6 +10,7 @@ import org.the3deer.util.math.Math3DUtils;
 import java.util.Arrays;
 
 import javax.inject.Inject;
+import javax.inject.Named;
 
 public class OrthographicHandler implements CameraController.Handler {
 
@@ -21,6 +22,10 @@ public class OrthographicHandler implements CameraController.Handler {
 
     @Inject
     private Camera camera;
+
+    @Inject
+    @Named("orthographicProjection")
+    private Projection projection;
 
     private boolean initialized = false;
 
@@ -56,7 +61,7 @@ public class OrthographicHandler implements CameraController.Handler {
         Log.i("OrthographicCamera", "Enabling...");
         init();
         camera.setController(this);
-        camera.setProjection(Projection.ORTHOGRAPHIC);
+        camera.setProjection(projection);
         camera.setChanged(true);
         saveAndAnimate(true, this.savePos[0], this.savePos[1], this.savePos[2], this.saveUp[0], this.saveUp[1], this.saveUp[2]);
     }

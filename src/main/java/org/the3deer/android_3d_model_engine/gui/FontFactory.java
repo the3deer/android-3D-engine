@@ -150,6 +150,8 @@ public class FontFactory {
         chars.put('0', _0());
         chars.put('1', _1());
         chars.put('2', _2());
+        chars.put('3', _3());
+        chars.put('4', _4());
 
         // letters - lower case
         chars.put('a', _a());
@@ -224,6 +226,49 @@ public class FontFactory {
                 g_x5, g_y5, 0f,
                 g_x0, g_y1, 0f,
                 g_x6, g_y1, 0f
+        };
+    }
+    final static float[] _3 = new float[]{
+            0.0f, 0.6f, 0f,
+            0.4f, 0.6f, 0f,
+            0.2f, 0.4f, 0f,
+            0.4f, 0.2f, 0f,
+            0.4f, 0.1f, 0f,
+            0.3f, 0.0f, 0f,
+            0.1f, 0.0f, 0f,
+            0.0f, 0.1f, 0f
+    };
+
+    // In FontFactory.java
+
+    private float[] _3() {
+        return new float[]{
+                g_x1, g_y6, 0f,
+                g_x2, g_y7, 0f,
+                g_x5, g_y7, 0f,
+                g_x6, g_y6, 0f,
+                g_x6, g_y5, 0f,
+                g_x5, g_y4, 0f,
+                g_x2, g_y4, 0f,
+                g_x5, g_y4, 0f,
+                g_x6, g_y3, 0f,
+                g_x6, g_y2, 0f,
+                g_x5, g_y1, 0f,
+                g_x2, g_y1, 0f,
+                g_x1, g_y2, 0f
+        };
+    }
+
+    private float[] _4() {
+        return new float[]{
+                g_x5, g_y1, 0f,
+                g_x5, g_y7, 0f,
+                g_x0, g_y3, 0f,
+                g_x6, g_y3, 0f,
+                g_x5, g_y3, 0f,
+                g_x5, g_y1, 0f,
+                g_x6, g_y1, 0f,
+                g_x4, g_y1, 0f
         };
     }
 

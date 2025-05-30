@@ -78,6 +78,7 @@ public class CollisionController implements EventListener {
                         eventManager.propagate(collisionEvent);
                     }
                     return true;
+
                 }
             }
         }

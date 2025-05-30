@@ -13,7 +13,7 @@ public class RenderConstants {
 	public static final String TEX_COORDINATE = "aTexCoordinate";
 	
 	public static final String SHADOW_TEXTURE = "uShadowTexture";
-	public static final String SHADOW_PROJ_MATRIX = "uShadowProjMatrix";
+	public static final String LIGHT_VIEW_MATRIX = "u_LVMatrix";
 	public static final String SHADOW_X_PIXEL_OFFSET = "uxPixelOffset";
 	public static final String SHADOW_Y_PIXEL_OFFSET = "uyPixelOffset";
 	

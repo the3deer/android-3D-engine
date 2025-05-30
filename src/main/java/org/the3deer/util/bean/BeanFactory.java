@@ -215,10 +215,10 @@ public class BeanFactory {
                         candidate = find(field.getType(), context);
                     }
                     if (candidate != null) {
-                        Log.v("BeanFactory", "Injecting dependency (" + id + ")... field:" + field.getName() + ", value: " + candidate);
+                        Log.v("BeanFactory", "Injecting dependency " + id + "." + field.getName() + ", value: " + candidate);
                         field.set(bean, candidate);
                     } else {
-                        Log.e("BeanFactory", "Dependency not found (" + id + ")... field:" + field.getName()+", class: "+ field.getType());
+                        Log.e("BeanFactory", "Dependency not found (" + id + "." + field.getName()+", class: "+ field.getType());
                     }
                     field.setAccessible(false);
                 }
@@ -257,7 +257,7 @@ public class BeanFactory {
         if (bean == null) return null;
 
         try {
-            Log.v("BeanFactory", "Invoking setUp()... "+id);
+            Log.v("BeanFactory", "Invoking setUp()... "+id+", bean: "+ bean);
             Method method = bean.getClass().getMethod("setUp");
             return method.invoke(bean);
         } catch (NoSuchMethodException e) {
@@ -478,7 +478,7 @@ public class BeanFactory {
                 } else if (a1 != null) {
                     return a1.order();
                 } else if (a2 != null) {
-                    return a2.order();
+                    return -a2.order();
                 }
                 return 0;
             });

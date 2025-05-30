@@ -353,6 +353,7 @@ public class Animator {
 
 		if (joint.getIndex() == -1) {
 			if (joint.getMeshes().contains(animatedModel.getId())){
+				// FIXME: this does not work for all models
 				animatedModel.setBindTransform(joint.getAnimatedTransform());
 			} else {
 				//animatedModel.setBindTransform(joint.getAnimatedTransform());

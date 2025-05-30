@@ -18,17 +18,18 @@ public class Plane2 {
 	private final FloatBuffer planeColor;
 
 	//TODO: remove
-	static int translateY = 0;
+	final static float planePos = -Constants.DEFAULT_MODEL_SIZE;
+	final static float planeSize = Constants.DEFAULT_MODEL_SIZE*2;
 	static int translateZ = 0;
 
 	static float[] planePositionData = {
 			// X, Y, Z,
-			-Constants.UNIT, 0f,  -Constants.UNIT + translateZ,
-			-Constants.UNIT, 0f,  Constants.UNIT + translateZ,
-			Constants.UNIT, 0f,  Constants.UNIT + translateZ,
-			-Constants.UNIT, 0f,  -Constants.UNIT + translateZ,
-			Constants.UNIT, 0f,  Constants.UNIT + translateZ,
-			Constants.UNIT, 0f,  -Constants.UNIT + translateZ
+			-planeSize, 0,  -planeSize,
+			-planeSize, 0,  planeSize,
+			planeSize, 0,  planeSize,
+			-planeSize, 0,  -planeSize,
+			planeSize, 0,  planeSize,
+			planeSize, 0,  -planeSize
 			};
 
 	static float[] planeNormalData = {

@@ -1,6 +1,9 @@
 package org.the3deer.android_3d_model_engine.model;
 
-public enum Projection {
+public interface Projection {
 
-    PERSPECTIVE, ISOMETRIC, ORTHOGRAPHIC, FREE
+    void refresh();
+
+    float[] getMatrix();
+
 }

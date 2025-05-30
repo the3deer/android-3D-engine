@@ -5,7 +5,7 @@ import android.os.SystemClock;
 import android.util.Log;
 import android.view.MotionEvent;
 
-import org.the3deer.android_3d_model_engine.renderer.RenderEvent;
+import org.the3deer.android_3d_model_engine.view.GLEvent;
 import org.the3deer.util.event.EventListener;
 import org.the3deer.util.event.EventManager;
 import org.the3deer.util.math.Math3DUtils;
@@ -101,10 +101,10 @@ public class TouchController implements EventListener {
         // Log.d("TouchController","Processing event... "+ event);
         if (event.getSource() instanceof MotionEvent) {
             return onMotionEvent((MotionEvent) event.getSource());
-        } else if (event instanceof RenderEvent) {
-            RenderEvent renderEvent = (RenderEvent) event;
-            if (renderEvent.getCode() == RenderEvent.Code.SURFACE_CHANGED) {
-                this.setSize(renderEvent.getWidth(), renderEvent.getHeight());
+        } else if (event instanceof GLEvent) {
+            GLEvent glEvent = (GLEvent) event;
+            if (glEvent.getCode() == GLEvent.Code.SURFACE_CHANGED) {
+                this.setSize(glEvent.getWidth(), glEvent.getHeight());
             }
         }
         return false;

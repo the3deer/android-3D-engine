@@ -1,0 +1,147 @@
+package org.the3deer.android_3d_model_engine.drawer;
+
+import android.opengl.GLES20;
+import android.util.Log;
+
+import org.the3deer.android_3d_model_engine.R;
+import org.the3deer.android_3d_model_engine.model.Camera;
+import org.the3deer.android_3d_model_engine.model.Light;
+import org.the3deer.android_3d_model_engine.model.Object3DData;
+import org.the3deer.android_3d_model_engine.model.Scene;
+import org.the3deer.android_3d_model_engine.renderer.Drawer;
+import org.the3deer.android_3d_model_engine.shader.Shader;
+import org.the3deer.android_3d_model_engine.shader.ShaderFactory;
+import org.the3deer.util.event.EventListener;
+import org.the3deer.util.math.Math3DUtils;
+
+import java.util.Collections;
+import java.util.EventObject;
+import java.util.List;
+
+import javax.inject.Inject;
+
+public class SceneDrawer implements Drawer, EventListener {
+
+    public static final String TAG = SceneDrawer.class.getSimpleName();
+
+    @Inject
+    private ShaderFactory shaderFactory;
+    @Inject
+    private Scene scene;
+    @Inject
+    private Light light;
+
+    private boolean enabled = true;
+
+    private Shader shader;
+
+    @Override
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    @Override
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
+
+    @Override
+    public boolean onEvent(EventObject event) {
+
+        if (scene == null) return true;
+
+        // back-to-front drawing
+        if (event instanceof Camera.CameraUpdatedEvent) {
+            final Camera camera = (Camera) event.getSource();
+            final float[] pos = camera.getPos();
+            final List<Object3DData> objects = scene.getObjects();
+            for (int i=0; i<objects.size(); i++){
+                Collections.sort(scene.getObjects(), (o1,o2)->{
+                    final float[] d1 = Math3DUtils.substract(pos, o1.getLocation());
+                    final float[] d2 = Math3DUtils.substract(pos, o2.getLocation());
+                    return -(int) (Math3DUtils.length(d1) - Math3DUtils.length(d2));
+                });
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public void onDrawFrame() {
+        this.onDrawFrame(null);
+    }
+
+    @Override
+    public void onDrawFrame(Config config) {
+
+        if (!enabled) return;
+
+        if (scene == null || scene.getObjects() == null) return;
+
+        if (shader == null) {
+            shader = shaderFactory.getShader(R.raw.shader_animated_vert, R.raw.shader_animated_frag);
+        }
+        if (shader == null) {
+            Log.e(TAG, "Shader Factory return no shader: " + shaderFactory);
+            setEnabled(false);
+            return;
+        }
+
+        Camera camera = config != null ? config.camera : null;
+        if (camera == null) camera = scene.getCamera();
+
+        // draw scene
+        // draw all available objects
+        List<Object3DData> objects = scene.getObjects();
+        for (int i = 0; i < objects.size(); i++) {
+            final Object3DData object3DData = objects.get(i);
+                drawObject(camera, light.getLocation(), null, camera.getPos(),
+                        true, light.isEnabled(), false, true, true, objects, i);
+        }
+        /*for (int i = 0; i < objects.size(); i++) {
+            final Object3DData object3DData = objects.get(i);
+            if (object3DData.getMaterial().getAlphaMode() == Material.AlphaMode.OPAQUE ||
+                    object3DData.getMaterial().getAlpha() == 1.0f) {
+                drawObject(camera, light.getLocation(), null, camera.getPos(),
+                        true, light.isEnabled(), false, true, true, objects, i);
+            }
+        }
+        for (int i = 0; i < objects.size(); i++) {
+            final Object3DData object3DData = objects.get(i);
+            if (object3DData.getMaterial().getAlphaMode() != Material.AlphaMode.OPAQUE ||
+                    object3DData.getMaterial().getAlpha() != 1.0f) {
+                drawObject(camera, light.getLocation(), null, camera.getPos(),
+                        true, light.isEnabled(), false, true, true, objects, i);
+            }
+        }*/
+    }
+
+    private void drawObject(Camera camera, float[] lightPosInWorldSpace, float[] colorMask, float[] cameraPosInWorldSpace, boolean doAnimation, boolean drawLighting, boolean drawWireframe, boolean drawTextures, boolean drawColors, List<Object3DData> objects, int i) {
+        Object3DData objData = null;
+        try {
+            objData = objects.get(i);
+            if (!objData.isVisible()) {
+                return;
+            }
+
+            // draw points
+            if (objData.getDrawMode() == GLES20.GL_POINTS) {
+                Shader basicDrawer = shaderFactory.getShader(R.raw.shader_basic_vert, R.raw.shader_basic_frag);
+                basicDrawer.draw(objData, camera.getProjectionMatrix(), camera.getViewMatrix(),
+                        light.getLocation(), colorMask,
+                        camera.getPos(), objData.getDrawMode(), objData.getDrawSize());
+            } else {
+                if (objData.isRender()) {
+                    shader.draw(objData, camera.getProjectionMatrix(), camera.getViewMatrix(),
+                            light.getLocation(), colorMask, camera.getPos(),
+                            objData.getDrawMode(), objData.getDrawSize());
+
+
+                }
+            }
+        } catch (Exception ex) {
+            Log.e("SceneDrawer", "There was a problem rendering the object '" + objData.getId() + "':" + ex.getMessage(), ex);
+            setEnabled(false);
+        }
+    }
+}

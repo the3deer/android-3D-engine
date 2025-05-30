@@ -10,8 +10,8 @@ import org.the3deer.android_3d_model_engine.model.Constants;
 import org.the3deer.android_3d_model_engine.model.Object3DData;
 import org.the3deer.android_3d_model_engine.model.Scene;
 import org.the3deer.android_3d_model_engine.model.Screen;
-import org.the3deer.android_3d_model_engine.renderer.FPSEvent;
-import org.the3deer.android_3d_model_engine.renderer.RenderEvent;
+import org.the3deer.android_3d_model_engine.view.FPSEvent;
+import org.the3deer.android_3d_model_engine.view.GLEvent;
 import org.the3deer.util.bean.BeanFactory;
 import org.the3deer.util.bean.BeanManaged;
 import org.the3deer.util.bean.BeanProperty;
@@ -148,9 +148,9 @@ public class GUIDefault extends Widget implements EventListener, BeanManaged {
 
     @Override
     public boolean onEvent(EventObject event) {
-        if (event instanceof RenderEvent) {
-            final RenderEvent rev = (RenderEvent) event;
-            if (rev.getCode() == RenderEvent.Code.SURFACE_CHANGED) {
+        if (event instanceof GLEvent) {
+            final GLEvent rev = (GLEvent) event;
+            if (rev.getCode() == GLEvent.Code.SURFACE_CHANGED) {
                 setDimensions(camera.getDimensions2D());
                 refresh();
                 Log.v(TAG, "onEvent. SURFACE_CHANGED. Refreshed...");
@@ -161,6 +161,7 @@ public class GUIDefault extends Widget implements EventListener, BeanManaged {
             if (fps != null && fps.isVisible()) {
                 FPSEvent fpsEvent = (FPSEvent) event;
                 fps.setText(fpsEvent.getFps() + " fps");
+                //Log.v(TAG, "FPS: "+fpsEvent.getFps());
             }
         } else if (event instanceof Camera.CameraUpdatedEvent){
             setDimensions(camera.getDimensions2D());

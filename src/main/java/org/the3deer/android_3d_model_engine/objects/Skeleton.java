@@ -119,15 +119,15 @@ public final class Skeleton {
 
         if (joint.getIndex()<0){
             final float color = 0.75f;
-            colorBuffer.put(new float[]{color,0,0,1f});
-            colorBuffer.put(new float[]{color,0,0,1f});
-            colorBuffer.put(new float[]{color,0,0,1f});
+            colorBuffer.put(new float[]{color,0,color,1f});
+            colorBuffer.put(new float[]{color,0,color,1f});
+            colorBuffer.put(new float[]{color,0,color,1f});
         } else {
             // you can change the color to red for example, to see linked bones in different color
             final float color = 1;//-(float)joint.getIndex()/(float)jointCount;
-            colorBuffer.put(new float[]{0,0,color,1});
-            colorBuffer.put(new float[]{0,0,color,1});
-            colorBuffer.put(new float[]{0,0,color,1});
+            colorBuffer.put(new float[]{color,0,color,1});
+            colorBuffer.put(new float[]{color,0,color,1});
+            colorBuffer.put(new float[]{color,0,color,1});
         }
 
         for (JointData child : joint.getChildren()) {

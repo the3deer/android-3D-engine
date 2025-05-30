@@ -2,11 +2,12 @@ package org.the3deer.android_3d_model_engine.drawer;
 
 import android.util.Log;
 
+import org.the3deer.android_3d_model_engine.R;
 import org.the3deer.android_3d_model_engine.model.Camera;
 import org.the3deer.android_3d_model_engine.model.Object3DData;
 import org.the3deer.android_3d_model_engine.model.Scene;
 import org.the3deer.android_3d_model_engine.objects.BoundingBox;
-import org.the3deer.android_3d_model_engine.renderer.Renderer;
+import org.the3deer.android_3d_model_engine.renderer.Drawer;
 import org.the3deer.android_3d_model_engine.shader.Shader;
 import org.the3deer.android_3d_model_engine.shader.ShaderFactory;
 
@@ -17,9 +18,12 @@ import java.util.Map;
 
 import javax.inject.Inject;
 
-public class BoundingBoxRenderer implements Renderer {
+public class BoundingBoxDrawer implements Drawer {
 
-    private boolean enabled = true;
+    private final static String TAG = BoundingBoxDrawer.class.getSimpleName();
+
+    @Inject
+    private ShaderFactory shaderFactory;
     @Inject
     private Scene scene;
     @Inject
@@ -27,7 +31,7 @@ public class BoundingBoxRenderer implements Renderer {
     // dynamic bounding boxes
     private Map<Object3DData, Object3DData> boundingBoxes = new HashMap<>();
 
-    private final static String TAG = BoundingBoxRenderer.class.getSimpleName();
+    private boolean enabled = true;
 
     public List<? extends Object3DData> getObjects() {
         return Collections.emptyList();
@@ -43,9 +47,13 @@ public class BoundingBoxRenderer implements Renderer {
         this.enabled = enabled;
     }
 
-
     @Override
     public void onDrawFrame() {
+        this.onDrawFrame(null);
+    }
+
+    @Override
+    public void onDrawFrame(Config config) {
         if (!enabled || scene == null || camera == null) {
             // scene not ready
             return;
@@ -59,12 +67,13 @@ public class BoundingBoxRenderer implements Renderer {
                 if (objData == scene.getSelectedObject() && objData.isRender()) {
                     Object3DData boundingBoxData = getBoundingBox(objData);
 
-                    Shader drawerObject = ShaderFactory.getInstance().getShader(boundingBoxData, false, false, false, false, false, false);
+                    final Shader drawerObject = shaderFactory.getShader(R.raw.shader_basic_vert, R.raw.shader_basic_frag);
                     if (drawerObject == null) {
                         // Log.e(TAG, "No drawer for " + objData.getId());
                         return;
                     }
 
+                    final Camera camera = config != null && config.camera != null ? config.camera : this.camera;
                     drawerObject.draw(boundingBoxData, camera.getProjectionMatrix(), camera.getViewMatrix(),
                             null, null, null,
                             boundingBoxData.getDrawMode(), boundingBoxData.getDrawSize());

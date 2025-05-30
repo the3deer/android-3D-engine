@@ -45,7 +45,7 @@ uniform mat4 u_BindShapeMatrix;
 uniform mat4 jointTransforms[MAX_JOINTS];
 
 // shadow
-uniform mat4 uShadowProjMatrix;
+uniform mat4 u_LVMatrix;
 varying vec4 vShadowCoord;
 
 void main(){
@@ -86,7 +86,7 @@ void main(){
         // Normal = mat3(transpose(inverse(model))) * aNormal;
         //v_Normal = u_MMatrix_Normal * a_Normal;
         v_Normal = a_Normal;
-        vShadowCoord = uShadowProjMatrix * animatedPos;
+        vShadowCoord = u_PMatrix * u_LVMatrix * u_MMatrix * animatedPos;
     }
 
     // texture normal

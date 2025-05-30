@@ -40,5 +40,5 @@ void main(){
 
 	// calculate rendered position
 	gl_Position = u_MVPMatrix * animatedPos;
-	v_Position = animatedPos;
+	v_Position = gl_Position;
 }

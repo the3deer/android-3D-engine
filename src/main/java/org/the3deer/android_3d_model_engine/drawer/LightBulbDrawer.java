@@ -5,7 +5,7 @@ import android.util.Log;
 import org.the3deer.android_3d_model_engine.model.Camera;
 import org.the3deer.android_3d_model_engine.model.Light;
 import org.the3deer.android_3d_model_engine.model.Object3DData;
-import org.the3deer.android_3d_model_engine.renderer.Renderer;
+import org.the3deer.android_3d_model_engine.renderer.Drawer;
 import org.the3deer.android_3d_model_engine.shader.Shader;
 import org.the3deer.android_3d_model_engine.shader.ShaderFactory;
 import org.the3deer.util.event.EventListener;
@@ -17,11 +17,13 @@ import java.util.List;
 import javax.inject.Inject;
 import javax.inject.Named;
 
-public class LightBulbRenderer implements Renderer, EventListener {
+public class LightBulbDrawer implements Drawer, EventListener {
 
-    private final static String TAG = LightBulbRenderer.class.getSimpleName();
+    private final static String TAG = LightBulbDrawer.class.getSimpleName();
 
     private boolean enabled = true;
+    @Inject
+    private ShaderFactory shaderFactory;
     @Inject
     private Camera camera;
     @Inject
@@ -54,6 +56,11 @@ public class LightBulbRenderer implements Renderer, EventListener {
 
     @Override
     public void onDrawFrame() {
+        this.onDrawFrame(null);
+    }
+
+    @Override
+    public void onDrawFrame(Config config) {
 
         // check
         if (!enabled) return;
@@ -63,7 +70,7 @@ public class LightBulbRenderer implements Renderer, EventListener {
             return;
         }
 
-        Shader drawer = ShaderFactory.getInstance().getShader(lightBulb, false, false, false, false, false, false);
+        Shader drawer = shaderFactory.getShader(lightBulb, false, false, false, false, false, false);
         if (drawer == null) {
             return;
         }

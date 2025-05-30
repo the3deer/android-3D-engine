@@ -22,7 +22,7 @@ public class GLSurfaceView extends android.opengl.GLSurfaceView {
     private GLTouchListener glTouchListener;
 
     @Inject
-    private Renderer renderer;
+    private Renderer glRenderer;
 
     @Inject
     private ShaderFactory shaderFactory;
@@ -46,9 +46,9 @@ public class GLSurfaceView extends android.opengl.GLSurfaceView {
     }
 
     public void setUp() {
-        if (this.renderer != null) {
-            Log.i(TAG, "Configuring renderer: " + this.renderer.getClass().getName());
-            setRenderer(this.renderer);
+        if (this.glRenderer != null) {
+            Log.i(TAG, "Configuring renderer: " + this.glRenderer.getClass().getName());
+            setRenderer(this.glRenderer);
         } else {
             throw new IllegalStateException("Renderer is null");
         }

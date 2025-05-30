@@ -16,7 +16,7 @@ import org.the3deer.android_3d_model_engine.gui.GUISystem;
 import org.the3deer.android_3d_model_engine.model.Camera;
 import org.the3deer.android_3d_model_engine.model.Scene;
 import org.the3deer.android_3d_model_engine.model.Screen;
-import org.the3deer.android_3d_model_engine.renderer.RenderEvent;
+import org.the3deer.android_3d_model_engine.view.GLEvent;
 import org.the3deer.android_3d_model_engine.view.GLTouchListener;
 import org.the3deer.util.android.AndroidUtils;
 import org.the3deer.util.bean.BeanFactory;
@@ -79,10 +79,10 @@ public class ModelController implements EventManager, GLTouchListener{
 
     @Override
     public boolean propagate(EventObject event) {
-        if (event instanceof RenderEvent) {
-            final RenderEvent rev = (RenderEvent) event;
+        if (event instanceof GLEvent) {
+            final GLEvent rev = (GLEvent) event;
             //Log.v(TAG, "onEvent. RenderEvent:" + rev.getCode());
-            if (rev.getCode() == RenderEvent.Code.SURFACE_CHANGED) {
+            if (rev.getCode() == GLEvent.Code.SURFACE_CHANGED) {
                 // assert
                 if (screen == null || cameras == null) {
                     Log.e(TAG, "screen or camera is null. can't update model");
@@ -90,7 +90,7 @@ public class ModelController implements EventManager, GLTouchListener{
                 }
 
                 // Update model
-                Log.v(TAG, "Updating screen and camera... size: "
+                Log.d(TAG, "Updating screen and camera... size: "
                         + rev.getWidth() + " width, "
                         + rev.getHeight() + " height");
                 screen.setSize(rev.getWidth(), rev.getHeight());
