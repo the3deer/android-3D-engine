@@ -14,7 +14,7 @@ import org.the3deer.android_3d_model_engine.collision.CollisionController;
 import org.the3deer.android_3d_model_engine.controller.TouchController;
 import org.the3deer.android_3d_model_engine.drawer.BoundingBoxDrawer;
 import org.the3deer.android_3d_model_engine.drawer.LightBulbDrawer;
-import org.the3deer.android_3d_model_engine.drawer.SceneDrawer;
+import org.the3deer.android_3d_model_engine.scene.SceneDrawer;
 import org.the3deer.android_3d_model_engine.drawer.SkeletonDrawer;
 import org.the3deer.android_3d_model_engine.drawer.SkyBoxDrawer;
 import org.the3deer.android_3d_model_engine.drawer.WireframeDrawer;
@@ -25,7 +25,7 @@ import org.the3deer.android_3d_model_engine.gui.GUISystem;
 import org.the3deer.android_3d_model_engine.model.Camera;
 import org.the3deer.android_3d_model_engine.model.Constants;
 import org.the3deer.android_3d_model_engine.model.Light;
-import org.the3deer.android_3d_model_engine.model.Scene;
+import org.the3deer.android_3d_model_engine.scene.SceneImpl;
 import org.the3deer.android_3d_model_engine.model.Screen;
 import org.the3deer.android_3d_model_engine.model.impl.OrthographicProjection;
 import org.the3deer.android_3d_model_engine.model.impl.PerspectiveProjection;
@@ -190,7 +190,7 @@ public class ModelEngine {
         beanFactory.add("10.renderer0.drawerController", RendererPreferences.class);
 
         // objects
-        beanFactory.add("20.scene_0.scene", Scene.class);
+        beanFactory.add("20.scene_0.scene", SceneImpl.class);
         beanFactory.add("20.scene_0.projection", PerspectiveProjection.class);
         beanFactory.add("20.scene_0.camera", new Camera(Constants.DEFAULT_CAMERA_POSITION));
         beanFactory.add("20.scene_0.light", new Light(Constants.DEFAULT_LIGHT_LOCATION));

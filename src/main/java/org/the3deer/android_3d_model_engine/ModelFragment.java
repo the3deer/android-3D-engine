@@ -15,7 +15,7 @@ import androidx.lifecycle.ViewModelProvider;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
-import org.the3deer.android_3d_model_engine.services.SceneLoader;
+import org.the3deer.android_3d_model_engine.scene.SceneLoader;
 import org.the3deer.android_3d_model_engine.view.GLFragment;
 import org.the3deer.android_3d_model_engine.view.GLSurfaceView;
 

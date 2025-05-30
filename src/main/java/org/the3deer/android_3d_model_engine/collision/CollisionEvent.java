@@ -9,9 +9,9 @@ public class CollisionEvent extends EventObject {
     private final Object3DData object;
     private final float x;
     private final float y;
-    private final Object3DData point;
+    private final float[] point;
 
-    public CollisionEvent(Object source, Object3DData object, float x, float y, Object3DData point) {
+    public CollisionEvent(Object source, Object3DData object, float x, float y, float[] point) {
         super(source);
         this.object = object;
         this.x = x;
@@ -31,7 +31,7 @@ public class CollisionEvent extends EventObject {
         return y;
     }
 
-    public Object3DData getPoint() {
+    public float[] getPoint() {
         return point;
     }
 }

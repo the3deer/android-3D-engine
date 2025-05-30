@@ -1,4 +1,4 @@
-package org.the3deer.android_3d_model_engine.drawer;
+package org.the3deer.android_3d_model_engine.scene;
 
 import android.opengl.GLES20;
 import android.util.Log;

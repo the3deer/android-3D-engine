@@ -34,11 +34,21 @@ public class CollisionController implements EventListener {
     @Inject
     private EventManager eventManager;
 
+    private boolean enabled;
+
     public CollisionController() {
     }
 
     public List<Object3DData> getObjects() {
         return scene.getObjects();
+    }
+
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
     }
 
     @Override
@@ -58,20 +68,9 @@ public class CollisionController implements EventListener {
                 if (objectHit != null) {
 
                     // intersection point
-                    Object3DData point3D = null;
-
-                    if (this.scene.isCollision()) {
-
-                        Log.i("CollisionController", "Collision. Getting triangle intersection... " + objectHit.getId());
-                        float[] point = CollisionDetection.getTriangleIntersection(objectHit, screen.getWidth(), screen.getHeight(),
-                                camera.getViewMatrix(), camera.getProjectionMatrix(), x, y);
-
-                        if (point != null) {
-                            Log.i("CollisionController", "Building intersection point: " + Arrays.toString(point));
-                            point3D = Point.build(point).setColor(new float[]{1.0f, 0f, 0f, 1f});
-                            scene.addObject(point3D);
-                        }
-                    }
+                    Log.i("CollisionController", "Collision. Getting triangle intersection... " + objectHit.getId());
+                    float[] point3D = CollisionDetection.getTriangleIntersection(objectHit, screen.getWidth(), screen.getHeight(),
+                            camera.getViewMatrix(), camera.getProjectionMatrix(), x, y);
 
                     final CollisionEvent collisionEvent = new CollisionEvent(this, objectHit, x, y, point3D);
                     if (eventManager != null) {

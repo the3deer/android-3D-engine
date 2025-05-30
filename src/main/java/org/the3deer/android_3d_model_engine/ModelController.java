@@ -133,8 +133,6 @@ public class ModelController implements EventManager, GLTouchListener{
             } else {
 
             }
-        } else if (event instanceof CollisionEvent) {
-            return scene.onEvent(event);
         } else {
             AndroidUtils.fireEvent(listeners, event);
         }
