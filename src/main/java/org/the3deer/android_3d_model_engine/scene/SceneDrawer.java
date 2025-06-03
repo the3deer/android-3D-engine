@@ -7,6 +7,7 @@ import org.the3deer.android_3d_model_engine.R;
 import org.the3deer.android_3d_model_engine.model.Camera;
 import org.the3deer.android_3d_model_engine.model.Light;
 import org.the3deer.android_3d_model_engine.model.Object3DData;
+import org.the3deer.android_3d_model_engine.model.Projection;
 import org.the3deer.android_3d_model_engine.model.Scene;
 import org.the3deer.android_3d_model_engine.renderer.Drawer;
 import org.the3deer.android_3d_model_engine.shader.Shader;
@@ -30,10 +31,10 @@ public class SceneDrawer implements Drawer, EventListener {
     private Scene scene;
     @Inject
     private Light light;
+    @Inject
+    private Projection projection;
 
     private boolean enabled = true;
-
-    private Shader shader;
 
     @Override
     public boolean isEnabled() {
@@ -76,16 +77,9 @@ public class SceneDrawer implements Drawer, EventListener {
 
         if (!enabled) return;
 
-        if (scene == null || scene.getObjects() == null) return;
+        if (shaderFactory == null) return;
 
-        if (shader == null) {
-            shader = shaderFactory.getShader(R.raw.shader_animated_vert, R.raw.shader_animated_frag);
-        }
-        if (shader == null) {
-            Log.e(TAG, "Shader Factory return no shader: " + shaderFactory);
-            setEnabled(false);
-            return;
-        }
+        if (scene == null || scene.getObjects() == null) return;
 
         Camera camera = config != null ? config.camera : null;
         if (camera == null) camera = scene.getCamera();
@@ -127,12 +121,19 @@ public class SceneDrawer implements Drawer, EventListener {
             // draw points
             if (objData.getDrawMode() == GLES20.GL_POINTS) {
                 Shader basicDrawer = shaderFactory.getShader(R.raw.shader_basic_vert, R.raw.shader_basic_frag);
-                basicDrawer.draw(objData, camera.getProjectionMatrix(), camera.getViewMatrix(),
+                basicDrawer.draw(objData, projection.getMatrix(), camera.getViewMatrix(),
                         light.getLocation(), colorMask,
                         camera.getPos(), objData.getDrawMode(), objData.getDrawSize());
             } else {
                 if (objData.isRender()) {
-                    shader.draw(objData, camera.getProjectionMatrix(), camera.getViewMatrix(),
+                    final Shader shader= shaderFactory.getShader(R.raw.shader_animated_vert, R.raw.shader_animated_frag);
+
+                    if (shader == null) {
+                        Log.e(TAG, "Shader Factory returned no shader: " + shaderFactory);
+                        setEnabled(false);
+                        return;
+                    }
+                    shader.draw(objData, projection.getMatrix(), camera.getViewMatrix(),
                             light.getLocation(), colorMask, camera.getPos(),
                             objData.getDrawMode(), objData.getDrawSize());
 

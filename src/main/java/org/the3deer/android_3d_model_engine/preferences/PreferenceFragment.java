@@ -1,6 +1,5 @@
 package org.the3deer.android_3d_model_engine.preferences;
 
-import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Bundle;
@@ -32,8 +31,6 @@ public class PreferenceFragment extends PreferenceFragmentCompat {
 
     private final static String TAG = PreferenceFragment.class.getSimpleName();
 
-    @Inject
-    private Activity activity;
     @Inject
     private Context context;
     @Inject
@@ -72,6 +69,8 @@ public class PreferenceFragment extends PreferenceFragmentCompat {
 
     @Override
     public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
+
+        Log.v(TAG,"onCreatePreferences");
 
         // create screen
         final Context context = getPreferenceManager().getContext();

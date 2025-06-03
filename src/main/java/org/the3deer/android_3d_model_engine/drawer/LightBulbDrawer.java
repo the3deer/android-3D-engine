@@ -2,6 +2,7 @@ package org.the3deer.android_3d_model_engine.drawer;
 
 import android.util.Log;
 
+import org.the3deer.android_3d_model_engine.R;
 import org.the3deer.android_3d_model_engine.model.Camera;
 import org.the3deer.android_3d_model_engine.model.Light;
 import org.the3deer.android_3d_model_engine.model.Object3DData;
@@ -21,7 +22,7 @@ public class LightBulbDrawer implements Drawer, EventListener {
 
     private final static String TAG = LightBulbDrawer.class.getSimpleName();
 
-    private boolean enabled = true;
+
     @Inject
     private ShaderFactory shaderFactory;
     @Inject
@@ -34,9 +35,11 @@ public class LightBulbDrawer implements Drawer, EventListener {
     private final float[] tempVector4 = new float[4];
     private final float[] lightPosInWorldSpace = new float[4];
 
+    private boolean enabled;
+
     public int toggle(){
         this.enabled = !this.enabled;
-        Log.i("LightBulbDrawer", "Toggled wireframe. enabled: " + this.enabled);
+        Log.i(TAG, "Toggled wireframe. enabled: " + this.enabled);
         return this.enabled? 1 : 0;
     }
 
@@ -70,8 +73,10 @@ public class LightBulbDrawer implements Drawer, EventListener {
             return;
         }
 
-        Shader drawer = shaderFactory.getShader(lightBulb, false, false, false, false, false, false);
+        Shader drawer = shaderFactory.getShader(R.raw.shader_basic_vert, R.raw.shader_basic_frag);
         if (drawer == null) {
+            Log.e(TAG, "No drawer");
+            setEnabled(false);
             return;
         }
 

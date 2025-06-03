@@ -57,7 +57,7 @@ public final class ColladaLoader {
 
         try (InputStream is = ContentUtils.getInputStream(uri)) {
 
-            Log.i("ColladaLoaderTask", "Parsing file... " + uri.toString());
+            Log.i("ColladaLoaderTask", "Parsing file... " + uri);
             callback.onProgress("Loading file...");
             final XmlNode xml = XmlParser.parse(is);
 

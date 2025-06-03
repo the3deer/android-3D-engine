@@ -23,7 +23,7 @@ import javax.inject.Inject;
 import javax.inject.Named;
 
 /**
- * A bean factory implementation
+ * A simple CDI (Component Dependency Injection) implementation
  * <p>
  * Features:
  * - @Inject dependencies
@@ -45,6 +45,38 @@ import javax.inject.Named;
  * gui
  * camera
  * ...
+ *  // FIXME:
+ *     next steps (bean proxy)
+ *     i want to implement a BeanFactory List implementation that is "refreshable"
+ *     i want to implement a BeanFactory object proxy that is "refreshable"
+ *     it means the @Inject List<T> or @Inject T will be proxies.
+ *     #addScene . this is manually injecting the dependency
+ *     #SceneDrawer . we have a dynamic list of entities
+ * <pre></pre>
+ * {@code
+ *     {
+ *         BeanFactory.getInstance().add("myobjid","mystring");
+ *         BeanFactory.getInstance().addAndInit("myobjid", "mystring");
+ *         // this would automatically update and inject new references if any
+ *         BeanFactory.getInstance().addOrReplace("myobjid", "mystring");
+ *         // this would automatically add and update the dependencies if any
+ *     }
+ *     }
+ *
+ *     </pre>
+ *
+ *     Gemini advice:
+ * Start by implementing re-injection for single @Inject T fields.
+ * When addOrReplace(id, newBeanInstance) is called:
+ * Store newBeanInstance.
+ * Iterate through all beans currently managed by BeanFactory.
+ * For each bean, inspect its fields. If a field f is annotated with @Inject (and potentially @Named("id") or matches by type to newBeanInstance.getClass()), then update beanInstance.f = newBeanInstance.
+ * Consider calling an @PostRefresh method if defined on the bean.
+ *
+ * Then tackle List<T>:
+ * When a relevant change happens (a bean of type T is added/removed/replaced) :
+ * Iterate through all beans.
+ * If a bean has a field List<T> someList, re-generate the entire list List<T> newList = beanFactory.findAll(T.class) and set beanInstance.someList = newList. You will need to store metadata about which fields in which beans are injection points. You could gather this information during the initial configureBean phase. This approach avoids the complexity of writing and managing proxy InvocationHandlers and custom list implementations, but you must be aware of the implications regarding object identity and the potential need for beans to re-initialize themselves more explicitly. Test thoroughly, especially the scenarios where beans are replaced or lists change, to see how consumers react.
  */
 public class BeanFactory {
 
@@ -66,6 +98,7 @@ public class BeanFactory {
     // vars
     private boolean definitionsUpdated;
     private boolean beansUpdated;
+    private boolean initialized;
 
     private BeanFactory() {
     }
@@ -81,7 +114,7 @@ public class BeanFactory {
         return Collections.unmodifiableMap(beans);
     }
 
-    public void init() {
+    /*public void init() {
 
         int max = 3;
         do {
@@ -113,7 +146,7 @@ public class BeanFactory {
             if (max-- < 0) break;
 
         } while (definitionsUpdated || beansUpdated);
-    }
+    }*/
 
     private Object instantiateBean(String id) {
 
@@ -150,11 +183,6 @@ public class BeanFactory {
         return bean;
     }
 
-    public Object refreshBean(String id) {
-        status.put(id, STATUS_INSTANTIATED);
-        return configureBean(id);
-    }
-
     private Object configureBean(String id) {
         if (id == null || !beans.containsKey(id))
             throw new IllegalArgumentException("id or bean not found: " + id);
@@ -170,7 +198,7 @@ public class BeanFactory {
 
         // update status
         final Integer status = this.status.get(id);
-        if (status == STATUS_CONFIGURED || status == STATUS_INITIALIZED) {
+        if (status != null && status >= STATUS_CONFIGURED) {
             return bean;
         }
         this.status.put(id, STATUS_CONFIGURED);
@@ -180,7 +208,7 @@ public class BeanFactory {
 
         // init once
         try {
-            Log.d("BeanFactory", "Initializing object... " + id);
+            Log.d("BeanFactory", "Configuring object... " + id);
 
             // inject first the dependencies
             Class<?> currentClass = bean.getClass();
@@ -215,10 +243,10 @@ public class BeanFactory {
                         candidate = find(field.getType(), context);
                     }
                     if (candidate != null) {
-                        Log.v("BeanFactory", "Injecting dependency " + id + "." + field.getName() + ", value: " + candidate);
+                        Log.v("BeanFactory", "Dependency " + id + "." + field.getName() + ": " + candidate);
                         field.set(bean, candidate);
                     } else {
-                        Log.e("BeanFactory", "Dependency not found (" + id + "." + field.getName()+", class: "+ field.getType());
+                        Log.e("BeanFactory", "Dependency not found: " + id + "." + field.getName()+", class: "+ field.getType());
                     }
                     field.setAccessible(false);
                 }
@@ -248,7 +276,7 @@ public class BeanFactory {
 
         // update status
         final Integer status = this.status.get(id);
-        if (status == STATUS_INITIALIZED) {
+        if (status != null && status >= STATUS_INITIALIZED) {
             return bean;
         }
         this.status.put(id, STATUS_INITIALIZED);
@@ -257,20 +285,13 @@ public class BeanFactory {
         if (bean == null) return null;
 
         try {
-            Log.v("BeanFactory", "Invoking setUp()... "+id+", bean: "+ bean);
-            Method method = bean.getClass().getMethod("setUp");
-            return method.invoke(bean);
-        } catch (NoSuchMethodException e) {
             for (Method method : bean.getClass().getDeclaredMethods()){
-                if (method.getAnnotation(BeanPostConstruct.class) != null){
-                    try {
-                        //Log.e("BeanFactory", "Exception invoking @BeanPostConstruct, bean: " + id + ". " + e.getMessage(), e);
-                        LOG.severe("Exception invoking @BeanPostConstruct, bean: " + id + ". " + e.getMessage());
-                        LOG.throwing(this.getClass().getName(), "setUpBean", e);
-                        return method.invoke(bean);
-                    } catch (IllegalAccessException | InvocationTargetException ex) {
-                        throw new RuntimeException(ex);
-                    }
+                if (method.getAnnotation(BeanInit.class) != null){
+                    Log.d("BeanFactory", "Setting up object... " + id);
+                    return method.invoke(bean);
+                } else if (method.getName().equals("setUp")){
+                    Log.d("BeanFactory", "Setting up object... " + id);
+                    return method.invoke(bean);
                 }
             }
             return null;
@@ -282,7 +303,13 @@ public class BeanFactory {
         }
     }
 
-    public void refresh() {
+    public void init() {
+
+        // check
+        if (initialized){
+            throw new IllegalStateException("Already initialized");
+        }
+        initialized = true;
 
         int max = 3;
         do {
@@ -305,12 +332,28 @@ public class BeanFactory {
             // iterate only once
             beansUpdated = false;
 
+            Log.v("BeanFactory", "Configuring objects... ");
             for (String id : beans.keySet().toArray(new String[0])) {
-                if (status.containsKey(id) && Objects.equals(status.get(id), STATUS_CONFIGURED)){
+                if (status.containsKey(id) && status.get(id) >= STATUS_CONFIGURED){
                     continue;
                 }
                 try {
-                    startBean(id);
+                    configureBean(id);
+                    //setUpBean(id);
+                } catch (Exception e) {
+                    Log.e("BeanFactory", "Exception setting-up class (" + id + "): " + e.getMessage(), e);
+                }
+            }
+
+            Log.v("BeanFactory", "Setting up objects... ");
+            for (String id : beans.keySet().toArray(new String[0])) {
+                if (status.containsKey(id) && status.get(id) >= STATUS_INITIALIZED){
+                    continue;
+                }
+                try {
+                    //configureBean(id);
+                    Log.d("BeanFactory", "Setting up object... " + id);
+                    setUpBean(id);
                 } catch (Exception e) {
                     Log.e("BeanFactory", "Exception setting-up class (" + id + "): " + e.getMessage(), e);
                 }
@@ -320,6 +363,103 @@ public class BeanFactory {
             if (max-- < 0) break;
 
         } while (definitionsUpdated || beansUpdated);
+
+        Log.d("BeanFactory", "Factory initialized");
+    }
+
+    /**
+     * Look for dependants and update references
+     * @param id the bean identifier
+     */
+    private void onBeanUpdate(String id) {
+        if (id == null || !beans.containsKey(id)) {
+            throw new IllegalArgumentException("id or bean not found: " + id);
+        }
+
+        final Object beanUpdated = beans.get(id);
+        if (beanUpdated == null) return;
+        final Class<?> beanUpdatedClass = beanUpdated.getClass();
+
+        // get beans of same type
+        final List<?> duplicates = findAll(beanUpdated.getClass(), null);
+        int beanIdx = duplicates.indexOf(beanUpdated);
+
+        for (Map.Entry<String,Object> entry : beans.entrySet()){
+
+            final Object bean = entry.getValue();
+            if (bean == null) continue;
+
+            final String beanId = entry.getKey();
+
+            try {
+
+                // inject first the dependencies
+                Class<?> currentClass = bean.getClass();
+
+                // loop the hierarchy
+                while (currentClass != null) {
+
+                    // inject the dependencies
+                    for (Field field : currentClass.getDeclaredFields()) {
+                        field.setAccessible(true);
+
+                        // check
+                        if (field.getAnnotation(Inject.class) == null) continue;
+
+                        // qualified match
+                        String named = null;
+                        if (field.getAnnotation(Named.class) != null) {
+                            named = Objects.requireNonNull(field.getAnnotation(Named.class)).value();
+                        }
+
+                        // type match
+                        if (field.getType().isAssignableFrom(beanUpdatedClass)) {
+
+                            // qualified match
+                            if (id.equals(named)){
+                                field.set(bean, beanUpdated);
+                                field.setAccessible(false);
+                                Log.v("BeanFactory", "Dependency injected (Named). " + beanId + "." + field.getName() + ": " + beanUpdated);
+                            }
+
+                            // singleton
+                            else if (duplicates.size() == 1){
+                                field.set(bean, beanUpdated);
+                                field.setAccessible(false);
+                                Log.v("BeanFactory", "Dependency injected (Singleton). " + beanId + "." + field.getName() + ": " + beanUpdated);
+                            }
+
+                            // default bean
+                            else if (beanIdx == 0){
+                                field.set(bean, beanUpdated);
+                                field.setAccessible(false);
+                                Log.v("BeanFactory", "Dependency injected (Default). " + beanId + "." + field.getName() + ": " + beanUpdated);
+                            }
+                        }
+
+                        // list match
+                        else if (field.getType().isAssignableFrom(List.class) && field.getGenericType() instanceof ParameterizedType) {
+                            final Class<?> actualTypeArgument = (Class<?>) ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[0];
+                            if (!actualTypeArgument.isAssignableFrom(beanUpdatedClass)){
+                                continue;
+                            }
+
+                            // type match
+                            List<?> all = findAll(actualTypeArgument, null);
+                            field.set(bean, all);
+                            field.setAccessible(false);
+                            Log.v("BeanFactory", "Dependency updated (List). " + beanId + "." + field.getName() + ": " + all);
+                        }
+
+
+                    }
+                    currentClass = currentClass.getSuperclass();
+                }
+            } catch (IllegalAccessException e) {
+                // FIXME: log
+            }
+        }
+
     }
 
     /**
@@ -384,6 +524,20 @@ public class BeanFactory {
         T old = (T)this.beans.put(id, object);
         this.status.put(id, STATUS_INSTANTIATED);
         this.beansUpdated = true;
+
+        if (!initialized) return old;
+
+        // FIXME: the Fragment is calling this method. The initialization is crashing
+        // inject
+
+        configureBean(id);
+
+        // start
+        setUpBean(id);
+
+        // refresh dependants
+        onBeanUpdate(id);
+
         return old;
     }
 
@@ -455,7 +609,7 @@ public class BeanFactory {
         return findAll(clazz, null);
     }*/
 
-    private <T> List<T> findAll(Class<T> clazz, String parent) {
+    <T> List<T> findAll(Class<T> clazz, String parent) {
         final List<T> ret = new ArrayList<>();
         for (Map.Entry<String, Object> entry : beans.entrySet()) {
             // filter out same parent

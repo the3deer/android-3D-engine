@@ -96,7 +96,7 @@ public class WavefrontLoader {
         try {
 
             // log event
-            Log.i("WavefrontLoader", "Loading model... " + modelURI.toString());
+            Log.i("WavefrontLoader", "Loading model... " + modelURI);
 
             // log event
             Log.i("WavefrontLoader", "--------------------------------------------------");

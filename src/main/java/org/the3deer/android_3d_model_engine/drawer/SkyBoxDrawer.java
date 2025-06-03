@@ -29,7 +29,7 @@ import org.the3deer.android_3d_model_engine.shader.ShaderFactory;
 import org.the3deer.android_3d_model_engine.toolbar.MenuAdapter;
 import org.the3deer.android_3d_model_engine.util.Rescaler;
 import org.the3deer.util.android.GLUtil;
-import org.the3deer.util.bean.BeanPostConstruct;
+import org.the3deer.util.bean.BeanInit;
 import org.the3deer.util.math.Quaternion;
 
 import java.util.HashMap;
@@ -94,7 +94,7 @@ public class SkyBoxDrawer implements Drawer, MenuAdapter, PreferenceAdapter {
         return Collections.singletonList(skyBoxes3D[skyboxId]);
     }*/
 
-    @BeanPostConstruct
+    @BeanInit
     public void setUp(){
         skyBoxes = new SkyBox[]{SkyBox.getSkyBox1(), SkyBox.getSkyBox2()};
         skyBoxes3D = new Object3DData[skyBoxes.length];

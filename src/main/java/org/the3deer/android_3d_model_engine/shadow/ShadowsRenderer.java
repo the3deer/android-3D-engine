@@ -158,6 +158,9 @@ public class ShadowsRenderer {
     private Camera camera = new Camera(100);
 
     final Object3DData plane = Plane2.build();
+
+    boolean enabled = true;
+
     {
         //scene.getLightBulb().setLocation(new float[]{25f, 200f, 0f});
         plane.setColor(Constants.COLOR_GRAY.clone());
@@ -309,7 +312,7 @@ public class ShadowsRenderer {
         int FBOstatus = GLES20.glCheckFramebufferStatus(GLES20.GL_FRAMEBUFFER);
         if(FBOstatus != GLES20.GL_FRAMEBUFFER_COMPLETE) {
             Log.e(TAG, "GL_FRAMEBUFFER_COMPLETE failed, CANNOT use FBO");
-            throw new RuntimeException("GL_FRAMEBUFFER_COMPLETE failed, CANNOT use FBO");
+            enabled = false;
         }
     }
 

@@ -25,7 +25,7 @@ public abstract class LoaderTask extends AsyncTask<Void, String, List<Object3DDa
 	/**
 	 * Callback to notify of events
 	 */
-	private final LoadListener callback;
+	protected final LoadListener callback;
 	/**
 	 * The dialog that will show the progress of the loading
 	 */

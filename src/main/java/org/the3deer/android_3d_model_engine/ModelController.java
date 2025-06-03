@@ -90,7 +90,7 @@ public class ModelController implements EventManager, GLTouchListener{
                 }
 
                 // Update model
-                Log.d(TAG, "Updating screen and camera... size: "
+                Log.i(TAG, "Updating screen and camera... size: "
                         + rev.getWidth() + " width, "
                         + rev.getHeight() + " height");
                 screen.setSize(rev.getWidth(), rev.getHeight());

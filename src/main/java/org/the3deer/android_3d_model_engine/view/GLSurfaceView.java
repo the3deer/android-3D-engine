@@ -5,8 +5,6 @@ import android.util.Log;
 import android.view.MotionEvent;
 import android.widget.Toast;
 
-import org.the3deer.android_3d_model_engine.shader.ShaderFactory;
-
 import javax.inject.Inject;
 
 /**
@@ -23,9 +21,6 @@ public class GLSurfaceView extends android.opengl.GLSurfaceView {
 
     @Inject
     private Renderer glRenderer;
-
-    @Inject
-    private ShaderFactory shaderFactory;
 
     /**
      * Construct a new renderer for the specified surface view

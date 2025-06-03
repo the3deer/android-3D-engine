@@ -15,8 +15,13 @@ import androidx.lifecycle.ViewModelProvider;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
+import org.the3deer.android_3d_model_engine.model.Scene;
+import org.the3deer.android_3d_model_engine.preferences.PreferenceFragment;
 import org.the3deer.android_3d_model_engine.scene.SceneLoader;
+import org.the3deer.android_3d_model_engine.shader.ShaderFactory;
+import org.the3deer.android_3d_model_engine.shader.ShaderPreferences;
 import org.the3deer.android_3d_model_engine.view.GLFragment;
+import org.the3deer.android_3d_model_engine.view.GLRendererImpl;
 import org.the3deer.android_3d_model_engine.view.GLSurfaceView;
 
 /**
@@ -30,13 +35,14 @@ public class ModelFragment extends Fragment {
 
     private ModelViewModel viewModel;
 
-    private final Handler handler;
+    protected final Handler handler;
 
     protected ModelEngine modelEngine;
     /**
      * Enter into Android Immersive mode so the renderer is full screen or not
      */
     private boolean immersiveMode;
+    private OnBackPressedCallback onBackPressedCallback;
 
     public ModelFragment() {
         super(R.layout.fragment_model);
@@ -49,7 +55,7 @@ public class ModelFragment extends Fragment {
         Bundle args = new Bundle();
         args.putString("uri", uri);
         args.putString("type", type);
-        args.putBoolean("demo",demo);
+        args.putBoolean("demo", demo);
         frag.setArguments(args);
         return frag;
     }
@@ -64,7 +70,7 @@ public class ModelFragment extends Fragment {
      */
     @Override
     public void onCreate(Bundle savedInstanceState) {
-        Log.i(TAG, "Loading activity...");
+        Log.i(TAG, "Loading model fragment...");
         super.onCreate(savedInstanceState);
 
         viewModel = new ViewModelProvider(requireActivity()).get(ModelViewModel.class);
@@ -73,16 +79,46 @@ public class ModelFragment extends Fragment {
         modelEngine = viewModel.getModelEngine().getValue();
 
         // create engine
-        if (modelEngine == null){
-          modelEngine = ModelEngine.newInstance(requireActivity(), savedInstanceState, getArguments());
+        if (modelEngine == null) {
+            Log.d(TAG, "ModelEngine not found in ViewModel, creating new instance...");
+            modelEngine = ModelEngine.newInstance(requireActivity(), savedInstanceState, getArguments());
+            //modelEngine.getBeanFactory().addOrReplace("extras", getArguments());
+            //modelEngine.getBeanFactory().addOrReplace("scene_0.loader", new SceneLoader());
+            /*modelEngine.getBeanFactory().addOrReplace("100.renderer", GLRendererImpl.class);
+            modelEngine.getBeanFactory().addOrReplace("100.surface", new GLSurfaceView(requireActivity()));
+            modelEngine.getBeanFactory().addOrReplace("100.fragment_gl", new GLFragment());*/
+            modelEngine.init();
+            modelEngine.start();
+            viewModel.setModelEngine(modelEngine);
+        } else {
+            Log.d(TAG, "Reusing ModelEngine from ViewModel.");
+            //modelEngine.getBeanFactory().addOrReplace("extras", getArguments());
+            //modelEngine.getBeanFactory().addOrReplace("scene_0.loader", new SceneLoader());
+            /*modelEngine.getBeanFactory().addOrReplace("100.renderer", GLRendererImpl.class);
+            modelEngine.getBeanFactory().addOrReplace("100.surface", new GLSurfaceView(requireActivity()));
+            modelEngine.getBeanFactory().addOrReplace("100.fragment_gl", new GLFragment());*/
         }
-        modelEngine.getBeanFactory().addOrReplace("extras", getArguments());
-        modelEngine.getBeanFactory().addOrReplace("surface", new GLSurfaceView(requireActivity()));
-        modelEngine.getBeanFactory().addOrReplace("fragment_gl", new GLFragment());
-        modelEngine.getBeanFactory().addOrReplace("scene_0.loader", new SceneLoader());
+
+        // Ensure modelEngine is not null before proceeding
+        if (modelEngine == null) {
+            Log.e(TAG, "ModelEngine is still null! ViewModel might not be retaining it correctly.");
+            // Handle this error appropriately - perhaps show an error message or finish.
+            return;
+        }
+
+        Log.i(TAG, "Updating context... "+System.identityHashCode(this));
+
+        modelEngine.getBeanFactory().addOrReplace("99.activity", requireActivity());
+        modelEngine.getBeanFactory().addOrReplace("99.bundle", savedInstanceState);
+        modelEngine.getBeanFactory().addOrReplace("99.extras", getArguments());
         //modelEngine.getBeanFactory().addOrReplace("shaderFactory", new ShaderFactory(requireActivity()));
-        modelEngine.init();
-        modelEngine.refresh();
+        Log.i(TAG, "Adding GL components... "+System.identityHashCode(this));
+        modelEngine.getBeanFactory().addOrReplace("99.shaderFactory", new ShaderFactory());
+        modelEngine.getBeanFactory().addOrReplace("99.renderer", new GLRendererImpl());
+        modelEngine.getBeanFactory().addOrReplace("99.surface", new GLSurfaceView(requireActivity()));
+        modelEngine.getBeanFactory().addOrReplace("99.fragment_gl", new GLFragment());
+        modelEngine.getBeanFactory().addOrReplace("99.shaderPreferences", new ShaderPreferences());
+        modelEngine.getBeanFactory().addOrReplace("99.settings", new PreferenceFragment());
 
         // restore state
         //modelEngine.getPreferenceFragment().onRestoreInstanceState(savedInstanceState);
@@ -93,35 +129,42 @@ public class ModelFragment extends Fragment {
     public void onStart() {
         super.onStart();
 
-        Log.i(TAG, "Attaching GL fragment...");
-        if (modelEngine.getGLFragment() != null) {
-
-            // listen for engine events
-            getChildFragmentManager().setFragmentResultListener("app", this, (requestKey, result) -> {
-                getParentFragmentManager().setFragmentResult(requestKey, result);
-            });
-            getChildFragmentManager().setFragmentResultListener("immersive", this, (requestKey, result) -> {
-                toggleImmersive();
-            });
-
-                getChildFragmentManager()
-                    .beginTransaction()
-                    .replace(R.id.gl_container, (Fragment)modelEngine.getGLFragment(), "surface")
-                    .setReorderingAllowed(true)
-                    .commit();
-
-            // settings view
-            createSettings();
-
-        } else {
-            Log.e(TAG, "Can't load gl Container: null");
+        if (modelEngine == null){
+            return;
         }
+
+        final GLFragment glFragment = modelEngine.getGLFragment();
+        if (glFragment == null){
+            return;
+        }
+
+        Log.i(TAG, "Attaching GL fragment... "+System.identityHashCode(glFragment));
+
+        // listen for engine events
+        getChildFragmentManager().setFragmentResultListener("app", this, (requestKey, result) -> {
+            getParentFragmentManager().setFragmentResult(requestKey, result);
+        });
+        getChildFragmentManager().setFragmentResultListener("immersive", this, (requestKey, result) -> {
+            toggleImmersive();
+        });
+
+        getChildFragmentManager()
+                .beginTransaction()
+                .replace(R.id.gl_container, (Fragment) glFragment, "surface")
+                .setReorderingAllowed(true)
+                .commit();
+
+        // settings view
+        createSettings();
+
+        modelEngine.getBeanFactory().addOrReplace("extras", getArguments());
+        modelEngine.getBeanFactory().addOrReplace("scene_0.loader", new SceneLoader());
     }
 
     @Override
     public void onAttach(@NonNull Context context) {
         super.onAttach(context);
-        requireActivity().getOnBackPressedDispatcher().addCallback(new OnBackPressedCallback(true) {
+        onBackPressedCallback = new OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
                 Log.v(TAG, "handleOnBackPressed");
@@ -129,13 +172,32 @@ public class ModelFragment extends Fragment {
                 result.putString("action", "back");
                 getParentFragmentManager().setFragmentResult("app", result);
             }
-        });
+        };
+        requireActivity().getOnBackPressedDispatcher().addCallback(onBackPressedCallback);
+    }
+
+    @Override
+    public void onDetach() {
+        super.onDetach();
+        if (onBackPressedCallback != null) {
+            onBackPressedCallback.remove();
+            onBackPressedCallback = null;
+        }
+        if (modelEngine != null){
+            final Scene scene = modelEngine.getBeanFactory().find(Scene.class);
+            if (scene != null) {
+                scene.reset();
+            }
+        }
+        Log.v(TAG, "onDetach");
     }
 
     private void createSettings() {
 
         // check
         if (modelEngine.getPreferenceFragment() == null) return;
+
+        Log.v(TAG, "createSettings");
 
         // toolbar (disabled in favor of settings)
         /*Toolbar myToolbar = findViewById(R.id.my_toolbar);
@@ -148,7 +210,7 @@ public class ModelFragment extends Fragment {
 
             // check
             final Fragment settings = getChildFragmentManager().findFragmentByTag("settings");
-            if (settings != null){
+            if (settings != null) {
                 // hide settings
                 getChildFragmentManager()
                         .beginTransaction()
@@ -210,7 +272,19 @@ public class ModelFragment extends Fragment {
         super.onSaveInstanceState(outState);
 
         // save status
-        modelEngine.getPreferenceFragment().onSaveInstanceState(outState);
+        if (modelEngine.getPreferenceFragment() != null) {
+            modelEngine.getPreferenceFragment().onSaveInstanceState(outState);
+        }
+
+/*        if (getArguments() != null && getArguments().containsKey("uri")) {
+            outState.putString("uri", getArguments().getString("uri"));
+        }
+        if (getArguments() != null && getArguments().containsKey("type")) {
+            outState.putString("type", getArguments().getString("type"));
+        }
+        if (getArguments() != null && getArguments().containsKey("demo")) {
+            outState.putBoolean("type", getArguments().getBoolean("demo"));
+        }*/
     }
 
     private void toggleImmersive() {

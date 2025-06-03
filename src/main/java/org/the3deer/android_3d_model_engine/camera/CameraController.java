@@ -21,6 +21,7 @@ import org.the3deer.android_3d_model_engine.model.Scene;
 import org.the3deer.android_3d_model_engine.model.Screen;
 import org.the3deer.android_3d_model_engine.toolbar.MenuAdapter;
 import org.the3deer.util.bean.BeanFactory;
+import org.the3deer.util.bean.BeanInit;
 import org.the3deer.util.event.EventListener;
 
 import java.util.Arrays;
@@ -53,7 +54,6 @@ public final class CameraController implements Camera.Controller, EventListener,
     @Inject
     private Screen screen;
     @Inject
-    @Named("perspectiveProjection")
     private Projection perspective;
     /*@Inject
     private List<Camera.Controller> controllers;*/
@@ -67,6 +67,7 @@ public final class CameraController implements Camera.Controller, EventListener,
     // state
     private Handler handler;
 
+    @Inject
     private Projection projection;
 
 
@@ -77,6 +78,7 @@ public final class CameraController implements Camera.Controller, EventListener,
         this.camera = camera;
     }*/
 
+    @BeanInit
     public void setUp(){
         /*this.handlerDefault = new DefaultHandler(camera);
         this.handlerIsometric = new IsometricHandler(camera);

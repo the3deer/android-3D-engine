@@ -3,6 +3,7 @@ package org.the3deer.android_3d_model_engine.shader;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.util.Log;
 
 import androidx.annotation.Nullable;
 import androidx.preference.PreferenceCategory;
@@ -63,6 +64,11 @@ public class ShaderPreferences implements PreferenceAdapter {
         category.setLayoutResource(R.layout.preference_category);
         category.setInitialExpandedChildrenCount(0);
         screen.addPreference(category);
+
+        if (shaderFactory == null || shaderFactory.getShaders().isEmpty()){
+            Log.w("ShaderPreferences","No shader factory");
+            return;
+        }
 
         final Map<String, Shader> shaders = shaderFactory.getShaders();
         for (Map.Entry<String, Shader> entry : shaders.entrySet()) {

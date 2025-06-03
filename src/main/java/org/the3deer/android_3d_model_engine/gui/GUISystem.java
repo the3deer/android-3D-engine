@@ -110,6 +110,8 @@ public class GUISystem implements EventListener, Drawer {
         // check
         if (!enabled) return;
 
+        if (shaderFactory == null) return;
+
         if (shader == null) {
             shader = shaderFactory.getShader(R.raw.shader_basic_vert, R.raw.shader_basic_frag);
         }

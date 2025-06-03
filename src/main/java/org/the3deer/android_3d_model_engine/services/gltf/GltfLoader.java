@@ -12,7 +12,9 @@ import org.the3deer.android_3d_model_engine.animation.KeyFrame;
 import org.the3deer.android_3d_model_engine.model.AnimatedModel;
 import org.the3deer.android_3d_model_engine.model.Material;
 import org.the3deer.android_3d_model_engine.model.Object3DData;
+import org.the3deer.android_3d_model_engine.model.Scene;
 import org.the3deer.android_3d_model_engine.model.Texture;
+import org.the3deer.android_3d_model_engine.scene.SceneImpl;
 import org.the3deer.android_3d_model_engine.services.LoadListener;
 import org.the3deer.android_3d_model_engine.services.collada.entities.JointData;
 import org.the3deer.android_3d_model_engine.services.collada.entities.SkeletonData;
@@ -104,18 +106,28 @@ public final class GltfLoader {
             GltfModel gltfModel = GltfModels.create(gltfAsset);
 
             // load scene...
-            Log.d(TAG, "Loading scene...");
+            Log.i(TAG, "Loading scenes...");
             for (SceneModel sceneModel : gltfModel.getSceneModels()) {
 
+                Log.d(TAG, "Loading scene: "+sceneModel.getName());
+                callback.onProgress("Loading scene: "+sceneModel.getName());
+
+                final Scene scene = new SceneImpl();
+                if (sceneModel.getName() != null){
+                    scene.setName(sceneModel.getName());
+                }
+                callback.onLoad(scene);
+
                 // load nodes...
-                Log.d(TAG, "Loading scene...");
                 for (NodeModel nodeModel : sceneModel.getNodeModels()) {
 
-                    Log.d(TAG, "Loading nodes...");
-                    callback.onProgress("Loading nodes...");
+                    Log.d(TAG, "Loading node: "+nodeModel.getName());
+                    callback.onProgress("Loading node: "+nodeModel.getName());
 
-                    loadNodeModel(gltfModel, callback, ret, nodeModel.getMatrix(), nodeModel);
+                    loadNodeModel(gltfModel, scene, nodeModel, nodeModel.getMatrix(), ret, callback);
                 }
+
+                scene.onLoadComplete();
             }
 
             // check
@@ -142,19 +154,18 @@ public final class GltfLoader {
     }
 
 
-    private void loadNodeModel(GltfModel gltfModel, LoadListener callback, List<Object3DData> ret,
-                               float[] nodeTransform, NodeModel nodeModel) {
+    private void loadNodeModel(GltfModel gltfModel, Scene scene, NodeModel nodeModel, float[] nodeTransform, List<Object3DData> ret, LoadListener callback) {
 
         for (MeshModel meshModel : nodeModel.getMeshModels()) {
-            loadMeshModel(gltfModel, callback, ret, nodeTransform, nodeModel, meshModel);
+            loadMeshModel(gltfModel, scene, callback, ret, nodeTransform, nodeModel, meshModel);
         }
 
         for (NodeModel childNode : nodeModel.getChildren()) {
-            loadNodeModel(gltfModel, callback, ret, childNode.getMatrix(), childNode);
+            loadNodeModel(gltfModel, scene, childNode, childNode.getMatrix(), ret, callback);
         }
     }
 
-    private void loadMeshModel(GltfModel gltfModel, LoadListener callback, List<Object3DData> ret,
+    private void loadMeshModel(GltfModel gltfModel, Scene scene, LoadListener callback, List<Object3DData> ret,
                                float[] bindTransform, NodeModel nodeModel, MeshModel meshModel) {
         List<MeshPrimitiveModel> meshPrimitiveModels = meshModel.getMeshPrimitiveModels();
 
@@ -176,6 +187,10 @@ public final class GltfLoader {
             }
             model.setBindTransform(nodeModel.computeGlobalTransform(null));
 
+            // add object to scene
+            scene.addObject(model);
+
+            // reply
             callback.onLoad(model);
 
             ret.add(model);

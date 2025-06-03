@@ -18,6 +18,6 @@ public class GltfLoaderTask extends LoaderTask {
 
     @Override
     protected List<Object3DData> build() throws IOException {
-        return new GltfLoader().load(uri, this);
+        return new GltfLoader().load(uri, callback);
     }
 }

@@ -949,11 +949,13 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
         drawOrderBuffer.position(0);
         GLES20.glDrawElements(drawMode, drawOrderBuffer.capacity(), drawBufferType,
                 drawOrderBuffer);
+/*
         boolean error = GLUtil.checkGlError("glDrawElements");
         if (drawUsingInt && error) {
             Log.e("ShaderImpl", "Exception drawing elements. Switching to ShortBuffer");
             drawUsingInt = false;
         }
+*/
 
         // log event
         /*if (id != flags.get(element)) {

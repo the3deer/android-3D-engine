@@ -9,7 +9,6 @@ import android.os.SystemClock;
 import android.util.Log;
 import android.widget.Toast;
 
-import org.the3deer.android_3d_model_engine.demo.DemoLoaderTask;
 import org.the3deer.android_3d_model_engine.model.Object3DData;
 import org.the3deer.android_3d_model_engine.model.Scene;
 import org.the3deer.android_3d_model_engine.services.LoadListener;
@@ -18,6 +17,7 @@ import org.the3deer.android_3d_model_engine.services.gltf.GltfLoaderTask;
 import org.the3deer.android_3d_model_engine.services.stl.STLLoaderTask;
 import org.the3deer.android_3d_model_engine.services.wavefront.WavefrontLoaderTask;
 import org.the3deer.util.android.ContentUtils;
+import org.the3deer.util.bean.BeanFactory;
 
 import java.net.URI;
 
@@ -41,6 +41,8 @@ public class SceneLoader implements LoadListener {
     private Activity activity;
     @Inject
     private Scene scene;
+    @Inject
+    private SceneManager sceneManager;
 
     // variables
     private final Handler handler;
@@ -103,6 +105,12 @@ public class SceneLoader implements LoadListener {
 
             isDemo = extras.getBoolean("demo");
 
+            if (this.modelUri == null && bundle != null){
+                this.modelUri = new URI(bundle.getString("uri"));
+                this.modelType = extras.getString("type") != null ? Integer.parseInt(bundle.getString("type")) : -1;
+                Log.i(TAG, "uri '" + modelUri + "', type: "+modelType);
+            }
+
         } catch (Exception ex) {
             Log.e(TAG, "Error parsing activity parameters: " + ex.getMessage(), ex);
         }
@@ -110,6 +118,8 @@ public class SceneLoader implements LoadListener {
         if (modelUri == null && !isDemo){
             return;
         }
+
+
 
         handler.post(() -> {
 
@@ -119,16 +129,16 @@ public class SceneLoader implements LoadListener {
             if (isDemo) {
                 new DemoLoaderTask(activity, null, this).execute();
             } else if (modelUri.toString().toLowerCase().endsWith(".obj") || modelType == 0) {
-                new WavefrontLoaderTask(activity, modelUri, this).execute();
+                new WavefrontLoaderTask(activity, modelUri, SceneLoader.this).execute();
             } else if (modelUri.toString().toLowerCase().endsWith(".stl") || modelType == 1) {
                 Log.i(TAG, "Loading STL object from: " + modelUri);
-                new STLLoaderTask(activity, modelUri, this).execute();
+                new STLLoaderTask(activity, modelUri, SceneLoader.this).execute();
             } else if (modelUri.toString().toLowerCase().endsWith(".dae") || modelType == 2) {
                 Log.i(TAG, "Loading Collada object from: " + modelUri);
-                new ColladaLoaderTask(activity, modelUri, this).execute();
+                new ColladaLoaderTask(activity, modelUri, SceneLoader.this).execute();
             } else if (modelUri.toString().toLowerCase().endsWith(".gltf") || modelUri.toString().toLowerCase().endsWith(".glb") || modelType == 3) {
                 Log.i(TAG, "Loading GLTF object from: " + modelUri);
-                new GltfLoaderTask(activity, modelUri, this).execute();
+                new GltfLoaderTask(activity, modelUri, SceneLoader.this).execute();
             } else if (modelUri.toString().toLowerCase().endsWith(".fbx")){
                 //new FBXLoaderTask(activity, modelUri, this).execute();
             }
@@ -159,12 +169,26 @@ public class SceneLoader implements LoadListener {
     }
 
     @Override
+    public void onLoad(Scene scene) {
+        if (this.sceneManager == null) return;
+
+        this.sceneManager.addScene(scene);
+
+    }
+
+    @Override
     public void onLoad(Object3DData data) {
-        scene.addObject(data);
+        if (this.sceneManager != null) {
+            this.sceneManager.addObject(data);
+        } else {
+            scene.addObject(data);
+        }
     }
 
     @Override
     public void onLoadComplete() {
+
+
         scene.onLoadComplete();
     }
 

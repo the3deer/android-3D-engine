@@ -6,6 +6,8 @@ import android.os.SystemClock;
 import android.util.Log;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+
 import org.the3deer.android_3d_model_engine.animation.Animator;
 import org.the3deer.android_3d_model_engine.collision.CollisionEvent;
 import org.the3deer.android_3d_model_engine.controller.TouchEvent;
@@ -42,18 +44,9 @@ import javax.inject.Inject;
  */
 public class SceneImpl implements EventListener, RenderListener, org.the3deer.android_3d_model_engine.model.Scene {
 
-    /**
-     * Default max model size for a camera located at 100 distance units
-     * TODO: calculate this value dynamically
-     * https://stackoverflow.com/questions/6653080/in-opengl-how-can-i-determine-the-bounds-of-the-view-at-a-given-depth
-     *   h = height, fieldofview is 45 degrees (because near 1 and width or ratio is 1)
-     *        h = tan(FieldOfView / 2) * a;
-     *        h = tan(45 / 2) * camera_distance;
-     *        h = 0,414213562 * camera_distance
-     *   example: with a near=1.0 unit, width=1.0 unit (height=1.0*ratio),
-     *         if camera at 100 units, then we have 41,421356237 => 82,842712475 total max width to fit viewport
-     *
-     */
+    public static final String TAG = SceneImpl.class.getSimpleName();
+
+    private String name = "Scene: "+System.identityHashCode(this);
     /**
      * Parent component
      */
@@ -97,7 +90,7 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
     /**
      * state machine for drawing modes
      */
-    private int drawwMode = 0;
+    private int drawMode = 0;
     /**
      * Whether to draw objects as wireframes
      */
@@ -195,7 +188,30 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
     @Inject
     private EventManager eventManager;
 
+    private boolean enabled;
+
     public SceneImpl() {
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    @Override
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
+
+    @NonNull
+    @Override
+    public String getName() {
+        return name;
+    }
+
+    @Override
+    public void setName(String name) {
+        this.name = name;
     }
 
     /*public Scene(Activity main, Camera camera) {
@@ -226,7 +242,7 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
                 Quaternion quaternion = Quaternion.getQuaternion(new float[]{1, 0, 0}, (float) (-Math.PI / 2f));
                 quaternion.normalize();
                 objData.setOrientation(quaternion);
-                Log.i("SceneLoader", "Fixed coordinate system to -90 degrees on x axis. object: " + objData.getId());
+                Log.i(TAG, "Fixed coordinate system to -90 degrees on x axis. object: " + objData.getId());
                 this.isFixCoordinateSystem = true;
                 //break;
             }
@@ -242,23 +258,13 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
         return camera;
     }
 
-    @Override
-    public Light getLight() {
-        return light;
-    }
-
-    private final void makeToastText(final String text, final int toastDuration) {
+    private void makeToastText(final String text, final int toastDuration) {
+        if(parent == null) return;
         parent.runOnUiThread(() -> Toast.makeText(parent.getApplicationContext(), text, toastDuration).show());
     }
 
     public void setLightProfile(LightProfile lightProfile) {
         this.lightProfile = lightProfile;
-    }
-
-
-    @Override
-    public final Object3DData getLightBulb() {
-        return lightBulb;
     }
 
     /**
@@ -301,7 +307,7 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
 
     @Override
     public final synchronized void addObject(Object3DData obj) {
-        Log.i("SceneLoader", "Adding object to scene... " + obj);
+        Log.i(TAG, "Adding object to scene: "+getName()+", obj: " + obj);
         objects.add(obj);
         //requestRender();
 
@@ -313,7 +319,7 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
     /*public final synchronized void addGUIObject(Object3DData obj) {
 
         // log event
-        Log.i("SceneLoader", "Adding GUI object to scene... " + obj);
+        Log.i(TAG, "Adding GUI object to scene... " + obj);
 
         // add object
         guiObjects.add(obj);
@@ -334,14 +340,14 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
 
         // info: to enable normals, just change module to 5
         final int module = 4;
-        this.drawwMode = (this.drawwMode + 1) % module;
+        this.drawMode = (this.drawMode + 1) % module;
         this.drawNormals = false;
         this.drawPoints = false;
         this.drawSkeleton = false;
         this.drawWireframe = false;
 
         // toggle state machine
-        switch (drawwMode) {
+        switch (drawMode) {
             case 0:
                 makeToastText("Faces", Toast.LENGTH_SHORT);
                 break;
@@ -611,6 +617,8 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
 
     public synchronized void onLoadComplete() {
 
+        Log.d(TAG, "onLoadComplete: "+getName()+", Objects: " + objects.size());
+
         // get complete list of objects loaded
         final List<Object3DData> objs = getObjects();
 
@@ -653,7 +661,7 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
     }
 
     private void rescale(List<Object3DData> objs, float size) {
-        Log.v("SceneLoader", "Rescaling objects... " + objs.size());
+        Log.v(TAG, "Rescaling objects... " + objs.size());
 
         // get largest object in scene
         float largest = 1;
@@ -664,11 +672,11 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
                 largest = candidate;
             }
         }
-        Log.v("SceneLoader", "Object largest dimension: " + largest);
+        Log.v(TAG, "Object largest dimension: " + largest);
 
         // rescale objects
         float ratio = size / largest;
-        Log.v("SceneLoader", "Scaling " + objs.size() + " objects with factor: " + ratio);
+        Log.v(TAG, "Scaling " + objs.size() + " objects with factor: " + ratio);
         float[] newScale = new float[]{ratio, ratio, ratio};
         for (Object3DData data : objs) {
             // data.center();
@@ -721,7 +729,7 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
                 float factor = 1f; //1/360f * touch.getLength();
 
 
-                // Log.v("SceneLoader", "Q: Quaternion angle: " + Math.toDegrees(angle) + " ,dx:" + touch.getdX() + ", dy:" + -touch.getdY());
+                // Log.v(TAG, "Q: Quaternion angle: " + Math.toDegrees(angle) + " ,dx:" + touch.getdX() + ", dy:" + -touch.getdY());
                 Quaternion q0 = Quaternion.getQuaternion(pos, angle * factor);
                 //q0.normalize();
 
@@ -732,7 +740,7 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
             } else if (touch.getAction() == TouchEvent.Action.MOVE && selectedObject != null) {
 
                 float angle = (float) (Math.atan2(-touch.getdY(), touch.getdX()));
-                Log.v("SceneLoader", "Rotating (axis:var): " + Math.toDegrees(angle) + " ,dx:" + touch.getdX() + ", dy:" + -touch.getdY());
+                Log.v(TAG, "Rotating (axis:var): " + Math.toDegrees(angle) + " ,dx:" + touch.getdX() + ", dy:" + -touch.getdY());
 
                 float[] rightd = Math3DUtils.multiply(right, touch.getdY());
                 float[] upd = Math3DUtils.multiply(up, touch.getdX());
@@ -759,16 +767,16 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
             Object3DData objectToSelect = ((CollisionEvent) event).getObject();
             float[] point = ((CollisionEvent) event).getPoint();
             if (isCollision() && point != null) {
-                Log.v("SceneLoader", "Adding collision point " + Arrays.toString(point));
+                Log.v(TAG, "Adding collision point " + Arrays.toString(point));
                 Object3DData point3D = Point.build(point).setColor(new float[]{1.0f, 0f, 0f, 1f});
                 addObject(point3D);
             }
             if (selectedObject == objectToSelect) {
-                Log.v("SceneLoader", "Unselected object " + objectToSelect);
+                Log.v(TAG, "Unselected object " + objectToSelect);
                 setSelectedObject(null);
             } else {
-                Log.i("SceneLoader", "Selected object " + objectToSelect.getId());
-                Log.d("SceneLoader", "Selected object " + objectToSelect);
+                Log.i(TAG, "Selected object " + objectToSelect.getId());
+                Log.d(TAG, "Selected object " + objectToSelect);
                 setSelectedObject(objectToSelect);
             }
             return true;
@@ -785,7 +793,7 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
             return;
         }
 
-        Log.v("SceneLoader", "Scaling datas... total: " + datas.size());
+        Log.v(TAG, "Scaling datas... total: " + datas.size());
         // calculate the global max length
         final Object3DData firstObject = datas.get(0);
         final Dimensions currentDimensions;
@@ -795,7 +803,7 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
             currentDimensions = firstObject.getCurrentDimensions();
             this.originalDimensions.put(firstObject, currentDimensions);
         }
-        Log.v("SceneLoader", "Model[0] dimension: " + currentDimensions.toString());
+        Log.v(TAG, "Model[0] dimension: " + currentDimensions.toString());
 
         final float[] corner01 = currentDimensions.getCornerLeftTopNearVector();
         ;
@@ -819,14 +827,14 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
             final Dimensions original;
             if (this.originalDimensions.containsKey(obj)) {
                 original = this.originalDimensions.get(obj);
-                Log.v("SceneLoader", "Found dimension: " + original.toString());
+                Log.v(TAG, "Found dimension: " + original.toString());
             } else {
                 original = obj.getCurrentDimensions();
                 this.originalDimensions.put(obj, original);
             }
 
 
-            Log.v("SceneLoader", "Model[" + i + "] '" + obj.getId() + "' dimension: " + original.toString());
+            Log.v(TAG, "Model[" + i + "] '" + obj.getId() + "' dimension: " + original.toString());
             final float[] corner1 = original.getCornerLeftTopNearVector();
             final float[] corner2 = original.getCornerRightBottomFar();
             final float[] center = original.getCenter();
@@ -857,7 +865,7 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
         float maxLength = lengthX;
         if (lengthY > maxLength) maxLength = lengthY;
         if (lengthZ > maxLength) maxLength = lengthZ;
-        Log.v("SceneLoader", "Max length: " + maxLength);
+        Log.v(TAG, "Max length: " + maxLength);
 
         float maxLocation = 0;
         if (datas.size() > 1) {
@@ -865,12 +873,12 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
             if (maxCenterY > maxLocation) maxLocation = maxCenterY;
             if (maxCenterZ > maxLocation) maxLocation = maxCenterZ;
         }
-        //Log.v("SceneLoader", "Max location: " + maxLocation);
+        //Log.v(TAG, "Max location: " + maxLocation);
 
         // calculate the scale factor
         float scaleFactor = newScale / (maxLength + maxLocation);
         final float[] finalScale = new float[]{scaleFactor, scaleFactor, scaleFactor};
-        //Log.v("SceneLoader", "New scale: " + scaleFactor);
+        //Log.v(TAG, "New scale: " + scaleFactor);
 
         if (scaleFactor > 0.5f && scaleFactor < 1.5f) {
             return;
@@ -880,14 +888,14 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
         float centerX = (maxRight + maxLeft) / 2;
         float centerY = (maxTop + maxBottom) / 2;
         float centerZ = (maxNear + maxFar) / 2;
-        //Log.v("SceneLoader", "Total center: " + centerX + "," + centerY + "," + centerZ);
+        //Log.v(TAG, "Total center: " + centerX + "," + centerY + "," + centerZ);
 
         // calculate the new location
         float translationX = -centerX + newPosition[0];
         float translationY = -centerY + newPosition[1];
         float translationZ = -centerZ + newPosition[2];
         final float[] globalDifference = new float[]{translationX * scaleFactor, translationY * scaleFactor, translationZ * scaleFactor};
-        //Log.v("SceneLoader", "Total translation: " + Arrays.toString(globalDifference));
+        //Log.v(TAG, "Total translation: " + Arrays.toString(globalDifference));
 
 
         for (Object3DData data : datas) {
@@ -895,7 +903,7 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
             final Transform original;
             if (this.originalTransforms.containsKey(data)) {
                 original = this.originalTransforms.get(data);
-                //Log.v("SceneLoader", "Found transform: " + original);
+                //Log.v(TAG, "Found transform: " + original);
             } else {
                 original = data.getTransform();
                 this.originalTransforms.put(data, original);
@@ -906,18 +914,18 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
             float localScaleY = scaleFactor * original.getScale()[1];
             float localScaleZ = scaleFactor * original.getScale()[2];
             data.setScale(new float[]{localScaleX, localScaleY, localScaleZ});
-            //Log.v("SceneLoader", "Mew model scale: " + Arrays.toString(data.getScale()));
+            //Log.v(TAG, "Mew model scale: " + Arrays.toString(data.getScale()));
 
             // relocate
             float localTranlactionX = original.getLocation()[0] * scaleFactor + globalDifference[0];
             float localTranlactionY = original.getLocation()[1] * scaleFactor + globalDifference[1];
             float localTranlactionZ = original.getLocation()[2] * scaleFactor + globalDifference[2];
             data.setLocation(new float[]{localTranlactionX, localTranlactionY, localTranlactionZ});
-            //Log.v("SceneLoader", "Mew model location: " + Arrays.toString(data.getLocation()));
+            //Log.v(TAG, "Mew model location: " + Arrays.toString(data.getLocation()));
 
             // center
             //data.translate(globalDifference);
-            //Log.v("SceneLoader", "Mew model translated: " + Arrays.toString(data.getLocation()));
+            //Log.v(TAG, "Mew model translated: " + Arrays.toString(data.getLocation()));
         }
 
 
@@ -956,7 +964,7 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
                 } else {
                     Log.v("ModelActivity","onOrientationChanged: orientation: "+orientation);
                 }*/
-        Log.v("SceneLoader", "onOrientationChanged: orientation: " + orientation);
+        Log.v(TAG, "onOrientationChanged: orientation: " + orientation);
         camera.setDeviceOrientation(orientation);
     }
 

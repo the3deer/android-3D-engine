@@ -83,6 +83,8 @@ public class ShadowDrawer implements Drawer {
         // check
         if (scene.getObjects().isEmpty()) return;
 
+        if (!shadowsRenderer.enabled) return;
+
         // shadow buffer
         shadowsRenderer.onPrepareFrame(camera.getProjectionMatrix(), camera.getViewMatrix(), light.getLocation(), scene);
 

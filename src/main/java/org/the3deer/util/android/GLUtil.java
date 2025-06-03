@@ -236,11 +236,9 @@ public final class GLUtil {
         while ((glError = GLES20.glGetError()) != GLES20.GL_NO_ERROR) {
             Log.e(TAG, glOperation + ": glError " + glError);
             error = true;
-            Log.e(TAG, Thread.currentThread().getStackTrace()[3].toString());
-            Log.e(TAG, Thread.currentThread().getStackTrace()[4].toString());
-            Log.e(TAG, Thread.currentThread().getStackTrace()[5].toString());
-            Log.e(TAG, Thread.currentThread().getStackTrace()[6].toString());
-
+            for (int i=2; i<Thread.currentThread().getStackTrace().length; i++) {
+                Log.e(TAG, Thread.currentThread().getStackTrace()[i].toString());
+            }
             // throw new RuntimeException(glOperation + ": glError " + error);
         }
         return error;

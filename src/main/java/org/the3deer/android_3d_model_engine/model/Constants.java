@@ -2,6 +2,18 @@ package org.the3deer.android_3d_model_engine.model;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
+/**
+ * TODO: fix this documentation
+ * Default max model size for a camera located at 100 distance units
+ * https://stackoverflow.com/questions/6653080/in-opengl-how-can-i-determine-the-bounds-of-the-view-at-a-given-depth
+ *   h = height, fieldofview is 45 degrees (because near 1 and width or ratio is 1)
+ *        h = tan(FieldOfView / 2) * a;
+ *        h = tan(45 / 2) * camera_distance;
+ *        h = 0,414213562 * camera_distance
+ *   example: with a near=1.0 unit, width=1.0 unit (height=1.0*ratio),
+ *         if camera at 100 units, then we have 41,421356237 => 82,842712475 total max width to fit viewport
+ *
+ */
 public class Constants {
 
     /**
