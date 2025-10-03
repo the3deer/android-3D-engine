@@ -19,7 +19,7 @@ public class Plane2 {
 
 	//TODO: remove
 	final static float planePos = -Constants.DEFAULT_MODEL_SIZE;
-	final static float planeSize = Constants.DEFAULT_MODEL_SIZE*2;
+	final static float planeSize = Constants.DEFAULT_MODEL_SIZE*4;
 	static int translateZ = 0;
 
 	static float[] planePositionData = {

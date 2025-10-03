@@ -18,6 +18,7 @@ import org.the3deer.android_3d_model_engine.services.stl.STLLoaderTask;
 import org.the3deer.android_3d_model_engine.services.wavefront.WavefrontLoaderTask;
 import org.the3deer.util.android.ContentUtils;
 import org.the3deer.util.bean.BeanFactory;
+import org.the3deer.util.bean.BeanInit;
 
 import java.net.URI;
 
@@ -40,8 +41,6 @@ public class SceneLoader implements LoadListener {
     @Inject
     private Activity activity;
     @Inject
-    private Scene scene;
-    @Inject
     private SceneManager sceneManager;
 
     // variables
@@ -57,7 +56,7 @@ public class SceneLoader implements LoadListener {
     /**
      * Type of model if file name has no extension (provided though content provider)
      */
-    private int modelType = -1;
+    private String modelType;
     /**
      * Background GL clear color. Default is light gray
      */
@@ -72,10 +71,22 @@ public class SceneLoader implements LoadListener {
         this.handler = new Handler(Looper.getMainLooper());
     }
 
+    @BeanFactory.OnBeanUpdate
+    public boolean onBeanUpdate(String id, Object updated){
+        Log.v(TAG, "onBeanUpdate: " + id);
+        if ("extras".equals(id)){
+            loadFromBundle(extras);
+        }
+        return true;
+    }
 
+    @BeanInit
     public void setUp() {
 
-        Log.i(TAG, "Starting up...");
+        loadFromBundle(extras);
+    }
+
+    public void loadFromBundle(Bundle extras) {
 
         // check
         if (handler == null) {
@@ -85,34 +96,30 @@ public class SceneLoader implements LoadListener {
 
         // Try to get input parameters
         if (extras == null) {
+            Log.i(TAG, "Bundle is null");
             return;
         }
 
-        try {
-            if (extras.getString("uri") != null) {
+
+        if (extras.containsKey("uri")) {
+            try {
+
+                this.isDemo = extras.getBoolean("demo");
                 this.modelUri = new URI(extras.getString("uri"));
-                this.modelType = extras.getString("type") != null ? Integer.parseInt(extras.getString("type")) : -1;
-                Log.i(TAG, "uri '" + modelUri + "', type: "+modelType);
+                this.modelType = extras.getString("type");
+
+                Log.i(TAG, "uri '" + modelUri + "', type: " + modelType);
+
+                if (extras.getString("backgroundColor") != null) {
+                    String[] backgroundColors = extras.getString("backgroundColor").split(" ");
+                    backgroundColor[0] = Float.parseFloat(backgroundColors[0]);
+                    backgroundColor[1] = Float.parseFloat(backgroundColors[1]);
+                    backgroundColor[2] = Float.parseFloat(backgroundColors[2]);
+                    backgroundColor[3] = Float.parseFloat(backgroundColors[3]);
+                }
+            } catch (Exception ex) {
+                Log.e(TAG, "Error parsing activity parameters: " + ex.getMessage(), ex);
             }
-
-            if (extras.getString("backgroundColor") != null) {
-                String[] backgroundColors = extras.getString("backgroundColor").split(" ");
-                backgroundColor[0] = Float.parseFloat(backgroundColors[0]);
-                backgroundColor[1] = Float.parseFloat(backgroundColors[1]);
-                backgroundColor[2] = Float.parseFloat(backgroundColors[2]);
-                backgroundColor[3] = Float.parseFloat(backgroundColors[3]);
-            }
-
-            isDemo = extras.getBoolean("demo");
-
-            if (this.modelUri == null && bundle != null){
-                this.modelUri = new URI(bundle.getString("uri"));
-                this.modelType = extras.getString("type") != null ? Integer.parseInt(bundle.getString("type")) : -1;
-                Log.i(TAG, "uri '" + modelUri + "', type: "+modelType);
-            }
-
-        } catch (Exception ex) {
-            Log.e(TAG, "Error parsing activity parameters: " + ex.getMessage(), ex);
         }
 
         if (modelUri == null && !isDemo){
@@ -120,23 +127,20 @@ public class SceneLoader implements LoadListener {
         }
 
 
-
         handler.post(() -> {
 
             // load model
             Log.i(TAG, "Loading model... " + this.modelUri);
 
-            if (isDemo) {
-                new DemoLoaderTask(activity, null, this).execute();
-            } else if (modelUri.toString().toLowerCase().endsWith(".obj") || modelType == 0) {
+            if (modelUri.toString().toLowerCase().endsWith(".obj") || "obj".equalsIgnoreCase(modelType)) {
                 new WavefrontLoaderTask(activity, modelUri, SceneLoader.this).execute();
-            } else if (modelUri.toString().toLowerCase().endsWith(".stl") || modelType == 1) {
+            } else if (modelUri.toString().toLowerCase().endsWith(".stl") || "stl".equalsIgnoreCase(modelType)) {
                 Log.i(TAG, "Loading STL object from: " + modelUri);
                 new STLLoaderTask(activity, modelUri, SceneLoader.this).execute();
-            } else if (modelUri.toString().toLowerCase().endsWith(".dae") || modelType == 2) {
+            } else if (modelUri.toString().toLowerCase().endsWith(".dae") || "dae".equalsIgnoreCase(modelType)) {
                 Log.i(TAG, "Loading Collada object from: " + modelUri);
                 new ColladaLoaderTask(activity, modelUri, SceneLoader.this).execute();
-            } else if (modelUri.toString().toLowerCase().endsWith(".gltf") || modelUri.toString().toLowerCase().endsWith(".glb") || modelType == 3) {
+            } else if (modelUri.toString().toLowerCase().endsWith(".gltf") || modelUri.toString().toLowerCase().endsWith(".glb") || "gltf".equalsIgnoreCase(modelType)) {
                 Log.i(TAG, "Loading GLTF object from: " + modelUri);
                 new GltfLoaderTask(activity, modelUri, SceneLoader.this).execute();
             } else if (modelUri.toString().toLowerCase().endsWith(".fbx")){
@@ -164,32 +168,24 @@ public class SceneLoader implements LoadListener {
     }
 
     @Override
-    public void onProgress(String progress) {
-
-    }
-
-    @Override
     public void onLoad(Scene scene) {
-        if (this.sceneManager == null) return;
-
+        //if (this.sceneManager == null) return;
         this.sceneManager.addScene(scene);
-
     }
 
     @Override
-    public void onLoad(Object3DData data) {
-        if (this.sceneManager != null) {
-            this.sceneManager.addObject(data);
-        } else {
-            scene.addObject(data);
-        }
+    public void onLoad(Scene scene, Object3DData data) {
+        scene.addObject(data);
+    }
+
+    @Override
+    public void onLoadComplete(Scene scene) {
+        scene.onLoadComplete();
     }
 
     @Override
     public void onLoadComplete() {
-
-
-        scene.onLoadComplete();
+        ContentUtils.setThreadActivity(null);
     }
 
 }

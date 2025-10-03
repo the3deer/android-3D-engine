@@ -124,7 +124,7 @@ public class GLRendererImpl implements GLSurfaceView.Renderer, MenuAdapter {
     @Override
     public void onSurfaceCreated(GL10 unused, EGLConfig config) {
         // log event
-        Log.i(TAG, "onSurfaceCreated. config: " + config);
+        Log.d(TAG, "onSurfaceCreated. config: " + config);
 
         // Set the background frame color
         GLES20.glClearColor(backgroundColor[0], backgroundColor[1], backgroundColor[2], backgroundColor[3]);
@@ -138,6 +138,8 @@ public class GLRendererImpl implements GLSurfaceView.Renderer, MenuAdapter {
 
         // Enable not drawing out of view port
         GLES20.glEnable(GLES20.GL_SCISSOR_TEST);
+
+        eventManager.propagate(new GLEvent(this, GLEvent.Code.SURFACE_CREATED));
     }
 
     @Override
@@ -193,6 +195,7 @@ public class GLRendererImpl implements GLSurfaceView.Renderer, MenuAdapter {
         // prepare listeners
         for (int i = 0; i < listeners.size(); i++) {
             try {
+                //Log.e(TAG, "onPrepareFrame ("+i+"): "+listeners.get(i));
                 listeners.get(i).onPrepareFrame();
             } catch (Exception ex) {
                 Log.e(TAG, "Exception on delegate: " + renderers.get(i), ex);

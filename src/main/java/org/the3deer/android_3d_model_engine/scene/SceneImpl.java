@@ -46,7 +46,7 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
 
     public static final String TAG = SceneImpl.class.getSimpleName();
 
-    private String name = "Scene: "+System.identityHashCode(this);
+    private String name = "Scene_"+System.identityHashCode(this);
     /**
      * Parent component
      */
@@ -307,7 +307,7 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
 
     @Override
     public final synchronized void addObject(Object3DData obj) {
-        Log.i(TAG, "Adding object to scene: "+getName()+", obj: " + obj);
+        Log.d(TAG, "Adding object to scene: "+getName()+", obj: " + obj);
         objects.add(obj);
         //requestRender();
 
@@ -613,11 +613,9 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
     }
 
 
-
-
     public synchronized void onLoadComplete() {
 
-        Log.d(TAG, "onLoadComplete: "+getName()+", Objects: " + objects.size());
+        Log.i(TAG, "onLoadComplete: "+getName()+", Objects: " + objects.size());
 
         // get complete list of objects loaded
         final List<Object3DData> objs = getObjects();
@@ -634,9 +632,6 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
         // notify user
         final String elapsed = (SystemClock.uptimeMillis() - startTime) / 1000 + " secs";
         makeToastText("Load complete (" + elapsed + ")", Toast.LENGTH_SHORT);
-
-        // clear thread local
-        ContentUtils.setThreadActivity(null);
 
         // rescale all object so they fit in the screen
         //rescale(this.getObjects(), DEFAULT_MAX_MODEL_SIZE, new float[3]);

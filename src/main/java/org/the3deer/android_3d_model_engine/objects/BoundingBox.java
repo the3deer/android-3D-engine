@@ -16,7 +16,7 @@ public final class BoundingBox {
 
     public static Object3DData build(Object3DData obj) {
 
-        Log.i("BoundingBox","Building bounding box... "+obj);
+        Log.v("BoundingBox","Building bounding box... "+obj);
 
         Dimensions box = obj.getDimensions();
 

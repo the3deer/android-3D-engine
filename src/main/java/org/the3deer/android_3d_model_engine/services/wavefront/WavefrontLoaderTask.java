@@ -25,7 +25,7 @@ public class WavefrontLoaderTask extends LoaderTask {
     @Override
     protected List<Object3DData> build() {
 
-        final WavefrontLoader wfl = new WavefrontLoader(GLES20.GL_TRIANGLE_FAN, this);
+        final WavefrontLoader wfl = new WavefrontLoader(GLES20.GL_TRIANGLE_FAN, callback);
 
         super.publishProgress("Loading model...");
 

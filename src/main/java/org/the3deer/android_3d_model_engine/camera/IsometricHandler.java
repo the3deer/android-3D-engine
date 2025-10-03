@@ -7,6 +7,7 @@ import org.the3deer.android_3d_model_engine.animation.AnimationController;
 import org.the3deer.android_3d_model_engine.model.Camera;
 import org.the3deer.android_3d_model_engine.model.Constants;
 import org.the3deer.android_3d_model_engine.model.Projection;
+import org.the3deer.util.bean.BeanInit;
 import org.the3deer.util.math.Math3DUtils;
 
 import java.util.Arrays;
@@ -55,6 +56,7 @@ public class IsometricHandler implements CameraController.Handler {
     // vars
     private CameraAnimation animation;
 
+    @BeanInit
     public void setUp() {
         this.savePos[0] = UNIT;
         this.savePos[1] = UNIT;

@@ -87,7 +87,7 @@ public final class CameraController implements Camera.Controller, EventListener,
         this.projection = Projection.PERSPECTIVE;
         this.handler = handlerDefault;*/
 
-        this.scene.getCamera().setController(this);
+        //this.scene.getCamera().setController(this);
 
         this.handlerDefault = beanFactory.addAndGet("camera.handlerDefault", DefaultHandler.class);
         this.handlerIsometric = beanFactory.addAndGet("camera.handlerIsometric", IsometricHandler.class);
@@ -227,6 +227,9 @@ public final class CameraController implements Camera.Controller, EventListener,
 
     @Override
     public boolean onEvent(EventObject event) {
+
+        if (handler == null) return false;
+
         if (event instanceof TouchEvent) {
             //Log.v("CameraController","event: "+event);
             TouchEvent touchEvent = (TouchEvent) event;

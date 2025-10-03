@@ -26,6 +26,7 @@ varying vec2 v_TexCoordinate;
 uniform bool u_Lighted;
 attribute vec3 a_Normal;
 varying vec3 v_Normal;
+uniform mat4 u_NormalMatrix;
 
 // normalMap
 uniform bool u_NormalTextured;
@@ -47,7 +48,10 @@ uniform mat4 jointTransforms[MAX_JOINTS];
 void main(){
 
     vec4 animatedPos = vec4(a_Position,1.0);
+    vec3 animatedNormal = a_Normal; // *** START WITH THE ORIGINAL NORMAL ***
+
     if (u_Animated) {
+        // --- Calculate animated position (your existing code is fine) ---
         vec4 bindPos = u_BindShapeMatrix * vec4(a_Position, 1.0);
         vec4 posePosition = jointTransforms[int(in_jointIndices[0])] * bindPos;
         animatedPos = posePosition * in_weights[0];
@@ -57,6 +61,27 @@ void main(){
         animatedPos += posePosition * in_weights[2];
         posePosition = jointTransforms[int(in_jointIndices[3])] * bindPos;
         animatedPos += posePosition * in_weights[3];
+
+        // --- Calculate animated normal ---
+        // We only want the rotation, so we cast the mat4 to a mat3
+        mat3 skinning_mat = mat3(jointTransforms[int(in_jointIndices[0])]);
+        vec3 poseNormal = skinning_mat * a_Normal;
+        animatedNormal = poseNormal * in_weights[0];
+
+        skinning_mat = mat3(jointTransforms[int(in_jointIndices[1])]);
+        poseNormal = skinning_mat * a_Normal;
+        animatedNormal += poseNormal * in_weights[1];
+
+        skinning_mat = mat3(jointTransforms[int(in_jointIndices[2])]);
+        poseNormal = skinning_mat * a_Normal;
+        animatedNormal += poseNormal * in_weights[2];
+
+        skinning_mat = mat3(jointTransforms[int(in_jointIndices[3])]);
+        poseNormal = skinning_mat * a_Normal;
+        animatedNormal += poseNormal * in_weights[3];
+
+        // It is VERY important to re-normalize the final normal vector
+        animatedNormal = normalize(animatedNormal);
     }
 
     // calculate MVP matrix
@@ -65,7 +90,7 @@ void main(){
 
     // calculate rendered position
     gl_Position = u_MVPMatrix * animatedPos;
-    v_Position = vec3(animatedPos);
+    v_Position = vec3(u_MMatrix * animatedPos); // Pass world position to fragment shader
 
     // colour
     if (u_Coloured){
@@ -79,13 +104,16 @@ void main(){
 
     // normal
     if (u_Lighted){
-        // Normal = mat3(transpose(inverse(model))) * aNormal;
-        //v_Normal = u_MMatrix_Normal * a_Normal;
-        v_Normal = a_Normal;
+        // Use the transformed normal. It also needs to be transformed by the model matrix
+        // to get it into world space for lighting calculations.
+        //mat3 u_NormalMatrix = mat3(transpose(inverse(u_MMatrix)));
+        v_Normal = mat3(u_NormalMatrix) * animatedNormal;
     }
 
     // texture normal
     if (u_NormalTextured) {
-        v_Tangent = a_Tangent;
+        // NOTE: If you use normal mapping on an animated model, the tangent
+        // (a_Tangent) must ALSO be transformed using the same skinning logic!
+        v_Tangent = a_Tangent; // This will be incorrect for animated models.
     }
 }

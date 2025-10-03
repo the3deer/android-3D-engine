@@ -1,8 +1,12 @@
 package org.the3deer.android_3d_model_engine.services;
 
 import org.the3deer.android_3d_model_engine.model.Object3DData;
+import org.the3deer.android_3d_model_engine.model.Scene;
 
 public class LoadListenerAdapter implements LoadListener {
+
+    public LoadListenerAdapter() {
+    }
 
     @Override
     public void onStart() {
@@ -10,8 +14,17 @@ public class LoadListenerAdapter implements LoadListener {
     }
 
     @Override
-    public void onProgress(String progress) {
+    public void onLoad(Scene scene) {
+    }
 
+    @Override
+    public void onLoad(Scene scene, Object3DData data) {
+        scene.addObject(data);
+    }
+
+    @Override
+    public void onLoadComplete(Scene scene) {
+        scene.onLoadComplete();
     }
 
     @Override
@@ -20,12 +33,6 @@ public class LoadListenerAdapter implements LoadListener {
     }
 
     @Override
-    public void onLoad(Object3DData data) {
-
-    }
-
-    @Override
     public void onLoadComplete() {
-
     }
 }

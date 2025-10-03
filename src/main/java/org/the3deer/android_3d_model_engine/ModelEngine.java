@@ -34,9 +34,11 @@ import org.the3deer.android_3d_model_engine.renderer.DefaultRenderer;
 import org.the3deer.android_3d_model_engine.renderer.RendererPreferences;
 import org.the3deer.android_3d_model_engine.scene.SceneDrawer;
 import org.the3deer.android_3d_model_engine.scene.SceneImpl;
+import org.the3deer.android_3d_model_engine.scene.SceneLoader;
 import org.the3deer.android_3d_model_engine.scene.SceneManager;
+import org.the3deer.android_3d_model_engine.shader.ShaderFactory;
+import org.the3deer.android_3d_model_engine.shader.ShaderPreferences;
 import org.the3deer.android_3d_model_engine.shadow.ShadowDrawer;
-import org.the3deer.android_3d_model_engine.view.GLFragment;
 import org.the3deer.util.android.AndroidURLStreamHandlerFactory;
 import org.the3deer.util.android.ContentUtils;
 import org.the3deer.util.bean.BeanFactory;
@@ -70,6 +72,7 @@ public class ModelEngine {
     }
 
     // params
+    private final String id;
     private final Bundle bundle;
     private final Bundle extras;
     private final Activity activity;
@@ -81,7 +84,8 @@ public class ModelEngine {
     private boolean initialized = false;
 
 
-    public ModelEngine(Activity activity, Bundle bundle, Bundle extras) {
+    public ModelEngine(String id, Activity activity, Bundle bundle, Bundle extras) {
+        this.id = id;
         this.activity = activity;
         this.bundle = bundle;
         this.extras = extras;
@@ -93,17 +97,17 @@ public class ModelEngine {
         //init();
     }
 
-    public static ModelEngine newInstance(Activity activity, Bundle bundle, Bundle extras){
-        return new ModelEngine(activity, bundle, extras);
+    public static ModelEngine newInstance(String id, Activity activity, Bundle bundle, Bundle extras){
+        return new ModelEngine(id, activity, bundle, extras);
+    }
+
+    public void defaultInit(){
+
     }
 
     @NonNull
     public BeanFactory getBeanFactory() {
         return beanFactory;
-    }
-
-    public GLFragment getGLFragment() {
-        return beanFactory.find(GLFragment.class);
     }
 
     public PreferenceFragment getPreferenceFragment(){
@@ -127,7 +131,7 @@ public class ModelEngine {
 
             // start
             //beanFactory.init();
-            Log.i(TAG, "BeanFactory initialized");
+            Log.d(TAG, "BeanFactory initialized");
 
         } catch (Exception ex) {
             Log.e(TAG, "BeanFactory initialization issue", ex);
@@ -150,7 +154,7 @@ public class ModelEngine {
             beanFactory.init();
 
             // log
-            Log.i(TAG, "BeanFactory initialized");
+            Log.d(TAG, "BeanFactory initialized");
 
         } catch (Exception ex) {
             Log.e(TAG, "BeanFactory refresh issue", ex);
@@ -168,35 +172,37 @@ public class ModelEngine {
 
         // android
 
-        //beanFactory.add("activity", this.activity);
+        beanFactory.add("activity", this.activity);
         beanFactory.add("handler", this.handler);
         beanFactory.add("bundle", this.bundle);
-        //beanFactory.add("extras", this.extras);
+        beanFactory.add("extras", this.extras);
 
         // system
         beanFactory.add("10.model", ModelEngine.this);
         beanFactory.add("10.controller", ModelController.class);
         //beanFactory.add("surface", this.surface);
         //beanFactory.add("fragment_gl", GLFragment.class);
-        //beanFactory.add("10.shaderFactory", ShaderFactory.class);
+        beanFactory.add("10.shaderFactory", ShaderFactory.class);
         beanFactory.add("10.screen", new Screen(640, 480));
         //beanFactory.add("10.settings", PreferenceFragment.class);
 
-        //beanFactory.add("10.shaderPreferences", ShaderPreferences.class);
+        beanFactory.add("10.shaderPreferences", ShaderPreferences.class);
         beanFactory.add("10.touchController", TouchController.class);
 
         // FIXME: this bean can be merged into renderer
         beanFactory.add("10.renderer0.drawerController", RendererPreferences.class);
 
         // objects
-        beanFactory.add("20.scene_0.scene0Manager", SceneManager.class);
-        beanFactory.add("20.scene_0.scene1Imp", SceneImpl.class);
-        beanFactory.add("20.scene_0.projection", PerspectiveProjection.class);
-        beanFactory.add("20.scene_0.camera", new Camera(Constants.DEFAULT_CAMERA_POSITION));
-        beanFactory.add("20.scene_0.light", new Light(Constants.DEFAULT_LIGHT_LOCATION));
+        //beanFactory.add("20.scene_0.scene", SceneImpl.class);
+        beanFactory.add("20.scene.sceneManager", SceneManager.class);
+        beanFactory.add("20.scene.projection", PerspectiveProjection.class);
+        beanFactory.add("20.scene.camera", new Camera(Constants.DEFAULT_CAMERA_POSITION));
+        //beanFactory.add("20.scene.light", new Light(Constants.DEFAULT_LIGHT_LOCATION));
+        beanFactory.add("20.scene.light", new Light(new float[]{50f, 100f, 50f}));
+        beanFactory.add("20.scene.sceneLoader", SceneLoader.class);
 
         // projections
-        beanFactory.add("20.scene_0.projections.orthographic", OrthographicProjection.class);
+        beanFactory.add("20.scene.projections.orthographic", OrthographicProjection.class);
 
         // controllers
         //beanFactory.add("20.controller.animationController", AnimationController.class);

@@ -14,7 +14,6 @@ import androidx.preference.PreferenceGroup;
 import org.the3deer.android_3d_model_engine.R;
 import org.the3deer.android_3d_model_engine.model.Camera;
 import org.the3deer.android_3d_model_engine.model.Light;
-import org.the3deer.android_3d_model_engine.model.Object3DData;
 import org.the3deer.android_3d_model_engine.model.Projection;
 import org.the3deer.android_3d_model_engine.model.Scene;
 import org.the3deer.android_3d_model_engine.preferences.PreferenceAdapter;
@@ -28,7 +27,7 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
-public class SceneManager implements Scene, PreferenceAdapter {
+public class SceneManager implements PreferenceAdapter {
 
     private final static String TAG = SceneManager.class.getSimpleName();
 
@@ -50,14 +49,12 @@ public class SceneManager implements Scene, PreferenceAdapter {
     @BeanInit
     public void setUp(){
         if (scenes == null || scenes.isEmpty()){
-            throw new IllegalStateException("No scenes found");
-        }
-        if (scenes.size() == 1){
-            throw new IllegalStateException("Need at least 1 Scene implementation");
+            return;
         }
 
         // default scene
-        delegate = scenes.get(1);
+        delegate = scenes.get(0);
+        delegate.setEnabled(true);
 
         /*// FIXME: only for testing
         final Object3DData plane = Plane2.build();
@@ -72,70 +69,17 @@ public class SceneManager implements Scene, PreferenceAdapter {
         scene2.addObject(obj10);
 
         scene2.onLoadComplete();*/
-
-        Log.i(TAG, "SceneManager initialized. default scene: "+delegate);
-    }
-
-
-
-    @Override
-    public void setName(String name) {
-        throw new RuntimeException("this is a not to be called");
-    }
-
-    @NonNull
-    @Override
-    public String getName() {
-        return "SceneManager: "+ System.identityHashCode(this);
-    }
-
-    @Override
-    public Camera getCamera() {
-        return delegate.getCamera();
     }
 
     public void addScene(Scene scene) {
-        /*this.scenes.add(scene);
-        scene.setCamera(camera);*/
-        //scene.setProjection(projection);
+        String id = "20.scene." + scenes.size() + scene.getName();
+        Log.d(TAG, "Adding scene to SceneManager: "+id);
+        beanFactory.addOrReplace(id, scene);
 
-        // FIXME:  beanFactory needs to refresh the BeanList
-        beanFactory.addOrReplace("scene."+scene.getName(), scene);
-        //beanFactory.init();
-
-    }
-
-    @Override
-    public void addObject(Object3DData obj) {
-        delegate.addObject(obj);
-    }
-
-    @Override
-    public List<Object3DData> getObjects() {
-        return delegate.getObjects();
-    }
-
-    @Override
-    public Object3DData getSelectedObject() {
-        return delegate.getSelectedObject();
-    }
-
-    @Override
-    public void setCamera(Camera camera) {
-        delegate.setCamera(camera);
-    }
-
-    @Override
-    public void onLoadComplete() {
-        delegate.onLoadComplete();
-    }
-
-    @Override
-    public void reset() {
-        if (scenes != null) {
-            setUp();
-            delegate.getObjects().clear();
-        }
+        // initialize default scene
+        if (delegate == null){
+            delegate = scene;
+        };
     }
 
     // ----------------------
@@ -143,12 +87,11 @@ public class SceneManager implements Scene, PreferenceAdapter {
     @Override
     public void onCreatePreferences(@Nullable Bundle savedInstanceState, @Nullable String rootKey, Context context, PreferenceGroup screen) {
 
-        if (scenes == null || scenes.size() < 2){
+        if (scenes == null || scenes.isEmpty()){
             return;
         }
 
         final List<Scene> scenes = new ArrayList<>(this.scenes);
-        scenes.remove(0);
 
         PreferenceGroup category = screen.findPreference(this.getClass().getName());
         if (category == null){
@@ -164,11 +107,7 @@ public class SceneManager implements Scene, PreferenceAdapter {
         final CharSequence[] sceneValuesA = new CharSequence[scenes.size()];
         for (int i = 0; i < scenes.size(); i++) {
             final Scene candidate = scenes.get(i);
-            if (i == 0) {
-                sceneNamesA[i] = candidate.getName() + " (default)" ;
-            } else {
-                sceneNamesA[i] = candidate.getName();
-            }
+            sceneNamesA[i] = candidate.getName();
             sceneValuesA[i] = String.valueOf(i);
             if(candidate.isEnabled()) {
                 scenesEnabled.add(String.valueOf(i));
@@ -209,5 +148,15 @@ public class SceneManager implements Scene, PreferenceAdapter {
         });
     }
 
+    public Scene getCurrentScene() {
+        return delegate;
+    }
 
+    public List<Scene> getScenes() {
+        return scenes;
+    }
+
+    public void setCurrentScene(Scene scene) {
+        this.delegate = scene;
+    }
 }

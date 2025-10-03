@@ -20,7 +20,7 @@ public class Rescaler {
             return;
         }
 
-        Log.i("Rescaler", "Rescaling '" + object3DData.getId() + "...");
+        Log.v("Rescaler", "Rescaling '" + object3DData.getId() + "...");
         for (int i = 0; i < vertexBuffer.capacity(); i += 3) {
             if (vertexBuffer.get(i) > rightPt)
                 rightPt = vertexBuffer.get(i);
@@ -35,9 +35,9 @@ public class Rescaler {
             else if (vertexBuffer.get(i + 2) < farPt)
                 farPt = vertexBuffer.get(i + 2);
         } // end
-        Log.i("Rescaler", "Dimensions for '" + object3DData.getId() + " (X left, X right): (" + leftPt + "," + rightPt + ")");
-        Log.i("Rescaler", "Dimensions for '" + object3DData.getId() + " (Y top, Y bottom): (" + topPt + "," + bottomPt + ")");
-        Log.i("Rescaler", "Dimensions for '" + object3DData.getId() + " (Z near, Z far): (" + nearPt + "," + farPt + ")");
+        Log.v("Rescaler", "Dimensions for '" + object3DData.getId() + " (X left, X right): (" + leftPt + "," + rightPt + ")");
+        Log.v("Rescaler", "Dimensions for '" + object3DData.getId() + " (Y top, Y bottom): (" + topPt + "," + bottomPt + ")");
+        Log.v("Rescaler", "Dimensions for '" + object3DData.getId() + " (Z near, Z far): (" + nearPt + "," + farPt + ")");
 
         // calculate center of 3D object
         float xc = (rightPt + leftPt) / 2.0f;
@@ -54,7 +54,7 @@ public class Rescaler {
             largest = height;
         if (depth > largest)
             largest = depth;
-        Log.i("Rescaler", "Largest dimension [" + largest + "]");
+        Log.v("Rescaler", "Largest dimension [" + largest + "]");
 
         // scale object
 

@@ -67,7 +67,8 @@ public class ContentUtils {
     private static File currentDir = null;
 
     public static void setThreadActivity(Context currentActivity) {
-        Log.i("ContentUtils", "Current activity thread: " + Thread.currentThread().getName());
+        Log.d("ContentUtils", "Current activity : " + currentActivity);
+        Log.d("ContentUtils", "Current activity : " + Thread.currentThread().getName());
         ContentUtils.currentActivity.set(currentActivity);
     }
 
@@ -86,10 +87,10 @@ public class ContentUtils {
     }
 
     public static void provideAssets(Activity activity) {
-        Log.i("ContentUtils", "Registering assets... ");
+        Log.d("ContentUtils", "Registering assets... ");
         documentsProvided.clear();
         provideAssets(activity, MODELS_FOLDER);
-        Log.i("ContentUtils", "Assets found: "+ documentsProvided.size()/2);
+        Log.d("ContentUtils", "Assets found: "+ documentsProvided.size()/2);
     }
 
     private static void provideAssets(Activity activity, String directory) {
@@ -118,7 +119,7 @@ public class ContentUtils {
 
     public static void addUri(String name, Uri uri) {
         documentsProvided.put(name, uri);
-        Log.i("ContentUtils", "Added (" + name + ") " + uri);
+        Log.v("ContentUtils", "Added (" + name + ") " + uri);
     }
 
     /**
@@ -140,7 +141,7 @@ public class ContentUtils {
 
     public static void addData(Uri uri, byte[] data) {
         binariesProvided.put(uri, data);
-        Log.i("ContentUtils", "Added (" + uri + ") " + data.length + " bytes");
+        Log.v("ContentUtils", "Added (" + uri + ") " + data.length + " bytes");
     }
 
     public static byte[] getData(Uri uri) {
@@ -185,15 +186,15 @@ public class ContentUtils {
             return new ByteArrayInputStream(getData(uri));
         }
 
-        Log.i("ContentUtils", "Opening stream ..." + uri);
+        Log.v("ContentUtils", "Opening stream ..." + uri);
         if (uri.getScheme().equals("android")) {
             if (uri.getPath().startsWith("/assets/")) {
                 final String path = uri.getPath().substring("/assets/".length());
-                Log.i("ContentUtils", "Opening asset: " + path);
+                Log.d("ContentUtils", "Opening asset: " + path);
                 return getCurrentActivity().getAssets().open(path);
             } else if (uri.getPath().startsWith("/res/drawable/")){
                 final String path = uri.getPath().substring("/res/drawable/".length()).replace(".png","");
-                Log.i("ContentUtils", "Opening drawable: " + path);
+                Log.d("ContentUtils", "Opening drawable: " + path);
                 final int resourceId = getCurrentActivity().getResources()
                         .getIdentifier(path, "drawable", getCurrentActivity().getPackageName());
                 return getCurrentActivity().getResources().openRawResource(resourceId);
@@ -414,12 +415,12 @@ public class ContentUtils {
         }
     }
 
-    public static String read(URL url) {
+    public static String read(URL url) throws IOException {
         try (InputStream is = url.openStream()){
             return new Scanner(is).useDelimiter("\\Z").next();
         } catch (IOException ex) {
             Log.e("ContentUtils", "Error reading from " + url, ex);
-            return null;
+            throw ex;
         }
     }
 

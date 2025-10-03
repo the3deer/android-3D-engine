@@ -35,7 +35,7 @@ public class SkinLoader {
 		for (XmlNode controller : library_controllers.getChildren("controller")) {
 			XmlNode skinningData = controller.getChild("skin");
 			String skinId = skinningData.getAttribute("source").substring(1);
-			Log.i("SkinLoader", "Loading skin... " + skinId);
+			Log.d("SkinLoader", "Loading skin... " + skinId);
 
 			// bind shape matrix
 			float[] bindShapeMatrix = null;
@@ -49,7 +49,7 @@ public class SkinLoader {
 
 			// Ordered joint list
 			List<String> jointNames = loadJointNames(skinningData);
-			Log.i("SkinLoader", "Joints found: " + jointNames.size() + ", names: " + jointNames);
+			Log.d("SkinLoader", "Joints found: " + jointNames.size() + ", names: " + jointNames);
 
 			// Vertex weights
 			float[] weights = loadWeights(skinningData);

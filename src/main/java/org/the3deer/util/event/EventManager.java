@@ -7,7 +7,7 @@ public interface EventManager {
     /**
      * Process the event
      * @param event
-     * @return true if the event was handle, false otherwise
+     * @return true if the event was handled, false otherwise
      */
     boolean propagate(EventObject event);
 }

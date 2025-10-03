@@ -2,6 +2,7 @@ package org.the3deer.android_3d_model_engine.shader;
 
 import android.content.Context;
 import android.opengl.GLES20;
+import android.opengl.Matrix;
 import android.os.Bundle;
 import android.os.SystemClock;
 import android.util.Log;
@@ -29,6 +30,7 @@ import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.nio.ShortBuffer;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -55,7 +57,7 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
     // Preference Keys (define these as constants)
     public static final String KEY_SHADER_LIGHTING_TYPE = "shader_default_lighting_type";
     public static final String KEY_SHADER_ANIMATION_ENABLED = "shader_default_animation_enabled"; // Example for a boolean
-    public static final String KEY_SHADER_COLOS_ENABLED = "shader_default_colors_enabled"; // Example for a boolean
+    public static final String KEY_SHADER_COLORS_ENABLED = "shader_default_colors_enabled"; // Example for a boolean
     public static final String KEY_SHADER_TEXTURE_SELECTION = "shader_default_texture_enabled";
 
     private static final int COORDS_PER_VERTEX = 3;
@@ -109,6 +111,9 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
     private boolean lightingEnabled = true;
     private boolean animationEnabled = true;
 
+    // state
+    private List<Texture> textures = new ArrayList<>();
+
     @Override
     public int getId() {
         return mProgram;
@@ -154,11 +159,12 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
 
         this.id = id;
 
-        Log.i(TAG, "Checking features... " + id);
+        Log.d(TAG, "Checking features... " + id);
         final Set<String> shaderFeatures = new HashSet<>();
         final String shaderCode = vertexShaderCode + fragmentShaderCode;
         this.supportsMMatrix = testShaderFeature(shaderFeatures, shaderCode, "u_MMatrix");
-        this.supportsNormals = testShaderFeature(shaderFeatures, shaderCode, "a_Normal");
+        this.supportsNormals = testShaderFeature(shaderFeatures, shaderCode, "a_Normal")
+                && testShaderFeature(shaderFeatures, shaderCode, "u_NormalMatrix");
         this.supportsColors = testShaderFeature(shaderFeatures, shaderCode, "a_Color");
         this.supportsTangent = testShaderFeature(shaderFeatures, shaderCode, "a_Tangent");
         this.supportsTextures = testShaderFeature(shaderFeatures, shaderCode, "a_TexCoordinate");
@@ -173,7 +179,7 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
         this.supportsTransmissionTexture = testShaderFeature(shaderFeatures, fragmentShaderCode, "u_TransmissionTexture");
         this.features = shaderFeatures;
 
-        Log.i(TAG, "Compiling 3D Drawer... " + id);
+        Log.d(TAG, "Loading Shader... " + id);
         this.checkGlError = false;
 
         // load shaders
@@ -181,9 +187,10 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
         int fragmentShader = GLUtil.loadShader(GLES20.GL_FRAGMENT_SHADER, fragmentShaderCode);
 
         // compile program
+        Log.d(TAG, "Compiled Shader " + id );
         mProgram = GLUtil.createAndLinkProgram(vertexShader, fragmentShader, features.toArray(new String[0]));
 
-        Log.i(TAG, "Compiled 3D Drawer (" + id + ") with id " + mProgram);
+        Log.d(TAG, "Linked Shader " + id + " with program " + mProgram);
     }
 
     @Override
@@ -218,6 +225,21 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
     }
 
     @Override
+    public void reset() {
+
+        // reset textures so they can be reloaded in opengl thread
+        Log.i(TAG, "Deleting textures... Total: " + textures.size());
+        for (Texture texture : textures){
+            if (texture.getId() != -1) {
+                GLES20.glDeleteTextures(1, new int[]{texture.getId()}, 0);
+                texture.setId(-1);
+            }
+        }
+        textures.clear();
+        Log.d(TAG, "Textures deleted");
+    }
+
+    @Override
     public void draw(Object3DData obj, float[] pMatrix, float[] vMatrix, float[] lightPosInWorldSpace, float[] colorMask, float[] cameraPos, int drawMode, int drawSize) {
 
         if (this.autoUseProgram) {
@@ -242,6 +264,7 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
         int mNormalHandle = -1;
         if (supportsNormals && obj.getNormalsBuffer() != null) {
             mNormalHandle = setVBO("a_Normal", obj.getNormalsBuffer(), COORDS_PER_VERTEX, GLES20.GL_FLOAT);
+            setUniformMatrix4(obj.getNormalMatrix(), "u_NormalMatrix");
         }
 
         // pass in normals map for lighting
@@ -326,6 +349,7 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
 
         if (supportsAnimation) {
             final boolean animationOK = obj instanceof AnimatedModel
+                    && ((AnimatedModel) obj).getCurrentAnimation() != null
                     && ((AnimatedModel) obj).getJointMatrices() != null
                     && ((AnimatedModel) obj).getVertexWeights() != null
                     && ((AnimatedModel) obj).getJointIds() != null;
@@ -336,6 +360,7 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
                 setUniformMatrix4(((AnimatedModel) obj).getBindShapeMatrix(), "u_BindShapeMatrix");
                 setJointTransforms((AnimatedModel) obj);
             }
+            //Log.v(TAG, "u_Animated: " + toggle + " ("+obj.getId()+")");
             setFeatureFlag("u_Animated", toggle);
         }
 
@@ -410,13 +435,19 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
 
         // load
         final int textureId;
-        if (texture.getBitmap() != null) {
+        if (texture.getBitmap() != null && !texture.getBitmap().isRecycled()) {
             textureId = GLUtil.loadTexture(texture.getBitmap());
             texture.setId(textureId);
         } else if (texture.getData() != null) {
             textureId = GLUtil.loadTexture(texture.getData());
             texture.setId(textureId);
+        } else {
+            Log.e(TAG, "No texture data for " + id);
+            return;
         }
+
+        textures.add(texture);
+        Log.d(TAG, "Loaded texture " + textureId + " for " + id);
     }
 
     private int setVBO(final String shaderVariableName, final Buffer buffer, int componentsPerVertex, int glType) {
@@ -1022,7 +1053,7 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
         if (supportsColors) {
             // Example: SwitchPreference for Animation (if you had a boolean)
             SwitchPreferenceCompat pref = new SwitchPreferenceCompat(context);
-            pref.setKey(KEY_SHADER_COLOS_ENABLED);
+            pref.setKey(KEY_SHADER_COLORS_ENABLED);
             pref.setTitle("Colors");
             pref.setDefaultValue(true);
             category.addPreference(pref);

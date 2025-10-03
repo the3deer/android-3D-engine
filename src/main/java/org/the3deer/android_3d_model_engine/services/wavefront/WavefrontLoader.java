@@ -39,6 +39,8 @@ import org.the3deer.android_3d_model_engine.model.Element;
 import org.the3deer.android_3d_model_engine.model.Material;
 import org.the3deer.android_3d_model_engine.model.Materials;
 import org.the3deer.android_3d_model_engine.model.Object3DData;
+import org.the3deer.android_3d_model_engine.model.Scene;
+import org.the3deer.android_3d_model_engine.scene.SceneImpl;
 import org.the3deer.android_3d_model_engine.services.LoadListener;
 import org.the3deer.android_3d_model_engine.services.collada.entities.MeshData;
 import org.the3deer.android_3d_model_engine.services.collada.entities.Vertex;
@@ -99,9 +101,9 @@ public class WavefrontLoader {
             Log.i("WavefrontLoader", "Loading model... " + modelURI);
 
             // log event
-            Log.i("WavefrontLoader", "--------------------------------------------------");
-            Log.i("WavefrontLoader", "Parsing geometries... ");
-            Log.i("WavefrontLoader", "--------------------------------------------------");
+            Log.v("WavefrontLoader", "--------------------------------------------------");
+            Log.d("WavefrontLoader", "Parsing geometries... ");
+            Log.v("WavefrontLoader", "--------------------------------------------------");
 
             // open stream, parse model, then close stream
             final InputStream is = modelURI.toURL().openStream();
@@ -112,10 +114,14 @@ public class WavefrontLoader {
             final List<Object3DData> ret = new ArrayList<>();
 
             // log event
-            Log.i("WavefrontLoader", "Processing geometries... ");
+            Log.d("WavefrontLoader", "Processing geometries... ");
 
             // notify listener
             callback.onProgress("Processing geometries...");
+
+            // scene
+            final Scene scene = new SceneImpl();
+            callback.onLoad(scene);
 
             // proces all meshes
             for (MeshData meshData : meshes) {
@@ -143,7 +149,7 @@ public class WavefrontLoader {
                 data3D.setDrawMode(GLES20.GL_TRIANGLES);
 
                 // add model to scene
-                callback.onLoad(data3D);
+                callback.onLoad(scene, data3D);
 
                 // notify listener
                 callback.onProgress("Loading materials...");
@@ -152,13 +158,19 @@ public class WavefrontLoader {
                 loadMaterials(meshData);
 
                 ret.add(data3D);
+
             }
 
+            callback.onLoadComplete(scene);
+
+            callback.onLoadComplete();
+
             // log event
-            Log.i("WavefrontLoader", "Loaded geometries: " + ret.size());
+            Log.d("WavefrontLoader", "Loaded geometries: " + ret.size());Log.i("WavefrontLoader", "Parsing geometries... ");
 
             return ret;
-        } catch (IOException ex) {
+        } catch (Exception ex) {
+            Log.e("WavefrontLoader", ex.getMessage(), ex);
             throw new RuntimeException(ex);
         }
     }
@@ -169,9 +181,9 @@ public class WavefrontLoader {
         if (meshData.getMaterialFile() == null) return;
 
         // log event
-        Log.i("WavefrontLoader", "--------------------------------------------------");
-        Log.i("WavefrontLoader", "Parsing materials... ");
-        Log.i("WavefrontLoader", "--------------------------------------------------");
+        Log.v("WavefrontLoader", "--------------------------------------------------");
+        Log.d("WavefrontLoader", "Parsing materials... ");
+        Log.v("WavefrontLoader", "--------------------------------------------------");
 
         try {
 
@@ -192,7 +204,7 @@ public class WavefrontLoader {
                     final Element element = meshData.getElements().get(e);
 
                     // log event
-                    Log.i("WavefrontLoader", "Processing element... " + element.getId());
+                    Log.d("WavefrontLoader", "Processing element... " + element.getId());
 
                     // get material id
                     final String elementMaterialId = element.getMaterialId();
@@ -212,7 +224,7 @@ public class WavefrontLoader {
 
 
                             // log event
-                            Log.i("WavefrontLoader", "Reading texture file... " + elementMaterial.getColorTexture().getFile());
+                            Log.d("WavefrontLoader", "Reading texture file... " + elementMaterial.getColorTexture().getFile());
 
                             // read texture data
                             try (InputStream stream = ContentUtils.getInputStream(elementMaterial.getColorTexture().getFile())) {
@@ -221,7 +233,7 @@ public class WavefrontLoader {
                                 elementMaterial.getColorTexture().setData(IOUtils.read(stream));
 
                                 // log event
-                                Log.i("WavefrontLoader", "Texture linked... " + elementMaterial.getColorTexture().getFile());
+                                Log.d("WavefrontLoader", "Texture linked... " + elementMaterial.getColorTexture().getFile());
 
                             } catch (Exception ex) {
                                 Log.e("WavefrontLoader", String.format("Error reading texture file: %s", ex.getMessage()));
@@ -370,7 +382,7 @@ public class WavefrontLoader {
                         .vertexAttributes(verticesAttributes).materialFile(mtllib)
                         .addElement(element).smoothingGroups(smoothingGroups).build();
 
-                Log.i("WavefrontLoader", "Loaded mesh. id:" + meshData.getId() + ", indices: " + indicesCurrent.size()
+                Log.d("WavefrontLoader", "Loaded mesh. id:" + meshData.getId() + ", indices: " + indicesCurrent.size()
                         + ", vertices:" + vertexList.size()
                         + ", normals: " + normalsList.size()
                         + ", textures:" + textureList.size()

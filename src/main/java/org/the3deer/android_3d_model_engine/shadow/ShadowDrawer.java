@@ -7,6 +7,7 @@ import org.the3deer.android_3d_model_engine.model.Light;
 import org.the3deer.android_3d_model_engine.model.Scene;
 import org.the3deer.android_3d_model_engine.renderer.Drawer;
 import org.the3deer.android_3d_model_engine.shader.ShaderFactory;
+import org.the3deer.util.bean.BeanInit;
 
 import java.io.IOException;
 
@@ -37,10 +38,11 @@ public class ShadowDrawer implements Drawer {
     public ShadowDrawer() throws IOException, IllegalAccessException {
     }
 
+    @BeanInit
     public void setUp(){
         if (activity == null || shaderFactory == null) return;
 
-        this.shadowsRenderer = new ShadowsRenderer(activity, shaderFactory);
+        this.shadowsRenderer = new ShadowsRenderer();
     }
 
     @Override
@@ -59,9 +61,7 @@ public class ShadowDrawer implements Drawer {
     }*/
 
     public void onSurfaceChanged(int width, int height) {
-        if (enabled) {
-            shadowsRenderer.onSurfaceChanged(width, height);
-        }
+        shadowsRenderer.onSurfaceChanged(width, height);
     }
 
     @Override
@@ -86,9 +86,9 @@ public class ShadowDrawer implements Drawer {
         if (!shadowsRenderer.enabled) return;
 
         // shadow buffer
-        shadowsRenderer.onPrepareFrame(camera.getProjectionMatrix(), camera.getViewMatrix(), light.getLocation(), scene);
+        shadowsRenderer.onPrepareFrame(shaderFactory, camera.getProjectionMatrix(), camera.getViewMatrix(), light.getLocation(), scene);
 
         // render with shadows
-        shadowsRenderer.onDrawFrame(camera.getProjectionMatrix(), camera.getViewMatrix(), light.getLocation(), scene);
+        shadowsRenderer.onDrawFrame(shaderFactory, camera.getProjectionMatrix(), camera.getViewMatrix(), light.getLocation(), scene);
     }
 }

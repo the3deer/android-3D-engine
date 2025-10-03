@@ -9,6 +9,7 @@ import org.the3deer.android_3d_model_engine.services.collada.entities.MeshData;
 import org.the3deer.android_3d_model_engine.shader.ShaderFactory;
 import org.the3deer.util.android.AndroidUtils;
 import org.the3deer.util.event.EventListener;
+import org.the3deer.util.io.IOUtils;
 import org.the3deer.util.math.Math3DUtils;
 import org.the3deer.util.math.Quaternion;
 
@@ -153,6 +154,10 @@ public class Object3DData {
      * This is the local transformation (M=TSR)
      */
     private final float[] modelMatrix = new float[16];
+    /**
+     * Normal matrix
+     */
+    private final float[] normalMatrix = new float[16];
     /**
      * This is the local transformation (M=SR), except translation
      */
@@ -385,15 +390,7 @@ public class Object3DData {
                     final Buffer indexBuffer = element.getIndexBuffer();
                     for (int i = 0; i < indexBuffer.capacity(); i++) {
                         final int idx;
-                        if (indexBuffer instanceof IntBuffer) {
-                            idx = ((IntBuffer) indexBuffer).get(i);
-                        } else if (indexBuffer instanceof ShortBuffer) {
-                            idx = ((ShortBuffer) indexBuffer).get(i);
-                        } else if (indexBuffer instanceof ByteBuffer) {
-                            idx = ((ByteBuffer) indexBuffer).get(i);
-                        } else {
-                            throw new IllegalStateException("IndexBuffer is of unknown type");
-                        }
+                        idx = getIndexBufferValue(indexBuffer, i);
                         if (idx < 0 || idx >= vertexBuffer.capacity()) {
                             Log.w("Object3DData", "Wrong index: " + idx);
                             continue;
@@ -830,11 +827,21 @@ public class Object3DData {
             }
         }
 
+        // normal matrix calculation
+        Matrix.setIdentityM(normalMatrix, 0);
+        final float[] inverted = new float[16];
+        Matrix.invertM(inverted, 0, newModelMatrix, 0);
+        Matrix.transposeM(normalMatrix, 0, inverted, 0);
+
         propagate(new ChangeEvent(this));
     }
 
     public float[] getModelMatrix() {
         return newModelMatrix;
+    }
+
+    public float[] getNormalMatrix() {
+        return normalMatrix;
     }
 
     public Transform getTransform() {
@@ -1012,6 +1019,59 @@ public class Object3DData {
         this.vertexBuffer = null;
         this.colorsBuffer = null;
         this.indexBuffer = null;
+    }
+
+    // -- helper methods
+
+    /**
+     * Init normals from vertices. Only for triangulated polygons
+     */
+    public void initNormals() {
+
+        // check
+        if (drawMode != GLES20.GL_TRIANGLES) return;
+
+        // loop indices
+        if (normalsBuffer == null && vertexBuffer != null) {
+
+            Log.v("Object3DData", "Generating normals... "+getId());
+
+            // init normal buffer
+            normalsBuffer = IOUtils.createFloatBuffer(getVertexBuffer().capacity());
+
+            for (int i = 0; i < vertexBuffer.capacity()-9; i += 9) {
+
+                final float[] v1 = getVertexBufferValue(i);
+                final float[] v2 = getVertexBufferValue(i+3);
+                final float[] v3 = getVertexBufferValue(i+6);
+
+                // calculate normal
+                final float[] calculatedNormal = Math3DUtils.calculateNormal(v1, v2, v3);
+
+                // add normal
+                normalsBuffer.put(calculatedNormal);
+                normalsBuffer.put(calculatedNormal);
+                normalsBuffer.put(calculatedNormal);
+            }
+
+            Log.v("Object3DData", "Generating normals finished. "+getId());
+        }
+    }
+
+    private static int getIndexBufferValue(Buffer indexBuffer, int i) {
+        int ret = -1;
+        if (indexBuffer instanceof IntBuffer) {
+            ret = ((IntBuffer) indexBuffer).get(i);
+        } else if (indexBuffer instanceof ShortBuffer) {
+            ret = ((ShortBuffer) indexBuffer).get(i);
+        } else if (indexBuffer instanceof ByteBuffer) {
+            ret = ((ByteBuffer) indexBuffer).get(i);
+        }
+        return ret;
+    }
+
+    private float[] getVertexBufferValue(int offset) {
+        return new float[]{vertexBuffer.get(offset),vertexBuffer.get(offset+1), vertexBuffer.get(offset+2)};
     }
 
     @Override

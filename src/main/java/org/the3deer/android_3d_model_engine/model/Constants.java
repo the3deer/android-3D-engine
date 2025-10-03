@@ -39,7 +39,7 @@ public class Constants {
     /**
      * Default camera position on Z axis
      */
-    public static final float DEFAULT_CAMERA_POSITION = DEFAULT_MODEL_SIZE;
+    public static final float[] DEFAULT_CAMERA_POSITION = new float[]{0,0,DEFAULT_MODEL_SIZE};
     /**
      * Light bulb location (3d object) - it's a point in the center - location will be different
      */
@@ -47,7 +47,7 @@ public class Constants {
     /**
      * Default light location
      */
-    public static final float[] DEFAULT_LIGHT_LOCATION = new float[]{DEFAULT_MODEL_SIZE,DEFAULT_MODEL_SIZE,DEFAULT_MODEL_SIZE};
+    public static final float[] DEFAULT_LIGHT_LOCATION = DEFAULT_CAMERA_POSITION;
     public static final float SKYBOX_SIZE = DEFAULT_MODEL_SIZE * 10f;
     public static final float[] Z_NORMAL = {0, 0, 1};
     public static final float[] VECTOR_ZERO = {0,0,0};

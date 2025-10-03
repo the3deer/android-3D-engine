@@ -30,7 +30,6 @@ uniform int u_AlphaMode;
 
 // light
 uniform bool u_Lighted;
-uniform mat4 uNormalMatrix;
 uniform vec3 u_LightPos;
 varying vec3 v_Normal;
 
@@ -120,11 +119,13 @@ void main(){
     if (u_Lighted) {
 
         // Transform the vertex into eye space.
-        vec3 modelVertex = vec3(u_MMatrix * vec4(v_Position, 1.0));
+        // vec3 modelVertex = vec3(u_MMatrix * vec4(v_Position,1.0));
+        vec3 modelVertex = v_Position;
 
         // Transform the normal's orientation into eye space.
         // Note that we need to remove the translation part by setting w=0
-        vec3 modelNormal = normalize(vec3(u_MMatrix * vec4(v_Normal, 0.0)));
+        //vec3 modelNormal = normalize(vec3(u_MMatrix * vec4(v_Normal,0.0)));
+        vec3 modelNormal = normalize(v_Normal);
 
         // normal map
         if (u_NormalTextured){
@@ -159,7 +160,7 @@ void main(){
 
         // Attenuate the light based on distance.
         float dist = distance(u_LightPos, modelVertex);
-        dist = 1.0 / (1.0 + dist * 0.005);
+        dist = 1.0 / (1.0 + dist * 0.025);
         diffuse = diff * dist;
 
         // specular light

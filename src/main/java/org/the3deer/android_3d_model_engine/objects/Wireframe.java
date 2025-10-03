@@ -118,7 +118,7 @@ public class Wireframe {
                         retA.setJoints(animSource.getJointIds());
                         retA.setWeights(animSource.getVertexWeights());
                         retA.setJointMatrices(animSource.getJointMatrices());
-                        retA.setAnimation(animSource.getAnimation());
+                        retA.setAnimations(animSource.getAnimations());
                         retA.refresh();
                     }
                     return false;

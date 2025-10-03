@@ -21,6 +21,7 @@ import org.the3deer.android_3d_model_engine.model.Constants;
 import org.the3deer.android_3d_model_engine.preferences.PreferenceAdapter;
 import org.the3deer.android_3d_model_engine.toolbar.MenuAdapter;
 import org.the3deer.android_3d_model_engine.view.Renderer;
+import org.the3deer.util.bean.BeanInit;
 
 import java.util.HashMap;
 import java.util.List;
@@ -174,6 +175,7 @@ public class RendererPreferences implements MenuAdapter, PreferenceAdapter {
         return true;
     }
 
+    @BeanInit
     public void setUp() {
         refresh();
     }

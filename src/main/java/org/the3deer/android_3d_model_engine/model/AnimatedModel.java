@@ -8,6 +8,7 @@ import org.the3deer.util.math.Math3DUtils;
 
 import java.nio.Buffer;
 import java.nio.FloatBuffer;
+import java.util.List;
 
 /**
  * This class represents an entity in the world that can be animated. It
@@ -31,7 +32,8 @@ public class AnimatedModel extends Object3DData {
 
     private Buffer jointIds;
     private Buffer vertexWeigths;
-    private Animation animation;
+    private List<Animation> animations;
+    private Animation currentAnimation;
 
     // cache
     private Joint rootJoint;
@@ -110,14 +112,27 @@ public class AnimatedModel extends Object3DData {
         return vertexWeigths;
     }
 
-    public AnimatedModel setAnimation(Animation animation) {
-        this.animation = animation;
+
+    public AnimatedModel setAnimations(List<Animation> animations) {
+        this.animations = animations;
+        if (animations != null && animations.size() > 0){
+            setCurrentAnimation(animations.get(0));
+        }
+        
         propagate(new ChangeEvent(this));
         return this;
     }
 
-    public Animation getAnimation() {
-        return animation;
+    public List<Animation> getAnimations() {
+        return animations;
+    }
+
+    public Animation getCurrentAnimation() {
+        return currentAnimation;
+    }
+
+    public void setCurrentAnimation(Animation currentAnimation) {
+        this.currentAnimation = currentAnimation;
     }
 
     /**
@@ -166,7 +181,7 @@ public class AnimatedModel extends Object3DData {
         ret.setWeights(this.getVertexWeights());
         ret.setRootJoint(this.getRootJoint());
         ret.setSkeleton(this.getSkeleton());
-        ret.setAnimation(this.getAnimation());
+        ret.setAnimations(this.getAnimations());
         ret.setJointMatrices(this.getJointTransforms());
         //ret.setBindShapeMatrix(this.getBindShapeMatrix());
         return ret;

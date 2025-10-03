@@ -1,59 +1,97 @@
 package org.the3deer.android_3d_model_engine.view;
 
 import android.content.Context;
+import android.util.AttributeSet;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.widget.Toast;
 
-import javax.inject.Inject;
+import androidx.lifecycle.ViewModelProvider;
+import androidx.lifecycle.ViewModelStoreOwner;
+
+import org.the3deer.android_3d_model_engine.ModelEngine;
+import org.the3deer.android_3d_model_engine.ModelViewModel;
+import org.the3deer.util.bean.BeanInit;
 
 /**
  * This is the actual OpenGL surface.
  * It requires a @{@link android.opengl.GLSurfaceView.Renderer} implementation.
- * It requires a @{@link GLTouchListener} to listen for OpenGL screen touch events
+ * It requires a @{@link GLTouchHandler} to listen for OpenGL screen touch events
  */
 public class GLSurfaceView extends android.opengl.GLSurfaceView {
 
     private final static String TAG = GLSurfaceView.class.getSimpleName();
 
-    @Inject
-    private GLTouchListener glTouchListener;
-
-    @Inject
+    private GLTouchHandler glTouchHandler;
+    private ModelEngine modelEngine;
     private Renderer glRenderer;
 
     /**
      * Construct a new renderer for the specified surface view
      */
-    public GLSurfaceView(Context parent) {
-        super(parent);
-        try {
+    public GLSurfaceView(Context parent, AttributeSet attributeSet) {
+        super(parent, attributeSet);
 
-            // Create an OpenGL ES 2.0 context.
-            Log.d(TAG, "Creating OpenGL 3 surface...");
-            setEGLContextClientVersion(3);
+        Log.i(TAG, "Creating OpenGL 3 surface... " + System.identityHashCode(this));
 
-        } catch (Exception e) {
-            Log.e(TAG, e.getMessage(), e);
-            Toast.makeText(parent, e.getMessage(), Toast.LENGTH_LONG).show();
-            throw new RuntimeException(e);
-        }
+        // Create an OpenGL ES 3.0 context.
+        setEGLContextClientVersion(3);
     }
 
-    public void setUp() {
-        if (this.glRenderer != null) {
-            Log.i(TAG, "Configuring renderer: " + this.glRenderer.getClass().getName());
-            setRenderer(this.glRenderer);
-        } else {
-            throw new IllegalStateException("Renderer is null");
-        }
+    //@BeanInit
+    public void setUp(ModelEngine modelEngine) {
+
+        glRenderer = new GLRendererImpl();
+        //glTouchHandler = modelEngine.getBeanFactory().find(GLTouchHandler.class);
+
+        modelEngine.getBeanFactory().addOrReplace("gl_renderer", glRenderer);
+
+        Log.d(TAG, "Configuring renderer: " + glRenderer.getClass().getName());
+        setRenderer(glRenderer);
+    }
+
+    @Override
+    public void onResume() {
+        if (glRenderer != null)
+            super.onResume();
+    }
+
+    @Override
+    public void onPause() {
+        if (glRenderer != null)
+            super.onPause();
+    }
+
+    @Override
+    protected void onDetachedFromWindow() {
+        super.onDetachedFromWindow();
+        tearDown();
+    }
+
+    public void tearDown() {
+        if (modelEngine != null)
+            modelEngine.getBeanFactory().remove("gl_renderer");
+    }
+
+    /**
+     * Allows the engine to handle the event from this sub-view
+     *
+     * @param handler
+     */
+    public void setTouchEventHandler(GLTouchHandler handler) {
+        this.glTouchHandler = handler;
+        Log.d(TAG, "Registered touch handler: " + System.identityHashCode(handler));
     }
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        if (this.glTouchListener != null) {
-            return glTouchListener.onSurfaceTouchEvent(event);
+        // send the event to the manager
+        if (this.glTouchHandler != null) {
+            return glTouchHandler.onSurfaceTouchEvent(event);
+        } else {
+            Log.e(TAG, "Touch handler not found!");
         }
+
         return false;
     }
 }

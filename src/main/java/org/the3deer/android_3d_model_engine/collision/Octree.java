@@ -58,7 +58,7 @@ public class Octree {
     }
 
     static Octree build(Object3DData object){
-        Log.i("Octree", "Building octree for "+object.getId());
+        Log.d("Octree", "Building octree for "+object.getId());
         final Octree ret = new Octree(object.getBoundingBox());
         if (object.getDrawOrder() == null) {
             // vertex array contains vertex in sequence

@@ -27,7 +27,7 @@ public class HoleCutter {
         cross[2] = 0;
         float[] rotationMatrix = Math3DUtils.createRotationMatrixAroundVector(angle, cross[0], cross[1], cross[2]);
 
-        Log.i("HoleCutter", "normal: " + Arrays.toString(normal) + ", angle: " + angle + ", axis: " + Arrays.toString(cross));
+        Log.v("HoleCutter", "normal: " + Arrays.toString(normal) + ", angle: " + angle + ", axis: " + Arrays.toString(cross));
 
         // map 3D to 2D
         final List<Float> list2D = new ArrayList<>();

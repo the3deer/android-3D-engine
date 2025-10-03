@@ -5,6 +5,7 @@ import android.util.Log;
 
 import org.the3deer.android_3d_model_engine.model.Camera;
 import org.the3deer.android_3d_model_engine.model.Projection;
+import org.the3deer.util.bean.BeanInit;
 import org.the3deer.util.math.Math3DUtils;
 
 import javax.inject.Inject;
@@ -24,6 +25,7 @@ public class DefaultHandler implements CameraController.Handler {
     private float[] saveView;
     private float[] saveUp;
 
+    @BeanInit
     public void setUp() {
         this.savePos = camera.getPos().clone();
         this.saveView = new float[]{0,0,0,0};

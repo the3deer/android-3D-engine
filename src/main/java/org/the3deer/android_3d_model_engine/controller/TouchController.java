@@ -98,7 +98,6 @@ public class TouchController implements EventListener {
 
     @Override
     public boolean onEvent(EventObject event) {
-        // Log.d("TouchController","Processing event... "+ event);
         if (event.getSource() instanceof MotionEvent) {
             return onMotionEvent((MotionEvent) event.getSource());
         } else if (event instanceof GLEvent) {

@@ -3,6 +3,7 @@ package org.the3deer.android_3d_model_engine.gui;
 import android.util.Log;
 
 import org.the3deer.android_3d_model_engine.model.Screen;
+import org.the3deer.util.bean.BeanInit;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -58,6 +59,7 @@ public class FontFactory {
         setUp();
     }
 
+    @BeanInit
     public void setUp() {
         // final Screen screen = BeanFactory.getInstance().find(Screen.class);
 

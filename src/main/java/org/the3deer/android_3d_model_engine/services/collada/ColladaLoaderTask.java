@@ -18,6 +18,6 @@ public class ColladaLoaderTask extends LoaderTask {
 
     @Override
     protected List<Object3DData> build() throws IOException {
-        return new ColladaLoader().load(uri, this);
+        return new ColladaLoader().load(uri, callback);
     }
 }

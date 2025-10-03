@@ -48,14 +48,14 @@ public class AnimationLoader {
 
         Animation ret = null;
         try {
-            Log.i("AnimationLoader", "Loading animation...");
+            Log.v("AnimationLoader", "Loading animation...");
 
             loadTransforms();
 
 			KeyFrame[] frames = buildKeyFrames();
 
-			ret = new Animation(this.duration, frames);
-            Log.i("AnimationLoader", "Loaded animation: " + ret);
+			ret = new Animation("Animation-default", this.duration, frames);
+            Log.v("AnimationLoader", "Loaded animation: " + ret);
         } catch (Exception ex) {
             Log.e("AnimationLoader", "Error loading animation", ex);
         }
@@ -63,9 +63,9 @@ public class AnimationLoader {
     }
 
 	private void loadTransforms() {
-        Log.i("AnimationLoader", "Loading key times...");
+        Log.d("AnimationLoader", "Loading key times...");
         TreeSet<Float> timesSorted = getKeyTimes();
-        Log.i("AnimationLoader", "Loaded key times: (" + timesSorted.size() + "): " + timesSorted);
+        Log.d("AnimationLoader", "Loaded key times: (" + timesSorted.size() + "): " + timesSorted);
 
         this.duration = timesSorted.last();
         Log.i("AnimationLoader", "Animation length: " + duration);
@@ -79,8 +79,10 @@ public class AnimationLoader {
 
         this.keyTimes = new ArrayList<>(timesSorted);
         List<XmlNode> animationNodes = library_animations.getChildren("animation");
-        Log.i("AnimationLoader", "Loading animations... Total: " + animationNodes.size());
+        Log.d("AnimationLoader", "Loading animations... Total: " + animationNodes.size());
         for (XmlNode animationNode : animationNodes) {
+
+            Log.d("AnimationLoader", "Loading animation... id: " + animationNode.getAttribute(""));
 
             if (animationNode.getChildren("animation").isEmpty()){
                 loadJointTransforms(animationNode);

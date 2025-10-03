@@ -6,9 +6,9 @@ uniform mat4 u_VMatrix;
 uniform mat4 u_PMatrix;
 
 // mesh
-attribute vec4 a_Position;
+attribute vec3 a_Position;
 
-// colouring
+// colors
 uniform bool u_Coloured;
 attribute vec4 a_Color;
 varying vec4 v_Color;
@@ -20,7 +20,7 @@ void main(){
     mat4 u_MVPMatrix = u_PMatrix * u_MVMatrix;
 
     // calculate rendered position
-    gl_Position = u_MVPMatrix * a_Position;
+    gl_Position = u_MVPMatrix * vec4(a_Position, 1.0);;
     gl_PointSize = 15.0;
 
     // pass color to fragment shader

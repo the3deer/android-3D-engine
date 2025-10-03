@@ -305,7 +305,7 @@ public class MeshData {
      */
     public void fixNormals() {
 
-        Log.i("MeshData", "Fixing missing or wrong normals...");
+        Log.d("MeshData", "Fixing missing or wrong normals...");
 
         // check there is normals to fix
         if (this.normals == null || this.normals.isEmpty()) {
@@ -316,7 +316,7 @@ public class MeshData {
         } else {
 
             // fix missing or wrong
-            if (this.elements != null) {
+            if (this.elements != null && !this.elements.isEmpty()) {
                 fixNormalsForElements();
             } else {
                 fixNormalsForArrays();
@@ -330,7 +330,7 @@ public class MeshData {
      */
     private void generateNormals() {
 
-        Log.i("MeshData", "Generating normals...");
+        Log.d("MeshData", "Generating normals...");
 
         // replaced normals
         final List<float[]> newNormals = new ArrayList<>();
@@ -387,12 +387,12 @@ public class MeshData {
 
         this.normals = newNormals;
 
-        Log.i("MeshData", "Generated normals. Total: " + this.normals.size() + ", Faces/Lines: " + counter);
+        Log.d("MeshData", "Generated normals. Total: " + this.normals.size() + ", Faces/Lines: " + counter);
     }
 
     private void fixNormalsForArrays() {
 
-        Log.i("MeshData", "Fixing normals...");
+        Log.d("MeshData", "Fixing normals...");
 
         // otherwise replaced with this normals
         final List<float[]> newNormals = new ArrayList<>();
@@ -469,13 +469,13 @@ public class MeshData {
 
         this.normals = newNormals;
 
-        Log.i("MeshData", "Fixed normals. Total: " + counter);
+        Log.v("MeshData", "Fixed normals. Total: " + counter);
     }
 
 
     private void fixNormalsForElements() {
 
-        Log.i("MeshData", "Fixing normals for all elements...");
+        Log.v("MeshData", "Fixing normals for all elements...");
 
         // otherwise replaced with this normals
         final List<float[]> newNormals = new ArrayList<>();
@@ -591,9 +591,11 @@ public class MeshData {
             }
         }
 
-        this.normals = newNormals;
+        if (counter > 0) {
+            this.normals = newNormals;
+            Log.v("MeshData", "Fixed normals. Total: " + counter);
+        }
 
-        Log.i("MeshData", "Fixed normals. Total: " + counter);
     }
 
     private void smoothAutoForArrays() {
@@ -794,7 +796,7 @@ public class MeshData {
                     if (index >= 0 && index < normals.size()) {
                         normal = normals.get(index);
                     } else {
-                        Log.v("MeshData", "Wrong normal index: " + index);
+                        //Log.v("MeshData", "Wrong normal index: " + index);
                     }
                     this.normalsBuffer.put(normal);
                 }
@@ -825,7 +827,7 @@ public class MeshData {
                 if (index >= 0 && index < normals.size()) {
                     normal = this.normals.get(index);
                 } else {
-                    Log.v("MeshData", "Wrong normal index: " + index);
+                    //Log.v("MeshData", "Wrong normal index: " + index);
                 }
                 this.normalsBuffer.put(i * 3, normal[0]);
                 this.normalsBuffer.put(i * 3 + 1, normal[1]);

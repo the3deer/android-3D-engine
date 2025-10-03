@@ -574,7 +574,7 @@ public class GeometryLoader {
             }
             totalFaces++;
         }
-        Log.i("GeometryLoader", "Total FAN faces: " + totalFaces + ", Total indices: " + indices.size());
+        Log.v("GeometryLoader", "Total FAN faces: " + totalFaces + ", Total indices: " + indices.size());
     }
 
     private void triangulateFannedPolygon(List<Integer> indices, int vertexOffset, int normalOffset, int colorOffset, int texOffset, int stride, String[] indexData) {
@@ -653,7 +653,7 @@ public class GeometryLoader {
             this.verticesAttributes.add(vertexAttribute);
 
         }
-        Log.i("GeometryLoader", "Total FAN faces: " + totalFaces + ", Total indices: " + indices.size());
+        Log.v("GeometryLoader", "Total FAN faces: " + totalFaces + ", Total indices: " + indices.size());
     }
 
     private List<int[]> convertIndicesListToArray(List<List<Integer>> allIndices) {

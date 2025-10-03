@@ -15,455 +15,459 @@ import java.util.Set;
 
 
 /**
- *
  * This class contains all the functionality to apply an animation to an
  * animated entity. An Animator instance is associated with just one
  * {@link AnimatedModel}. It also keeps track of the running time (in seconds)
  * of the current animation, along with a reference to the currently playing
  * animation for the corresponding entity.
- *
+ * <p>
  * An Animator instance needs to be updated every frame, in order for it to keep
  * updating the animation pose of the associated entity. The currently playing
  * animation can be changed at any time using the doAnimation() method. The
  * Animator will keep looping the current animation until a new animation is
  * chosen.
- *
+ * <p>
  * The Animator calculates the desired current animation pose by interpolating
  * between the previous and next keyframes of the animation (based on the
  * current animation time). The Animator then updates the transforms all of the
  * joints each frame to match the current desired animation pose.
  *
- * @author Karl,andresoviedo
- *
+ * @author Karl, andresoviedo
  */
 public class Animator {
 
-	private float animationTime = 0;
+    private float animationTime = 0;
 
-	private float speed = 1f;
+    private float speed = 1f;
 
-	private final Map<String,Object> cache = new HashMap<>();
+    private final Map<String, Object> cache = new HashMap<>();
 
-	// cache
-	private final Map<String, float[]> currentPose = new HashMap<>();;
-	private KeyFrame[] previousAndNextKeyFrames = new KeyFrame[2];
+    // cache
+    private final Map<String, float[]> currentPose = new HashMap<>();
+    ;
+    private KeyFrame[] previousAndNextKeyFrames = new KeyFrame[2];
 
-	public Animator() {
-	}
+    public Animator() {
+    }
 
-	/**
-	 * This method should be called each frame to update the animation currently
-	 * being played. This increases the animation time (and loops it back to
-	 * zero if necessary), finds the pose that the entity should be in at that
-	 * time of the animation, and then applies that pose to all the model's
-	 * joints by setting the joint transforms.
-	 */
-	public void update(Object3DData obj, boolean bindPoseOnly) {
-		if (!(obj instanceof AnimatedModel)) {
-			return;
-		}
+    /**
+     * This method should be called each frame to update the animation currently
+     * being played. This increases the animation time (and loops it back to
+     * zero if necessary), finds the pose that the entity should be in at that
+     * time of the animation, and then applies that pose to all the model's
+     * joints by setting the joint transforms.
+     */
+    public void update(Object3DData obj, boolean bindPoseOnly) {
+        if (!(obj instanceof AnimatedModel)) {
+            return;
+        }
 
-		// if (true) return;
-		AnimatedModel animatedModel = (AnimatedModel)obj;
+        // if (true) return;
+        final AnimatedModel animatedModel = (AnimatedModel) obj;
 
-		if (animatedModel.getAnimation() == null) {
-			return;
-		}
+        final Animation currentAnimation = animatedModel.getCurrentAnimation();
+        if (currentAnimation == null) return;
 
-		// add missing key transformations
-		initAnimation(animatedModel);
+        // add missing key transformations
+        initAnimation(animatedModel, currentAnimation);
 
-		// increase time to progress animation
-		increaseAnimationTime((AnimatedModel) obj);
+        // increase time to progress animation
+        increaseAnimationTime(currentAnimation);
 
-		Map<String, float[]> currentPose = calculateCurrentAnimationPose(animatedModel);
+        Map<String, float[]> currentPose = calculateCurrentAnimationPose(currentAnimation);
 
-		applyPoseToJoints(animatedModel, currentPose, animatedModel.getRootJoint(),
-				Math3DUtils.IDENTITY_MATRIX,
-				Integer.MAX_VALUE, bindPoseOnly);
-	}
+        applyPoseToJoints(animatedModel, currentPose, animatedModel.getRootJoint(),
+                Math3DUtils.IDENTITY_MATRIX,
+                Integer.MAX_VALUE, true);
+    }
 
-	private void initAnimation(AnimatedModel animatedModel) {
-		if (animatedModel.getAnimation().isInitialized()) {
-			return;
-		}
-		animatedModel.getAnimation().setInitialized(true);
+    private static void initAnimation(AnimatedModel model, Animation animation) {
 
-		final KeyFrame[] keyFrames = animatedModel.getAnimation().getKeyFrames();
-		Log.i("Animator", "Initializing " + animatedModel.getId() + ". " + keyFrames.length + " key frames...");
+        if (animation.isInitialized()) {
+            return;
+        }
+        animation.setInitialized(true);
 
-		// debug
-		animatedModel.getAnimation().debugKeyFrames();
+        final KeyFrame[] keyFrames = animation.getKeyFrames();
+        Log.d("Animator", "Initializing " + model.getId() + ". " + keyFrames.length + " key frames...");
 
-		// get all joint names in the different key frames
-		final Set<String> allJointIds = new HashSet<>();
-		for (int i = 0; i < keyFrames.length; i++) {
-			allJointIds.addAll(keyFrames[i].getTransforms().keySet());
-		}
+        // debug
+        animation.debugKeyFrames();
 
-		// complete keyframes with missing transforms
-		final Joint rootJoint = animatedModel.getRootJoint();
-		for (int i = 0; i < keyFrames.length; i++) {
+        // get all joint names in the different key frames
+        final Set<String> allJointIds = new HashSet<>();
+        for (int i = 0; i < keyFrames.length; i++) {
+            allJointIds.addAll(keyFrames[i].getTransforms().keySet());
+        }
 
-			final KeyFrame keyFrameCurrent = keyFrames[i];
+        // complete keyframes with missing transforms
+        final Joint rootJoint = model.getRootJoint();
+        for (int i = 0; i < keyFrames.length; i++) {
 
-			final Map<String, JointTransform> jointTransforms = keyFrameCurrent.getTransforms();
+            final KeyFrame keyFrameCurrent = keyFrames[i];
 
-			for (String jointId : allJointIds){
+            final Map<String, JointTransform> jointTransforms = keyFrameCurrent.getTransforms();
 
-				// if transform is complete, do nothing
-				final JointTransform currentTransform = jointTransforms.get(jointId);
-				if (currentTransform != null && currentTransform.isComplete()){
-					continue;
-				}
+            for (String jointId : allJointIds) {
 
-				// if not complete, but first frame we just complete transforms with joint data
-				if (currentTransform != null && i == 0){
-					currentTransform.complete(rootJoint.find(jointId));
-					continue;
-				}
+                // if transform is complete, do nothing
+                final JointTransform currentTransform = jointTransforms.get(jointId);
+                if (currentTransform != null && currentTransform.isComplete()) {
+                    continue;
+                }
 
-				// if no transforms at all, but first frame we fill with empty transforms
-				if (currentTransform == null && i == 0){
-					jointTransforms.put(jointId, JointTransform.ofNull());
-					continue;
-				}
+                // if not complete, but first frame we just complete transforms with joint data
+                if (currentTransform != null && i == 0) {
+                    currentTransform.complete(rootJoint.find(jointId));
+                    continue;
+                }
 
-				// get previous key frame
-				final KeyFrame keyFramePrevious = keyFrames[i-1];
-				final JointTransform previousTransform = keyFramePrevious.getTransforms().get(jointId);
+                // if no transforms at all, but first frame we fill with empty transforms
+                if (currentTransform == null && i == 0) {
+                    jointTransforms.put(jointId, JointTransform.ofNull());
+                    continue;
+                }
 
-				// if on last frame, just use previous one
-				if (currentTransform == null && i==keyFrames.length-1){
-					jointTransforms.put(jointId, previousTransform);
-					continue;
-				}
+                // get previous key frame
+                final KeyFrame keyFramePrevious = keyFrames[i - 1];
+                final JointTransform previousTransform = keyFramePrevious.getTransforms().get(jointId);
 
-				// otherwise, interpolate...
-				boolean hasScaleX = currentTransform != null && currentTransform.hasScaleX();
-				boolean hasScaleY = currentTransform != null && currentTransform.hasScaleY();
-				boolean hasScaleZ = currentTransform != null && currentTransform.hasScaleZ();
-				boolean hasRotationX = currentTransform != null && currentTransform.hasRotationX();
-				boolean hasRotationY = currentTransform != null && currentTransform.hasRotationY();
-				boolean hasRotationZ = currentTransform != null && currentTransform.hasRotationZ();
-				boolean hasLocationX = currentTransform != null && currentTransform.hasLocationX();
-				boolean hasLocationY = currentTransform != null && currentTransform.hasLocationY();
-				boolean hasLocationZ = currentTransform != null && currentTransform.hasLocationZ();
+                // if on last frame, just use previous one
+                if (currentTransform == null && i == keyFrames.length - 1) {
+                    jointTransforms.put(jointId, previousTransform);
+                    continue;
+                }
 
-				// get next available key frames
-				KeyFrame keyFrameNextScaleX = null;
-				KeyFrame keyFrameNextScaleY = null;
-				KeyFrame keyFrameNextScaleZ = null;
-				KeyFrame keyFrameNextRotationX = null;
-				KeyFrame keyFrameNextRotationY = null;
-				KeyFrame keyFrameNextRotationZ = null;
-				KeyFrame keyFrameNextLocationX = null;
-				KeyFrame keyFrameNextLocationY = null;
-				KeyFrame keyFrameNextLocationZ = null;
-				for (int k = i + 1; k < keyFrames.length; k++) {
-					JointTransform candidate = keyFrames[k].getTransforms().get(jointId);
-					if (candidate == null) continue;
-					if (candidate.getScale() != null) {
-						if (keyFrameNextScaleX == null && candidate.getScale()[0] != null)
-							keyFrameNextScaleX = keyFrames[k];
-						if (keyFrameNextScaleY == null && candidate.getScale()[1] != null)
-							keyFrameNextScaleY = keyFrames[k];
-						if (keyFrameNextScaleZ == null && candidate.getScale()[2] != null)
-							keyFrameNextScaleZ = keyFrames[k];
-					}
-					if (candidate.getQRotation() != null) {
-						if (keyFrameNextRotationX == null)
-							keyFrameNextRotationX = keyFrames[k];
-						if (keyFrameNextRotationY == null)
-							keyFrameNextRotationY = keyFrames[k];
-						if (keyFrameNextRotationZ == null)
-							keyFrameNextRotationZ = keyFrames[k];
-					}
-					else if (candidate.getRotation() != null) {
-						if (keyFrameNextRotationX == null && candidate.getRotation()[0] != null)
-							keyFrameNextRotationX = keyFrames[k];
-						if (keyFrameNextRotationY == null && candidate.getRotation()[1] != null)
-							keyFrameNextRotationY = keyFrames[k];
-						if (keyFrameNextRotationZ == null && candidate.getRotation()[2] != null)
-							keyFrameNextRotationZ = keyFrames[k];
-					}
-					if (candidate.getLocation() != null) {
-						if (keyFrameNextLocationX == null && candidate.getLocation()[0] != null)
-							keyFrameNextLocationX = keyFrames[k];
-						if (keyFrameNextLocationY == null && candidate.getLocation()[1] != null)
-							keyFrameNextLocationY = keyFrames[k];
-						if (keyFrameNextLocationZ == null && candidate.getLocation()[2] != null)
-							keyFrameNextLocationZ = keyFrames[k];
-					}
-					if (keyFrameNextScaleX != null && keyFrameNextScaleY != null && keyFrameNextScaleZ != null
-							&& keyFrameNextRotationX != null && keyFrameNextRotationY != null && keyFrameNextRotationZ != null
-							&& keyFrameNextLocationX != null && keyFrameNextLocationY != null && keyFrameNextLocationZ != null) {
-						break;
-					}
-				}
+                // otherwise, interpolate...
+                boolean hasScaleX = currentTransform != null && currentTransform.hasScaleX();
+                boolean hasScaleY = currentTransform != null && currentTransform.hasScaleY();
+                boolean hasScaleZ = currentTransform != null && currentTransform.hasScaleZ();
+                boolean hasRotationX = currentTransform != null && currentTransform.hasRotationX();
+                boolean hasRotationY = currentTransform != null && currentTransform.hasRotationY();
+                boolean hasRotationZ = currentTransform != null && currentTransform.hasRotationZ();
+                boolean hasLocationX = currentTransform != null && currentTransform.hasLocationX();
+                boolean hasLocationY = currentTransform != null && currentTransform.hasLocationY();
+                boolean hasLocationZ = currentTransform != null && currentTransform.hasLocationZ();
 
-				// if next transform is null, copy previous one
-				if (keyFrameNextScaleX == null) keyFrameNextScaleX = hasScaleX ? keyFrameCurrent : keyFramePrevious;
-				if (keyFrameNextScaleY == null) keyFrameNextScaleY = hasScaleY ? keyFrameCurrent : keyFramePrevious;
-				if (keyFrameNextScaleZ == null) keyFrameNextScaleZ = hasScaleZ ? keyFrameCurrent : keyFramePrevious;
-				if (keyFrameNextRotationX == null) keyFrameNextRotationX = hasRotationX ? keyFrameCurrent : keyFramePrevious;
-				if (keyFrameNextRotationY == null) keyFrameNextRotationY = hasRotationY ? keyFrameCurrent : keyFramePrevious;
-				if (keyFrameNextRotationZ == null) keyFrameNextRotationZ = hasRotationZ ? keyFrameCurrent : keyFramePrevious;
-				if (keyFrameNextLocationX == null) keyFrameNextLocationX = hasLocationX ? keyFrameCurrent : keyFramePrevious;
-				if (keyFrameNextLocationY == null) keyFrameNextLocationY = hasLocationY ? keyFrameCurrent : keyFramePrevious;
-				if (keyFrameNextLocationZ == null) keyFrameNextLocationZ = hasLocationZ ? keyFrameCurrent : keyFramePrevious;
+                // get next available key frames
+                KeyFrame keyFrameNextScaleX = null;
+                KeyFrame keyFrameNextScaleY = null;
+                KeyFrame keyFrameNextScaleZ = null;
+                KeyFrame keyFrameNextRotationX = null;
+                KeyFrame keyFrameNextRotationY = null;
+                KeyFrame keyFrameNextRotationZ = null;
+                KeyFrame keyFrameNextLocationX = null;
+                KeyFrame keyFrameNextLocationY = null;
+                KeyFrame keyFrameNextLocationZ = null;
+                for (int k = i + 1; k < keyFrames.length; k++) {
+                    JointTransform candidate = keyFrames[k].getTransforms().get(jointId);
+                    if (candidate == null) continue;
+                    if (candidate.getScale() != null) {
+                        if (keyFrameNextScaleX == null && candidate.getScale()[0] != null)
+                            keyFrameNextScaleX = keyFrames[k];
+                        if (keyFrameNextScaleY == null && candidate.getScale()[1] != null)
+                            keyFrameNextScaleY = keyFrames[k];
+                        if (keyFrameNextScaleZ == null && candidate.getScale()[2] != null)
+                            keyFrameNextScaleZ = keyFrames[k];
+                    }
+                    if (candidate.getQRotation() != null) {
+                        if (keyFrameNextRotationX == null)
+                            keyFrameNextRotationX = keyFrames[k];
+                        if (keyFrameNextRotationY == null)
+                            keyFrameNextRotationY = keyFrames[k];
+                        if (keyFrameNextRotationZ == null)
+                            keyFrameNextRotationZ = keyFrames[k];
+                    } else if (candidate.getRotation() != null) {
+                        if (keyFrameNextRotationX == null && candidate.getRotation()[0] != null)
+                            keyFrameNextRotationX = keyFrames[k];
+                        if (keyFrameNextRotationY == null && candidate.getRotation()[1] != null)
+                            keyFrameNextRotationY = keyFrames[k];
+                        if (keyFrameNextRotationZ == null && candidate.getRotation()[2] != null)
+                            keyFrameNextRotationZ = keyFrames[k];
+                    }
+                    if (candidate.getLocation() != null) {
+                        if (keyFrameNextLocationX == null && candidate.getLocation()[0] != null)
+                            keyFrameNextLocationX = keyFrames[k];
+                        if (keyFrameNextLocationY == null && candidate.getLocation()[1] != null)
+                            keyFrameNextLocationY = keyFrames[k];
+                        if (keyFrameNextLocationZ == null && candidate.getLocation()[2] != null)
+                            keyFrameNextLocationZ = keyFrames[k];
+                    }
+                    if (keyFrameNextScaleX != null && keyFrameNextScaleY != null && keyFrameNextScaleZ != null
+                            && keyFrameNextRotationX != null && keyFrameNextRotationY != null && keyFrameNextRotationZ != null
+                            && keyFrameNextLocationX != null && keyFrameNextLocationY != null && keyFrameNextLocationZ != null) {
+                        break;
+                    }
+                }
 
-				// calculate progression for each individual transform
-				final float elapsed = keyFrameCurrent.getTimeStamp() - keyFramePrevious.getTimeStamp();
-				final float scaleProgressionX = keyFrameNextScaleX != keyFramePrevious ?
-					elapsed / (keyFrameNextScaleX.getTimeStamp() - keyFramePrevious.getTimeStamp()) : 0;
-				final float scaleProgressionY = keyFrameNextScaleY != keyFramePrevious ?
-						elapsed / (keyFrameNextScaleY.getTimeStamp() - keyFramePrevious.getTimeStamp()) : 0;
-				final float scaleProgressionZ = keyFrameNextScaleZ != keyFramePrevious ?
-						elapsed / (keyFrameNextScaleZ.getTimeStamp() - keyFramePrevious.getTimeStamp()) : 0;
-				final float rotationProgressionX = keyFrameNextRotationX != keyFramePrevious ?
-					elapsed / (keyFrameNextRotationX.getTimeStamp() - keyFramePrevious.getTimeStamp()) : 0;
-				final float rotationProgressionY = keyFrameNextRotationY != keyFramePrevious ?
-						elapsed / (keyFrameNextRotationY.getTimeStamp() - keyFramePrevious.getTimeStamp()) : 0;
-				final float rotationProgressionZ = keyFrameNextRotationZ != keyFramePrevious ?
-						elapsed / (keyFrameNextRotationZ.getTimeStamp() - keyFramePrevious.getTimeStamp()) : 0;
-				final float locationProgressionX = keyFrameNextLocationX != keyFramePrevious ?
-					elapsed / (keyFrameNextLocationX.getTimeStamp() - keyFramePrevious.getTimeStamp()) : 0;
-				final float locationProgressionY = keyFrameNextLocationY != keyFramePrevious ?
-						elapsed / (keyFrameNextLocationY.getTimeStamp() - keyFramePrevious.getTimeStamp()) : 0;
-				final float locationProgressionZ = keyFrameNextLocationZ != keyFramePrevious ?
-						elapsed / (keyFrameNextLocationZ.getTimeStamp() - keyFramePrevious.getTimeStamp()) : 0;
+                // if next transform is null, copy previous one
+                if (keyFrameNextScaleX == null)
+                    keyFrameNextScaleX = hasScaleX ? keyFrameCurrent : keyFramePrevious;
+                if (keyFrameNextScaleY == null)
+                    keyFrameNextScaleY = hasScaleY ? keyFrameCurrent : keyFramePrevious;
+                if (keyFrameNextScaleZ == null)
+                    keyFrameNextScaleZ = hasScaleZ ? keyFrameCurrent : keyFramePrevious;
+                if (keyFrameNextRotationX == null)
+                    keyFrameNextRotationX = hasRotationX ? keyFrameCurrent : keyFramePrevious;
+                if (keyFrameNextRotationY == null)
+                    keyFrameNextRotationY = hasRotationY ? keyFrameCurrent : keyFramePrevious;
+                if (keyFrameNextRotationZ == null)
+                    keyFrameNextRotationZ = hasRotationZ ? keyFrameCurrent : keyFramePrevious;
+                if (keyFrameNextLocationX == null)
+                    keyFrameNextLocationX = hasLocationX ? keyFrameCurrent : keyFramePrevious;
+                if (keyFrameNextLocationY == null)
+                    keyFrameNextLocationY = hasLocationY ? keyFrameCurrent : keyFramePrevious;
+                if (keyFrameNextLocationZ == null)
+                    keyFrameNextLocationZ = hasLocationZ ? keyFrameCurrent : keyFramePrevious;
 
-				// interpolate
-				final JointTransform missingFrameTransform = JointTransform.ofInterpolation(
-						hasScaleX? currentTransform : previousTransform, keyFrameNextScaleX.getTransforms().get(jointId), scaleProgressionX,
-						hasScaleY? currentTransform : previousTransform, keyFrameNextScaleY.getTransforms().get(jointId), scaleProgressionY,
-						hasScaleZ? currentTransform : previousTransform, keyFrameNextScaleZ.getTransforms().get(jointId), scaleProgressionZ,
-						hasRotationX? currentTransform : previousTransform, keyFrameNextRotationX.getTransforms().get(jointId), rotationProgressionX,
-						hasRotationY? currentTransform : previousTransform, keyFrameNextRotationY.getTransforms().get(jointId), rotationProgressionY,
-						hasRotationZ? currentTransform : previousTransform, keyFrameNextRotationZ.getTransforms().get(jointId), rotationProgressionZ,
-						hasLocationX? currentTransform : previousTransform, keyFrameNextLocationX.getTransforms().get(jointId), locationProgressionX,
-						hasLocationY? currentTransform : previousTransform, keyFrameNextLocationY.getTransforms().get(jointId), locationProgressionY,
-						hasLocationZ? currentTransform : previousTransform, keyFrameNextLocationZ.getTransforms().get(jointId), locationProgressionZ
-				);
+                // calculate progression for each individual transform
+                final float elapsed = keyFrameCurrent.getTimeStamp() - keyFramePrevious.getTimeStamp();
+                final float scaleProgressionX = keyFrameNextScaleX != keyFramePrevious ?
+                        elapsed / (keyFrameNextScaleX.getTimeStamp() - keyFramePrevious.getTimeStamp()) : 0;
+                final float scaleProgressionY = keyFrameNextScaleY != keyFramePrevious ?
+                        elapsed / (keyFrameNextScaleY.getTimeStamp() - keyFramePrevious.getTimeStamp()) : 0;
+                final float scaleProgressionZ = keyFrameNextScaleZ != keyFramePrevious ?
+                        elapsed / (keyFrameNextScaleZ.getTimeStamp() - keyFramePrevious.getTimeStamp()) : 0;
+                final float rotationProgressionX = keyFrameNextRotationX != keyFramePrevious ?
+                        elapsed / (keyFrameNextRotationX.getTimeStamp() - keyFramePrevious.getTimeStamp()) : 0;
+                final float rotationProgressionY = keyFrameNextRotationY != keyFramePrevious ?
+                        elapsed / (keyFrameNextRotationY.getTimeStamp() - keyFramePrevious.getTimeStamp()) : 0;
+                final float rotationProgressionZ = keyFrameNextRotationZ != keyFramePrevious ?
+                        elapsed / (keyFrameNextRotationZ.getTimeStamp() - keyFramePrevious.getTimeStamp()) : 0;
+                final float locationProgressionX = keyFrameNextLocationX != keyFramePrevious ?
+                        elapsed / (keyFrameNextLocationX.getTimeStamp() - keyFramePrevious.getTimeStamp()) : 0;
+                final float locationProgressionY = keyFrameNextLocationY != keyFramePrevious ?
+                        elapsed / (keyFrameNextLocationY.getTimeStamp() - keyFramePrevious.getTimeStamp()) : 0;
+                final float locationProgressionZ = keyFrameNextLocationZ != keyFramePrevious ?
+                        elapsed / (keyFrameNextLocationZ.getTimeStamp() - keyFramePrevious.getTimeStamp()) : 0;
 
-				if (currentTransform == null){
-					jointTransforms.put(jointId, missingFrameTransform);
-				} else {
-					currentTransform.complete(missingFrameTransform);
-				}
+                // interpolate
+                final JointTransform missingFrameTransform = JointTransform.ofInterpolation(
+                        hasScaleX ? currentTransform : previousTransform, keyFrameNextScaleX.getTransforms().get(jointId), scaleProgressionX,
+                        hasScaleY ? currentTransform : previousTransform, keyFrameNextScaleY.getTransforms().get(jointId), scaleProgressionY,
+                        hasScaleZ ? currentTransform : previousTransform, keyFrameNextScaleZ.getTransforms().get(jointId), scaleProgressionZ,
+                        hasRotationX ? currentTransform : previousTransform, keyFrameNextRotationX.getTransforms().get(jointId), rotationProgressionX,
+                        hasRotationY ? currentTransform : previousTransform, keyFrameNextRotationY.getTransforms().get(jointId), rotationProgressionY,
+                        hasRotationZ ? currentTransform : previousTransform, keyFrameNextRotationZ.getTransforms().get(jointId), rotationProgressionZ,
+                        hasLocationX ? currentTransform : previousTransform, keyFrameNextLocationX.getTransforms().get(jointId), locationProgressionX,
+                        hasLocationY ? currentTransform : previousTransform, keyFrameNextLocationY.getTransforms().get(jointId), locationProgressionY,
+                        hasLocationZ ? currentTransform : previousTransform, keyFrameNextLocationZ.getTransforms().get(jointId), locationProgressionZ
+                );
 
-			}
-		}
+                if (currentTransform == null) {
+                    jointTransforms.put(jointId, missingFrameTransform);
+                } else {
+                    currentTransform.complete(missingFrameTransform);
+                }
 
-		Log.i("Animator", "Initialized " + animatedModel.getId() + ". " + keyFrames.length + " key frames");
-	}
+            }
 
-	/**
-	 * Increases the current animation time which allows the animation to
-	 * progress. If the current animation has reached the end then the timer is
-	 * reset, causing the animation to loop.
-	 */
-	private void increaseAnimationTime(AnimatedModel obj) {
-		this.animationTime = SystemClock.uptimeMillis() / 1000f * speed;
-		this.animationTime %= obj.getAnimation().getLength();
-	}
 
-	/**
-	 * This method returns the current animation pose of the entity. It returns
-	 * the desired local-space transforms for all the joints in a map, indexed
-	 * by the name of the joint that they correspond to.
-	 *
-	 * The pose is calculated based on the previous and next keyframes in the
-	 * current animation. Each keyframe provides the desired pose at a certain
-	 * time in the animation, so the animated pose for the current time can be
-	 * calculated by interpolating between the previous and next keyframe.
-	 *
-	 * This method first finds the preious and next keyframe, calculates how far
-	 * between the two the current animation is, and then calculated the pose
-	 * for the current animation time by interpolating between the transforms at
-	 * those keyframes.
-	 *
-	 * @return The current pose as a map of the desired local-space transforms
-	 *         for all the joints. The transforms are indexed by the name ID of
-	 *         the joint that they should be applied to.
-	 */
-	private Map<String, float[]> calculateCurrentAnimationPose(AnimatedModel obj) {
-		KeyFrame[] frames = getPreviousAndNextFrames(obj);
-		float progression = calculateProgression(frames[0], frames[1]);
-		return interpolatePoses(frames[0], frames[1], progression);
-	}
+            Log.d("Animator", "Initialized " + model.getId() + ". " + keyFrames.length + " key frames");
+        }
 
-	/**
-	 * This is the method where the animator calculates and sets those all-
-	 * important "joint transforms" that I talked about so much in the tutorial.
-	 * <p>
-	 * This method applies the current pose to a given joint, and all of its
-	 * descendants. It does this by getting the desired local-transform for the
-	 * current joint, before applying it to the joint. Before applying the
-	 * transformations it needs to be converted from local-space to model-space
-	 * (so that they are relative to the model's origin, rather than relative to
-	 * the parent joint). This can be done by multiplying the local-transform of
-	 * the joint with the model-space transform of the parent joint.
-	 * <p>
-	 * The same thing is then done to all the child joints.
-	 * <p>
-	 * Finally the inverse of the joint's bind transform is multiplied with the
-	 * model-space transform of the joint. This basically "subtracts" the
-	 * joint's original bind (no animation applied) transform from the desired
-	 * pose transform. The result of this is then the transform required to move
-	 * the joint from its original model-space transform to it's desired
-	 * model-space posed transform. This is the transform that needs to be
-	 * loaded up to the vertex shader and used to transform the vertices into
-	 * the current pose.
-	 *
-	 * @param animatedModel   - a map of the local-space transforms for all the joints for
-	 *                        the desired pose. The map is indexed by the name of the joint
-	 *                        which the transform corresponds to.
-	 * @param joint           - the current joint which the pose should be applied to.
-	 * @param parentTransform - the desired model-space transform of the parent joint for
-	 *                        the pose.
-	 * @param bindPoseOnly
-	 */
-	private void applyPoseToJoints(AnimatedModel animatedModel, Map<String,float[]> currentPose, Joint joint, float[]
-			parentTransform, int limit, boolean bindPoseOnly) {
+    }
 
-		// memory optimization
-		float[] currentTransform = (float[])cache.get(joint.getName());
-		if (currentTransform == null){
-			currentTransform = new float[16];
-			cache.put(joint.getName(), currentTransform);
-		}
+    /**
+     * Increases the current animation time which allows the animation to
+     * progress. If the current animation has reached the end then the timer is
+     * reset, causing the animation to loop.
+     */
+    private void increaseAnimationTime(Animation animation) {
+        this.animationTime = SystemClock.uptimeMillis() / 1000f * speed;
+        this.animationTime %= animation.getLength();
+    }
 
-		// calculate animated transform
-		if (!bindPoseOnly && currentPose.get(joint.getName()) != null && limit >0) {
-			Matrix.multiplyMM(currentTransform, 0, parentTransform, 0, currentPose.get(joint.getName()), 0);
-			Matrix.multiplyMM(joint.getAnimatedTransform(), 0, currentTransform, 0, joint.getInverseBindTransform(), 0);
-		}else {
-			/*Matrix.multiplyMM(currentTransform, 0, parentTransform, 0, joint.getBindLocalTransform(), 0);
-			Matrix.multiplyMM(joint.getAnimatedTransform(), 0,  currentTransform, 0, joint.getInverseBindTransform(), 0);*/
+    /**
+     * This method returns the current animation pose of the entity. It returns
+     * the desired local-space transforms for all the joints in a map, indexed
+     * by the name of the joint that they correspond to.
+     * <p>
+     * The pose is calculated based on the previous and next keyframes in the
+     * current animation. Each keyframe provides the desired pose at a certain
+     * time in the animation, so the animated pose for the current time can be
+     * calculated by interpolating between the previous and next keyframe.
+     * <p>
+     * This method first finds the preious and next keyframe, calculates how far
+     * between the two the current animation is, and then calculated the pose
+     * for the current animation time by interpolating between the transforms at
+     * those keyframes.
+     *
+     * @return The current pose as a map of the desired local-space transforms
+     * for all the joints. The transforms are indexed by the name ID of
+     * the joint that they should be applied to.
+     */
+    private Map<String, float[]> calculateCurrentAnimationPose(Animation animation) {
+        KeyFrame[] frames = getPreviousAndNextFrames(animation);
+        float progression = calculateProgression(frames[0], frames[1]);
+        return interpolatePoses(frames[0], frames[1], progression);
+    }
 
-			Matrix.invertM(currentTransform,0,joint.getInverseBindTransform(), 0);
-			Matrix.multiplyMM(currentTransform, 0, parentTransform, 0, currentTransform, 0);
-			System.arraycopy(currentTransform,0, joint.getAnimatedTransform(), 0, 16);
+    /**
+     * This is the method where the animator calculates and sets those all-
+     * important "joint transforms" that I talked about so much in the tutorial.
+     * <p>
+     * This method applies the current pose to a given joint, and all of its
+     * descendants. It does this by getting the desired local-transform for the
+     * current joint, before applying it to the joint. Before applying the
+     * transformations it needs to be converted from local-space to model-space
+     * (so that they are relative to the model's origin, rather than relative to
+     * the parent joint). This can be done by multiplying the local-transform of
+     * the joint with the model-space transform of the parent joint.
+     * <p>
+     * The same thing is then done to all the child joints.
+     * <p>
+     * Finally the inverse of the joint's bind transform is multiplied with the
+     * model-space transform of the joint. This basically "subtracts" the
+     * joint's original bind (no animation applied) transform from the desired
+     * pose transform. The result of this is then the transform required to move
+     * the joint from its original model-space transform to it's desired
+     * model-space posed transform. This is the transform that needs to be
+     * loaded up to the vertex shader and used to transform the vertices into
+     * the current pose.
+     *
+     * @param animatedModel   - a map of the local-space transforms for all the joints for
+     *                        the desired pose. The map is indexed by the name of the joint
+     *                        which the transform corresponds to.
+     * @param joint           - the current joint which the pose should be applied to.
+     * @param parentTransform - the desired model-space transform of the parent joint for
+     *                        the pose.
+     * @param bindPoseOnly
+     */
+    private void applyPoseToJoints(AnimatedModel animatedModel, Map<String, float[]> currentPose, Joint joint, float[]
+            parentTransform, int limit, boolean bindPoseOnly) {
 
-			// raptor patch - wtf!
-			//Matrix.multiplyMM(joint.getAnimatedTransform(), 0,  test, 0, joint.getInverseBindTransform(), 0);
-		}
+        // memory optimization
+        float[] currentTransform = (float[]) cache.get(joint.getName());
+        if (currentTransform == null) {
+            currentTransform = new float[16];
+            cache.put(joint.getName(), currentTransform);
+        }
 
-		if (joint.getIndex() == -1) {
-			if (joint.getMeshes().contains(animatedModel.getId())){
-				// FIXME: this does not work for all models
-				animatedModel.setBindTransform(joint.getAnimatedTransform());
-			} else {
-				//animatedModel.setBindTransform(joint.getAnimatedTransform());
-			}
-		} else {
-			// setup only if its used by vertices. if no index no place for it into animated array
-			animatedModel.updateAnimatedTransform(joint);
-		}
+        // calculate animated transform
+        if (!bindPoseOnly && currentPose.get(joint.getName()) != null && limit > 0) {
+            Matrix.multiplyMM(currentTransform, 0, parentTransform, 0, currentPose.get(joint.getName()), 0);
+            Matrix.multiplyMM(joint.getAnimatedTransform(), 0, currentTransform, 0, joint.getInverseBindTransform(), 0);
+        } else {
+			Matrix.multiplyMM(currentTransform, 0, parentTransform, 0, joint.getBindLocalTransform(), 0);
+			Matrix.multiplyMM(joint.getAnimatedTransform(), 0,  currentTransform, 0, joint.getInverseBindTransform(), 0);
 
-		// transform children
-		for (int i=0; i<joint.getChildren().size(); i++) {
-			Joint childJoint = joint.getChildren().get(i);
-			applyPoseToJoints(animatedModel, currentPose, childJoint, currentTransform, limit-1, bindPoseOnly);
-		}
-	}
+            /*Matrix.invertM(currentTransform, 0, joint.getInverseBindTransform(), 0);
+            Matrix.multiplyMM(currentTransform, 0, parentTransform, 0, currentTransform, 0);
+            System.arraycopy(currentTransform, 0, joint.getAnimatedTransform(), 0, 16);*/
 
-	/**
-	 * Finds the previous keyframe in the animation and the next keyframe in the
-	 * animation, and returns them in an array of length 2. If there is no
-	 * previous frame (perhaps current animation time is 0.5 and the first
-	 * keyframe is at time 1.5) then the first keyframe is used as both the
-	 * previous and next keyframe. The last keyframe is used for both next and
-	 * previous if there is no next keyframe.
-	 *
-	 * @return The previous and next keyframes, in an array which therefore will
-	 *         always have a length of 2.
-	 */
-	private KeyFrame[] getPreviousAndNextFrames(AnimatedModel obj) {
-		KeyFrame[] allFrames = obj.getAnimation().getKeyFrames();
-		KeyFrame previousFrame = allFrames[0];
-		KeyFrame nextFrame = allFrames[0];
-		for (int i = 1; i < allFrames.length; i++) {
-			nextFrame = allFrames[i];
-			if (nextFrame.getTimeStamp() > animationTime) {
-				break;
-			}
-			previousFrame = allFrames[i];
-		}
-		previousAndNextKeyFrames[0] =previousFrame;
-		previousAndNextKeyFrames[1] = nextFrame;
-		return previousAndNextKeyFrames;
-	}
+            // raptor patch - wtf!
+            //Matrix.multiplyMM(joint.getAnimatedTransform(), 0,  test, 0, joint.getInverseBindTransform(), 0);
+        }
 
-	/**
-	 * Calculates how far between the previous and next keyframe the current
-	 * animation time is, and returns it as a value between 0 and 1.
-	 *
-	 * @param previousFrame
-	 *            - the previous keyframe in the animation.
-	 * @param nextFrame
-	 *            - the next keyframe in the animation.
-	 * @return A number between 0 and 1 indicating how far between the two
-	 *         keyframes the current animation time is.
-	 */
-	private float calculateProgression(KeyFrame previousFrame, KeyFrame nextFrame) {
-		float totalTime = nextFrame.getTimeStamp() - previousFrame.getTimeStamp();
-		float currentTime = animationTime - previousFrame.getTimeStamp();
-		// TODO: implement key frame display
-		return currentTime / totalTime * this.speed;
-	}
+        if (joint.getIndex() == -1) {
+            if (joint.getMeshes().contains(animatedModel.getId())) {
+                // FIXME: this does not work for all models
+                animatedModel.setBindTransform(joint.getAnimatedTransform());
+            } else {
+                //animatedModel.setBindTransform(joint.getAnimatedTransform());
+            }
+        } else {
+            // setup only if its used by vertices. if no index no place for it into animated array
+            animatedModel.updateAnimatedTransform(joint);
+        }
 
-	/**
-	 * Calculates all the local-space joint transforms for the desired current
-	 * pose by interpolating between the transforms at the previous and next
-	 * keyframes.
-	 *
-	 * @param previousFrame
-	 *            - the previous keyframe in the animation.
-	 * @param nextFrame
-	 *            - the next keyframe in the animation.
-	 * @param progression
-	 *            - a number between 0 and 1 indicating how far between the
-	 *            previous and next keyframes the current animation time is.
-	 * @return The local-space transforms for all the joints for the desired
-	 *         current pose. They are returned in a map, indexed by the name of
-	 *         the joint to which they should be applied.
-	 */
-	private Map<String, float[]> interpolatePoses(KeyFrame previousFrame, KeyFrame nextFrame, float progression) {
+        // transform children
+        for (int i = 0; i < joint.getChildren().size(); i++) {
+            Joint childJoint = joint.getChildren().get(i);
+            applyPoseToJoints(animatedModel, currentPose, childJoint, currentTransform, limit - 1, bindPoseOnly);
+        }
+    }
 
-		// TODO: optimize this (memory allocation)
-		for (Map.Entry<String,JointTransform> entry : previousFrame.getTransforms().entrySet()) {
+    /**
+     * Finds the previous keyframe in the animation and the next keyframe in the
+     * animation, and returns them in an array of length 2. If there is no
+     * previous frame (perhaps current animation time is 0.5 and the first
+     * keyframe is at time 1.5) then the first keyframe is used as both the
+     * previous and next keyframe. The last keyframe is used for both next and
+     * previous if there is no next keyframe.
+     *
+     * @return The previous and next keyframes, in an array which therefore will
+     * always have a length of 2.
+     */
+    private KeyFrame[] getPreviousAndNextFrames(Animation animation) {
+        KeyFrame[] allFrames = animation.getKeyFrames();
+        KeyFrame previousFrame = allFrames[0];
+        KeyFrame nextFrame = allFrames[0];
+        for (int i = 1; i < allFrames.length; i++) {
+            nextFrame = allFrames[i];
+            if (nextFrame.getTimeStamp() > animationTime) {
+                break;
+            }
+            previousFrame = allFrames[i];
+        }
+        previousAndNextKeyFrames[0] = previousFrame;
+        previousAndNextKeyFrames[1] = nextFrame;
+        return previousAndNextKeyFrames;
+    }
 
-			final String jointName = entry.getKey();
-			final JointTransform previousTransform = entry.getValue();
+    /**
+     * Calculates how far between the previous and next keyframe the current
+     * animation time is, and returns it as a value between 0 and 1.
+     *
+     * @param previousFrame - the previous keyframe in the animation.
+     * @param nextFrame     - the next keyframe in the animation.
+     * @return A number between 0 and 1 indicating how far between the two
+     * keyframes the current animation time is.
+     */
+    private float calculateProgression(KeyFrame previousFrame, KeyFrame nextFrame) {
+        float totalTime = nextFrame.getTimeStamp() - previousFrame.getTimeStamp();
+        float currentTime = animationTime - previousFrame.getTimeStamp();
+        // TODO: implement key frame display
+        return currentTime / totalTime * this.speed;
+    }
 
-			// if there is no progression, we just return key transform
-			if (Math.signum(progression) == 0) {
-				currentPose.put(jointName, previousTransform.getTransform());
-				continue;
-			}
+    /**
+     * Calculates all the local-space joint transforms for the desired current
+     * pose by interpolating between the transforms at the previous and next
+     * keyframes.
+     *
+     * @param previousFrame - the previous keyframe in the animation.
+     * @param nextFrame     - the next keyframe in the animation.
+     * @param progression   - a number between 0 and 1 indicating how far between the
+     *                      previous and next keyframes the current animation time is.
+     * @return The local-space transforms for all the joints for the desired
+     * current pose. They are returned in a map, indexed by the name of
+     * the joint to which they should be applied.
+     */
+    private Map<String, float[]> interpolatePoses(KeyFrame previousFrame, KeyFrame nextFrame, float progression) {
 
-			// TODO: initialize cache on init
-			// temp cache optimization
-			float[] tempMatrix1 = (float[])cache.get(jointName);
-			if (tempMatrix1 == null){
-				tempMatrix1 = new float[16];
-				cache.put(jointName, tempMatrix1);
-			}
+        // TODO: optimize this (memory allocation)
+        for (Map.Entry<String, JointTransform> entry : previousFrame.getTransforms().entrySet()) {
 
-			// next transform
-			JointTransform nextTransform = nextFrame.getTransforms().get(jointName);
+            final String jointName = entry.getKey();
+            final JointTransform previousTransform = entry.getValue();
 
-			// interpolate
-			JointTransform.interpolate(previousTransform, nextTransform, progression, tempMatrix1);
+            // if there is no progression, we just return key transform
+            if (Math.signum(progression) == 0) {
+                currentPose.put(jointName, previousTransform.getTransform());
+                continue;
+            }
 
-			// update pose
-			currentPose.put(jointName, tempMatrix1);
-		}
-		return currentPose;
-	}
+            // TODO: initialize cache on init
+            // temp cache optimization
+            float[] tempMatrix1 = (float[]) cache.get(jointName);
+            if (tempMatrix1 == null) {
+                tempMatrix1 = new float[16];
+                cache.put(jointName, tempMatrix1);
+            }
+
+            // next transform
+            JointTransform nextTransform = nextFrame.getTransforms().get(jointName);
+
+            // interpolate
+            JointTransform.interpolate(previousTransform, nextTransform, progression, tempMatrix1);
+
+            // update pose
+            currentPose.put(jointName, tempMatrix1);
+        }
+        return currentPose;
+    }
 
 }
 

@@ -13,6 +13,7 @@ import org.the3deer.android_3d_model_engine.model.Screen;
 import org.the3deer.android_3d_model_engine.view.FPSEvent;
 import org.the3deer.android_3d_model_engine.view.GLEvent;
 import org.the3deer.util.bean.BeanFactory;
+import org.the3deer.util.bean.BeanInit;
 import org.the3deer.util.bean.BeanManaged;
 import org.the3deer.util.bean.BeanProperty;
 import org.the3deer.util.event.EventListener;
@@ -53,6 +54,7 @@ public class GUIDefault extends Widget implements EventListener, BeanManaged {
     @Inject
     private Screen screen;
 
+    @BeanInit
     public void setUp() {
 
         setVisible(true);
@@ -88,7 +90,7 @@ public class GUIDefault extends Widget implements EventListener, BeanManaged {
 
             if (axis !=  null) {
                 addChild(axis);
-                axis.setRelativeLocation(Widget.POSITION_TOP_LEFT);
+                axis.setRelativeLocation(Widget.POSITION_TOP_RIGHT);
                 axis.setRelativeScale(new float[]{0.1f, 0.1f, 0.1f});
                 axis.setVisible(true);
             }
@@ -114,14 +116,14 @@ public class GUIDefault extends Widget implements EventListener, BeanManaged {
 
         // frame-per-second
         if (enableFPS) {
-            if (fps != null) return;
-            fps = new Label(FontFactory.getInstance(), 7, 1);
-            fps.setId("fps");
-            //fps.setPadding(1);
-            fps.setText("fps");
-            fps.setVisible(true);
-
-            addChild(fps);
+            if (fps == null) {
+                fps = new Label(FontFactory.getInstance(), 7, 1);
+                fps.setId("fps");
+                //fps.setPadding(1);
+                fps.setText("fps");
+                fps.setVisible(true);
+                addChild(fps);
+            }
             fps.setRelativeScale(new float[]{0.10f, 0.10f, 0.10f});
             fps.setRelativeLocation(Widget.POSITION_TOP);
         } else {
@@ -132,16 +134,15 @@ public class GUIDefault extends Widget implements EventListener, BeanManaged {
 
     private void initInfo() {
         // model info
-        if (info != null) return;
-        info = Text.allocate(this, 15, 3, Text.PADDING_01);
-        info.setId("info");
-        info.setVisible(true);
-        info.setParent(this);
+        if (info == null) {
+            info = Text.allocate(this, 15, 3, Text.PADDING_01);
+            info.setId("info");
+            info.setVisible(true);
+            //info.setParent(this);
+            addChild(info);
+        }
         //info.setRelativeScale(new float[]{0.85f,0.85f,0.85f});
         info.setRelativeScale(new float[]{0.25f, 0.25f, 0.25f});
-
-        addChild(info);
-
         info.setRelativeLocation(Widget.POSITION_BOTTOM);
         //addBackground(fps).setColor(new float[]{0.25f, 0.25f, 0.25f, 0.25f});
     }

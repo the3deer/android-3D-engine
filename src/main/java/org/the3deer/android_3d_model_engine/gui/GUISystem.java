@@ -13,6 +13,8 @@ import org.the3deer.android_3d_model_engine.model.Screen;
 import org.the3deer.android_3d_model_engine.renderer.Drawer;
 import org.the3deer.android_3d_model_engine.shader.Shader;
 import org.the3deer.android_3d_model_engine.shader.ShaderFactory;
+import org.the3deer.android_3d_model_engine.view.GLEvent;
+import org.the3deer.util.bean.BeanInit;
 import org.the3deer.util.bean.BeanOrder;
 import org.the3deer.util.event.EventListener;
 import org.the3deer.util.event.EventManager;
@@ -45,7 +47,6 @@ public class GUISystem implements EventListener, Drawer {
     private List<Widget> widgets = new ArrayList<>();
     @Inject
     private List<EventListener> listeners = new ArrayList<>();
-    private Shader shader;
 
     public GUISystem(){
     }
@@ -89,6 +90,7 @@ public class GUISystem implements EventListener, Drawer {
         this.listeners = listeners;
     }
 
+    @BeanInit
     public void setUp(){
         /*this.camera = Registry.getInstance().find(Camera.class, this);
         this.widgets = Registry.getInstance().findAll(Widget.class);
@@ -109,12 +111,6 @@ public class GUISystem implements EventListener, Drawer {
 
         // check
         if (!enabled) return;
-
-        if (shaderFactory == null) return;
-
-        if (shader == null) {
-            shader = shaderFactory.getShader(R.raw.shader_basic_vert, R.raw.shader_basic_frag);
-        }
 
         // draw
         GLES20.glClear(GLES20.GL_DEPTH_BUFFER_BIT);
@@ -171,6 +167,10 @@ public class GUISystem implements EventListener, Drawer {
                     ", loc: "+ Arrays.toString(widget.getLocation()));
             Log.v("GUISystem","Rendering with cam "+camera.getProjection());*/
         }
+
+        if (shaderFactory == null) return;
+
+        final Shader shader = shaderFactory.getShader(R.raw.shader_basic_vert, R.raw.shader_basic_frag);
 
         shader.draw(widget, camera.getProjectionMatrix(), camera.viewMatrix, null, null,
                 GUIConstants.CAMERA_POSITION, widget.getDrawMode(), widget.getDrawSize());

@@ -26,8 +26,6 @@ public class ShadowsRenderer {
 
     private static final String TAG = "ShadowsRenderer";
 
-    private final ShaderFactory shaderFactory;
-
     //private FPSCounter mFPSCounter;
 
     /**
@@ -155,7 +153,7 @@ public class ShadowsRenderer {
     private float mShadowMapRatio = 1;
 
     // point of view light
-    private Camera camera = new Camera(100);
+    private Camera camera = new Camera(Constants.DEFAULT_CAMERA_POSITION);
 
     final Object3DData plane = Plane2.build();
 
@@ -166,10 +164,6 @@ public class ShadowsRenderer {
         plane.setColor(Constants.COLOR_GRAY.clone());
         plane.setLocation(new float[]{0f, -Constants.DEFAULT_MODEL_SIZE/2, 0f});
         plane.setPinned(true);
-    }
-
-    public ShadowsRenderer(Activity parent, ShaderFactory shaderFactory) {
-        this.shaderFactory = shaderFactory;
     }
 
     public void onSurfaceCreated(GL10 unused, EGLConfig config) {
@@ -270,15 +264,24 @@ public class ShadowsRenderer {
 
         // create a framebuffer object
         GLES20.glGenFramebuffers(1, fboId, 0);
+        GLUtil.checkGlError("glGenFramebuffers");
 
         // create render buffer and bind 16-bit depth buffer
         GLES20.glGenRenderbuffers(1, depthTextureId, 0);
+        GLUtil.checkGlError("glGenRenderbuffers");
+
         GLES20.glBindRenderbuffer(GLES20.GL_RENDERBUFFER, depthTextureId[0]);
+        GLUtil.checkGlError("glBindRenderbuffer");
+
         GLES20.glRenderbufferStorage(GLES20.GL_RENDERBUFFER, GLES20.GL_DEPTH_COMPONENT16, mShadowMapWidth, mShadowMapHeight);
+        GLUtil.checkGlError("glRenderbufferStorage");
 
         // Try to use a texture depth component
         GLES20.glGenTextures(1, renderTextureId, 0);
+        GLUtil.checkGlError("glGenTextures");
+
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, renderTextureId[0]);
+        GLUtil.checkGlError("glBindTexture");
 
         // GL_LINEAR does not make sense for depth texture. However, next tutorial shows usage of GL_LINEAR and PCF. Using GL_NEAREST
         GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_NEAREST);
@@ -289,6 +292,7 @@ public class ShadowsRenderer {
         GLES20.glTexParameteri( GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE );
 
         GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, fboId[0]);
+        GLUtil.checkGlError("glBindFramebuffer");
 
         if (!mHasDepthTextureExtension) {
             GLES20.glTexImage2D( GLES20.GL_TEXTURE_2D, 0, GLES20.GL_RGBA, mShadowMapWidth, mShadowMapHeight, 0, GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, null);
@@ -310,9 +314,12 @@ public class ShadowsRenderer {
 
         // check FBO status
         int FBOstatus = GLES20.glCheckFramebufferStatus(GLES20.GL_FRAMEBUFFER);
+        GLUtil.checkGlError("glCheckFramebufferStatus");
+
         if(FBOstatus != GLES20.GL_FRAMEBUFFER_COMPLETE) {
-            Log.e(TAG, "GL_FRAMEBUFFER_COMPLETE failed, CANNOT use FBO");
+            Log.e(TAG, "GL_FRAMEBUFFER_COMPLETE failed, CANNOT use FBO. code: "+FBOstatus);
             enabled = false;
+            throw new IllegalStateException("GL_FRAMEBUFFER_COMPLETE failed, CANNOT use FBO. code: "+FBOstatus);
         }
     }
 
@@ -320,15 +327,15 @@ public class ShadowsRenderer {
     public void onSurfaceChanged(int width, int height) {
         mDisplayWidth = width;
         mDisplayHeight = height;
-
-        // Adjust the viewport based on geometry changes,
-        // such as screen rotation
-        GLES20.glViewport(0, 0, mDisplayWidth, mDisplayHeight);
     }
 
 
     // @Override
-    public void onDrawFrame(float[] mProjectionMatrix, float[] mViewMatrix, float[] mActualLightPosition, Scene scene) {
+    public void onDrawFrame(ShaderFactory shaderFactory, float[] mProjectionMatrix, float[] mViewMatrix, float[] mActualLightPosition, Scene scene) {
+
+        // Adjust the viewport based on geometry changes,
+        // such as screen rotation
+        GLES20.glViewport(0, 0, mDisplayWidth, mDisplayHeight);
 
         // Cull back faces for normal render
      	//GLES20.glCullFace(GLES20.GL_FRONT_AND_BACK);
@@ -336,7 +343,7 @@ public class ShadowsRenderer {
         GLES20.glEnable(GLES20.GL_CULL_FACE);
         GLES20.glCullFace(GLES20.GL_BACK);
 
-     	renderScene(scene, mProjectionMatrix, mViewMatrix, mActualLightPosition);
+     	renderScene(shaderFactory, scene, mProjectionMatrix, mViewMatrix, mActualLightPosition);
 
         // Print openGL errors to console
         int debugInfo = GLES20.glGetError();
@@ -348,7 +355,12 @@ public class ShadowsRenderer {
 
     }
 
-    public void onPrepareFrame(float[] mProjectionMatrix, float[] mViewMatrix, float[] mActualLightPosition, Scene scene) {
+    public void onPrepareFrame(ShaderFactory shaderFactory, float[] mProjectionMatrix, float[] mViewMatrix, float[] mActualLightPosition, Scene scene) {
+
+        // Adjust the viewport based on geometry changes,
+        // such as screen rotation
+        GLES20.glViewport(0, 0, mDisplayWidth, mDisplayHeight);
+
         // Write FPS information to console
         //mFPSCounter.logFrame();
 
@@ -524,7 +536,7 @@ public class ShadowsRenderer {
         mCube.render(shadow_positionAttribute, 0, 0, true);*/
     }
 
-    private void renderScene(Scene scene, float[] mProjectionMatrix, float[] mViewMatrix, float[] mActualLightPosition) {
+    private void renderScene(ShaderFactory shaderFactory, Scene scene, float[] mProjectionMatrix, float[] mViewMatrix, float[] mActualLightPosition) {
 
         // bind default framebuffer
         GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0);
@@ -551,17 +563,17 @@ public class ShadowsRenderer {
 
         // plane where the shadow is projected
         //plane.setColor(Constants.COLOR_WHITE.clone());
-        drawObject(mProjectionMatrix, mViewMatrix, mActualLightPosition, plane, tempResultMatrix);
+        drawObject(shaderFactory, mProjectionMatrix, mViewMatrix, mActualLightPosition, plane, tempResultMatrix);
 
         for (int i=0; i<scene.getObjects().size(); i++) {
             final Object3DData data = scene.getObjects().get(i);
-            drawObject(mProjectionMatrix, mViewMatrix, mActualLightPosition, data, tempResultMatrix);
+            drawObject(shaderFactory, mProjectionMatrix, mViewMatrix, mActualLightPosition, data, tempResultMatrix);
         }
 
 
     }
 
-    private void drawObject(float[] mProjectionMatrix, float[] mViewMatrix, float[] mActualLightPosition, Object3DData data, float[] tempResultMatrix) {
+    private void drawObject(ShaderFactory shaderFactory, float[] mProjectionMatrix, float[] mViewMatrix, float[] mActualLightPosition, Object3DData data, float[] tempResultMatrix) {
         //Log.v("ShadowsRenderer","Rendering object "+data.getId());
 
         final float[] mModelMatrix = data.getModelMatrix();

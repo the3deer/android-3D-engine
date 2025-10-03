@@ -2,6 +2,7 @@ package org.the3deer.android_3d_model_engine.gui;
 
 import org.the3deer.android_3d_model_engine.model.Camera;
 import org.the3deer.android_3d_model_engine.model.Scene;
+import org.the3deer.util.bean.BeanInit;
 
 import java.util.EventObject;
 
@@ -25,6 +26,7 @@ public class Axis extends Widget {
         setScale(new float[]{0.5f, 0.5f, 0.5f});*/
     }
 
+    @BeanInit
     public void setUp(){
         // this.sceneCamera = BeanFactory.getInstance().find(Camera.class, "scene_0");
         if (this.scene != null && this.scene.getCamera() != null) {
@@ -41,7 +43,9 @@ public class Axis extends Widget {
     @Override
     public boolean onEvent(EventObject event) {
         if (event instanceof Camera.CameraUpdatedEvent){
-            setOrientation(this.scene.getCamera().getOrientation());
+            if (this.scene != null && this.scene.getCamera() != null) {
+                setOrientation(this.scene.getCamera().getOrientation());
+            }
         }
         return super.onEvent(event);
     }

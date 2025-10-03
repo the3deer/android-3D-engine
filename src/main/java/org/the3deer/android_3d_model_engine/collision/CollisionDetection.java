@@ -71,7 +71,7 @@ public class CollisionDetection {
             }
         }
         if (ret != null) {
-            Log.i("CollisionDetection", "Collision detected '" + ret.getId() + "' distance: " + min);
+            Log.v("CollisionDetection", "Collision detected '" + ret.getId() + "' distance: " + min);
         }
         return ret;
     }

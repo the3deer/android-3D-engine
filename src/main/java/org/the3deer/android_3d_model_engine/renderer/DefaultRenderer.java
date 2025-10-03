@@ -4,8 +4,6 @@ import android.util.Log;
 
 import org.the3deer.android_3d_model_engine.model.Light;
 import org.the3deer.android_3d_model_engine.model.Object3DData;
-import org.the3deer.android_3d_model_engine.model.Scene;
-import org.the3deer.android_3d_model_engine.shader.ShaderFactory;
 import org.the3deer.android_3d_model_engine.view.Renderer;
 import org.the3deer.util.event.EventListener;
 
@@ -23,12 +21,8 @@ public class DefaultRenderer implements Renderer, EventListener {
     private boolean enabled = true;
 
     @Inject
-    private ShaderFactory shaderFactory;
-    @Inject
     private List<Drawer> drawers;
 
-    @Inject
-    private Scene scene;
     @Inject
     private Light light;
 
@@ -51,11 +45,6 @@ public class DefaultRenderer implements Renderer, EventListener {
 
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
-    }
-
-    public void setScene(Scene scene) {
-        Log.v(TAG, "New scene. Objects: " + scene.getObjects().size());
-        this.scene = scene;
     }
 
     public DefaultRenderer addListener(EventListener listener) {
@@ -82,9 +71,6 @@ public class DefaultRenderer implements Renderer, EventListener {
 
         // check
         if (!enabled) return;
-
-        // assert
-        if (scene == null || scene.getCamera() == null) return;
 
         // debugger
         for (int i = 0; i < drawers.size(); i++) {

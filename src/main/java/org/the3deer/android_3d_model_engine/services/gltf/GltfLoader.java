@@ -106,7 +106,7 @@ public final class GltfLoader {
             GltfModel gltfModel = GltfModels.create(gltfAsset);
 
             // load scene...
-            Log.i(TAG, "Loading scenes...");
+            Log.d(TAG, "Loading scenes...");
             for (SceneModel sceneModel : gltfModel.getSceneModels()) {
 
                 Log.d(TAG, "Loading scene: "+sceneModel.getName());
@@ -188,10 +188,10 @@ public final class GltfLoader {
             model.setBindTransform(nodeModel.computeGlobalTransform(null));
 
             // add object to scene
-            scene.addObject(model);
+            //scene.addObject(model);
 
             // reply
-            callback.onLoad(model);
+            callback.onLoad(scene, model);
 
             ret.add(model);
         }
@@ -248,10 +248,10 @@ public final class GltfLoader {
         model.setColorsBuffer(colorBuffer);
         model.setDrawOrder(drawBuffer);
         model.setDrawUsingArrays(drawBuffer == null);
-
-
         model.setDrawMode(meshPrimitiveModel.getMode());
 
+        // init normals
+        model.initNormals();
 
         // check
         if (drawBuffer != null) {
@@ -295,7 +295,7 @@ public final class GltfLoader {
             if (materialModel.getBaseColorTexture() != null) {
                 ByteBuffer imageData = materialModel.getBaseColorTexture().getImageModel().getImageData();
 
-                Log.i(TAG, "Decoding diffuse bitmap... " + materialModel.getBaseColorTexture().getName());
+                Log.v(TAG, "Decoding diffuse bitmap... " + materialModel.getBaseColorTexture().getName());
                 try {
                     Bitmap bitmap = AndroidUtils.decodeBitmap(Buffers.createByteBufferInputStream(imageData));
                     material.setColorTexture(new Texture().setBitmap(bitmap).setExtensions(materialModel.getExtensions()));
@@ -431,7 +431,8 @@ public final class GltfLoader {
             } else {
                 jointData = JointData.fromMatrix(node.computeLocalTransform(null));
             }
-            jointData.setBindTransform(node.computeGlobalTransform(null));
+            //jointData.setBindLocalTransform(node.computeLocalTransform(null));
+
             String name = node.getName();
             if (name == null){
                 name = String.valueOf(i);
@@ -502,13 +503,12 @@ public final class GltfLoader {
         callback.onProgress("Loading animation data...");
         if (gltfModel.getAnimationModels() == null || gltfModel.getAnimationModels().isEmpty()) return;
 
-        for (AnimationModel temp : gltfModel.getAnimationModels()){
+        final List<Animation> animations = new ArrayList<>();
+        for (AnimationModel an : gltfModel.getAnimationModels()){
 
+            // load animation
+            AnimationModel animationModel = an;
 
-            // load 1st animation
-            AnimationModel animationModel = gltfModel.getAnimationModels().get(0);
-
-            // FIXME: load all animations
             /*if (gltfModel.getAnimationModels().size() > 2){
                 animationModel = gltfModel.getAnimationModels().get(2);
             }*/
@@ -584,13 +584,18 @@ public final class GltfLoader {
                 }
             }
 
-            Animation animation = new Animation(times.lastKey(), times.values().toArray(new KeyFrame[0]));
+            final String animationName = animationModel.getName() != null? animationModel.getName() : "Animation-"+System.identityHashCode(animationModel);
+            Animation animation = new Animation(animationName, times.lastKey(), times.values().toArray(new KeyFrame[0]));
 
-            for (int i=0; i<ret.size(); i++) {
-                ((AnimatedModel) ret.get(i)).setAnimation(animation);
+            // register animation
+            animations.add(animation);
+        }
+
+        if (!animations.isEmpty()) {
+            for (int i = 0; i < ret.size(); i++) {
+                ((AnimatedModel) ret.get(i)).setAnimations(animations);
             }
-
-            return;
+            //((AnimatedModel) ret.get(0)).setAnimations(animations);
         }
     }
 }

@@ -7,13 +7,15 @@ public interface LoadListener {
 
     void onStart();
 
-    void onProgress(String progress);
+    default void onProgress(String progress){};
+
+    void onLoad(Scene scene);
+
+    void onLoad(Scene scene, Object3DData data);
+
+    void onLoadComplete(Scene scene);
 
     void onLoadError(Exception ex);
-
-    void onLoad(Object3DData data);
-
-    default void onLoad(Scene scene) {}
 
     void onLoadComplete();
 }

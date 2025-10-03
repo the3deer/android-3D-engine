@@ -5,6 +5,8 @@ import android.opengl.GLES20;
 import android.util.Log;
 
 import org.the3deer.android_3d_model_engine.model.Object3DData;
+import org.the3deer.android_3d_model_engine.model.Scene;
+import org.the3deer.android_3d_model_engine.scene.SceneImpl;
 import org.the3deer.android_3d_model_engine.services.LoadListener;
 import org.the3deer.android_3d_model_engine.services.LoaderTask;
 import org.the3deer.android_3d_model_engine.services.collada.entities.MeshData;
@@ -36,6 +38,10 @@ public final class STLLoaderTask extends LoaderTask {
 
         // current facet counter
         int counter = 0;
+
+        // scene
+        final Scene scene = new SceneImpl();
+        callback.onLoad(scene);
 
         try {
 
@@ -95,7 +101,9 @@ public final class STLLoaderTask extends LoaderTask {
             data.setId(uri.toString());
 
             // super.publishProgress("Loading facets... "+counter+"/"+totalFaces);
-            super.onLoad(data);
+            callback.onLoad(scene, data);
+
+            callback.onLoadComplete(scene);
 
             return Collections.singletonList(data);
         } catch (Exception e) {

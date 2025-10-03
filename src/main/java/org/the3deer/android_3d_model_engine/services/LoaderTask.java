@@ -6,7 +6,6 @@ import android.os.AsyncTask;
 import android.util.Log;
 
 import org.the3deer.android_3d_model_engine.model.Object3DData;
-import org.the3deer.util.android.ContentUtils;
 
 import java.net.URI;
 import java.util.List;
@@ -16,7 +15,7 @@ import java.util.List;
  *
  * @author andresoviedo
  */
-public abstract class LoaderTask extends AsyncTask<Void, String, List<Object3DData>> implements LoadListener {
+public abstract class LoaderTask extends AsyncTask<Void, String, List<Object3DData>> {
 
 	/**
 	 * URL to the 3D model
@@ -56,11 +55,11 @@ public abstract class LoaderTask extends AsyncTask<Void, String, List<Object3DDa
 	@Override
 	protected List<Object3DData> doInBackground(Void... params) {
 		try {
-			ContentUtils.setThreadActivity(dialog.getContext());
+			//ContentUtils.setThreadActivity(dialog.getContext());
 			callback.onStart();
 			List<Object3DData> data = build();
 			callback.onLoadComplete();
-			ContentUtils.setThreadActivity(null);
+			//ContentUtils.setThreadActivity(null);
 			return  data;
 		} catch (Exception ex) {
 			Log.e("LoaderTask",ex.getMessage(),ex);
@@ -73,10 +72,6 @@ public abstract class LoaderTask extends AsyncTask<Void, String, List<Object3DDa
 	}
 
 	protected abstract List<Object3DData> build() throws Exception;
-
-	public void onLoad(Object3DData data){
-		callback.onLoad(data);
-	}
 
 	@Override
 	protected void onProgressUpdate(String... values) {
@@ -92,24 +87,7 @@ public abstract class LoaderTask extends AsyncTask<Void, String, List<Object3DDa
 		}
 	}
 
-	@Override
-	public void onStart() {
-		callback.onStart();
-	}
-
-	@Override
-	public void onProgress(String progress) {
+	protected void onProgress(String progress) {
 		super.publishProgress(progress);
-		callback.onProgress(progress);
-	}
-
-	@Override
-	public void onLoadError(Exception ex) {
-		callback.onLoadError(ex);
-	}
-
-	@Override
-	public void onLoadComplete() {
-		callback.onLoadComplete();
 	}
 }

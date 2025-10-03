@@ -5,6 +5,8 @@ import android.util.Log;
 import androidx.annotation.Nullable;
 
 import java.lang.annotation.Annotation;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -208,7 +210,7 @@ public class BeanFactory {
 
         // init once
         try {
-            Log.d("BeanFactory", "Configuring object... " + id);
+            Log.v("BeanFactory", "Configuring object... " + id);
 
             // inject first the dependencies
             Class<?> currentClass = bean.getClass();
@@ -246,7 +248,7 @@ public class BeanFactory {
                         Log.v("BeanFactory", "Dependency " + id + "." + field.getName() + ": " + candidate);
                         field.set(bean, candidate);
                     } else {
-                        Log.e("BeanFactory", "Dependency not found: " + id + "." + field.getName()+", class: "+ field.getType());
+                        Log.v("BeanFactory", "Dependency not found: " + id + "." + field.getName()+", class: "+ field.getType());
                     }
                     field.setAccessible(false);
                 }
@@ -287,12 +289,12 @@ public class BeanFactory {
         try {
             for (Method method : bean.getClass().getDeclaredMethods()){
                 if (method.getAnnotation(BeanInit.class) != null){
-                    Log.d("BeanFactory", "Setting up object... " + id);
+                    Log.v("BeanFactory", "Setting up object... " + id);
                     return method.invoke(bean);
-                } else if (method.getName().equals("setUp")){
-                    Log.d("BeanFactory", "Setting up object... " + id);
+                } /*else if (method.getName().equals("setUp")){
+                    Log.v("BeanFactory", "Setting up object... " + id);
                     return method.invoke(bean);
-                }
+                }*/
             }
             return null;
         } catch (InvocationTargetException e) {
@@ -352,7 +354,7 @@ public class BeanFactory {
                 }
                 try {
                     //configureBean(id);
-                    Log.d("BeanFactory", "Setting up object... " + id);
+                    Log.v("BeanFactory", "Setting up object... " + id);
                     setUpBean(id);
                 } catch (Exception e) {
                     Log.e("BeanFactory", "Exception setting-up class (" + id + "): " + e.getMessage(), e);
@@ -419,6 +421,7 @@ public class BeanFactory {
                             if (id.equals(named)){
                                 field.set(bean, beanUpdated);
                                 field.setAccessible(false);
+                                onBeanUpdateCallback(bean, id, beanUpdated);
                                 Log.v("BeanFactory", "Dependency injected (Named). " + beanId + "." + field.getName() + ": " + beanUpdated);
                             }
 
@@ -426,6 +429,7 @@ public class BeanFactory {
                             else if (duplicates.size() == 1){
                                 field.set(bean, beanUpdated);
                                 field.setAccessible(false);
+                                onBeanUpdateCallback(bean, id, beanUpdated);
                                 Log.v("BeanFactory", "Dependency injected (Singleton). " + beanId + "." + field.getName() + ": " + beanUpdated);
                             }
 
@@ -433,6 +437,7 @@ public class BeanFactory {
                             else if (beanIdx == 0){
                                 field.set(bean, beanUpdated);
                                 field.setAccessible(false);
+                                onBeanUpdateCallback(bean, id, beanUpdated);
                                 Log.v("BeanFactory", "Dependency injected (Default). " + beanId + "." + field.getName() + ": " + beanUpdated);
                             }
                         }
@@ -448,10 +453,9 @@ public class BeanFactory {
                             List<?> all = findAll(actualTypeArgument, null);
                             field.set(bean, all);
                             field.setAccessible(false);
+                            onBeanUpdateCallback(bean, beanId, beanUpdated);
                             Log.v("BeanFactory", "Dependency updated (List). " + beanId + "." + field.getName() + ": " + all);
                         }
-
-
                     }
                     currentClass = currentClass.getSuperclass();
                 }
@@ -609,7 +613,7 @@ public class BeanFactory {
         return findAll(clazz, null);
     }*/
 
-    <T> List<T> findAll(Class<T> clazz, String parent) {
+    public <T> List<T> findAll(Class<T> clazz, String parent) {
         final List<T> ret = new ArrayList<>();
         for (Map.Entry<String, Object> entry : beans.entrySet()) {
             // filter out same parent
@@ -675,4 +679,31 @@ public class BeanFactory {
         return ret;
     }
 
+    private Object onBeanUpdateCallback(Object bean, String id, Object updated) {
+        try {
+            for (Method method : bean.getClass().getDeclaredMethods()){
+                if (method.getAnnotation(OnBeanUpdate.class) != null){
+                    return method.invoke(bean, id, updated);
+                }
+            }
+            return null;
+        } catch (InvocationTargetException e) {
+            Log.e("BeanFactory", "Exception initializing bean: " + id + ", " + e.getMessage(), e);
+            throw new RuntimeException(e);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void remove(String id) {
+        beans.remove(id);
+        definitions.remove(id);
+        status.remove(id);
+
+    }
+
+    @Retention(RetentionPolicy.RUNTIME)
+    public @interface OnBeanUpdate {
+
+    }
 }

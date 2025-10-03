@@ -239,7 +239,7 @@ public final class Normals {
 
             }
 
-            Log.i("Normals", "Added new element element: "+element.getId());
+            Log.v("Normals", "Added new element element: "+element.getId());
             newElements.add(new Element(element.getId(), normalsIndices, element.getMaterialId()));
         }
 
@@ -255,7 +255,7 @@ public final class Normals {
         normalsObj.setReadOnly(true);
         normalsObj.setElements(newElements);
         normalsObj.setDrawUsingArrays(false);
-        normalsObj.setAnimation(obj.getAnimation());
+        normalsObj.setAnimations(obj.getAnimations());
         normalsObj.setSkeleton(obj.getSkeleton());
         normalsObj.setRootJoint(obj.getRootJoint());
         normalsObj.setBindShapeMatrix(obj.getBindShapeMatrix());

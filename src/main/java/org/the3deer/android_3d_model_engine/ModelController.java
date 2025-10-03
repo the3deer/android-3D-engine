@@ -8,7 +8,6 @@ import androidx.preference.Preference;
 
 import org.the3deer.android_3d_model_engine.camera.CameraController;
 import org.the3deer.android_3d_model_engine.collision.CollisionController;
-import org.the3deer.android_3d_model_engine.collision.CollisionEvent;
 import org.the3deer.android_3d_model_engine.controller.TouchController;
 import org.the3deer.android_3d_model_engine.controller.TouchEvent;
 import org.the3deer.android_3d_model_engine.gui.GUIDefault;
@@ -16,8 +15,9 @@ import org.the3deer.android_3d_model_engine.gui.GUISystem;
 import org.the3deer.android_3d_model_engine.model.Camera;
 import org.the3deer.android_3d_model_engine.model.Scene;
 import org.the3deer.android_3d_model_engine.model.Screen;
+import org.the3deer.android_3d_model_engine.shader.ShaderFactory;
 import org.the3deer.android_3d_model_engine.view.GLEvent;
-import org.the3deer.android_3d_model_engine.view.GLTouchListener;
+import org.the3deer.android_3d_model_engine.view.GLTouchHandler;
 import org.the3deer.util.android.AndroidUtils;
 import org.the3deer.util.bean.BeanFactory;
 import org.the3deer.util.event.EventListener;
@@ -40,7 +40,7 @@ import javax.inject.Inject;
  * The engine is designed using different architectural patterns.
  *
  */
-public class ModelController implements EventManager, GLTouchListener{
+public class ModelController implements EventManager, GLTouchHandler {
 
     private final static String TAG = ModelController.class.getSimpleName();
 
@@ -64,6 +64,8 @@ public class ModelController implements EventManager, GLTouchListener{
     private CameraController cameraController;
     @Inject
     private List<EventListener> listeners;
+    @Inject
+    private ShaderFactory shaderFactory;
 
     // other variables
     private long startTime;
@@ -74,6 +76,7 @@ public class ModelController implements EventManager, GLTouchListener{
 
     @Override
     public boolean onSurfaceTouchEvent(MotionEvent event) {
+        // wrap into app event
         return propagate(new EventObject(event));
     }
 
@@ -81,8 +84,11 @@ public class ModelController implements EventManager, GLTouchListener{
     public boolean propagate(EventObject event) {
         if (event instanceof GLEvent) {
             final GLEvent rev = (GLEvent) event;
-            //Log.v(TAG, "onEvent. RenderEvent:" + rev.getCode());
-            if (rev.getCode() == GLEvent.Code.SURFACE_CHANGED) {
+            //Log.v(TAG, "propagate. RenderEvent:" + rev.getCode());
+            if (rev.getCode() == GLEvent.Code.SURFACE_CREATED) {
+                shaderFactory.reset();
+
+            } else if (rev.getCode() == GLEvent.Code.SURFACE_CHANGED) {
                 // assert
                 if (screen == null || cameras == null) {
                     Log.e(TAG, "screen or camera is null. can't update model");
@@ -90,12 +96,15 @@ public class ModelController implements EventManager, GLTouchListener{
                 }
 
                 // Update model
-                Log.i(TAG, "Updating screen and camera... size: "
+                Log.d(TAG, "Updating screen and camera... size: "
                         + rev.getWidth() + " width, "
                         + rev.getHeight() + " height");
                 screen.setSize(rev.getWidth(), rev.getHeight());
                 for (Camera camera : cameras) {
                     camera.setChanged(true);
+                }
+                if (gui != null){
+                    gui.onEvent(event);
                 }
             }
             //Log.v(TAG, "onEvent. RenderEvent: listeners: " + listeners);
@@ -103,7 +112,7 @@ public class ModelController implements EventManager, GLTouchListener{
             //Log.v(TAG, "onEvent. RenderEvent: finished");
         } else if (event.getSource() instanceof MotionEvent) {
             if (touchController != null) {  // event coming from glview
-                touchController.onEvent(event);
+                return touchController.onEvent(event);
             }
         } else if (event instanceof TouchEvent) {
 
@@ -121,7 +130,7 @@ public class ModelController implements EventManager, GLTouchListener{
             /*if (scene.onEvent(event)) {
                 return true;
             }*/
-            if (scene.getSelectedObject() != null) {
+            if (scene != null && scene.getSelectedObject() != null) {
                 //scene.onEvent(event);
                 cameraController.onEvent(event);
             } else if (cameraController != null){

@@ -1,6 +1,7 @@
 package org.the3deer.android_3d_model_engine.gui;
 
 import org.the3deer.android_3d_model_engine.model.Camera;
+import org.the3deer.util.bean.BeanInit;
 import org.the3deer.util.bean.BeanManaged;
 import org.the3deer.util.event.EventListener;
 
@@ -23,6 +24,7 @@ public class UI extends Widget implements EventListener {
         setRender(false);
     }
 
+    @BeanInit
     public void setUp(){
 
     }

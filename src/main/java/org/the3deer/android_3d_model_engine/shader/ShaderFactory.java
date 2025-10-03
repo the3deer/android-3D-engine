@@ -8,6 +8,7 @@ import androidx.annotation.NonNull;
 import org.the3deer.android_3d_model_engine.R;
 import org.the3deer.android_3d_model_engine.model.AnimatedModel;
 import org.the3deer.android_3d_model_engine.model.Object3DData;
+import org.the3deer.util.bean.BeanInit;
 import org.the3deer.util.io.IOUtils;
 
 import java.lang.reflect.Field;
@@ -52,12 +53,13 @@ public class ShaderFactory {
      * Read all shader data from /raw folder (context required for IO).
      * if there is any issue accessing the date a log is generated.
      */
+    @BeanInit
     public void setUp() {
         if (context == null) {
             throw new IllegalStateException("Context is null");
         };
 
-        Log.i("ShaderFactory", "Discovering shaders...");
+        Log.d("ShaderFactory", "Discovering shaders...");
         Field[] fields = R.raw.class.getFields();
         for (Field field : fields) {
             String shaderId = field.getName();
@@ -72,10 +74,13 @@ public class ShaderFactory {
                 Log.e("ShaderFactory", "Issue loading shader... " + shaderId);
             }
         }
-        Log.i("ShaderFactory", "Shaders loaded: " + shadersCode.size());
+        Log.d("ShaderFactory", "Shaders loaded: " + shadersCode.size());
     }
 
     public void reset(){
+        for (Shader shader : shaders.values()){
+            shader.reset();
+        }
         shaders.clear();
     }
 
@@ -97,9 +102,9 @@ public class ShaderFactory {
 
         // double check features
         final boolean animationOK = obj instanceof AnimatedModel
-                && ((AnimatedModel) obj).getAnimation() != null
-                && (((AnimatedModel) obj).getAnimation()).isInitialized();
-        final boolean isAnimated = usingAnimation && (obj == null || animationOK);
+                && ((AnimatedModel) obj).getCurrentAnimation() != null
+                && (((AnimatedModel) obj).getCurrentAnimation()).isInitialized();
+        final boolean isAnimated = usingAnimation && animationOK;
         final boolean isLighted = usingLights && obj != null && obj.getNormalsBuffer() != null;
         final boolean isTextured = usingTextures && obj != null && obj.getTextureBuffer() != null;
 
@@ -128,7 +133,7 @@ public class ShaderFactory {
         // cache drawer
         shaders.put(shader.id, renderer);
 
-        Log.i("ShaderFactory", "Loaded "+ shader.id+" size ("+shaders.size()+") this: "+this);
+        Log.d("ShaderFactory", "Loaded "+ shader.id+" size ("+shaders.size()+") this: "+this);
 
         // return drawer
         return renderer;
@@ -169,9 +174,10 @@ public class ShaderFactory {
         final String shaderName = shadersNames.get(resIdVertexShader);
         final Shader shader = shaders.get(shaderName);
         if (shader == null){
+            Log.d("ShaderFactory", "Loading shader... "+ shaderName);
             final ShaderImpl impl = loadShader(shaderName, resIdVertexShader, resIdFragmentShader, true, true, true);
             shaders.put(shaderName, impl);
-            Log.i("ShaderFactory", "Loaded "+ shaderName+" size ("+shaders.size()+") this: "+this);
+            Log.d("ShaderFactory", "Loaded "+ shaderName+" size ("+shaders.size()+") this: "+this);
             return impl;
         }
         return shader;

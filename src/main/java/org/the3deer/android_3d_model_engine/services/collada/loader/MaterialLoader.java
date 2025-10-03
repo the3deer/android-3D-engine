@@ -29,7 +29,7 @@ public class MaterialLoader {
     public void loadMaterial(MeshData meshData){
 
         // log event
-        Log.i("MaterialLoader", "Loading materials for " + meshData.getId() + " ("+ meshData.getName() +")...");
+        Log.d("MaterialLoader", "Loading materials for " + meshData.getId() + " ("+ meshData.getName() +")...");
 
         int i=0;
         for (Element element : meshData.getElements()) {
@@ -41,13 +41,13 @@ public class MaterialLoader {
             }
 
             // log event
-            Log.i("MaterialLoader", "Loading material '"+materialId+"' for element: "+i++);
+            Log.d("MaterialLoader", "Loading material '"+materialId+"' for element: "+i++);
 
             // parse material
             element.setMaterial(parseMaterial(materialId));
 
             // log event
-            Log.i("MaterialLoader", "Material '"+materialId+"' for element: "+(i++)+": "+element.getMaterial());
+            Log.d("MaterialLoader", "Material '"+materialId+"' for element: "+(i++)+": "+element.getMaterial());
         }
     }
 
@@ -61,7 +61,7 @@ public class MaterialLoader {
         final String geometryName = meshData.getName();
 
         // log event
-        Log.i("MaterialLoader", "Loading materials for " + geometryId + " ("+geometryName+")...");
+        Log.d("MaterialLoader", "Loading materials for " + geometryId + " ("+geometryName+")...");
 
         int i=0;
         for (Element element : meshData.getElements()) {

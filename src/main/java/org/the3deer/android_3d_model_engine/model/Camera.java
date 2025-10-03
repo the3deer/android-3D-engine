@@ -8,11 +8,13 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 
 import org.the3deer.util.android.AndroidUtils;
+import org.the3deer.util.bean.BeanInit;
 import org.the3deer.util.event.EventListener;
 import org.the3deer.util.math.Math3DUtils;
 import org.the3deer.util.math.Quaternion;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.EventObject;
 import java.util.List;
 
@@ -96,12 +98,11 @@ public class Camera {
     private Camera[] stereoCam;
 
     public Camera() {
-        this(Constants.UNIT * 2);
     }
 
-    public Camera(float distance) {
+    public Camera(float[] location) {
         // Initialize variables...
-        this(0, 0, distance, 0, 0, 0, 0, 1, 0);
+        this(location[0], location[1], location[2], 0, 0, 0, 0, 1, 0);
     }
 
     public Camera(Camera cam2) {
@@ -146,6 +147,7 @@ public class Camera {
         this.controller = controller;
     }
 
+    @BeanInit
     public void setUp() {
         refresh();
     }
@@ -173,6 +175,8 @@ public class Camera {
 
         // check
         if (screen == null) return;
+
+        //Log.v("Camera", "location: "+ Arrays.toString(this.pos));
 
         // setup view matrix
         Matrix.setLookAtM(viewMatrix, 0,

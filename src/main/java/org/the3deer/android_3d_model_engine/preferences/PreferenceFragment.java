@@ -4,65 +4,67 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.Gravity;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.LinearLayout;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.preference.Preference;
-import androidx.preference.PreferenceCategory;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.preference.PreferenceFragmentCompat;
-import androidx.preference.PreferenceGroup;
 import androidx.preference.PreferenceManager;
 import androidx.preference.PreferenceScreen;
 import androidx.preference.SwitchPreference;
 
+import org.the3deer.android_3d_model_engine.ModelEngine;
+import org.the3deer.android_3d_model_engine.ModelViewModel;
 import org.the3deer.android_3d_model_engine.R;
 
 import java.util.List;
 import java.util.Map;
 
-import javax.inject.Inject;
-
 public class PreferenceFragment extends PreferenceFragmentCompat {
 
     private final static String TAG = PreferenceFragment.class.getSimpleName();
 
-    @Inject
-    private Context context;
-    @Inject
+    private ModelViewModel viewModel;
+    private ModelEngine engine;
     private List<PreferenceAdapter> adapters;
 
     public PreferenceFragment() {
-        setEnterTransition(new android.transition.Slide(Gravity.RIGHT));
+        //setEnterTransition(new android.transition.Slide(Gravity.RIGHT));
     }
 
-   @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        View view = super.onCreateView(inflater, container, savedInstanceState);
-        view.setBackgroundColor(getResources().getColor(android.R.color.background_light));
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        params.gravity = Gravity.RIGHT;
-        view.setLayoutParams(params);
-        return view;
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
+        init();
     }
 
-    public void setUp() {
+    private void init() {
+        viewModel = new ViewModelProvider(requireActivity()).get(ModelViewModel.class);
 
         // check
-        if (context == null) return;
+        if (viewModel.getRecentId().getValue() == null){
+            Log.e(TAG, "onCreate: viewModel.getRecentUri().getValue() is null");
+            return;
+        }
+
+        this.engine = viewModel.getModelEngine(viewModel.getRecentId().getValue());
+
+        this.adapters =
+                engine.getBeanFactory().findAll(PreferenceAdapter.class, null);
+        if (adapters.isEmpty()){
+            Log.e(TAG, "onCreate: adapters is empty");
+        } else {
+            Log.d(TAG, "onCreate: adapters list: " +adapters);
+        }
 
         // get
         final SharedPreferences sharedPreferences =
-                PreferenceManager.getDefaultSharedPreferences(context);
+                PreferenceManager.getDefaultSharedPreferences(requireContext());
         final Map<String, ?> all = sharedPreferences.getAll();
 
         // load
-        for (PreferenceAdapter a : adapters){
+        for (PreferenceAdapter a : adapters) {
             a.onRestorePreferences(all);
         }
     }
@@ -70,57 +72,42 @@ public class PreferenceFragment extends PreferenceFragmentCompat {
     @Override
     public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
 
-        Log.v(TAG,"onCreatePreferences");
+        if (false){
+            setPreferencesFromResource(R.xml.test_prefs, rootKey);
+            Log.d(TAG, "Loaded test_prefs.xml");
+            return;
+        }
+        // check
+        init();
+
+        // check
+        if (adapters == null || adapters.isEmpty()){
+            Log.e(TAG, "onCreate: adapters is empty");
+            return;
+        }
+
+        Log.v(TAG, "onCreatePreferences");
 
         // create screen
-        final Context context = getPreferenceManager().getContext();
+        final Context context = requireContext();
 
         // main screen
         final PreferenceScreen screen = getPreferenceManager().createPreferenceScreen(context);
-
-        // main preferences
-        final PreferenceGroup preferences = new PreferenceCategory(context);
-        preferences.setKey(this.getClass().getName());
-        preferences.setTitle(this.getClass().getSimpleName());
-        preferences.setLayoutResource(R.layout.preference_category);
-        screen.addPreference(preferences);
-
-        this.onCreatePreferences(savedInstanceState, rootKey, context, preferences);
 
         // check
         if (adapters == null || adapters.isEmpty()) return;
 
         // inflate
-        for (PreferenceAdapter a : adapters){
+        for (PreferenceAdapter a : adapters) {
             try {
-                a.onCreatePreferences(savedInstanceState,rootKey, context, screen);
+                a.onCreatePreferences(savedInstanceState, rootKey, context, screen);
             } catch (Exception e) {
-                Log.e(TAG,"Issue onCreatePreferences: "+e.getMessage(), e);
+                Log.e(TAG, "Issue onCreatePreferences: " + e.getMessage(), e);
             }
         }
 
         // update
         setPreferenceScreen(screen);
-    }
-
-    public void onCreatePreferences(@Nullable Bundle savedInstanceState, @Nullable String rootKey, Context context, PreferenceGroup screen) {
-
-        SwitchPreference immersiveSwitch = new SwitchPreference(context);
-        immersiveSwitch.setKey("activity.immersive");
-        immersiveSwitch.setTitle("Immersive View");
-        immersiveSwitch.setIconSpaceReserved(screen.isIconSpaceReserved());
-        immersiveSwitch.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
-            @Override
-            public boolean onPreferenceChange(@NonNull Preference preference, Object newValue) {
-                // perform
-                Log.i(TAG,"Clicked! "+newValue);
-                Bundle result = new Bundle();
-                result.putString("action", "load");
-                getParentFragmentManager().setFragmentResult("immersive", result);
-                return true;
-            }
-        });
-        screen.addPreference(immersiveSwitch);
     }
 
     public void onSaveInstanceState(Bundle outState) {
@@ -139,13 +126,13 @@ public class PreferenceFragment extends PreferenceFragmentCompat {
 
     public void onRestoreInstanceState(Bundle state) {
 
-        Log.v(TAG,"Restoring state... "+state);
+        Log.v(TAG, "Restoring state... " + state);
 
         // assert
         if (state == null || this.adapters == null) return;
 
         // inform listeners
-        for (PreferenceAdapter l : this.adapters){
+        for (PreferenceAdapter l : this.adapters) {
             if (l == this) continue;
             l.onRestoreInstanceState(state);
         }
@@ -157,7 +144,7 @@ public class PreferenceFragment extends PreferenceFragmentCompat {
         activityPrefs.setTitle("Load");
         activityPrefs.setOnPreferenceChangeListener((preference, newValue) -> {
             // perform
-            Log.i("PreferenceFragment","Clicked! "+newValue);
+            Log.i("PreferenceFragment", "Clicked! " + newValue);
             Bundle result = new Bundle();
             result.putString("action", "load");
             getParentFragmentManager().setFragmentResult("app", result);

@@ -320,6 +320,9 @@ public class JointData {
 		}
 	}
 
+	public void setBindLocalTransform(float[] bindLocalMatrix) {
+		this.bindLocalMatrix = bindLocalMatrix;
+	}
 
 	@Override
 	public String toString() {

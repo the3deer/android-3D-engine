@@ -10,6 +10,8 @@ import org.the3deer.android_3d_model_engine.model.AnimatedModel;
 import org.the3deer.android_3d_model_engine.model.Constants;
 import org.the3deer.android_3d_model_engine.model.Element;
 import org.the3deer.android_3d_model_engine.model.Object3DData;
+import org.the3deer.android_3d_model_engine.model.Scene;
+import org.the3deer.android_3d_model_engine.scene.SceneImpl;
 import org.the3deer.android_3d_model_engine.services.LoadListener;
 import org.the3deer.android_3d_model_engine.services.collada.entities.JointData;
 import org.the3deer.android_3d_model_engine.services.collada.entities.MeshData;
@@ -55,6 +57,10 @@ public final class ColladaLoader {
         final List<Object3DData> ret = new ArrayList<>();
         final List<MeshData> allMeshes = new ArrayList<>();
 
+        // TODO: load multiple scenes
+        final Scene scene = new SceneImpl();
+        callback.onLoad(scene);
+
         try (InputStream is = ContentUtils.getInputStream(uri)) {
 
             Log.i("ColladaLoaderTask", "Parsing file... " + uri);
@@ -73,9 +79,9 @@ public final class ColladaLoader {
 
             // load visual scene
             // we need this first in order to progressively load geometries with it's binded transform
-            Log.i("ColladaLoaderTask", "--------------------------------------------------");
-            Log.i("ColladaLoaderTask", "Loading visual nodes...");
-            Log.i("ColladaLoaderTask", "--------------------------------------------------");
+            Log.v("ColladaLoaderTask", "--------------------------------------------------");
+            Log.d("ColladaLoaderTask", "Loading visual nodes...");
+            Log.v("ColladaLoaderTask", "--------------------------------------------------");
             callback.onProgress("Loading visual nodes...");
             Map<String, SkeletonData> skeletons = null;
             try {
@@ -89,9 +95,9 @@ public final class ColladaLoader {
 
 
             // load geometries
-            Log.i("ColladaLoaderTask", "--------------------------------------------------");
-            Log.i("ColladaLoaderTask", "Loading geometries...");
-            Log.i("ColladaLoaderTask", "--------------------------------------------------");
+            Log.v("ColladaLoaderTask", "--------------------------------------------------");
+            Log.d("ColladaLoaderTask", "Loading geometries...");
+            Log.v("ColladaLoaderTask", "--------------------------------------------------");
             callback.onProgress("Loading geometries...");
             List<MeshData> meshDatas = null;
             try {
@@ -145,18 +151,19 @@ public final class ColladaLoader {
                         }
                     }
 
-                    callback.onLoad(data3D);
+                    callback.onLoad(scene, data3D);
                     ret.add(data3D);
                 }
+                callback.onLoadComplete(scene);
             } catch (Exception ex) {
                 Log.e("ColladaLoaderTask", "Error loading geometries", ex);
                 return Collections.emptyList();
             }
 
             // load materials
-            Log.i("ColladaLoaderTask", "--------------------------------------------------");
-            Log.i("ColladaLoaderTask", "Loading materials...");
-            Log.i("ColladaLoaderTask", "--------------------------------------------------");
+            Log.v("ColladaLoaderTask", "--------------------------------------------------");
+            Log.d("ColladaLoaderTask", "Loading materials...");
+            Log.v("ColladaLoaderTask", "--------------------------------------------------");
             callback.onProgress("Loading materials...");
             try {
                 final MaterialLoader materialLoader = new MaterialLoader(xml.getChild("library_materials"),
@@ -175,9 +182,9 @@ public final class ColladaLoader {
 
 
             // load visual scene
-            Log.i("ColladaLoaderTask", "--------------------------------------------------");
+            Log.d("ColladaLoaderTask", "--------------------------------------------------");
             Log.i("ColladaLoaderTask", "Loading visual scene...");
-            Log.i("ColladaLoaderTask", "--------------------------------------------------");
+            Log.d("ColladaLoaderTask", "--------------------------------------------------");
             callback.onProgress("Loading visual scene...");
             //SkeletonData jointsData = null;
             try {
@@ -250,7 +257,7 @@ public final class ColladaLoader {
                         // FIXME: set this only if not animated
                         instance_geometry.setBindTransform(jd.getBindTransform());
 
-                        callback.onLoad(instance_geometry);
+                        callback.onLoad(scene, instance_geometry);
                         ret.add(instance_geometry);
                         allMeshes.add(meshData.clone());
                     }
@@ -261,9 +268,9 @@ public final class ColladaLoader {
 
 
             // load materials
-            Log.i("ColladaLoaderTask", "--------------------------------------------------");
+            Log.d("ColladaLoaderTask", "--------------------------------------------------");
             Log.i("ColladaLoaderTask", "Loading textures...");
-            Log.i("ColladaLoaderTask", "--------------------------------------------------");
+            Log.d("ColladaLoaderTask", "--------------------------------------------------");
             callback.onProgress("Loading textures...");
             try {
                 for (int i = 0; i < meshDatas.size(); i++) {
@@ -274,7 +281,7 @@ public final class ColladaLoader {
                         element.getMaterial().getColorTexture().getFile() != null) {
                             final String textureFile = element.getMaterial().getColorTexture().getFile();
                             // log event
-                            Log.i("ColladaLoaderTask", "Reading texture file... " + textureFile);
+                            Log.d("ColladaLoaderTask", "Reading texture file... " + textureFile);
 
                             // read texture data
                             try (InputStream stream = ContentUtils.getInputStream(textureFile)) {
@@ -301,9 +308,9 @@ public final class ColladaLoader {
             try {
 
                 // log event
-                Log.i("ColladaLoaderTask", "--------------------------------------------------");
-                Log.i("ColladaLoaderTask", "Loading skinning data...");
-                Log.i("ColladaLoaderTask", "--------------------------------------------------");
+                Log.v("ColladaLoaderTask", "--------------------------------------------------");
+                Log.d("ColladaLoaderTask", "Loading skinning data...");
+                Log.v("ColladaLoaderTask", "--------------------------------------------------");
 
                 XmlNode library_controllers = xml.getChild("library_controllers");
                 if (library_controllers != null && !library_controllers.getChildren("controller").isEmpty()) {
@@ -341,9 +348,9 @@ public final class ColladaLoader {
                 if (loader.isAnimated()) {
 
                     // log event
-                    Log.i("ColladaLoaderTask", "--------------------------------------------------");
-                    Log.i("ColladaLoaderTask", "Loading joints...");
-                    Log.i("ColladaLoaderTask", "--------------------------------------------------");
+                    Log.v("ColladaLoaderTask", "--------------------------------------------------");
+                    Log.d("ColladaLoaderTask", "Loading joints...");
+                    Log.v("ColladaLoaderTask", "--------------------------------------------------");
 
                     // notify user
                     callback.onProgress("Loading joints...");
@@ -389,9 +396,9 @@ public final class ColladaLoader {
                 if (loader.isAnimated()) {
 
                     // log event
-                    Log.i("ColladaLoaderTask", "--------------------------------------------------");
+                    Log.d("ColladaLoaderTask", "--------------------------------------------------");
                     Log.i("ColladaLoaderTask", "Loading animation... ");
-                    Log.i("ColladaLoaderTask", "--------------------------------------------------");
+                    Log.d("ColladaLoaderTask", "--------------------------------------------------");
 
                     // notify user
                     callback.onProgress("Loading animation...");
@@ -409,12 +416,13 @@ public final class ColladaLoader {
                         }
 
                         data3D.setSkeleton(skeletonData);
-                        data3D.setAnimation(animation);
+                        data3D.setAnimations(Collections.singletonList(animation));
 
                         // FIXME: this should be handled differently - this must be null for iris mechanical + countdown timer
                         data3D.setBindTransform(null);
                     }
 
+                    callback.onLoadComplete();
                 }
             } catch (Exception ex) {
                 Log.e("ColladaLoaderTask", "Error loading animation", ex);

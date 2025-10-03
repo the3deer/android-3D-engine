@@ -100,7 +100,7 @@ public final class GLUtil {
         GLES20.glGetShaderiv(shader, GLES20.GL_COMPILE_STATUS, compiled, 0);
         Log.v("GLUtil", "Shader compilation info: " + GLES20.glGetShaderInfoLog(shader));
         if (compiled[0] == 0) {
-            Log.e("GLUtil", "Shader error: " + GLES20.glGetShaderInfoLog(shader) + "\n" + shaderCode);
+            Log.e("GLUtil", "Shader error: " + GLES20.glGetShaderInfoLog(shader));
             GLES20.glDeleteShader(shader);
         }
 
@@ -140,7 +140,7 @@ public final class GLUtil {
         GLUtil.checkGlError("glBindTexture");
         GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, bitmap, 0);
         GLUtil.checkGlError("texImage2D");
-        bitmap.recycle();
+        //bitmap.recycle();
         GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR);
         GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR);
         GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,GLES20.GL_TEXTURE_WRAP_S,GLES20.GL_REPEAT);

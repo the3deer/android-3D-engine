@@ -28,7 +28,7 @@ public class Exploder {
             return;
         }
 
-        Log.i("Object3DData", "Calculating dimensions for '" + object3DData.getId() + "...");
+        Log.v("Object3DData", "Calculating dimensions for '" + object3DData.getId() + "...");
         for (int i = 0; i < vertexBuffer.capacity(); i += 3) {
             if (vertexBuffer.get(i) > rightPt)
                 rightPt = vertexBuffer.get(i);
@@ -64,7 +64,7 @@ public class Exploder {
         float scaleFactor = 1.0f;
         if (largest != 0.0f)
             scaleFactor = (maxSize / largest);
-        Log.i("Object3DData",
+        Log.v("Object3DData",
                 "Exploding '" + object3DData.getId() + "' to '" + xc + "," + yc + "," + zc + "' '" + scaleFactor + "'");
 
         // modify the model's vertices

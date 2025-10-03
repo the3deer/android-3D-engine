@@ -35,7 +35,7 @@ public class SkeletonLoader {
 	// <visual_scene>
 	public Map<String,SkeletonData> loadJoints(){
 
-		Log.i("SkeletonLoader", "Loading skeleton...");
+		Log.d("SkeletonLoader", "Loading skeleton...");
 
 
 		// a visual scene may contain several nodes of different kinds
@@ -98,7 +98,7 @@ public class SkeletonLoader {
 				// parse joints
 				JointData jointData = loadSkeleton(node, rootJoint, defaultCount);
 				rootJoint.addChild(jointData);
-				Log.i("SkeletonLoader", "Node found. joints: " + defaultCount.get());
+				Log.v("SkeletonLoader", "Node found. joints: " + defaultCount.get());
 			}
 		}
 
@@ -107,11 +107,11 @@ public class SkeletonLoader {
 
 		// no skeleton found at all
 		if (ret.isEmpty()){
-			Log.i("SkeletonLoader", "Skeleton not found");
+			Log.d("SkeletonLoader", "Skeleton not found");
 			return null;
 		}
 
-		Log.i("SkeletonLoader", "Skeleton founds: " + ret.size()+", names: "+ret.keySet());
+		Log.d("SkeletonLoader", "Skeleton founds: " + ret.size()+", names: "+ret.keySet());
 		return ret;
 	}
 
@@ -302,7 +302,7 @@ public class SkeletonLoader {
 				pending.addAll(current.children);
 				pending.remove(0);
 			}
-			Log.i("SkeletonLoader", "Loaded joint indices: "+jointIndicesString);
+			Log.d("SkeletonLoader", "Loaded joint indices: "+jointIndicesString);
 		}
 
 

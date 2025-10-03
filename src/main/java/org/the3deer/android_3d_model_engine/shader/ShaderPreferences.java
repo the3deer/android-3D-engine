@@ -12,6 +12,7 @@ import androidx.preference.PreferenceManager;
 
 import org.the3deer.android_3d_model_engine.R;
 import org.the3deer.android_3d_model_engine.preferences.PreferenceAdapter;
+import org.the3deer.util.bean.BeanInit;
 
 import java.util.Map;
 
@@ -38,6 +39,7 @@ public class ShaderPreferences implements PreferenceAdapter {
     private Context context;
 
     // Method to add a ShaderImpl instance to be managed by this controller
+    @BeanInit
     public void setUp() {
         if (shaderFactory != null && sharedPreferences != null) {
             final Map<String, Shader> shaders = shaderFactory.getShaders();

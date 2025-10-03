@@ -15,4 +15,6 @@ public interface Shader {
     void useProgram();
 
     void setAutoUseProgram(boolean autoUseProgram);
+
+    void reset();
 }

@@ -5,7 +5,7 @@ public class RenderConstants {
 	/** Identifiers for our uniforms and attributes inside the shaders. */
 	public static final String MVP_MATRIX_UNIFORM = "uMVPMatrix";
 	public static final String MV_MATRIX_UNIFORM = "uMVMatrix";
-	public static final String NORMAL_MATRIX_UNIFORM = "uNormalMatrix";
+	public static final String NORMAL_MATRIX_UNIFORM = "u_NormalMatrix";
 	public static final String LIGHT_POSITION_UNIFORM = "u_LightPos";
 	public static final String POSITION_ATTRIBUTE = "a_Position";
 	public static final String NORMAL_ATTRIBUTE = "a_Normal";

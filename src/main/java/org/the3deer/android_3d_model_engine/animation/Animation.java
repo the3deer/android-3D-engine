@@ -15,20 +15,25 @@ import android.util.Log;
  */
 public class Animation {
 
+	private final String name;//in seconds
 	private final float length;//in seconds
 	private final KeyFrame[] keyFrames;
 	private boolean initialized;
 
 	/**
-	 * @param lengthInSeconds
-	 *            - the total length of the animation in seconds.
-	 * @param frames
-	 *            - all the keyframes for the animation, ordered by time of
-	 *            appearance in the animation.
+	 * @param name
+	 * @param lengthInSeconds - the total length of the animation in seconds.
+	 * @param frames          - all the keyframes for the animation, ordered by time of
+	 *                        appearance in the animation.
 	 */
-	public Animation(float lengthInSeconds, KeyFrame[] frames) {
+	public Animation(String name, float lengthInSeconds, KeyFrame[] frames) {
+		this.name = name;
 		this.keyFrames = frames;
 		this.length = lengthInSeconds;
+	}
+
+	public String getName() {
+		return name;
 	}
 
 	public void setInitialized(boolean initialized){

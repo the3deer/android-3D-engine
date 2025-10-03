@@ -13,6 +13,7 @@ import org.the3deer.android_3d_model_engine.model.Dimensions;
 import org.the3deer.android_3d_model_engine.model.Object3DData;
 import org.the3deer.android_3d_model_engine.model.Screen;
 import org.the3deer.util.bean.BeanFactory;
+import org.the3deer.util.bean.BeanInit;
 import org.the3deer.util.event.EventListener;
 import org.the3deer.util.event.EventManager;
 import org.the3deer.util.math.Math3DUtils;
@@ -219,6 +220,7 @@ public class Widget extends Object3DData implements EventListener {
     /**
      * Called by the {@link BeanFactory}
      */
+    @BeanInit
     public void setUp() {
         //this.camera = BeanFactory.getInstance().find(Camera.class, this);
         //refresh();

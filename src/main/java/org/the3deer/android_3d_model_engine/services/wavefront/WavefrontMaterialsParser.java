@@ -19,7 +19,7 @@ final class WavefrontMaterialsParser {
      */
     Materials parse(String id, InputStream inputStream) {
 
-        Log.i("WavefrontMaterialsParse", "Parsing materials... ");
+        Log.v("WavefrontMaterialsParse", "Parsing materials... ");
 
         final Materials materials = new Materials(id);
         try {
@@ -142,7 +142,7 @@ final class WavefrontMaterialsParser {
         }
 
         // log event
-        Log.i("WavefrontMaterialsParse", "Parsed materials: "+materials);
+        Log.d("WavefrontMaterialsParse", "Parsed materials: "+materials);
 
         return materials;
     }

@@ -28,7 +28,7 @@ public class SceneDrawer implements Drawer, EventListener {
     @Inject
     private ShaderFactory shaderFactory;
     @Inject
-    private Scene scene;
+    private SceneManager sceneManager;
     @Inject
     private Light light;
     @Inject
@@ -49,7 +49,10 @@ public class SceneDrawer implements Drawer, EventListener {
     @Override
     public boolean onEvent(EventObject event) {
 
-        if (scene == null) return true;
+        if (sceneManager == null) return false;
+
+        final Scene scene = sceneManager.getCurrentScene();
+        if (scene == null) return false;
 
         // back-to-front drawing
         if (event instanceof Camera.CameraUpdatedEvent) {
@@ -79,6 +82,9 @@ public class SceneDrawer implements Drawer, EventListener {
 
         if (shaderFactory == null) return;
 
+        if (sceneManager == null) return;
+
+        final Scene scene = sceneManager.getCurrentScene();
         if (scene == null || scene.getObjects() == null) return;
 
         Camera camera = config != null ? config.camera : null;
@@ -88,7 +94,7 @@ public class SceneDrawer implements Drawer, EventListener {
         // draw all available objects
         List<Object3DData> objects = scene.getObjects();
         for (int i = 0; i < objects.size(); i++) {
-            final Object3DData object3DData = objects.get(i);
+            //final Object3DData object3DData = objects.get(i);
                 drawObject(camera, light.getLocation(), null, camera.getPos(),
                         true, light.isEnabled(), false, true, true, objects, i);
         }
@@ -132,6 +138,8 @@ public class SceneDrawer implements Drawer, EventListener {
                         Log.e(TAG, "Shader Factory returned no shader: " + shaderFactory);
                         setEnabled(false);
                         return;
+                    } else {
+                        //Log.i(TAG, "Drawing " + objData.getId());
                     }
                     shader.draw(objData, projection.getMatrix(), camera.getViewMatrix(),
                             light.getLocation(), colorMask, camera.getPos(),

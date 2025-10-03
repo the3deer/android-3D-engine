@@ -12,6 +12,7 @@ import org.the3deer.util.event.EventListener;
 import org.the3deer.util.event.EventManager;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.EventObject;
 import java.util.List;
 
@@ -40,7 +41,10 @@ public class CollisionController implements EventListener {
     }
 
     public List<Object3DData> getObjects() {
-        return scene.getObjects();
+        if (scene != null) {
+            return scene.getObjects();
+        }
+        return Collections.emptyList();
     }
 
     public boolean isEnabled() {
@@ -68,7 +72,7 @@ public class CollisionController implements EventListener {
                 if (objectHit != null) {
 
                     // intersection point
-                    Log.i("CollisionController", "Collision. Getting triangle intersection... " + objectHit.getId());
+                    Log.v("CollisionController", "Collision. Getting triangle intersection... " + objectHit.getId());
                     float[] point3D = CollisionDetection.getTriangleIntersection(objectHit, screen.getWidth(), screen.getHeight(),
                             camera.getViewMatrix(), camera.getProjectionMatrix(), x, y);
 
