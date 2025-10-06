@@ -163,9 +163,9 @@ public class Object3DData {
      */
     private final float[] modelMatrix2 = new float[16];
     /**
-     * This is the local transformation when we have node hierarchy (ie. {@code <visual_scene><node><transform></transform></node></visual_scene>}
+     * This is the global transformation when we have node hierarchy (ie. {@code <visual_scene><node><transform></transform></node></visual_scene>}
      */
-    private float[] bindTransform;
+    private float[] worldTransform;
     /**
      * This is the final model transformation
      */
@@ -277,8 +277,9 @@ public class Object3DData {
         return this;
     }
 
-    public void setParentBound(boolean bind) {
+    public Object3DData setParentBound(boolean bind) {
         this.isParentBound = bind;
+        return this;
     }
 
     public boolean isParentBound() {
@@ -605,7 +606,7 @@ public class Object3DData {
     }*/
 
     public Object3DData setModelMatrix(float[] modelMatrix) {
-        this.newModelMatrix = modelMatrix;
+        System.arraycopy(modelMatrix, 0, this.modelMatrix, 0, 16);
         return this;
     }
 
@@ -701,11 +702,14 @@ public class Object3DData {
     }
 
     // binding coming from skeleton
-    public Object3DData setBindTransform(float[] matrix) {
-        this.bindTransform = matrix;
+    public Object3DData setWorldTransform(float[] matrix) {
+        this.worldTransform = matrix;
         this.updateModelMatrix();
-        //this.updateModelDimensions();
         return this;
+    }
+
+    public float[] getWorldTransform() {
+        return worldTransform;
     }
 
     /**
@@ -728,116 +732,59 @@ public class Object3DData {
         updateDimensions();
     }
 
-    public float[] getBindTransform() {
-        return bindTransform;
-    }
-
     protected void updateModelMatrix() {
 
         if (isReadOnly()) return;
 
-        if (this.isParentBound && this.parent != null) {
-            // geometries not linked to any joint does not have bind transform
-            System.arraycopy(this.parent.modelMatrix, 0, this.newModelMatrix, 0, 16);
-        } else {
-            Matrix.setIdentityM(modelMatrix, 0);
-            Matrix.setIdentityM(modelMatrix2, 0);
+        Matrix.setIdentityM(modelMatrix, 0);
+        Matrix.setIdentityM(modelMatrix2, 0);
 
-            //float[] axisAngle = orientation.toAxisAngle();
-            //Matrix.rotateM(modelMatrix, 0, axisAngle[3], axisAngle[0], axisAngle[1], axisAngle[2]);
-            //Log.v("Object3DData","angle:"+Arrays.toString(axisAngle))
+        if (getLocation() != null) {
+            Matrix.translateM(modelMatrix, 0, getLocationX(), getLocationY(), getLocationZ());
+        }
 
-            if (getLocation() != null) {
-                Matrix.translateM(modelMatrix, 0, getLocationX(), getLocationY(), getLocationZ());
-            }
+        if (getRotation() != null) {
+            Matrix.rotateM(modelMatrix, 0, getRotation()[2], 0, 0, 1f);
+            Matrix.rotateM(modelMatrix, 0, getRotation()[1], 0, 1f, 0f);
+            Matrix.rotateM(modelMatrix, 0, getRotation()[0], 1f, 0f, 0f);
+            Matrix.rotateM(modelMatrix2, 0, getRotation()[2], 0, 0, 1f);
+            Matrix.rotateM(modelMatrix2, 0, getRotation()[1], 0, 1f, 0f);
+            Matrix.rotateM(modelMatrix2, 0, getRotation()[0], 1f, 0f, 0f);
+        }
 
-            if (getRotation() != null) {
-                Matrix.rotateM(modelMatrix, 0, getRotation()[2], 0, 0, 1f);
-                Matrix.rotateM(modelMatrix, 0, getRotation()[1], 0, 1f, 0f);
-                Matrix.rotateM(modelMatrix, 0, getRotation()[0], 1f, 0f, 0f);
-                Matrix.rotateM(modelMatrix2, 0, getRotation()[2], 0, 0, 1f);
-                Matrix.rotateM(modelMatrix2, 0, getRotation()[1], 0, 1f, 0f);
-                Matrix.rotateM(modelMatrix2, 0, getRotation()[0], 1f, 0f, 0f);
-            }
-
-            if (orientation != null) {
-                Matrix.multiplyMM(modelMatrix, 0, modelMatrix, 0, orientation.getMatrix(), 0);
-            }
-
-            if (getScale() != null) {
-                Matrix.scaleM(modelMatrix, 0, getScaleX(), getScaleY(), getScaleZ());
-                Matrix.scaleM(modelMatrix2, 0, getScaleX(), getScaleY(), getScaleZ());
-            }
-
-            if (isCentered()) {
-                float[] center = getDimensions().getCenter();
-                Matrix.translateM(modelMatrix, 0, -center[0], -center[1], -center[2]);
-                Matrix.translateM(modelMatrix2, 0, -center[0], -center[1], -center[2]);
-            }
-
-        /*
+        if (orientation != null) {
+            Matrix.multiplyMM(modelMatrix, 0, modelMatrix, 0, orientation.getMatrix(), 0);
+        }
 
         if (getScale() != null) {
             Matrix.scaleM(modelMatrix, 0, getScaleX(), getScaleY(), getScaleZ());
+            Matrix.scaleM(modelMatrix2, 0, getScaleX(), getScaleY(), getScaleZ());
         }
 
-        float[] temp = new float[16];
-        orientation.toRotationMatrix(temp);
-        Matrix.multiplyMM(temp,0,orientationMatrix,0,modelMatrix,0);
-        System.arraycopy(temp,0,modelMatrix,0, temp.length);*/
-
-        /*Matrix.translateM(modelMatrix, 0, -getDimensions().getCenter()[0],
-                -getDimensions().getCenter()[1], -getDimensions().getCenter()[2]);*/
-
-            // apply rotation (euler)
-        /*if (rotation1 != null) {
-            //Matrix.rotateM(modelMatrix, 0, rotation1[0], 1f, 0f, 0f);
-            Matrix.rotateM(modelMatrix, 0, rotation1[1], 0, 1f, 0f);
-            //Matrix.rotateM(modelMatrix, 0, rotation1[2], 0, 0, 1f);
-        }*/
-
-        /*Matrix.translateM(modelMatrix, 0, getDimensions().getCenter()[0],
-                getDimensions().getCenter()[1], getDimensions().getCenter()[2]);*/
-
-
-
-
-        /*if (rotation2 != null && rotation2Location != null) {
-            Matrix.translateM(modelMatrix, 0, rotation2Location[0], rotation2Location[1], rotation2Location[2]);
-            Matrix.rotateM(modelMatrix, 0, getRotation2()[0], 1f, 0f, 0f);
-            Matrix.rotateM(modelMatrix, 0, getRotation2()[1], 0, 1f, 0f);
-            Matrix.rotateM(modelMatrix, 0, getRotation2()[2], 0, 0, 1f);
-            Matrix.translateM(modelMatrix, 0, -rotation2Location[0], -rotation2Location[1], -rotation2Location[2]);
+        if (isCentered()) {
+            float[] center = getDimensions().getCenter();
+            Matrix.translateM(modelMatrix, 0, -center[0], -center[1], -center[2]);
+            Matrix.translateM(modelMatrix2, 0, -center[0], -center[1], -center[2]);
         }
-        if (getRotation() != null) {
-            Matrix.rotateM(modelMatrix, 0, getRotation()[0], 1f, 0f, 0f);
-            Matrix.rotateM(modelMatrix, 0, getRotation()[1], 0, 1f, 0f);
-            Matrix.rotateM(modelMatrix, 0, getRotationZ(), 0, 0, 1f);
-        }*/
 
-            // apply orientation (quaternion)
-
-
-            if (this.bindTransform == null) {
-                // geometries not linked to any joint does not have bind transform
-                System.arraycopy(this.modelMatrix, 0, this.newModelMatrix, 0, 16);
-            } else {
-                Matrix.multiplyMM(newModelMatrix, 0, this.modelMatrix, 0, this.bindTransform, 0);
-                //System.arraycopy(this.bindTransform, 0, this.newModelMatrix, 0, 16);
-            }
+        if (this.worldTransform != null) {
+            System.arraycopy(this.worldTransform, 0, this.modelMatrix, 0, 16);
         }
 
         // normal matrix calculation
         Matrix.setIdentityM(normalMatrix, 0);
         final float[] inverted = new float[16];
-        Matrix.invertM(inverted, 0, newModelMatrix, 0);
+        Matrix.invertM(inverted, 0, modelMatrix, 0);
         Matrix.transposeM(normalMatrix, 0, inverted, 0);
 
         propagate(new ChangeEvent(this));
     }
 
     public float[] getModelMatrix() {
-        return newModelMatrix;
+        if (isParentBound && parent != null) {
+            return parent.modelMatrix;
+        }
+        return modelMatrix;
     }
 
     public float[] getNormalMatrix() {
@@ -989,7 +936,6 @@ public class Object3DData {
         ret.location = this.location;
         ret.scale = this.scale;
         ret.rotation = this.rotation;
-        ret.bindTransform = this.bindTransform;
         ret.centered = this.centered;
         ret.orientation = this.orientation;
 
@@ -1034,16 +980,16 @@ public class Object3DData {
         // loop indices
         if (normalsBuffer == null && vertexBuffer != null) {
 
-            Log.v("Object3DData", "Generating normals... "+getId());
+            Log.v("Object3DData", "Generating normals... " + getId());
 
             // init normal buffer
             normalsBuffer = IOUtils.createFloatBuffer(getVertexBuffer().capacity());
 
-            for (int i = 0; i < vertexBuffer.capacity()-9; i += 9) {
+            for (int i = 0; i < vertexBuffer.capacity(); i += 9) {
 
                 final float[] v1 = getVertexBufferValue(i);
-                final float[] v2 = getVertexBufferValue(i+3);
-                final float[] v3 = getVertexBufferValue(i+6);
+                final float[] v2 = getVertexBufferValue(i + 3);
+                final float[] v3 = getVertexBufferValue(i + 6);
 
                 // calculate normal
                 final float[] calculatedNormal = Math3DUtils.calculateNormal(v1, v2, v3);
@@ -1054,7 +1000,7 @@ public class Object3DData {
                 normalsBuffer.put(calculatedNormal);
             }
 
-            Log.v("Object3DData", "Generating normals finished. "+getId());
+            Log.v("Object3DData", "Generating normals finished. " + getId());
         }
     }
 
@@ -1071,7 +1017,7 @@ public class Object3DData {
     }
 
     private float[] getVertexBufferValue(int offset) {
-        return new float[]{vertexBuffer.get(offset),vertexBuffer.get(offset+1), vertexBuffer.get(offset+2)};
+        return new float[]{vertexBuffer.get(offset), vertexBuffer.get(offset + 1), vertexBuffer.get(offset + 2)};
     }
 
     @Override
@@ -1090,7 +1036,7 @@ public class Object3DData {
                 //", current dimensions: " + this.currentDimensions +
                 ", material=" + getMaterial() +
                 ", elements=" + this.elements +
-                ", matrix=" + Arrays.toString(newModelMatrix) +
+                ", matrix=" + Arrays.toString(modelMatrix) +
                 '}';
     }
 }

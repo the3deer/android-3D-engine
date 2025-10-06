@@ -21,7 +21,6 @@ import org.the3deer.android_3d_model_engine.model.Object3DData;
 import org.the3deer.android_3d_model_engine.model.Transform;
 import org.the3deer.android_3d_model_engine.objects.Point;
 import org.the3deer.android_3d_model_engine.view.RenderListener;
-import org.the3deer.util.android.ContentUtils;
 import org.the3deer.util.event.EventListener;
 import org.the3deer.util.event.EventManager;
 import org.the3deer.util.math.Math3DUtils;
@@ -282,7 +281,9 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
         if (doAnimation) {
             for (int i = 0; i < objects.size(); i++) {
                 Object3DData obj = objects.get(i);
-                animator.update(obj, isShowBindPose());
+                if (obj instanceof AnimatedModel) {
+                    animator.update(((AnimatedModel) obj).getRootJoint(), ((AnimatedModel) obj).getCurrentAnimation(), obj, isShowBindPose());
+                }
             }
         }
     }
@@ -615,6 +616,9 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
 
     public synchronized void onLoadComplete() {
 
+        // FIXME: this needs to be reviewed (eg: countdown.dae)
+        // if (countdown.dae) return;
+
         Log.i(TAG, "onLoadComplete: "+getName()+", Objects: " + objects.size());
 
         // get complete list of objects loaded
@@ -912,9 +916,9 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
             //Log.v(TAG, "Mew model scale: " + Arrays.toString(data.getScale()));
 
             // relocate
-            float localTranlactionX = original.getLocation()[0] * scaleFactor + globalDifference[0];
-            float localTranlactionY = original.getLocation()[1] * scaleFactor + globalDifference[1];
-            float localTranlactionZ = original.getLocation()[2] * scaleFactor + globalDifference[2];
+            float localTranlactionX = original.getTranslation()[0] * scaleFactor + globalDifference[0];
+            float localTranlactionY = original.getTranslation()[1] * scaleFactor + globalDifference[1];
+            float localTranlactionZ = original.getTranslation()[2] * scaleFactor + globalDifference[2];
             data.setLocation(new float[]{localTranlactionX, localTranlactionY, localTranlactionZ});
             //Log.v(TAG, "Mew model location: " + Arrays.toString(data.getLocation()));
 

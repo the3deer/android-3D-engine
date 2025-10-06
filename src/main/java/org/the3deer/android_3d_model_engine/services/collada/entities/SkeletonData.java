@@ -1,41 +1,43 @@
 package org.the3deer.android_3d_model_engine.services.collada.entities;
 
+import org.the3deer.android_3d_model_engine.model.Node;
+
 import java.util.List;
 
 public class SkeletonData {
 
-    private JointData headJoint;
+    private Node headNode;
     private int jointCount;
     private int boneCount = 0;
 
-    private List<JointData> joints;
-    private List<JointData> bones;
+    private List<Node> nodes;
+    private List<Node> bones;
     private float[] bindShapeMatrix;
 
 
-    public SkeletonData(List<JointData> joints, List<JointData> bones, JointData headJoint) {
-        this.joints = joints;
+    public SkeletonData(List<Node> nodes, List<Node> bones, Node headNode) {
+        this.nodes = nodes;
         this.bones = bones;
-        this.headJoint = headJoint;
+        this.headNode = headNode;
     }
 
-    public List<JointData> getJoints() {
-        return joints;
+    public List<Node> getJoints() {
+        return nodes;
     }
 
-    public List<JointData> getBones() {
+    public List<Node> getBones() {
         return bones;
     }
 
-    public SkeletonData(int jointCount, JointData headJoint) {
+    public SkeletonData(int jointCount, Node headNode) {
         this.jointCount = jointCount;
-        this.headJoint = headJoint;
+        this.headNode = headNode;
     }
 
-    public SkeletonData(int jointCount, int boneCount, JointData headJoint) {
+    public SkeletonData(int jointCount, int boneCount, Node headNode) {
         this.jointCount = jointCount;
         this.boneCount = boneCount;
-        this.headJoint = headJoint;
+        this.headNode = headNode;
     }
 
     public void incrementBoneCount() {
@@ -54,13 +56,13 @@ public class SkeletonData {
         }
     }
 
-    public JointData getHeadJoint() {
-        return headJoint;
+    public Node getHeadJoint() {
+        return headNode;
     }
 
     public int getJointCount() {
-        if (joints != null){
-            return joints.size();
+        if (nodes != null){
+            return nodes.size();
         } else {
             return jointCount;
         }
@@ -75,16 +77,16 @@ public class SkeletonData {
         return this;
     }
 
-    public JointData find(String geometryId) {
-        if (joints != null){
-            for (int i=0; i<joints.size(); i++){
-                if (joints.get(i).getId() == null) continue;
-                if (joints.get(i).getId().equals(geometryId)){
-                    return joints.get(i);
+    public Node find(String geometryId) {
+        if (nodes != null){
+            for (int i = 0; i< nodes.size(); i++){
+                if (nodes.get(i).getId() == null) continue;
+                if (nodes.get(i).getId().equals(geometryId)){
+                    return nodes.get(i);
                 }
             }
-        } else if (headJoint != null) {
-            return headJoint.find(geometryId);
+        } else if (headNode != null) {
+            return headNode.find(geometryId);
         }
         return null;
     }

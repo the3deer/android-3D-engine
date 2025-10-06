@@ -5,7 +5,7 @@ import android.opengl.Matrix;
 import android.util.Log;
 
 import org.the3deer.android_3d_model_engine.model.AnimatedModel;
-import org.the3deer.android_3d_model_engine.services.collada.entities.JointData;
+import org.the3deer.android_3d_model_engine.model.Node;
 import org.the3deer.util.io.IOUtils;
 import org.the3deer.util.math.Math3DUtils;
 
@@ -40,22 +40,22 @@ public final class Skeleton {
         Log.i("Skeleton", "Building skeleton... joints: " + animSkeleton.getJointCount());
 
         // build
-        JointData joint = animSkeleton.getSkeleton().getHeadJoint();
+        Node node = animSkeleton.getSkeleton().getHeadJoint();
 
         // point
         float[] point = new float[]{0,0,0,1};
         float[] inverted = new float[16];
-        Matrix.invertM(inverted,0, joint.getInverseBindTransform(), 0);
+        Matrix.invertM(inverted,0, node.getInverseBindTransform(), 0);
         Matrix.multiplyMV(point, 0, inverted, 0, point, 0);
         point[3] = 1;
-        buildBones(animSkeleton, joint, point, joint.getIndex(), colorBuffer);
+        buildBones(animSkeleton, node, point, node.getIndex(), colorBuffer);
 
         //skeleton.setBindShapeMatrix(animatedModel.getBindShapeMatrix22222());
 
         return animSkeleton;
     }
 
-    private static void buildBones(AnimatedModel animatedModel, JointData joint,
+    private static void buildBones(AnimatedModel animatedModel, Node node,
                                    float[] parentPoint, int parentJoinIndex, FloatBuffer colorBuffer) {
 
         float[] point = new float[4];
@@ -66,7 +66,7 @@ public final class Skeleton {
         //point[2] = joint.getBindTransform()[14];
 
         float[] inverted = new float[16];
-        Matrix.invertM(inverted,0, joint.getInverseBindTransform(), 0);
+        Matrix.invertM(inverted,0, node.getInverseBindTransform(), 0);
         Matrix.multiplyMV(point, 0, inverted, 0, point, 0);
         point[3] = 1;
 
@@ -107,17 +107,17 @@ public final class Skeleton {
         animatedModel.getVertexBuffer().put(point2[1]);
         animatedModel.getVertexBuffer().put(point2[2]);
         for (int i = 0; i < 2; i++) {
-            ((FloatBuffer)animatedModel.getJointIds()).put(Math.max(joint.getIndex(), 0));
+            ((FloatBuffer)animatedModel.getJointIds()).put(Math.max(node.getIndex(), 0));
             ((FloatBuffer)animatedModel.getJointIds()).put(0);
             ((FloatBuffer)animatedModel.getJointIds()).put(0);
             ((FloatBuffer)animatedModel.getJointIds()).put(0);
-            ((FloatBuffer)animatedModel.getVertexWeights()).put(Math.max(joint.getIndex(), 0));
+            ((FloatBuffer)animatedModel.getVertexWeights()).put(Math.max(node.getIndex(), 0));
             ((FloatBuffer)animatedModel.getVertexWeights()).put(0);
             ((FloatBuffer)animatedModel.getVertexWeights()).put(0);
             ((FloatBuffer)animatedModel.getVertexWeights()).put(0);
         }
 
-        if (joint.getIndex()<0){
+        if (node.getIndex()<0){
             final float color = 0.75f;
             colorBuffer.put(new float[]{color,0,color,1f});
             colorBuffer.put(new float[]{color,0,color,1f});
@@ -130,8 +130,8 @@ public final class Skeleton {
             colorBuffer.put(new float[]{color,0,color,1});
         }
 
-        for (JointData child : joint.getChildren()) {
-            buildBones(animatedModel, child, point, joint.getIndex(), colorBuffer);
+        for (Node child : node.getChildren()) {
+            buildBones(animatedModel, child, point, node.getIndex(), colorBuffer);
         }
     }
 }

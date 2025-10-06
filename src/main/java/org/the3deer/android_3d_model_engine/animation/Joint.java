@@ -2,7 +2,7 @@ package org.the3deer.android_3d_model_engine.animation;
 
 import android.opengl.Matrix;
 
-import org.the3deer.android_3d_model_engine.services.collada.entities.JointData;
+import org.the3deer.android_3d_model_engine.model.Node;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,7 +35,7 @@ import java.util.List;
  */
 public class Joint {
 
-    private final JointData data;
+    private final Node data;
 
     // descendants
     private final List<Joint> children = new ArrayList<>();
@@ -59,7 +59,7 @@ public class Joint {
      * joints, so that they too calculate and store their inverse bind-pose
      * transform.
      */
-    public Joint(JointData data) {
+    public Joint(Node data) {
         this.data = data;
         Matrix.setIdentityM(animatedTransform,0);
     }
@@ -70,8 +70,8 @@ public class Joint {
      *
      * @return The created joint, with all its descendants added.
      */
-    public static Joint buildJoints(JointData rootJointData) {
-        return buildJoint(rootJointData);
+    public static Joint buildJoints(Node rootNode) {
+        return buildJoint(rootNode);
     }
 
     /**
@@ -86,9 +86,9 @@ public class Joint {
      *            "skeleton" of the entity.
      *
      */
-    private static Joint buildJoint(JointData data){
+    private static Joint buildJoint(Node data){
         Joint ret = new Joint(data);
-        for (JointData child : data.children) {
+        for (Node child : data.children) {
             ret.addChild(buildJoint(child));
         }
         return ret;
@@ -114,8 +114,8 @@ public class Joint {
         return children;
     }
 
-    public float[] getBindLocalTransform() {
-        return data.getBindLocalTransform();
+    public float[] getBindTransform() {
+        return data.getBindTransform().getTransform();
     }
 
     /**
@@ -159,6 +159,14 @@ public class Joint {
         return data.getInverseBindTransform();
     }
 
+    public void updateWorldTransform(float[] parentTransform) {
+        data.updateWorldTransform(parentTransform);
+    }
+
+    public float[] getWorldTransform(){
+        return data.getWorldTransform();
+    }
+
     @Override
     public Joint clone() {
         final Joint ret = new Joint(data);
@@ -173,12 +181,15 @@ public class Joint {
         return data.toString();
     }
 
-    public JointData find(String id) {
+    public Node find(String id) {
         return data.find(id);
     }
 
-    public List<JointData> findAll(String id) {
+    public List<Node> findAll(String id) {
         return data.findAll(id);
     }
 
+    public Node getParent() {
+        return data.getParent();
+    }
 }

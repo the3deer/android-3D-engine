@@ -3,7 +3,7 @@ package org.the3deer.android_3d_model_engine.services.collada.loader;
 import android.opengl.Matrix;
 import android.util.Log;
 
-import org.the3deer.android_3d_model_engine.services.collada.entities.JointData;
+import org.the3deer.android_3d_model_engine.model.Node;
 import org.the3deer.android_3d_model_engine.services.collada.entities.SkeletonData;
 import org.the3deer.android_3d_model_engine.services.collada.entities.SkinningData;
 import org.the3deer.util.math.Math3DUtils;
@@ -46,7 +46,7 @@ public class SkeletonLoader {
 
 		// create root node
 		String visualSceneId = visualScene.getAttribute("id");
-		final JointData rootJoint = new JointData(visualSceneId);
+		final Node rootNode = new Node(visualSceneId);
 		AtomicInteger defaultCount = new AtomicInteger();
 		defaultCount.incrementAndGet();
 
@@ -71,23 +71,23 @@ public class SkeletonLoader {
 					String skeletonId = instance_controller.getChild("skeleton").getData().substring(1);
 
 					// root joint
-					final JointData rootJoint2 = new JointData(visualSceneId);
+					final Node rootNode2 = new Node(visualSceneId);
 					AtomicInteger count = new AtomicInteger();
 					count.incrementAndGet();
 
 					// add current node
-					final JointData instanceJoint = createJointData(node, rootJoint2, count);
-					rootJoint2.addChild(instanceJoint);
+					final Node instanceNode = createJointData(node, rootNode2, count);
+					rootNode2.addChild(instanceNode);
 
 					// bind linked child node
-					JointData jointData = loadSkeleton(visualScene.getChildWithAttributeRecursive("node", "id", skeletonId), instanceJoint, count);
-					instanceJoint.addChild(jointData);
+					Node joint = loadSkeleton(visualScene.getChildWithAttributeRecursive("node", "id", skeletonId), instanceNode, count);
+					instanceNode.addChild(joint);
 
 					// log event
 					Log.i("SkeletonLoader", "Node found. skeleton: "+skeletonId+", geometryId: "+geometryId+", joints: " + count.get());
 
 					// add to returned list
-					ret.put(geometryId, new SkeletonData(count.get(), rootJoint2));
+					ret.put(geometryId, new SkeletonData(count.get(), rootNode2));
 
 				} catch (Exception e) {
 					Log.e("SkeletonLoader", e.getMessage(), e);
@@ -96,14 +96,14 @@ public class SkeletonLoader {
 			} else {
 
 				// parse joints
-				JointData jointData = loadSkeleton(node, rootJoint, defaultCount);
-				rootJoint.addChild(jointData);
+				Node joint = loadSkeleton(node, rootNode, defaultCount);
+				rootNode.addChild(joint);
 				Log.v("SkeletonLoader", "Node found. joints: " + defaultCount.get());
 			}
 		}
 
 		// add to returned list
-		ret.put("default", new SkeletonData(defaultCount.get(), rootJoint));
+		ret.put("default", new SkeletonData(defaultCount.get(), rootNode));
 
 		// no skeleton found at all
 		if (ret.isEmpty()){
@@ -115,26 +115,26 @@ public class SkeletonLoader {
 		return ret;
 	}
 
-	private JointData loadSkeleton(XmlNode jointNode, JointData parent, AtomicInteger count){
-		JointData joint = createJointData(jointNode, parent, count);
+	private Node loadSkeleton(XmlNode jointNode, Node parent, AtomicInteger count){
+		Node node = createJointData(jointNode, parent, count);
 
 		// Log.i("SkeletonLoader","Joint: index "+joint.index+", name: "+joint.nameId);
 		for(XmlNode childNode : jointNode.getChildren("node")){
-			JointData child = loadSkeleton(childNode, joint, count);
-			joint.addChild(child);
+			Node child = loadSkeleton(childNode, node, count);
+			node.addChild(child);
 		}
-		return joint;
+		return node;
 	}
 
-	private JointData createJointData(XmlNode jointNode, JointData parent, AtomicInteger count){
+	private Node createJointData(XmlNode jointNode, Node parent, AtomicInteger count){
 
-		// joint transformation initialization
-        float[] bindLocalTransform = null;
 
-        float[] bindLocalMatrix = null;
+		float[] bindLocalMatrix = null;
 		Float[] bindLocalScale = null;
 		Float[] bindLocalRotation = null;
 		Float[] bindLocalLocation = null;
+		// sum-up of previous transforms
+		float[] bindLocalTransform = null;
 
 		// did we find any supported transformations?
 		if (jointNode.getChild("matrix") != null) {
@@ -142,8 +142,8 @@ public class SkeletonLoader {
 			String data = jointMatrix.getData().trim();
 			if (!data.equals("1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1")) {
 				float[] matrix1 = Math3DUtils.parseFloat(data.split("\\s+"));
-				bindLocalTransform = new float[16];
-				Matrix.transposeM(bindLocalTransform, 0, matrix1, 0);
+				//bindLocalTransform = new float[16];
+				//Matrix.transposeM(bindLocalTransform, 0, matrix1, 0);
 
 				// local matrix
 				bindLocalMatrix = new float[16];
@@ -255,12 +255,12 @@ public class SkeletonLoader {
 		}
 
 		float[] bindTransform = Math3DUtils.IDENTITY_MATRIX;
-        if (parent.getBindTransform() != Math3DUtils.IDENTITY_MATRIX || bindLocalTransform != Math3DUtils.IDENTITY_MATRIX) {
+        if (parent.getWorldTransform() != Math3DUtils.IDENTITY_MATRIX || bindLocalTransform != Math3DUtils.IDENTITY_MATRIX) {
 			bindTransform = new float[16];
-       		Matrix.multiplyMM(bindTransform, 0, parent.getBindTransform(), 0, bindLocalTransform, 0);
+       		Matrix.multiplyMM(bindTransform, 0, parent.getWorldTransform(), 0, bindLocalTransform, 0);
 		}
 
-        return new JointData(nodeId, nodeId, nodeSid, bindLocalMatrix, bindLocalScale, bindLocalRotation, bindLocalLocation, bindLocalTransform, bindTransform, geometryId, materials
+        return new Node(nodeId, nodeId, nodeSid, bindLocalMatrix, bindLocalScale, bindLocalRotation, bindLocalLocation, bindLocalTransform, bindTransform, geometryId, materials
 		);
 	}
 
@@ -285,16 +285,16 @@ public class SkeletonLoader {
 				boneList = skinningData.jointOrder;
 			}
 
-			for (JointData jointData : entry.getValue().getHeadJoint().children) {
-				updateChildJointData(jointData, skinningData, entry.getValue(), boneList != null? boneList : defaultBoneList);
+			for (Node node : entry.getValue().getHeadJoint().children) {
+				updateChildJointData(node, skinningData, entry.getValue(), boneList != null? boneList : defaultBoneList);
 			}
 
 			// log event
 			StringBuilder jointIndicesString = new StringBuilder();
-			List<JointData> pending = new ArrayList<>();
+			List<Node> pending = new ArrayList<>();
 			pending.add(entry.getValue().getHeadJoint());
 			while(!pending.isEmpty()){
-				JointData current = pending.get(0);
+				Node current = pending.get(0);
 				if (current.getIndex() != -1) {
 					jointIndicesString.append(current.getName() != null? current.getName():current.getId())
 							.append(":").append(current.getIndex()).append(", ");
@@ -308,26 +308,26 @@ public class SkeletonLoader {
 
 	}
 
-	private void updateChildJointData(JointData childJoint, SkinningData skinningData, SkeletonData skeletonData, List<String> boneOrder) {
-		upateJointData_impl(childJoint, skinningData,skeletonData, boneOrder);
-		for (JointData jointData : childJoint.children){
-			updateChildJointData(jointData, skinningData,skeletonData, boneOrder);
+	private void updateChildJointData(Node childNode, SkinningData skinningData, SkeletonData skeletonData, List<String> boneOrder) {
+		upateJointData_impl(childNode, skinningData,skeletonData, boneOrder);
+		for (Node node : childNode.children){
+			updateChildJointData(node, skinningData,skeletonData, boneOrder);
 		}
 	}
 
 	/**
 	 *
-	 * @param jointData
+	 * @param node
 	 * @param skinningData skin data containing the "Name_array"
 	 * @param skeletonData
 	 * @param boneOrder
 	 */
-	private void upateJointData_impl(JointData jointData,SkinningData skinningData, SkeletonData skeletonData, List<String> boneOrder){
+	private void upateJointData_impl(Node node, SkinningData skinningData, SkeletonData skeletonData, List<String> boneOrder){
 
-		final String nodeName = jointData.getName();
-		final String nodeSid = jointData.getSid();
-		final String nodeId = jointData.getId();
-		final String geometryId = jointData.getGeometryId();
+		final String nodeName = node.getName();
+		final String nodeSid = node.getSid();
+		final String nodeId = node.getId();
+		final String geometryId = node.getMeshId();
 
 		// index is only available for declared bones
 		int index = boneOrder.indexOf(nodeName);
@@ -357,7 +357,7 @@ public class SkeletonLoader {
 			skeletonData.incrementBoneCount();
 		}
 
-		jointData.setIndex(index);
-		jointData.setInverseBindTransform(inverseBindMatrix);
+		node.setIndex(index);
+		node.setInverseBindTransform(inverseBindMatrix);
 	}
 }

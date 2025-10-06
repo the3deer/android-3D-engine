@@ -5,7 +5,7 @@ import android.util.Log;
 import org.the3deer.android_3d_model_engine.model.Element;
 import org.the3deer.android_3d_model_engine.model.Material;
 import org.the3deer.android_3d_model_engine.model.Texture;
-import org.the3deer.android_3d_model_engine.services.collada.entities.JointData;
+import org.the3deer.android_3d_model_engine.model.Node;
 import org.the3deer.android_3d_model_engine.services.collada.entities.MeshData;
 import org.the3deer.android_3d_model_engine.services.collada.entities.SkeletonData;
 import org.the3deer.util.xml.XmlNode;
@@ -95,12 +95,12 @@ public class MaterialLoader {
 
     private Material parseInstanceMaterial(String geometryId, String geometryName, String material, SkeletonData skeletonData){
         if (skeletonData != null) {
-            JointData jointData = skeletonData.find(geometryId);
-            if (jointData == null && geometryName != null) {
-                jointData = skeletonData.find(geometryName);
+            Node node = skeletonData.find(geometryId);
+            if (node == null && geometryName != null) {
+                node = skeletonData.find(geometryName);
             }
-            if (jointData != null && jointData.containsMaterial(material)) {
-                return parseMaterial(jointData.getMaterial(material));
+            if (node != null && node.containsMaterial(material)) {
+                return parseMaterial(node.getMaterial(material));
             }
         }
         return null;

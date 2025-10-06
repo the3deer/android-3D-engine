@@ -3,7 +3,7 @@ package org.the3deer.android_3d_model_engine.animation;
 import android.opengl.Matrix;
 
 import org.the3deer.android_3d_model_engine.model.Constants;
-import org.the3deer.android_3d_model_engine.services.collada.entities.JointData;
+import org.the3deer.android_3d_model_engine.model.Node;
 import org.the3deer.util.math.Math3DUtils;
 import org.the3deer.util.math.Quaternion;
 
@@ -84,7 +84,7 @@ public class JointTransform {
         this.qRotation = Quaternion.fromMatrix(matrix);
         this.scale = Math3DUtils.scaleFromMatrix(matrix);
         if (matrix != null) {
-            this.rotation = Quaternion.fromMatrix(matrix).normalize().toAngles2(null);
+            this.rotation = Quaternion.fromMatrix(matrix).normalize().toAnglesF(null);
         }
         this.location = new Float[]{matrix[12], matrix[13], matrix[14]};
         this.visible = true;
@@ -157,7 +157,7 @@ public class JointTransform {
         return true;
     }
 
-    void complete(JointData jointData) {
+    void complete(Node node) {
         if (this.scale == null) {
             this.scale = new Float[]{1f, 1f, 1f};
         }
@@ -168,43 +168,45 @@ public class JointTransform {
             this.location = new Float[3];
         }
 
-        if (jointData == null){
+        if (node == null){
             this.rotation[0] = this.rotation[1] = this.rotation[2] = 0f;
             this.location[0] = this.location[1] = this.location[2] = 0f;
-        }
+        } else {
 
-        if (jointData.getBindLocalTranslation() != null) {
-            if (this.location[0] == null && jointData.getBindLocalTranslation()[0] != null)
-                this.location[0] = jointData.getBindLocalTranslation()[0];
-            if (this.location[1] == null && jointData.getBindLocalTranslation()[1] != null)
-                this.location[1] = jointData.getBindLocalTranslation()[1];
-            if (this.location[2] == null && jointData.getBindLocalTranslation()[2] != null)
-                this.location[2] = jointData.getBindLocalTranslation()[2];
-        }
+            if (node.getBindLocalTranslation() != null) {
+                if (this.location[0] == null && node.getBindLocalTranslation()[0] != null)
+                    this.location[0] = node.getBindLocalTranslation()[0];
+                if (this.location[1] == null && node.getBindLocalTranslation()[1] != null)
+                    this.location[1] = node.getBindLocalTranslation()[1];
+                if (this.location[2] == null && node.getBindLocalTranslation()[2] != null)
+                    this.location[2] = node.getBindLocalTranslation()[2];
+            }
 
-        if (jointData.getBindLocalScale() != null) {
-            if (this.scale[0] == null && jointData.getBindLocalScale()[0] != null)
-                this.scale[0] = jointData.getBindLocalScale()[0];
-            if (this.scale[1] == null && jointData.getBindLocalScale()[1] != null)
-                this.scale[1] = jointData.getBindLocalScale()[1];
-            if (this.scale[2] == null && jointData.getBindLocalScale()[2] != null)
-                this.scale[2] = jointData.getBindLocalScale()[2];
-        }
+            if (node.getBindLocalScale() != null) {
+                if (this.scale[0] == null && node.getBindLocalScale()[0] != null)
+                    this.scale[0] = node.getBindLocalScale()[0];
+                if (this.scale[1] == null && node.getBindLocalScale()[1] != null)
+                    this.scale[1] = node.getBindLocalScale()[1];
+                if (this.scale[2] == null && node.getBindLocalScale()[2] != null)
+                    this.scale[2] = node.getBindLocalScale()[2];
+            }
 
-        if (jointData.getBindLocalQuaternion() != null) {
-            if (this.qRotation == null) {
-                this.qRotation = jointData.getBindLocalQuaternion();
+            if (node.getBindLocalQuaternion() != null) {
+                if (this.qRotation == null) {
+                    this.qRotation = node.getBindLocalQuaternion();
+                }
+            }
+
+            if (node.getBindLocalRotation() != null) {
+                if (this.rotation[0] == null && node.getBindLocalRotation()[0] != null)
+                    this.rotation[0] = node.getBindLocalRotation()[0];
+                if (this.rotation[1] == null && node.getBindLocalRotation()[1] != null)
+                    this.rotation[1] = node.getBindLocalRotation()[1];
+                if (this.rotation[2] == null && node.getBindLocalRotation()[2] != null)
+                    this.rotation[2] = node.getBindLocalRotation()[2];
             }
         }
 
-        if (jointData.getBindLocalRotation() != null) {
-            if (this.rotation[0] == null && jointData.getBindLocalRotation()[0] != null)
-                this.rotation[0] = jointData.getBindLocalRotation()[0];
-            if (this.rotation[1] == null && jointData.getBindLocalRotation()[1] != null)
-                this.rotation[1] = jointData.getBindLocalRotation()[1];
-            if (this.rotation[2] == null && jointData.getBindLocalRotation()[2] != null)
-                this.rotation[2] = jointData.getBindLocalRotation()[2];
-        }
         refresh();
     }
 
@@ -571,7 +573,7 @@ public class JointTransform {
     public void setQuaternion(Quaternion quaternion) {
         this.qRotation = quaternion;
         if (quaternion != null) {
-            this.rotation = quaternion.toAngles2(this.rotation);
+            this.rotation = quaternion.toAnglesF(this.rotation);
         }
         refresh();
     }

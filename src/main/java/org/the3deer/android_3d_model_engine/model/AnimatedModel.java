@@ -1,8 +1,9 @@
 package org.the3deer.android_3d_model_engine.model;
 
+import android.opengl.Matrix;
+
 import org.the3deer.android_3d_model_engine.animation.Animation;
 import org.the3deer.android_3d_model_engine.animation.Joint;
-import org.the3deer.android_3d_model_engine.services.collada.entities.JointData;
 import org.the3deer.android_3d_model_engine.services.collada.entities.SkeletonData;
 import org.the3deer.util.math.Math3DUtils;
 
@@ -74,9 +75,10 @@ public class AnimatedModel extends Object3DData {
         return this;
     }
 
-    public void setSkeleton(SkeletonData jointsData) {
+    public AnimatedModel setSkeleton(SkeletonData jointsData) {
         this.skeleton = jointsData;
         this.setJointMatrices(new float[skeleton.getBoneCount()][16]);  // 16 is the size of the matrix
+        return this;
     }
 
     public SkeletonData getSkeleton() {
@@ -115,7 +117,7 @@ public class AnimatedModel extends Object3DData {
 
     public AnimatedModel setAnimations(List<Animation> animations) {
         this.animations = animations;
-        if (animations != null && animations.size() > 0){
+        if (animations != null && !animations.isEmpty()){
             setCurrentAnimation(animations.get(0));
         }
         
@@ -131,8 +133,9 @@ public class AnimatedModel extends Object3DData {
         return currentAnimation;
     }
 
-    public void setCurrentAnimation(Animation currentAnimation) {
+    public AnimatedModel setCurrentAnimation(Animation currentAnimation) {
         this.currentAnimation = currentAnimation;
+        return this;
     }
 
     /**
@@ -148,7 +151,20 @@ public class AnimatedModel extends Object3DData {
                 this.rootJoint = Joint.buildJoints(this.skeleton.getJoints().get(0));
             }
         }
+        //Log.v("Animator", "Root joint: "+rootJoint);
         return rootJoint;
+    }
+
+    // In your model class (e.g., Object3DData or AnimatedModel)
+
+    public void update() {
+        // Start the recursive update for the entire model's node hierarchy.
+        // We begin at the root joint, and its parent is the world origin (Identity Matrix).
+        if (rootJoint != null) {
+            float[] identityMatrix = new float[16];
+            Matrix.setIdentityM(identityMatrix, 0);
+            rootJoint.updateWorldTransform(identityMatrix);
+        }
     }
 
     /**
@@ -192,8 +208,9 @@ public class AnimatedModel extends Object3DData {
         return jointMatrices;
     }
 
-    public void setJointMatrices(float[][] jointMatrices) {
+    public AnimatedModel setJointMatrices(float[][] jointMatrices) {
         this.jointMatrices = jointMatrices;
+        return this;
     }
 
     public void setJointIdsComponents(int numComponents) {
@@ -210,9 +227,5 @@ public class AnimatedModel extends Object3DData {
 
     public int getWeightsComponents() {
         return weightsComponents;
-    }
-
-    public JointData getBone(String jointId) {
-        return skeleton.find(jointId);
     }
 }

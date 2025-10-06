@@ -4,7 +4,7 @@ import android.opengl.Matrix;
 import android.util.Log;
 
 import org.the3deer.android_3d_model_engine.model.Constants;
-import org.the3deer.android_3d_model_engine.services.collada.entities.JointData;
+import org.the3deer.android_3d_model_engine.model.Node;
 import org.the3deer.android_3d_model_engine.services.collada.entities.MeshData;
 import org.the3deer.android_3d_model_engine.services.collada.entities.SkeletonData;
 import org.the3deer.android_3d_model_engine.services.collada.entities.SkinningData;
@@ -181,17 +181,17 @@ public class SkinLoader {
 			// failover to skeleton if no skinning data is available
 			if (weightsData == null & skeletonData != null) {
 				// FIXME: process all joints?
-				JointData jointData = skeletonData.getHeadJoint().find(geometryId);
-				if (jointData == null) {
+				Node node = skeletonData.getHeadJoint().find(geometryId);
+				if (node == null) {
 					Log.v("SkinLoader", "Joint not found for " + geometryId + ". Using root joint");
-					jointData = skeletonData.getHeadJoint();
+					node = skeletonData.getHeadJoint();
 				} else {
 					//Log.v("SkinLoader", "Joint found for " + geometryId + ". Bone " + jointData.getName());
 				}
-				if (jointData != null) {
+				if (node != null) {
 					//Log.v("SkinLoader", "vertex_weights not found. Using root joint effect");
 					weightsData = new VertexSkinData();
-					weightsData.addJointEffect(jointData.getIndex(), 1);
+					weightsData.addJointEffect(node.getIndex(), 1);
 					weightsData.limitJointNumber(Constants.MAX_VERTEX_WEIGHTS);
 				}
 			}

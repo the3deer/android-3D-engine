@@ -3,6 +3,8 @@ package org.the3deer.android_3d_model_engine.drawer;
 import android.util.Log;
 
 import org.the3deer.android_3d_model_engine.R;
+import org.the3deer.android_3d_model_engine.animation.Animator;
+import org.the3deer.android_3d_model_engine.model.AnimatedModel;
 import org.the3deer.android_3d_model_engine.model.Camera;
 import org.the3deer.android_3d_model_engine.model.Object3DData;
 import org.the3deer.android_3d_model_engine.model.Scene;
@@ -11,6 +13,7 @@ import org.the3deer.android_3d_model_engine.renderer.Drawer;
 import org.the3deer.android_3d_model_engine.shader.Shader;
 import org.the3deer.android_3d_model_engine.shader.ShaderFactory;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -28,6 +31,11 @@ public class BoundingBoxDrawer implements Drawer {
     private Scene scene;
     @Inject
     private Camera camera;
+    /**
+     * Animator
+     */
+    private Animator animator = new Animator();
+
     // dynamic bounding boxes
     private Map<Object3DData, Object3DData> boundingBoxes = new HashMap<>();
 
@@ -73,6 +81,12 @@ public class BoundingBoxDrawer implements Drawer {
                         return;
                     }
 
+                    Object3DData selectedObject = scene.getSelectedObject();
+                    if (selectedObject instanceof AnimatedModel) {
+                        animator.update(((AnimatedModel) selectedObject).getRootJoint(), ((AnimatedModel) selectedObject).getCurrentAnimation(), boundingBoxData
+                                , false);
+                    }
+
                     final Camera camera = config != null && config.camera != null ? config.camera : this.camera;
                     drawerObject.draw(boundingBoxData, camera.getProjectionMatrix(), camera.getViewMatrix(),
                             null, null, null,
@@ -89,13 +103,14 @@ public class BoundingBoxDrawer implements Drawer {
         if (boundingBoxData == null) {
             Log.v(TAG, "Building bounding box... id: " + objData.getId());
             boundingBoxData = BoundingBox.build(objData);
-            boundingBoxData.setModelMatrix(objData.getModelMatrix());
-            boundingBoxData.setParentBound(true);
+            //boundingBoxData.setModelMatrix(objData.getModelMatrix());
+            //boundingBoxData.setParentBound(true);
             boundingBoxData.setSolid(false);
-            boundingBoxData.setReadOnly(true);
-            boundingBoxData.setScale(objData.getScale());
+            //boundingBoxData.setReadOnly(true);
+            //boundingBoxData.setScale(objData.getScale());
             boundingBoxes.put(objData, boundingBoxData);
         }
+
         /*boundingBoxData.setColor(Constants.COLOR_GRAY);
         if (scene.getSelectedObject() == objData) {
             boundingBoxData.setColor(Constants.COLOR_WHITE);

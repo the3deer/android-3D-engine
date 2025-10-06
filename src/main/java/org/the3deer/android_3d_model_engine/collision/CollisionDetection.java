@@ -223,7 +223,7 @@ public class CollisionDetection {
     }
 
     private static float[] getTriangleIntersection(final Object3DData hit, float[] nearHit, float[] farHit, float[] direction) {
-        Log.d("CollisionDetection", "Getting triangle intersection: " + hit.getId());
+        Log.v("CollisionDetection", "Getting triangle intersection: " + hit.getId());
 
         Octree octree;
         synchronized (hit) {
@@ -322,7 +322,7 @@ public class CollisionDetection {
         float t = f * Math3DUtils.dotProduct(edge2, q);
         if (t > EPSILON) // ray intersection
         {
-            Log.d("CollisionDetection", "Triangle intersection at: " + t);
+            //Log.v("CollisionDetection", "Triangle intersection at: " + t);
             return t;
         } else // This means that there is a line intersection but not a ray intersection.
             return -1;

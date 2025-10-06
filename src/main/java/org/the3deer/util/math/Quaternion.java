@@ -899,7 +899,7 @@ public class Quaternion {
      * @param dest buffer data
      * @return the corresponding euler angles (degrees)
      */
-    public Float[] toAngles2(Float[] dest) {
+    public Float[] toAnglesF(Float[] dest) {
         float[] angles = toAngles(null);
         if (dest == null){
             dest = new Float[3];

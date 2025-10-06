@@ -305,7 +305,7 @@ public class MeshData {
      */
     public void fixNormals() {
 
-        Log.d("MeshData", "Fixing missing or wrong normals...");
+        Log.v("MeshData", "Fixing missing or wrong normals...");
 
         // check there is normals to fix
         if (this.normals == null || this.normals.isEmpty()) {

@@ -9,11 +9,11 @@ import org.the3deer.android_3d_model_engine.animation.Animation;
 import org.the3deer.android_3d_model_engine.model.AnimatedModel;
 import org.the3deer.android_3d_model_engine.model.Constants;
 import org.the3deer.android_3d_model_engine.model.Element;
+import org.the3deer.android_3d_model_engine.model.Node;
 import org.the3deer.android_3d_model_engine.model.Object3DData;
 import org.the3deer.android_3d_model_engine.model.Scene;
 import org.the3deer.android_3d_model_engine.scene.SceneImpl;
 import org.the3deer.android_3d_model_engine.services.LoadListener;
-import org.the3deer.android_3d_model_engine.services.collada.entities.JointData;
 import org.the3deer.android_3d_model_engine.services.collada.entities.MeshData;
 import org.the3deer.android_3d_model_engine.services.collada.entities.SkeletonData;
 import org.the3deer.android_3d_model_engine.services.collada.entities.SkinningData;
@@ -136,18 +136,18 @@ public final class ColladaLoader {
 
                         // TODO: we may have several instances - should be clone all of them here?
 
-                        JointData jointData = null;
+                        Node node = null;
                         SkeletonData skeletonData = skeletons.get(meshData.getId());
                         if (skeletonData == null) {
                             skeletonData = skeletons.get("default");
                         }
                         if (skeletonData != null) {
-                            jointData = skeletonData.find(meshData.getId());
+                            node = skeletonData.find(meshData.getId());
                         }
-                        if (jointData != null) {
-                            Log.d("ColladaLoaderTask", "Mesh joint found. id: "+jointData.getName()+", bindTransform: "+ Arrays.toString(jointData.getBindTransform()));
-                            data3D.setName(jointData.getName());
-                            data3D.setBindTransform(jointData.getBindTransform());
+                        if (node != null) {
+                            Log.d("ColladaLoaderTask", "Mesh joint found. id: "+ node.getName()+", bindTransform: "+ Arrays.toString(node.getWorldTransform()));
+                            data3D.setName(node.getName());
+                            data3D.setWorldTransform(node.getWorldTransform());
                         }
                     }
 
@@ -224,29 +224,29 @@ public final class ColladaLoader {
                     if (skeletonData == null) continue;;
 
                     // no joint linked to geometry - just draw as it is
-                    List<JointData> allJointData = skeletonData.getHeadJoint().findAll(meshData.getId());
-                    if (allJointData.isEmpty()) {
+                    List<Node> allNodeData = skeletonData.getHeadJoint().findAll(meshData.getId());
+                    if (allNodeData.isEmpty()) {
                         Log.d("ColladaLoaderTask", "No joint linked to mesh: " + meshData.getId());
                         continue;
                     }
 
                     // found 1 joint linked to geometry - update matrix
-                    if (allJointData.size() == 1) {
+                    if (allNodeData.size() == 1) {
                         // Log.d("ColladaLoaderTask", "Found 1 single instance for mesh: " + meshData.getId());
-                        final JointData jointData = allJointData.get(0);
+                        final Node node = allNodeData.get(0);
                         // FIXME: set this only if not animated
-                        data3D.setBindTransform(jointData.getBindTransform());
+                        data3D.setWorldTransform(node.getWorldTransform());
                         continue;
                     }
 
                     // found several mesh instances - draw them all
-                    Log.i("ColladaLoaderTask", "Found multiple instances for mesh: " + meshData.getId() + ". Total: " + allJointData.size());
+                    Log.i("ColladaLoaderTask", "Found multiple instances for mesh: " + meshData.getId() + ". Total: " + allNodeData.size());
                     boolean isOriginalMeshConfigured = false;
-                    for (JointData jd : allJointData) {
+                    for (Node jd : allNodeData) {
 
                         // update matrix for original mesh
                         if (!isOriginalMeshConfigured) {
-                            data3D.setBindTransform(jd.getBindTransform());
+                            data3D.setWorldTransform(jd.getBindTransform().getTransform());
                             isOriginalMeshConfigured = true;
                             continue;
                         }
@@ -255,7 +255,7 @@ public final class ColladaLoader {
                         final AnimatedModel instance_geometry = data3D.clone();
                         instance_geometry.setId(data3D.getId() + "_instance_" + jd.getName());
                         // FIXME: set this only if not animated
-                        instance_geometry.setBindTransform(jd.getBindTransform());
+                        instance_geometry.setWorldTransform(jd.getBindTransform().getTransform());
 
                         callback.onLoad(scene, instance_geometry);
                         ret.add(instance_geometry);
@@ -419,7 +419,7 @@ public final class ColladaLoader {
                         data3D.setAnimations(Collections.singletonList(animation));
 
                         // FIXME: this should be handled differently - this must be null for iris mechanical + countdown timer
-                        data3D.setBindTransform(null);
+                        data3D.setWorldTransform(null);
                     }
 
                     callback.onLoadComplete();
