@@ -768,7 +768,8 @@ public class Object3DData {
         }
 
         if (this.worldTransform != null) {
-            System.arraycopy(this.worldTransform, 0, this.modelMatrix, 0, 16);
+            //System.arraycopy(this.worldTransform, 0, this.modelMatrix, 0, 16);
+            Matrix.multiplyMM(modelMatrix, 0, modelMatrix, 0, this.worldTransform, 0);
         }
 
         // normal matrix calculation
