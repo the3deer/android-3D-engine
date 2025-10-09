@@ -4,14 +4,8 @@ import android.content.Context;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.MotionEvent;
-import android.widget.Toast;
-
-import androidx.lifecycle.ViewModelProvider;
-import androidx.lifecycle.ViewModelStoreOwner;
 
 import org.the3deer.android_3d_model_engine.ModelEngine;
-import org.the3deer.android_3d_model_engine.ModelViewModel;
-import org.the3deer.util.bean.BeanInit;
 
 /**
  * This is the actual OpenGL surface.

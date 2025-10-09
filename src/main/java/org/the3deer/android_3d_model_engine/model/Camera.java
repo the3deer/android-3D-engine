@@ -14,7 +14,6 @@ import org.the3deer.util.math.Math3DUtils;
 import org.the3deer.util.math.Quaternion;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.EventObject;
 import java.util.List;
 
@@ -37,6 +36,30 @@ public class Camera {
         }
     }
 
+    public static class CameraLoadedEvent extends EventObject {
+
+        private Camera camera;
+
+        /**
+         * Constructs a prototypical Event.
+         *
+         * @param source the object on which the Event initially occurred
+         * @throws IllegalArgumentException if source is null
+         */
+        public CameraLoadedEvent(Object source, Camera camera) {
+            super(source);
+            this.camera = camera;
+        }
+
+        public Camera getCamera() {
+            return camera;
+        }
+
+        public void setCamera(Camera camera) {
+            this.camera = camera;
+        }
+    }
+
     /**
      * Triggers on any camera update
      */
@@ -52,6 +75,8 @@ public class Camera {
             super(source);
         }
     }
+
+    private final String name = "Camera_"+System.identityHashCode(this);
 
     private final BoundingBox centerBox = new BoundingBox("scene", -Constants.ROOM_CENTER_SIZE, Constants.ROOM_CENTER_SIZE,
             -Constants.ROOM_CENTER_SIZE, Constants.ROOM_CENTER_SIZE, -Constants.ROOM_CENTER_SIZE, Constants.ROOM_CENTER_SIZE);
@@ -97,6 +122,9 @@ public class Camera {
     // stereoscopic handlers
     private Camera[] stereoCam;
 
+    // scene graph
+    private Node node;
+
     public Camera() {
     }
 
@@ -129,6 +157,10 @@ public class Camera {
         this.up[0] = xUp;
         this.up[1] = yUp;
         this.up[2] = zUp;
+    }
+
+    public String getName() {
+        return name;
     }
 
     public Projection getProjection() {
@@ -468,10 +500,37 @@ public class Camera {
         setChanged(true);*/
     }
 
-    public float[] getViewMatrix() {
-        /*Matrix.setLookAtM(this.viewMatrix,0,getxPos(),getyPos(),getzPos(),
-                getxView(),getyView(),getzView(),getxUp(),getyUp(),getzUp());*/
+    /*public float[] getViewMatrix() {
+        *//*Matrix.setLookAtM(this.viewMatrix,0,getxPos(),getyPos(),getzPos(),
+                getxView(),getyView(),getzView(),getxUp(),getyUp(),getzUp());*//*
         return viewMatrix;
+    }*/
+
+    public float[] getViewMatrix() {
+        // If this camera is attached to a node in the scene graph...
+        if (this.node != null) {
+            // Get the node's current world-space transformation matrix
+            float[] nodeTransform = this.node.getAnimatedWorldTransform();
+
+            // A camera's view matrix is the INVERSE of its world transform.
+            if (nodeTransform != null) {
+                float[] viewMatrix = new float[16];
+                Matrix.invertM(viewMatrix, 0, nodeTransform, 0);
+                return viewMatrix;
+            }
+        }
+
+        // FALLBACK: If not attached to a node, or node isn't animated,
+        // use the old behavior (e.g., the user-controlled handler)
+        // You probably have this logic already.
+        if (controller != null) {
+            return controller.getViewMatrix();
+        }
+
+        // Final fallback: return an identity matrix
+        float[] identity = new float[16];
+        Matrix.setIdentityM(identity, 0);
+        return identity;
     }
 
     public float[] getProjectionMatrix() {

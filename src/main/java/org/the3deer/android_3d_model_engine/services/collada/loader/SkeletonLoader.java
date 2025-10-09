@@ -255,9 +255,9 @@ public class SkeletonLoader {
 		}
 
 		float[] bindTransform = Math3DUtils.IDENTITY_MATRIX;
-        if (parent.getWorldTransform() != Math3DUtils.IDENTITY_MATRIX || bindLocalTransform != Math3DUtils.IDENTITY_MATRIX) {
+        if (parent.getBindWorldTransform() != Math3DUtils.IDENTITY_MATRIX || bindLocalTransform != Math3DUtils.IDENTITY_MATRIX) {
 			bindTransform = new float[16];
-       		Matrix.multiplyMM(bindTransform, 0, parent.getWorldTransform(), 0, bindLocalTransform, 0);
+       		Matrix.multiplyMM(bindTransform, 0, parent.getBindWorldTransform(), 0, bindLocalTransform, 0);
 		}
 
         return new Node(nodeId, nodeId, nodeSid, bindLocalMatrix, bindLocalScale, bindLocalRotation, bindLocalLocation, bindLocalTransform, bindTransform, geometryId, materials
@@ -358,6 +358,6 @@ public class SkeletonLoader {
 		}
 
 		node.setIndex(index);
-		node.setInverseBindTransform(inverseBindMatrix);
+		node.setInverseBindLocalTransform(inverseBindMatrix);
 	}
 }

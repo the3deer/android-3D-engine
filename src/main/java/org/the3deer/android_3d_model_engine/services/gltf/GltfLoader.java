@@ -10,6 +10,7 @@ import org.the3deer.android_3d_model_engine.animation.Animation;
 import org.the3deer.android_3d_model_engine.animation.JointTransform;
 import org.the3deer.android_3d_model_engine.animation.KeyFrame;
 import org.the3deer.android_3d_model_engine.model.AnimatedModel;
+import org.the3deer.android_3d_model_engine.model.Camera;
 import org.the3deer.android_3d_model_engine.model.Material;
 import org.the3deer.android_3d_model_engine.model.Node;
 import org.the3deer.android_3d_model_engine.model.Object3DData;
@@ -41,6 +42,7 @@ import java.util.TreeMap;
 import de.javagl.jgltf.model.AccessorData;
 import de.javagl.jgltf.model.AccessorModel;
 import de.javagl.jgltf.model.AnimationModel;
+import de.javagl.jgltf.model.CameraModel;
 import de.javagl.jgltf.model.GltfModel;
 import de.javagl.jgltf.model.GltfModels;
 import de.javagl.jgltf.model.MeshModel;
@@ -105,6 +107,9 @@ public final class GltfLoader {
             GltfReferenceResolver.resolveAll(gltfAsset.getReferences(), baseUri);
             GltfModel gltfModel = GltfModels.create(gltfAsset);
 
+            // load camera model
+            final List<Camera> cameraList = loadCameraModel(gltfModel, callback);
+
             // load scene...
             Log.d(TAG, "Loading scenes...");
             for (SceneModel sceneModel : gltfModel.getSceneModels()) {
@@ -134,7 +139,7 @@ public final class GltfLoader {
             if (ret.isEmpty()) return ret;
 
             callback.onProgress("Loading skinning data...");
-            SkeletonData skeleton = loadSkeleton(gltfModel);
+            SkeletonData skeleton = loadSkeleton(gltfModel, cameraList);
 
             // check
             if (skeleton == null) return ret;
@@ -151,6 +156,25 @@ public final class GltfLoader {
             Log.e(TAG, "Problem loading model", ex);
         }
         return ret;
+    }
+
+    private List<Camera> loadCameraModel(GltfModel gltfModel, LoadListener callback) {
+
+        // check
+        if (gltfModel.getCameraModels() == null || gltfModel.getCameraModels().isEmpty())
+            return null;
+
+        // load
+        final List<Camera> cameraList = new ArrayList<>();
+        for (CameraModel cameraModel : gltfModel.getCameraModels()) {
+            float[] floats = cameraModel.computeProjectionMatrix(null, 1.0f);
+            // TODO: load parameters
+            final Camera camera = new Camera();
+            cameraList.add(camera);
+
+            callback.onLoad(camera);
+        }
+        return cameraList;
     }
 
 
@@ -404,7 +428,7 @@ public final class GltfLoader {
         return model;
     }
 
-    private SkeletonData loadSkeleton(GltfModel gltfModel){
+    private SkeletonData loadSkeleton(GltfModel gltfModel, List<Camera> cameraList){
 
         Log.d(TAG, "Loading skeleton...");
 
@@ -419,29 +443,39 @@ public final class GltfLoader {
         // This preserves the original file's node hierarchy and local transforms.
         final List<Node> nodeDataList = new ArrayList<>();
         for (int i = 0; i< nodeList.size(); i++) {
-            final NodeModel node = nodeList.get(i);
+            final NodeModel nodeModel = nodeList.get(i);
 
-            final Node joint;
-            if (node.getMatrix() != null){
-                joint = Node.fromMatrix(node.getMatrix());
-            } else if (node.getScale() != null || node.getTranslation() != null || node.getRotation() != null){
-                joint = Node.fromTransforms(node.getScale(), Quaternion.fromArray(node.getRotation()), node.getTranslation());
+            final Node node;
+            if (nodeModel.getMatrix() != null){
+                node = Node.fromMatrix(nodeModel.getMatrix());
+            } else if (nodeModel.getScale() != null || nodeModel.getTranslation() != null || nodeModel.getRotation() != null){
+                node = Node.fromTransforms(nodeModel.getScale(), Quaternion.fromArray(nodeModel.getRotation()), nodeModel.getTranslation());
             } else {
-                joint = Node.fromMatrix(node.computeLocalTransform(null));
+                node = Node.fromMatrix(nodeModel.computeLocalTransform(null));
             }
 
-            String name = node.getName();
+            String name = nodeModel.getName();
             if (name == null){
                 name = String.valueOf(i);
             }
-            joint.setName(name);
-            if (node.getMeshModels() != null && !node.getMeshModels().isEmpty()) {
+            node.setName(name);
+            if (nodeModel.getMeshModels() != null && !nodeModel.getMeshModels().isEmpty()) {
                 // FIXME: link all meshes
-                String meshId = node.getMeshModels().get(0).getName();
-                if (meshId == null) meshId = String.valueOf(node.getMeshModels().get(0).hashCode());
-                joint.setMesh(meshId);
+                String meshId = nodeModel.getMeshModels().get(0).getName();
+                if (meshId == null) meshId = String.valueOf(nodeModel.getMeshModels().get(0).hashCode());
+                node.setMesh(meshId);
             }
-            nodeDataList.add(joint);
+
+            // camera
+            if (nodeModel.getCameraModel() != null && gltfModel.getCameraModels() != null){
+                int cameraIdx = gltfModel.getCameraModels().indexOf(nodeModel.getCameraModel());
+                final Camera camera = cameraList.get(cameraIdx);
+                node.setCamera(camera);
+                camera.setNode(node);
+
+            }
+
+            nodeDataList.add(node);
         }
 
         // --- 2. Reconstruct the parent-child hierarchy in our Node objects ---
@@ -491,7 +525,7 @@ public final class GltfLoader {
             if (index != -1) {
                 Node node = nodeDataList.get(index);
                 node.setIndex(i);
-                node.setInverseBindTransform(skinModel.getInverseBindMatrix(i, null));
+                node.setInverseBindLocalTransform(skinModel.getInverseBindMatrix(i, null));
                 boneDataList[i] = node;
             }
         }

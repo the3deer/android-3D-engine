@@ -11,7 +11,7 @@ import org.the3deer.util.math.Math3DUtils;
 import javax.inject.Inject;
 import javax.inject.Named;
 
-public class DefaultHandler implements CameraController.Handler {
+public class DefaultCameraHandler implements CameraController.CameraHandler {
 
     @Inject
     private Camera camera;

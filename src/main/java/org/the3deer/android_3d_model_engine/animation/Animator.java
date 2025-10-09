@@ -5,6 +5,7 @@ import android.os.SystemClock;
 import android.util.Log;
 
 import org.the3deer.android_3d_model_engine.model.AnimatedModel;
+import org.the3deer.android_3d_model_engine.model.Node;
 import org.the3deer.android_3d_model_engine.model.Object3DData;
 import org.the3deer.util.math.Math3DUtils;
 
@@ -38,13 +39,12 @@ public class Animator {
 
     private float animationTime = 0;
 
-    private float speed = 1f;
+    private final float speed = 1f;
 
     private final Map<String, Object> cache = new HashMap<>();
 
     // cache
     private final Map<String, float[]> currentPose = new HashMap<>();
-    ;
     private KeyFrame[] previousAndNextKeyFrames = new KeyFrame[2];
 
     public Animator() {
@@ -57,23 +57,23 @@ public class Animator {
      * time of the animation, and then applies that pose to all the model's
      * joints by setting the joint transforms.
      */
-    public void update(Joint rootJoint, Animation currentAnimation, Object3DData obj, boolean bindPoseOnly) {
+    public void update(Node rootNode, Animation currentAnimation, Object3DData obj, boolean bindPoseOnly) {
 
         if (currentAnimation == null) return;
 
-        initAnimation(rootJoint, currentAnimation);
+        initAnimation(rootNode, currentAnimation);
         increaseAnimationTime(currentAnimation);
         final Map<String, float[]> currentPose = calculateCurrentAnimationPose(currentAnimation);
 
         // 3. Now, recursively apply the pose to all of the root's CHILDREN,
         //    using the root's CORRECT world transform as the starting parentTransform.
-        applyPoseToJoints(obj, currentPose, rootJoint,
+        applyPoseToJoints(obj, currentPose, rootNode,
                 Math3DUtils.IDENTITY_MATRIX, // Use the root's pre-calculated world transform
                 Integer.MAX_VALUE, bindPoseOnly);
 
     }
 
-    private static void initAnimation(Joint rootJoint, Animation animation) {
+    private static void initAnimation(Node rootNode, Animation animation) {
 
         if (animation.isInitialized()) {
             return;
@@ -81,7 +81,7 @@ public class Animator {
         animation.setInitialized(true);
 
         final KeyFrame[] keyFrames = animation.getKeyFrames();
-        Log.d("Animator", "Initializing " + rootJoint.getId() + ". " + keyFrames.length + " key frames...");
+        Log.d("Animator", "Initializing " + rootNode.getId() + ". " + keyFrames.length + " key frames...");
 
         // debug
         animation.debugKeyFrames();
@@ -109,7 +109,7 @@ public class Animator {
 
                 // if not complete, but first frame we just complete transforms with joint data
                 if (currentTransform != null && i == 0) {
-                    currentTransform.complete(rootJoint.find(jointId));
+                    currentTransform.complete(rootNode.find(jointId));
                     continue;
                 }
 
@@ -254,7 +254,7 @@ public class Animator {
             }
 
 
-            Log.d("Animator", "Initialized " + rootJoint.getId() + ". " + keyFrames.length + " key frames");
+            Log.d("Animator", "Initialized " + rootNode.getId() + ". " + keyFrames.length + " key frames");
         }
 
     }
@@ -320,54 +320,50 @@ public class Animator {
      * @param obj            - a map of the local-space transforms for all the joints for
      *                        the desired pose. The map is indexed by the name of the joint
      *                        which the transform corresponds to.
-     * @param joint           - the current joint which the pose should be applied to.
+     * @param node           - the current joint which the pose should be applied to.
      * @param parentAnimatedWorldTransform - the desired model-space transform of the parent joint for
      *                        the pose.
      * @param bindPoseOnly
      */
-    private void applyPoseToJoints(Object3DData obj, Map<String, float[]> pose, Joint joint, float[]
+    private void applyPoseToJoints(Object3DData obj, Map<String, float[]> pose, Node node, float[]
             parentAnimatedWorldTransform, int limit, boolean bindPoseOnly) {
 
         // 1. Get the joint's LOCAL animation transform for this frame.
         //    If no animation data for this joint, use its LOCAL bind transform (its piece of the T-Pose).
-        float[] localAnimatedTransform = pose.get(joint.getName());
+        float[] localAnimatedTransform = pose.get(node.getName());
         if (bindPoseOnly || localAnimatedTransform == null || limit < 0) {
             // This is the joint's transform relative to its parent. For Z_UP, this IS the 90-degree rotation.
-            localAnimatedTransform = joint.getBindTransform();
+            localAnimatedTransform = node.getLocalTransform().getTransform();
         }
 
         // 2. Calculate this joint's FINAL animated WORLD transform.
         //    Final World Pose = Parent's Final World Pose * My Local Animated Pose
-        float[] finalAnimatedWorldTransform = (float[]) cache.get(joint.getName());
+        float[] finalAnimatedWorldTransform = (float[]) cache.get(node.getName());
         if (finalAnimatedWorldTransform == null) {
             finalAnimatedWorldTransform = new float[16];
-            cache.put(joint.getName(), finalAnimatedWorldTransform);
+            cache.put(node.getName(), finalAnimatedWorldTransform);
         }
         Matrix.multiplyMM(finalAnimatedWorldTransform, 0, parentAnimatedWorldTransform, 0, localAnimatedTransform, 0);
 
         // 3. Calculate the skinning matrix that goes to the shader.
         //    Skinning Matrix = My Final Animated World Pose * My Inverse Bind Matrix
-        Matrix.multiplyMM(joint.getAnimatedTransform(), 0, finalAnimatedWorldTransform, 0, joint.getInverseBindTransform(), 0);
+        Matrix.multiplyMM(node.getAnimatedWorldTransform(), 0, finalAnimatedWorldTransform, 0, node.getInverseBindLocalTransform(), 0);
 
         // Update the joint array for the shader if necessary
-        if (obj instanceof AnimatedModel && joint.getIndex() != -1){
-            ((AnimatedModel)obj).updateAnimatedTransform(joint);
+        if (obj instanceof AnimatedModel && node.getIndex() != -1){
+            ((AnimatedModel)obj).updateAnimatedTransform(node);
         }
 
-        if (joint.getIndex() == -1) {
-            if (joint.getMeshes().contains(obj.getId())) {
+        if (node.getIndex() == -1) {
+            if (node.getMeshes().contains(obj.getId())) {
                 // FIXME: this does not work for all models
-                obj.setWorldTransform(joint.getAnimatedTransform());
+                obj.setWorldTransform(node.getAnimatedWorldTransform());
                 //animatedModel.setModelMatrix(joint.getAnimatedTransform());
-            } else if (joint.getMeshes().contains(obj.getId().replace("_boundingBox", ""))) {
-                obj.setWorldTransform(joint.getAnimatedTransform());
-            } else {
-                //animatedModel.setBindTransform(joint.getAnimatedTransform());
             }
         }
 
         // 4. Recurse for all children. The "parent" for them is MY final world transform.
-        for (Joint child : joint.getChildren()) {
+        for (Node child : node.getChildren()) {
             if (limit > 0) {
                 applyPoseToJoints(obj, pose, child, finalAnimatedWorldTransform, limit - 1, bindPoseOnly);
             }

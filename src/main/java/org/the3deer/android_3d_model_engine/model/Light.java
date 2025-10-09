@@ -1,10 +1,7 @@
 package org.the3deer.android_3d_model_engine.model;
 
-import android.util.Log;
-
 import org.the3deer.util.event.EventListener;
 
-import java.util.Arrays;
 import java.util.EventObject;
 
 import javax.inject.Inject;

@@ -28,7 +28,7 @@ import javax.inject.Named;
  * For every rotation, the camera will land on the next isometric key point
  *
  */
-public class IsometricHandler implements CameraController.Handler {
+public class IsometricCameraHandler implements CameraController.CameraHandler {
 
     /**
      * The distance between the origin and the isometric coordinate

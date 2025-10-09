@@ -13,7 +13,7 @@ import java.util.Arrays;
 import javax.inject.Inject;
 import javax.inject.Named;
 
-public class OrthographicHandler implements CameraController.Handler {
+public class OrthographicCameraHandler implements CameraController.CameraHandler {
 
     /**
      * The distance between the origin and the orthographic coordinate

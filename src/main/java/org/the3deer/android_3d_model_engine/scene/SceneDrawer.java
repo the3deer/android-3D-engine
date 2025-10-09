@@ -4,6 +4,7 @@ import android.opengl.GLES20;
 import android.util.Log;
 
 import org.the3deer.android_3d_model_engine.R;
+import org.the3deer.android_3d_model_engine.camera.CameraManager;
 import org.the3deer.android_3d_model_engine.model.Camera;
 import org.the3deer.android_3d_model_engine.model.Light;
 import org.the3deer.android_3d_model_engine.model.Object3DData;
@@ -29,6 +30,8 @@ public class SceneDrawer implements Drawer, EventListener {
     private ShaderFactory shaderFactory;
     @Inject
     private SceneManager sceneManager;
+    @Inject
+    private CameraManager cameraManager;
     @Inject
     private Light light;
     @Inject
@@ -82,13 +85,20 @@ public class SceneDrawer implements Drawer, EventListener {
 
         if (shaderFactory == null) return;
 
-        if (sceneManager == null) return;
+        if (sceneManager == null || cameraManager == null) return;
 
         final Scene scene = sceneManager.getCurrentScene();
         if (scene == null || scene.getObjects() == null) return;
 
         Camera camera = config != null ? config.camera : null;
-        if (camera == null) camera = scene.getCamera();
+        if (camera == null) camera = cameraManager.getActiveCamera();
+
+        if (camera == null) {
+            // Fallback if no camera is active for some reason
+            Log.e(TAG, "No active camera found!");
+            return;
+
+        }
 
         // draw scene
         // draw all available objects

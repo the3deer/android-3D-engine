@@ -4,8 +4,8 @@ import android.util.Log;
 
 import org.the3deer.android_3d_model_engine.model.Element;
 import org.the3deer.android_3d_model_engine.model.Material;
-import org.the3deer.android_3d_model_engine.model.Texture;
 import org.the3deer.android_3d_model_engine.model.Node;
+import org.the3deer.android_3d_model_engine.model.Texture;
 import org.the3deer.android_3d_model_engine.services.collada.entities.MeshData;
 import org.the3deer.android_3d_model_engine.services.collada.entities.SkeletonData;
 import org.the3deer.util.xml.XmlNode;

@@ -10,6 +10,9 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 
 import org.the3deer.android_3d_model_engine.camera.CameraController;
+import org.the3deer.android_3d_model_engine.camera.CameraManager;
+import org.the3deer.android_3d_model_engine.camera.CameraPreferences;
+import org.the3deer.android_3d_model_engine.camera.DefaultCameraHandler;
 import org.the3deer.android_3d_model_engine.collision.CollisionController;
 import org.the3deer.android_3d_model_engine.controller.TouchController;
 import org.the3deer.android_3d_model_engine.drawer.BoundingBoxDrawer;
@@ -33,8 +36,7 @@ import org.the3deer.android_3d_model_engine.renderer.AnaglyphRenderer;
 import org.the3deer.android_3d_model_engine.renderer.DefaultRenderer;
 import org.the3deer.android_3d_model_engine.renderer.RendererPreferences;
 import org.the3deer.android_3d_model_engine.scene.SceneDrawer;
-import org.the3deer.android_3d_model_engine.scene.SceneImpl;
-import org.the3deer.android_3d_model_engine.scene.SceneLoader;
+import org.the3deer.android_3d_model_engine.scene.ModelLoader;
 import org.the3deer.android_3d_model_engine.scene.SceneManager;
 import org.the3deer.android_3d_model_engine.shader.ShaderFactory;
 import org.the3deer.android_3d_model_engine.shader.ShaderPreferences;
@@ -184,6 +186,10 @@ public class ModelEngine {
         //beanFactory.add("fragment_gl", GLFragment.class);
         beanFactory.add("10.shaderFactory", ShaderFactory.class);
         beanFactory.add("10.screen", new Screen(640, 480));
+        beanFactory.add("10.modelLoader", ModelLoader.class);
+        beanFactory.add("10.cameraHandler", DefaultCameraHandler.class);
+        beanFactory.add("10.cameraManager", CameraManager.class);
+        beanFactory.add("10.cameraPreferences", CameraPreferences.class);
         //beanFactory.add("10.settings", PreferenceFragment.class);
 
         beanFactory.add("10.shaderPreferences", ShaderPreferences.class);
@@ -199,7 +205,7 @@ public class ModelEngine {
         beanFactory.add("20.scene.camera", new Camera(Constants.DEFAULT_CAMERA_POSITION));
         //beanFactory.add("20.scene.light", new Light(Constants.DEFAULT_LIGHT_LOCATION));
         beanFactory.add("20.scene.light", new Light(new float[]{50f, 100f, 50f}));
-        beanFactory.add("20.scene.sceneLoader", SceneLoader.class);
+
 
         // projections
         beanFactory.add("20.scene.projections.orthographic", OrthographicProjection.class);

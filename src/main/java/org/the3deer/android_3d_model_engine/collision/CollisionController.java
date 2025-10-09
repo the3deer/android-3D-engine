@@ -7,11 +7,9 @@ import org.the3deer.android_3d_model_engine.model.Camera;
 import org.the3deer.android_3d_model_engine.model.Object3DData;
 import org.the3deer.android_3d_model_engine.model.Scene;
 import org.the3deer.android_3d_model_engine.model.Screen;
-import org.the3deer.android_3d_model_engine.objects.Point;
 import org.the3deer.util.event.EventListener;
 import org.the3deer.util.event.EventManager;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.EventObject;
 import java.util.List;

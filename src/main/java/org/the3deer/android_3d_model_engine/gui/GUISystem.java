@@ -13,7 +13,6 @@ import org.the3deer.android_3d_model_engine.model.Screen;
 import org.the3deer.android_3d_model_engine.renderer.Drawer;
 import org.the3deer.android_3d_model_engine.shader.Shader;
 import org.the3deer.android_3d_model_engine.shader.ShaderFactory;
-import org.the3deer.android_3d_model_engine.view.GLEvent;
 import org.the3deer.util.bean.BeanInit;
 import org.the3deer.util.bean.BeanOrder;
 import org.the3deer.util.event.EventListener;

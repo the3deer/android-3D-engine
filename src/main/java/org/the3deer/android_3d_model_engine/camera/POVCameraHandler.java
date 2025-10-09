@@ -10,7 +10,7 @@ import org.the3deer.util.math.Math3DUtils;
 import javax.inject.Inject;
 import javax.inject.Named;
 
-public class POVHandler implements CameraController.Handler {
+public class POVCameraHandler implements CameraController.CameraHandler {
 
     @Inject
     private Camera camera;

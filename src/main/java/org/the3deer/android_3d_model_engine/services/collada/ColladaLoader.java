@@ -145,9 +145,9 @@ public final class ColladaLoader {
                             node = skeletonData.find(meshData.getId());
                         }
                         if (node != null) {
-                            Log.d("ColladaLoaderTask", "Mesh joint found. id: "+ node.getName()+", bindTransform: "+ Arrays.toString(node.getWorldTransform()));
+                            Log.d("ColladaLoaderTask", "Mesh joint found. id: "+ node.getName()+", bindTransform: "+ Arrays.toString(node.getBindWorldTransform()));
                             data3D.setName(node.getName());
-                            data3D.setWorldTransform(node.getWorldTransform());
+                            data3D.setWorldTransform(node.getBindWorldTransform());
                         }
                     }
 
@@ -235,7 +235,7 @@ public final class ColladaLoader {
                         // Log.d("ColladaLoaderTask", "Found 1 single instance for mesh: " + meshData.getId());
                         final Node node = allNodeData.get(0);
                         // FIXME: set this only if not animated
-                        data3D.setWorldTransform(node.getWorldTransform());
+                        data3D.setWorldTransform(node.getBindWorldTransform());
                         continue;
                     }
 
@@ -246,7 +246,7 @@ public final class ColladaLoader {
 
                         // update matrix for original mesh
                         if (!isOriginalMeshConfigured) {
-                            data3D.setWorldTransform(jd.getBindTransform().getTransform());
+                            data3D.setWorldTransform(jd.getLocalTransform().getTransform());
                             isOriginalMeshConfigured = true;
                             continue;
                         }
@@ -255,7 +255,7 @@ public final class ColladaLoader {
                         final AnimatedModel instance_geometry = data3D.clone();
                         instance_geometry.setId(data3D.getId() + "_instance_" + jd.getName());
                         // FIXME: set this only if not animated
-                        instance_geometry.setWorldTransform(jd.getBindTransform().getTransform());
+                        instance_geometry.setWorldTransform(jd.getLocalTransform().getTransform());
 
                         callback.onLoad(scene, instance_geometry);
                         ret.add(instance_geometry);

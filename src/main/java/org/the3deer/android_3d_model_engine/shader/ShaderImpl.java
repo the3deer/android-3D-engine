@@ -2,7 +2,6 @@ package org.the3deer.android_3d_model_engine.shader;
 
 import android.content.Context;
 import android.opengl.GLES20;
-import android.opengl.Matrix;
 import android.os.Bundle;
 import android.os.SystemClock;
 import android.util.Log;

@@ -32,10 +32,13 @@ public class Node {
 	private Map<String,String> materials;
 
 	// local transform
-	private final Transform bindTransform;
+	private final Transform localTransform;
 
 	// This holds the final calculated world-space transform
-	protected float[] worldTransform = new float[16];
+	protected float[] bindWorldTransform = new float[16];
+
+	// this holds the final animated skinning matrix
+	private final float[] animatedWorldTransform = new float[16];
 
 	// used in Animation
 	// index referenced by skinning data
@@ -45,12 +48,16 @@ public class Node {
 	private Node parent;
 	public final List<Node> children = new ArrayList<>();
 
+	// camera
+	private Camera camera;
+
 	public Node() {
 		this(new Transform());
 	}
 
-	public Node(Transform bindTransform) {
-		this.bindTransform = bindTransform;
+	public Node(Transform localTransform) {
+		this.localTransform = localTransform;
+		Matrix.setIdentityM(animatedWorldTransform,0);
 	}
 
 	// gltf
@@ -66,7 +73,7 @@ public class Node {
 	// collada
 	public Node(String id, String name, String sid,
 				float[] bindLocalMatrix, Float[] bindLocalScale, Float[] bindLocalRotation, Float[] bindLocalTranslation,
-				final float[] bindTransform, final float[] worldTransform,
+				final float[] localTransform, final float[] bindWorldTransform,
 				String geometryId, Map<String, String> materials) {
 		this.id = id;
 		this.name = name;
@@ -74,15 +81,15 @@ public class Node {
 
 		// local transforms
 		if (bindLocalMatrix != null){
-			this.bindTransform = new Transform(bindLocalMatrix);
+			this.localTransform = new Transform(bindLocalMatrix);
 		} else {
-			this.bindTransform = new Transform(bindLocalScale, bindLocalRotation, bindLocalTranslation);
+			this.localTransform = new Transform(bindLocalScale, bindLocalRotation, bindLocalTranslation);
 		}
 
 		this.meshId = geometryId;
 		this.materials = materials;
 
-		this.worldTransform = worldTransform;
+		this.bindWorldTransform = bindWorldTransform;
 	}
 
 	public Node setId(String id) {
@@ -126,9 +133,9 @@ public class Node {
 		this.name = id;
 		this.sid = id;
 
-		this.bindTransform = new Transform();
-		this.worldTransform = new float[16];
-		Matrix.setIdentityM(this.worldTransform,0);
+		this.localTransform = new Transform();
+		this.bindWorldTransform = new float[16];
+		Matrix.setIdentityM(this.bindWorldTransform,0);
 
 		// extra data
 		this.meshId = id;
@@ -156,31 +163,47 @@ public class Node {
 		return index;
 	}
 
-	public Transform getBindTransform() {
-		return bindTransform;
+	public Transform getLocalTransform() {
+		return localTransform;
 	}
 
 	public void updateWorldTransform(float[] parentWorldTransform) {
 		// 1. Calculate this node's final world transform
 		// worldTransform = parentWorldTransform * this.bindTransform (local matrix)
-		Matrix.multiplyMM(this.worldTransform, 0, parentWorldTransform, 0, this.getBindTransform().getTransform(), 0);
+		Matrix.multiplyMM(this.bindWorldTransform, 0, parentWorldTransform, 0, this.getLocalTransform().getTransform(), 0);
 
 		// 2. Recursively update all children
 		for (Node child : getChildren()) {
-			child.updateWorldTransform(this.worldTransform);
+			child.updateWorldTransform(this.bindWorldTransform);
 		}
+	}
+
+	/**
+	 * The animated transform is the transform that gets loaded up to the shader
+	 * and is used to deform the vertices of the "skin". It represents the
+	 * transformation from the joint's bind position (original position in
+	 * model-space) to the joint's desired animation pose (also in model-space).
+	 * This matrix is calculated by taking the desired model-space transform of
+	 * the joint and multiplying it by the inverse of the starting model-space
+	 * transform of the joint.
+	 *
+	 * @return The transformation matrix of the joint which is used to deform
+	 * associated vertices of the skin in the shaders.
+	 */
+	public float[] getAnimatedWorldTransform() {
+		return animatedWorldTransform;
 	}
 
 	public String getMeshId() {
 		return this.meshId;
 	}
 
-	public void setInverseBindTransform(float[] inverseBindTransform) {
-		this.bindTransform.setInverseTransform(inverseBindTransform);
+	public void setInverseBindLocalTransform(float[] inverseBindTransform) {
+		this.localTransform.setInverseTransform(inverseBindTransform);
 	}
 
-	public float[] getInverseBindTransform() {
-		return bindTransform.getInverseTransform();
+	public float[] getInverseBindLocalTransform() {
+		return localTransform.getInverseTransform();
 	}
 
 	public List<Node> getChildren() {
@@ -237,8 +260,8 @@ public class Node {
 		return materials.get(materialId);
 	}
 
-	public float[] getWorldTransform() {
-		return worldTransform;
+	public float[] getBindWorldTransform() {
+		return bindWorldTransform;
 	}
 
 
@@ -268,18 +291,27 @@ public class Node {
 	}
 
 	public Float[] getBindLocalTranslation() {
-		return bindTransform.getTranslation();
+		return localTransform.getTranslation();
 	}
 
 	public Float[] getBindLocalScale() {
-		return bindTransform.getScale();
+		return localTransform.getScale();
 	}
 
 	public Quaternion getBindLocalQuaternion() {
-		return bindTransform.getQuaternion();
+		return localTransform.getQuaternion();
 	}
 
 	public Float[] getBindLocalRotation() {
-		return bindTransform.getRotation();
+		return localTransform.getRotation();
+	}
+
+	// camera
+	public void setCamera(Camera camera) {
+		this.camera = camera;
+	}
+
+	public Camera getCamera() {
+		return camera;
 	}
 }

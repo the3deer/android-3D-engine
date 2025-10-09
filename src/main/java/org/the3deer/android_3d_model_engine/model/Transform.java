@@ -1,7 +1,6 @@
 package org.the3deer.android_3d_model_engine.model;
 
 import android.opengl.Matrix;
-import android.util.Log;
 
 import org.the3deer.util.math.Math3DUtils;
 import org.the3deer.util.math.Quaternion;

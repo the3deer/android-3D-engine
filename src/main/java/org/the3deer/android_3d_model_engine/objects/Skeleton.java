@@ -45,7 +45,7 @@ public final class Skeleton {
         // point
         float[] point = new float[]{0,0,0,1};
         float[] inverted = new float[16];
-        Matrix.invertM(inverted,0, node.getInverseBindTransform(), 0);
+        Matrix.invertM(inverted,0, node.getInverseBindLocalTransform(), 0);
         Matrix.multiplyMV(point, 0, inverted, 0, point, 0);
         point[3] = 1;
         buildBones(animSkeleton, node, point, node.getIndex(), colorBuffer);
@@ -66,7 +66,7 @@ public final class Skeleton {
         //point[2] = joint.getBindTransform()[14];
 
         float[] inverted = new float[16];
-        Matrix.invertM(inverted,0, node.getInverseBindTransform(), 0);
+        Matrix.invertM(inverted,0, node.getInverseBindLocalTransform(), 0);
         Matrix.multiplyMV(point, 0, inverted, 0, point, 0);
         point[3] = 1;
 

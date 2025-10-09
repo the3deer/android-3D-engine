@@ -13,7 +13,6 @@ import org.the3deer.android_3d_model_engine.renderer.Drawer;
 import org.the3deer.android_3d_model_engine.shader.Shader;
 import org.the3deer.android_3d_model_engine.shader.ShaderFactory;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;

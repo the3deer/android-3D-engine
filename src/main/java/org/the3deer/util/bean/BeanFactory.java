@@ -510,9 +510,7 @@ public class BeanFactory {
         if (this.beans.containsKey(id)){
             throw new IllegalArgumentException("Bean already exists: "+id);
         }
-        this.beans.put(id, object);
-        this.beansUpdated = true;
-        //this.parents.put(id, parent);
+        this.addOrReplace(id, object);
     }
 
     public <T> T addAndGet(String id, Class<T> clazz) {

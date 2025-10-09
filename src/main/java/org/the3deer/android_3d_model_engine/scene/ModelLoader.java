@@ -9,6 +9,8 @@ import android.os.SystemClock;
 import android.util.Log;
 import android.widget.Toast;
 
+import org.the3deer.android_3d_model_engine.camera.CameraManager;
+import org.the3deer.android_3d_model_engine.model.Camera;
 import org.the3deer.android_3d_model_engine.model.Object3DData;
 import org.the3deer.android_3d_model_engine.model.Scene;
 import org.the3deer.android_3d_model_engine.services.LoadListener;
@@ -26,14 +28,15 @@ import javax.inject.Inject;
 import javax.inject.Named;
 
 /**
- * This component loads the model into the Scene
- * This component can also load Demo objects
+ * This component loads the model into the engine
  */
-public class SceneLoader implements LoadListener {
+public class ModelLoader implements LoadListener {
 
-    private final static String TAG = SceneLoader.class.getSimpleName();
+    private final static String TAG = ModelLoader.class.getSimpleName();
 
     // dependencies
+    @Inject
+    private BeanFactory beanFactory;
     @Inject @Named("bundle")
     private Bundle bundle;
     @Inject @Named("extras")
@@ -65,7 +68,7 @@ public class SceneLoader implements LoadListener {
     // other variables
     private long startTime;
 
-    public SceneLoader() {
+    public ModelLoader() {
 
         // Android UI thread
         this.handler = new Handler(Looper.getMainLooper());
@@ -133,16 +136,16 @@ public class SceneLoader implements LoadListener {
             Log.i(TAG, "Loading model... " + this.modelUri);
 
             if (modelUri.toString().toLowerCase().endsWith(".obj") || "obj".equalsIgnoreCase(modelType)) {
-                new WavefrontLoaderTask(activity, modelUri, SceneLoader.this).execute();
+                new WavefrontLoaderTask(activity, modelUri, ModelLoader.this).execute();
             } else if (modelUri.toString().toLowerCase().endsWith(".stl") || "stl".equalsIgnoreCase(modelType)) {
                 Log.i(TAG, "Loading STL object from: " + modelUri);
-                new STLLoaderTask(activity, modelUri, SceneLoader.this).execute();
+                new STLLoaderTask(activity, modelUri, ModelLoader.this).execute();
             } else if (modelUri.toString().toLowerCase().endsWith(".dae") || "dae".equalsIgnoreCase(modelType)) {
                 Log.i(TAG, "Loading Collada object from: " + modelUri);
-                new ColladaLoaderTask(activity, modelUri, SceneLoader.this).execute();
+                new ColladaLoaderTask(activity, modelUri, ModelLoader.this).execute();
             } else if (modelUri.toString().toLowerCase().endsWith(".gltf") || modelUri.toString().toLowerCase().endsWith(".glb") || "gltf".equalsIgnoreCase(modelType)) {
                 Log.i(TAG, "Loading GLTF object from: " + modelUri);
-                new GltfLoaderTask(activity, modelUri, SceneLoader.this).execute();
+                new GltfLoaderTask(activity, modelUri, ModelLoader.this).execute();
             } else if (modelUri.toString().toLowerCase().endsWith(".fbx")){
                 //new FBXLoaderTask(activity, modelUri, this).execute();
             }
@@ -157,6 +160,11 @@ public class SceneLoader implements LoadListener {
 
         // provide context to allow reading resources
         ContentUtils.setThreadActivity(activity);
+    }
+
+    @Override
+    public void onLoad(Camera camera) {
+        beanFactory.add("model.camera."+camera.getName(), camera);
     }
 
     @Override

@@ -1,5 +1,6 @@
 package org.the3deer.android_3d_model_engine.services;
 
+import org.the3deer.android_3d_model_engine.model.Camera;
 import org.the3deer.android_3d_model_engine.model.Object3DData;
 import org.the3deer.android_3d_model_engine.model.Scene;
 
@@ -30,6 +31,10 @@ public class LoadListenerAdapter implements LoadListener {
     @Override
     public void onLoadError(Exception ex) {
 
+    }
+
+    @Override
+    public void onLoad(Camera camera) {
     }
 
     @Override

@@ -1,6 +1,5 @@
 package org.the3deer.android_3d_model_engine.shadow;
 
-import android.app.Activity;
 import android.opengl.GLES20;
 import android.opengl.Matrix;
 import android.util.Log;
