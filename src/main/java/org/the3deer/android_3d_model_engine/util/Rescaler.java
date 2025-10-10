@@ -86,7 +86,7 @@ public class Rescaler {
             object3DData.setVertexBuffer(vertexBuffer);
         }
 
-        Log.v("Rescaler",
+        Log.d("Rescaler",
                 "New dimensions for '" + object3DData.getId() + ": "+object3DData.getCurrentDimensions());
     }
 }

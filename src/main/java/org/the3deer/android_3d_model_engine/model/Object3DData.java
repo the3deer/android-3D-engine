@@ -50,6 +50,10 @@ public class Object3DData {
     }
 
     /**
+     * The node where this object is attached to (when there is a scene node hierarchy)
+     */
+    private Node parentNode;
+    /**
      * CAD Tool used to generate model
      */
     private String authoringTool;
@@ -153,7 +157,7 @@ public class Object3DData {
     /**
      * This is the local transformation (M=TSR)
      */
-    private final float[] modelMatrix = new float[16];
+    protected final float[] modelMatrix = new float[16];
     /**
      * Normal matrix
      */
@@ -165,7 +169,7 @@ public class Object3DData {
     /**
      * This is the global transformation when we have node hierarchy (ie. {@code <visual_scene><node><transform></transform></node></visual_scene>}
      */
-    private float[] worldTransform;
+    private float[] worldTransform = Math3DUtils.IDENTITY_MATRIX.clone();
     /**
      * This is the final model transformation
      */
@@ -266,6 +270,14 @@ public class Object3DData {
         this.materials = materials;
         this.setDrawUsingArrays(false);
         this.updateDimensions();
+    }
+
+    public Node getParentNode() {
+        return parentNode;
+    }
+
+    public void setParentNode(Node parentNode) {
+        this.parentNode = parentNode;
     }
 
     public Object3DData getParent() {
@@ -767,10 +779,10 @@ public class Object3DData {
             Matrix.translateM(modelMatrix2, 0, -center[0], -center[1], -center[2]);
         }
 
-        if (this.worldTransform != null) {
+        /*if (this.worldTransform != null) {
             //System.arraycopy(this.worldTransform, 0, this.modelMatrix, 0, 16);
             Matrix.multiplyMM(modelMatrix, 0, modelMatrix, 0, this.worldTransform, 0);
-        }
+        }*/
 
         // normal matrix calculation
         Matrix.setIdentityM(normalMatrix, 0);
@@ -784,6 +796,15 @@ public class Object3DData {
     public float[] getModelMatrix() {
         if (isParentBound && parent != null) {
             return parent.modelMatrix;
+        } else if (parentNode != null){
+            // If this mesh is attached to a node in the scene graph...
+            // ...get the node's current, final, animated world transform.
+            if (parentNode.getAnimatedWorldTransform() != null){
+                return parentNode.getAnimatedWorldTransform();
+            }
+            else {
+                return parentNode.getBindWorldTransform();
+            }
         }
         return modelMatrix;
     }

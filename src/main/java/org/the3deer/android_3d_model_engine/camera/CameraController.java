@@ -51,6 +51,10 @@ public final class CameraController implements Camera.Controller, EventListener 
     @Override
     public boolean onEvent(EventObject event) {
 
+        if (scene == null){
+            return false;
+        }
+
         final Camera activeCamera = cameraManager.getActiveCamera();
         if (activeCamera == null) return false;
 

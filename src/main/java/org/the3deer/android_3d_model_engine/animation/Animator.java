@@ -331,13 +331,14 @@ public class Animator {
         // 1. Get the joint's LOCAL animation transform for this frame.
         //    If no animation data for this joint, use its LOCAL bind transform (its piece of the T-Pose).
         float[] localAnimatedTransform = pose.get(node.getName());
-        if (bindPoseOnly || localAnimatedTransform == null || limit < 0) {
+        if (bindPoseOnly || localAnimatedTransform == null || limit <= 0) {
             // This is the joint's transform relative to its parent. For Z_UP, this IS the 90-degree rotation.
             localAnimatedTransform = node.getLocalTransform().getTransform();
         }
 
         // 2. Calculate this joint's FINAL animated WORLD transform.
         //    Final World Pose = Parent's Final World Pose * My Local Animated Pose
+        //Log.v("Animator", "Node name: "+node.getName());
         float[] finalAnimatedWorldTransform = (float[]) cache.get(node.getName());
         if (finalAnimatedWorldTransform == null) {
             finalAnimatedWorldTransform = new float[16];
@@ -347,26 +348,23 @@ public class Animator {
 
         // 3. Calculate the skinning matrix that goes to the shader.
         //    Skinning Matrix = My Final Animated World Pose * My Inverse Bind Matrix
-        Matrix.multiplyMM(node.getAnimatedWorldTransform(), 0, finalAnimatedWorldTransform, 0, node.getInverseBindLocalTransform(), 0);
+        // FIXME: cache this
+        float[] temp = new float[16];
+        Matrix.setIdentityM(temp,0);
+        Matrix.multiplyMM(temp, 0, finalAnimatedWorldTransform, 0, node.getInverseBindLocalTransform(), 0);
 
         // Update the joint array for the shader if necessary
         if (obj instanceof AnimatedModel && node.getIndex() != -1){
-            ((AnimatedModel)obj).updateAnimatedTransform(node);
-        }
-
-        if (node.getIndex() == -1) {
-            if (node.getMeshes().contains(obj.getId())) {
-                // FIXME: this does not work for all models
-                obj.setWorldTransform(node.getAnimatedWorldTransform());
-                //animatedModel.setModelMatrix(joint.getAnimatedTransform());
-            }
+            // FIXME: update skinning transform elsewhere
+            // otherwise, we have to iterate all objects
+            ((AnimatedModel)obj).updateSkinTransform(node, temp);
+        } else {
+            node.setAnimatedWorldTransform(temp);
         }
 
         // 4. Recurse for all children. The "parent" for them is MY final world transform.
         for (Node child : node.getChildren()) {
-            if (limit > 0) {
-                applyPoseToJoints(obj, pose, child, finalAnimatedWorldTransform, limit - 1, bindPoseOnly);
-            }
+            applyPoseToJoints(obj, pose, child, finalAnimatedWorldTransform, limit - 1, bindPoseOnly);
         }
     }
 

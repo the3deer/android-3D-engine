@@ -35,10 +35,10 @@ public class Node {
 	private final Transform localTransform;
 
 	// This holds the final calculated world-space transform
-	protected float[] bindWorldTransform = new float[16];
+	protected final float[] bindWorldTransform;
 
 	// this holds the final animated skinning matrix
-	private final float[] animatedWorldTransform = new float[16];
+	private float[] animatedWorldTransform;
 
 	// used in Animation
 	// index referenced by skinning data
@@ -57,7 +57,8 @@ public class Node {
 
 	public Node(Transform localTransform) {
 		this.localTransform = localTransform;
-		Matrix.setIdentityM(animatedWorldTransform,0);
+		this.bindWorldTransform = new float[16];
+		Matrix.setIdentityM(this.bindWorldTransform,0);
 	}
 
 	// gltf
@@ -167,16 +168,20 @@ public class Node {
 		return localTransform;
 	}
 
-	public void updateWorldTransform(float[] parentWorldTransform) {
+	public void updateBindWorldTransform(float[] parentWorldTransform) {
 		// 1. Calculate this node's final world transform
 		// worldTransform = parentWorldTransform * this.bindTransform (local matrix)
 		Matrix.multiplyMM(this.bindWorldTransform, 0, parentWorldTransform, 0, this.getLocalTransform().getTransform(), 0);
 
 		// 2. Recursively update all children
 		for (Node child : getChildren()) {
-			child.updateWorldTransform(this.bindWorldTransform);
+			child.updateBindWorldTransform(this.bindWorldTransform);
 		}
 	}
+	public void setAnimatedWorldTransform(float[] animatedWorldTransform) {
+		this.animatedWorldTransform = animatedWorldTransform;
+	}
+
 
 	/**
 	 * The animated transform is the transform that gets loaded up to the shader

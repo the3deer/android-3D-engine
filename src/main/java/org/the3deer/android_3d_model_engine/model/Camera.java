@@ -163,6 +163,14 @@ public class Camera {
         return name;
     }
 
+    public Node getNode() {
+        return node;
+    }
+
+    public void setNode(Node node) {
+        this.node = node;
+    }
+
     public Projection getProjection() {
         return projection;
     }
@@ -518,19 +526,20 @@ public class Camera {
                 Matrix.invertM(viewMatrix, 0, nodeTransform, 0);
                 return viewMatrix;
             }
+        //} else if (controller != null) {
+
+            // FALLBACK: If not attached to a node, or node isn't animated,
+            // use the old behavior (e.g., the user-controlled handler)
+            // You probably have this logic already.
+            // FIXME: camera node view matrix
+            //return controller.getViewMatrix();
+        } else {
+
+            Matrix.setLookAtM(this.viewMatrix, 0, getxPos(), getyPos(), getzPos(),
+                    getxView(), getyView(), getzView(), getxUp(), getyUp(), getzUp());
         }
 
-        // FALLBACK: If not attached to a node, or node isn't animated,
-        // use the old behavior (e.g., the user-controlled handler)
-        // You probably have this logic already.
-        if (controller != null) {
-            return controller.getViewMatrix();
-        }
-
-        // Final fallback: return an identity matrix
-        float[] identity = new float[16];
-        Matrix.setIdentityM(identity, 0);
-        return identity;
+        return viewMatrix;
     }
 
     public float[] getProjectionMatrix() {

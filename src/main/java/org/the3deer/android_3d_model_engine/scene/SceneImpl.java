@@ -17,6 +17,7 @@ import org.the3deer.android_3d_model_engine.model.Camera;
 import org.the3deer.android_3d_model_engine.model.Constants;
 import org.the3deer.android_3d_model_engine.model.Dimensions;
 import org.the3deer.android_3d_model_engine.model.Light;
+import org.the3deer.android_3d_model_engine.model.Node;
 import org.the3deer.android_3d_model_engine.model.Object3DData;
 import org.the3deer.android_3d_model_engine.model.Transform;
 import org.the3deer.android_3d_model_engine.objects.Point;
@@ -64,6 +65,11 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
      */
     @Inject
     private Light light;
+
+    /**
+     * List of root hierarchies
+     */
+    private List<Node> rootNodes = new ArrayList<>();
     /**
      * List of 3D models
      */
@@ -248,6 +254,15 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
         }
     }
 
+    //...
+    public void addRootNode(Node node) {
+        this.rootNodes.add(node);
+    }
+
+    public List<Node> getRootNodes() {
+        return rootNodes;
+    }
+
     public boolean isFixCoordinateSystem() {
         return this.isFixCoordinateSystem;
     }
@@ -255,6 +270,10 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
     @Override
     public final Camera getCamera() {
         return camera;
+    }
+
+    public Animator getAnimator() {
+        return animator;
     }
 
     private void makeToastText(final String text, final int toastDuration) {
@@ -278,14 +297,14 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
 
         if (objects.isEmpty()) return;
 
-        if (doAnimation) {
+        /*if (doAnimation) {
             for (int i = 0; i < objects.size(); i++) {
                 Object3DData obj = objects.get(i);
                 if (obj instanceof AnimatedModel) {
                     animator.update(((AnimatedModel) obj).getRootJoint(), ((AnimatedModel) obj).getCurrentAnimation(), obj, isShowBindPose());
                 }
             }
-        }
+        }*/
     }
 
     private void animateLight() {
@@ -310,6 +329,17 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
     public final synchronized void addObject(Object3DData obj) {
         Log.d(TAG, "Adding object to scene: "+getName()+", obj: " + obj);
         objects.add(obj);
+        //requestRender();
+
+        // rescale objects so they fit in the viewport
+        // FIXME: this does not be reviewed
+        //rescale(this.getObjects(), DEFAULT_MAX_MODEL_SIZE, new float[3]);
+    }
+
+    @Override
+    public final synchronized void addObjects(List<Object3DData> objs) {
+        Log.d(TAG, "Adding objects to scene. objs: " + objs);
+        objects.addAll(objs);
         //requestRender();
 
         // rescale objects so they fit in the viewport
@@ -621,6 +651,7 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
 
         Log.i(TAG, "onLoadComplete: "+getName()+", Objects: " + objects.size());
 
+
         // get complete list of objects loaded
         final List<Object3DData> objs = getObjects();
 
@@ -654,6 +685,15 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
 
         // fix coordinate system
         fixCoordinateSystem();
+
+        // 1. UPDATE THE STATIC SCENE GRAPH
+        // This sets the base pose for everything, including skeletons.
+        if (getRootNodes() != null && !getRootNodes().isEmpty()) {
+            for (Node rootNode : getRootNodes()) {
+                // This method should recursively update all children
+                rootNode.updateBindWorldTransform(Math3DUtils.IDENTITY_MATRIX);
+            }
+        }
 
         // rescale objects so they all fit in the viewport
         rescale(list, Constants.DEFAULT_MODEL_SIZE, new float[3]);
@@ -877,7 +917,7 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
         // calculate the scale factor
         float scaleFactor = newScale / (maxLength + maxLocation);
         final float[] finalScale = new float[]{scaleFactor, scaleFactor, scaleFactor};
-        //Log.v(TAG, "New scale: " + scaleFactor);
+        Log.v(TAG, "scale factor: " + scaleFactor);
 
         if (scaleFactor > 0.5f && scaleFactor < 1.5f) {
             return;

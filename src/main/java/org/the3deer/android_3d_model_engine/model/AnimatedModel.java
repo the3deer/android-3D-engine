@@ -76,7 +76,12 @@ public class AnimatedModel extends Object3DData {
 
     public AnimatedModel setSkeleton(SkeletonData jointsData) {
         this.skeleton = jointsData;
+
+        // init skinning matrix
         this.setJointMatrices(new float[skeleton.getBoneCount()][16]);  // 16 is the size of the matrix
+        for(int i = 0; i < this.getJointMatrices().length; i++){
+            Matrix.setIdentityM(this.getJointMatrices()[i], 0);
+        }
         return this;
     }
 
@@ -162,7 +167,7 @@ public class AnimatedModel extends Object3DData {
         if (rootNode != null) {
             float[] identityMatrix = new float[16];
             Matrix.setIdentityM(identityMatrix, 0);
-            rootNode.updateWorldTransform(identityMatrix);
+            rootNode.updateBindWorldTransform(identityMatrix);
         }
     }
 
@@ -179,13 +184,13 @@ public class AnimatedModel extends Object3DData {
         return getJointMatrices();
     }
 
-    public void updateAnimatedTransform(Node node) {
+    public void updateSkinTransform(Node node, float[] animatedWorldTransform) {
 
         // check
         if (node.getIndex() >= getBoneCount()) return;
 
         // update
-        getJointTransforms()[node.getIndex()] = node.getAnimatedWorldTransform();
+        getJointTransforms()[node.getIndex()] = animatedWorldTransform;
     }
 
     @Override

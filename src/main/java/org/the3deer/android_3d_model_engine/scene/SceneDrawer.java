@@ -4,9 +4,12 @@ import android.opengl.GLES20;
 import android.util.Log;
 
 import org.the3deer.android_3d_model_engine.R;
+import org.the3deer.android_3d_model_engine.animation.Animator;
 import org.the3deer.android_3d_model_engine.camera.CameraManager;
+import org.the3deer.android_3d_model_engine.model.AnimatedModel;
 import org.the3deer.android_3d_model_engine.model.Camera;
 import org.the3deer.android_3d_model_engine.model.Light;
+import org.the3deer.android_3d_model_engine.model.Node;
 import org.the3deer.android_3d_model_engine.model.Object3DData;
 import org.the3deer.android_3d_model_engine.model.Projection;
 import org.the3deer.android_3d_model_engine.model.Scene;
@@ -36,6 +39,11 @@ public class SceneDrawer implements Drawer, EventListener {
     private Light light;
     @Inject
     private Projection projection;
+
+    /**
+     * Animator
+     */
+    private Animator animator = new Animator();
 
     private boolean enabled = true;
 
@@ -100,9 +108,27 @@ public class SceneDrawer implements Drawer, EventListener {
 
         }
 
-        // draw scene
-        // draw all available objects
+        // 0. GET OBJECTS
         List<Object3DData> objects = scene.getObjects();
+        if (objects == null || objects.isEmpty()) return;
+
+        // 1. UPDATE THE STATIC SCENE GRAPH
+        // This sets the base pose for everything, including skeletons.
+        if (scene.getRootNodes() != null && !scene.getRootNodes().isEmpty()) {
+            for (Node rootNode : scene.getRootNodes()) {
+                // This method should recursively update all children
+                rootNode.updateBindWorldTransform(Math3DUtils.IDENTITY_MATRIX);
+            }
+        }
+
+        for (int i = 0; i < objects.size(); i++) {
+            Object3DData obj = objects.get(i);
+            if (obj instanceof AnimatedModel) {
+                animator.update(((AnimatedModel) obj).getRootJoint(), ((AnimatedModel) obj).getCurrentAnimation(), obj, false);
+            }
+        }
+
+        // 2. DRAW ALL OBJECTS
         for (int i = 0; i < objects.size(); i++) {
             //final Object3DData object3DData = objects.get(i);
                 drawObject(camera, light.getLocation(), null, camera.getPos(),
