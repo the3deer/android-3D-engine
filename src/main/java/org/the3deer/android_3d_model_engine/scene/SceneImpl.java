@@ -2,6 +2,7 @@ package org.the3deer.android_3d_model_engine.scene;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.opengl.Matrix;
 import android.os.SystemClock;
 import android.util.Log;
 import android.widget.Toast;
@@ -188,7 +189,11 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
      * This enables rescaling several times
      */
     private Map<Object3DData, Dimensions> originalDimensions = new HashMap<>();
+
     private Map<Object3DData, Transform> originalTransforms = new HashMap<>();
+
+    // This matrix will hold the global scale for the entire scene.
+    private final float[] worldMatrix = Math3DUtils.IDENTITY_MATRIX.clone();
 
     @Inject
     private EventManager eventManager;
@@ -240,7 +245,7 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
      * Therefore, this function is to fix orientation towards y-axis (natural up-vector)
      */
     public void fixCoordinateSystem() {
-        final List<Object3DData> objects = getObjects();
+        /*final List<Object3DData> objects = getObjects();
         for (int i = 0; i < objects.size(); i++) {
             final Object3DData objData = objects.get(i);
             if (objData.getAuthoringTool() != null && objData.getAuthoringTool().toLowerCase().contains("blender")) {
@@ -251,7 +256,7 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
                 this.isFixCoordinateSystem = true;
                 //break;
             }
-        }
+        }*/
     }
 
     //...
@@ -274,6 +279,10 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
 
     public Animator getAnimator() {
         return animator;
+    }
+
+    public float[] getWorldMatrix() {
+        return worldMatrix;
     }
 
     private void makeToastText(final String text, final int toastDuration) {
@@ -646,9 +655,6 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
 
     public synchronized void onLoadComplete() {
 
-        // FIXME: this needs to be reviewed (eg: countdown.dae)
-        // if (countdown.dae) return;
-
         Log.i(TAG, "onLoadComplete: "+getName()+", Objects: " + objects.size());
 
 
@@ -685,15 +691,6 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
 
         // fix coordinate system
         fixCoordinateSystem();
-
-        // 1. UPDATE THE STATIC SCENE GRAPH
-        // This sets the base pose for everything, including skeletons.
-        if (getRootNodes() != null && !getRootNodes().isEmpty()) {
-            for (Node rootNode : getRootNodes()) {
-                // This method should recursively update all children
-                rootNode.updateBindWorldTransform(Math3DUtils.IDENTITY_MATRIX);
-            }
-        }
 
         // rescale objects so they all fit in the viewport
         rescale(list, Constants.DEFAULT_MODEL_SIZE, new float[3]);
@@ -916,12 +913,7 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
 
         // calculate the scale factor
         float scaleFactor = newScale / (maxLength + maxLocation);
-        final float[] finalScale = new float[]{scaleFactor, scaleFactor, scaleFactor};
         Log.v(TAG, "scale factor: " + scaleFactor);
-
-        if (scaleFactor > 0.5f && scaleFactor < 1.5f) {
-            return;
-        }
 
         // calculate the global center
         float centerX = (maxRight + maxLeft) / 2;
@@ -934,64 +926,44 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
         float translationY = -centerY + newPosition[1];
         float translationZ = -centerZ + newPosition[2];
         final float[] globalDifference = new float[]{translationX * scaleFactor, translationY * scaleFactor, translationZ * scaleFactor};
-        //Log.v(TAG, "Total translation: " + Arrays.toString(globalDifference));
+        Log.v(TAG, "Translation delta: " + Arrays.toString(globalDifference));
 
-
-        for (Object3DData data : datas) {
-
-            final Transform original;
-            if (this.originalTransforms.containsKey(data)) {
-                original = this.originalTransforms.get(data);
-                //Log.v(TAG, "Found transform: " + original);
-            } else {
-                original = data.getTransform();
-                this.originalTransforms.put(data, original);
+        if (getRootNodes() != null && !getRootNodes().isEmpty()) {
+            Matrix.setIdentityM(this.worldMatrix, 0);
+            Matrix.translateM(this.worldMatrix, 0, globalDifference[0], globalDifference[1], globalDifference[2]);
+            if (scaleFactor < 0.5f || scaleFactor > 1.5f) {
+                Matrix.scaleM(this.worldMatrix, 0, scaleFactor, scaleFactor, scaleFactor);
             }
+            Log.v(TAG, "World matrix for Node: "+Arrays.toString(this.worldMatrix));
+        } else {
+            Log.v(TAG, "Scale delta for objects: "+scaleFactor);
+            for (Object3DData data : datas) {
 
-            // rescale
-            float localScaleX = scaleFactor * original.getScale()[0];
-            float localScaleY = scaleFactor * original.getScale()[1];
-            float localScaleZ = scaleFactor * original.getScale()[2];
-            data.setScale(new float[]{localScaleX, localScaleY, localScaleZ});
-            //Log.v(TAG, "Mew model scale: " + Arrays.toString(data.getScale()));
+                final Transform original;
+                if (this.originalTransforms.containsKey(data)) {
+                    original = this.originalTransforms.get(data);
+                    //Log.v(TAG, "Found transform: " + original);
+                } else {
+                    original = data.getTransform();
+                    this.originalTransforms.put(data, original);
+                }
 
-            // relocate
-            float localTranlactionX = original.getTranslation()[0] * scaleFactor + globalDifference[0];
-            float localTranlactionY = original.getTranslation()[1] * scaleFactor + globalDifference[1];
-            float localTranlactionZ = original.getTranslation()[2] * scaleFactor + globalDifference[2];
-            data.setLocation(new float[]{localTranlactionX, localTranlactionY, localTranlactionZ});
-            //Log.v(TAG, "Mew model location: " + Arrays.toString(data.getLocation()));
+                // rescale (only if we have to)
+                if (scaleFactor < 0.5f || scaleFactor > 1.5f) {
+                    float localScaleX = scaleFactor * original.getScale()[0];
+                    float localScaleY = scaleFactor * original.getScale()[1];
+                    float localScaleZ = scaleFactor * original.getScale()[2];
+                    data.setScale(new float[]{localScaleX, localScaleY, localScaleZ});
+                }
+                //Log.v(TAG, "Mew model scale: " + Arrays.toString(data.getScale()));
 
-            // center
-            //data.translate(globalDifference);
-            //Log.v(TAG, "Mew model translated: " + Arrays.toString(data.getLocation()));
-        }
-
-
-        /*for (Object3DData data : datas){
-            if (data instanceof AnimatedModel && ((AnimatedModel)data).getRootJoint() != null){
-                ((AnimatedModel) data).getRootJoint().setLocation(globalDifference);
-                ((AnimatedModel) data).getRootJoint().setScale(finalScale);
-                //data.setScale(null);
-                //data.setPosition(null);
-            } else {
-
-                // rescale
-                float localScaleX = scaleFactor * data.getScale()[0];
-                float localScaleY = scaleFactor * data.getScale()[1];
-                float localScaleZ = scaleFactor * data.getScale()[2];
-                data.setScale(new float[]{localScaleX, localScaleY, localScaleZ});
-
-                // relocate
-                float localTranlactionX = data.getLocation()[0] * scaleFactor;
-                float localTranlactionY = data.getLocation()[1] * scaleFactor;
-                float localTranlactionZ = data.getLocation()[2] * scaleFactor;
+                // relocate (to the center)
+                float localTranlactionX = original.getTranslation()[0] * scaleFactor + globalDifference[0];
+                float localTranlactionY = original.getTranslation()[1] * scaleFactor + globalDifference[1];
+                float localTranlactionZ = original.getTranslation()[2] * scaleFactor + globalDifference[2];
                 data.setLocation(new float[]{localTranlactionX, localTranlactionY, localTranlactionZ});
-
-                // center
-                data.translate(globalDifference);
             }
-        }*/
+        }
     }
 
 

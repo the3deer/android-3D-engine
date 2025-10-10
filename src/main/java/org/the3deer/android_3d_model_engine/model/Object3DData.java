@@ -162,6 +162,7 @@ public class Object3DData {
      * Normal matrix
      */
     private final float[] normalMatrix = new float[16];
+    private final float[] normalMatrixTemp = new float[16];
     /**
      * This is the local transformation (M=SR), except translation
      */
@@ -795,7 +796,7 @@ public class Object3DData {
 
     public float[] getModelMatrix() {
         if (isParentBound && parent != null) {
-            return parent.modelMatrix;
+            return parent.getModelMatrix();
         } else if (parentNode != null){
             // If this mesh is attached to a node in the scene graph...
             // ...get the node's current, final, animated world transform.
@@ -810,6 +811,21 @@ public class Object3DData {
     }
 
     public float[] getNormalMatrix() {
+        // 1. Get the FINAL model matrix that is being used for the vertices.
+        // This correctly gets the matrix from the node hierarchy or skeleton.
+        float[] finalModelMatrix = getModelMatrix();
+
+        // 2. Perform the inverse-transpose calculation on THAT final matrix.
+        // Note: It's important to handle cases where the matrix can't be inverted.
+        if (Matrix.invertM(normalMatrixTemp, 0, finalModelMatrix, 0)) {
+            Matrix.transposeM(normalMatrix, 0, normalMatrixTemp, 0);
+        } else {
+            // If the matrix is not invertible (e.g., scale is 0),
+            // return the last known good normal matrix or an identity matrix
+            // to prevent rendering artifacts or crashes.
+            Matrix.setIdentityM(normalMatrix, 0);
+        }
+        Matrix.setIdentityM(normalMatrix, 0);
         return normalMatrix;
     }
 

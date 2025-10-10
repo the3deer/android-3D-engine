@@ -81,10 +81,10 @@ public class BoundingBoxDrawer implements Drawer {
                     }
 
                     Object3DData selectedObject = scene.getSelectedObject();
-                    if (selectedObject instanceof AnimatedModel) {
-                        animator.update(((AnimatedModel) selectedObject).getRootJoint(), ((AnimatedModel) selectedObject).getCurrentAnimation(), boundingBoxData
+                    /*if (selectedObject instanceof AnimatedModel) {
+                        animator.update(((AnimatedModel) selectedObject).getRootJoint(), ((AnimatedModel) selectedObject).getCurrentAnimation(), scene.getWorldMatrix(), boundingBoxData
                                 , false);
-                    }
+                    }*/
 
                     final Camera camera = config != null && config.camera != null ? config.camera : this.camera;
                     drawerObject.draw(boundingBoxData, camera.getProjectionMatrix(), camera.getViewMatrix(),

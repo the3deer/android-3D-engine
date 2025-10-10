@@ -519,12 +519,13 @@ public class Camera {
         if (this.node != null) {
             // Get the node's current world-space transformation matrix
             float[] nodeTransform = this.node.getAnimatedWorldTransform();
+            if (nodeTransform == null){
+                nodeTransform = this.node.getBindWorldTransform();
+            }
 
             // A camera's view matrix is the INVERSE of its world transform.
             if (nodeTransform != null) {
-                float[] viewMatrix = new float[16];
                 Matrix.invertM(viewMatrix, 0, nodeTransform, 0);
-                return viewMatrix;
             }
         //} else if (controller != null) {
 

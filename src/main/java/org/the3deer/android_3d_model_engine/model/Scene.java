@@ -43,4 +43,7 @@ public interface Scene {
     default void reset() {}
 
     Animator getAnimator();
+
+    public float[] getWorldMatrix();
+
 }

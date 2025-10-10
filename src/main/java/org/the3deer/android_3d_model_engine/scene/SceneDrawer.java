@@ -117,14 +117,14 @@ public class SceneDrawer implements Drawer, EventListener {
         if (scene.getRootNodes() != null && !scene.getRootNodes().isEmpty()) {
             for (Node rootNode : scene.getRootNodes()) {
                 // This method should recursively update all children
-                rootNode.updateBindWorldTransform(Math3DUtils.IDENTITY_MATRIX);
+                rootNode.updateBindWorldTransform(scene.getWorldMatrix());
             }
         }
 
         for (int i = 0; i < objects.size(); i++) {
             Object3DData obj = objects.get(i);
             if (obj instanceof AnimatedModel) {
-                animator.update(((AnimatedModel) obj).getRootJoint(), ((AnimatedModel) obj).getCurrentAnimation(), obj, false);
+                animator.update(((AnimatedModel) obj).getRootJoint(), ((AnimatedModel) obj).getCurrentAnimation(), scene.getWorldMatrix(), obj, false);
             }
         }
 

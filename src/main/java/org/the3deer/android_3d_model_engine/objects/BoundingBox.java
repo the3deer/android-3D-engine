@@ -80,6 +80,7 @@ public final class BoundingBox {
         return new Object3DData(vertices, indexBuffer).setDrawModeList(drawList)
                 .setDrawMode(GLES20.GL_LINE_LOOP)
                 .setDrawUsingArrays(false)
+                //.setId(obj.getId() + "_boundingBox").setParent(obj).setParentBound(true);
                 .setId(obj.getId() + "_boundingBox").setParent(obj).setParentBound(true);
     }
 }

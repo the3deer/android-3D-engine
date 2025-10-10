@@ -57,7 +57,7 @@ public class Animator {
      * time of the animation, and then applies that pose to all the model's
      * joints by setting the joint transforms.
      */
-    public void update(Node rootNode, Animation currentAnimation, Object3DData obj, boolean bindPoseOnly) {
+    public void update(Node rootNode, Animation currentAnimation, float[] worldMatrix, Object3DData obj, boolean bindPoseOnly) {
 
         if (currentAnimation == null) return;
 
@@ -68,7 +68,7 @@ public class Animator {
         // 3. Now, recursively apply the pose to all of the root's CHILDREN,
         //    using the root's CORRECT world transform as the starting parentTransform.
         applyPoseToJoints(obj, currentPose, rootNode,
-                Math3DUtils.IDENTITY_MATRIX, // Use the root's pre-calculated world transform
+                worldMatrix, // Use the root's pre-calculated world transform
                 Integer.MAX_VALUE, bindPoseOnly);
 
     }

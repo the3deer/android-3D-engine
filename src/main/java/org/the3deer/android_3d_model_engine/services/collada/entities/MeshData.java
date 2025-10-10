@@ -317,9 +317,11 @@ public class MeshData {
 
             // fix missing or wrong
             if (this.elements != null && !this.elements.isEmpty()) {
-                fixNormalsForElements();
+                // FIXME: this is breaking welcome.obj
+                //fixNormalsForElements();
             } else {
-                fixNormalsForArrays();
+                // FIXME: really needed?
+                //fixNormalsForArrays();
             }
         }
     }
