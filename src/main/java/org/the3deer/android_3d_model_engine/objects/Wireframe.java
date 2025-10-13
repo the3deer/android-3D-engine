@@ -114,11 +114,8 @@ public class Wireframe {
                         retA.setCentered(animSource.isCentered());
 
                         retA.setSkeleton(animSource.getSkeleton());
-                        retA.setRootJoint(animSource.getRootJoint());
                         retA.setJoints(animSource.getJointIds());
                         retA.setWeights(animSource.getVertexWeights());
-                        retA.setJointMatrices(animSource.getJointMatrices());
-                        retA.setAnimations(animSource.getAnimations());
                         retA.refresh();
                     }
                     return false;

@@ -85,7 +85,7 @@ public class Octree {
             final List<float[]> triangles = new ArrayList<>(drawOrder.capacity() / 3 * 4);
             //final float[] modelMatrix = object.getModelMatrix();
             //final float[] modelMatrix = Math3DUtils.IDENTITY_MATRIX;
-            for (int i = 0; i < drawOrder.capacity(); i += 3) {
+            for (int i = 0; i < drawOrder.capacity()-3; i += 3) {
                 if (drawOrder instanceof IntBuffer) {
                     float[] triangle = new float[]{
                             buffer.get(((IntBuffer)drawOrder).get(i)), buffer.get(((IntBuffer)drawOrder).get(i) + 1), buffer.get(((IntBuffer)drawOrder).get(i) + 2), 1,
@@ -97,10 +97,13 @@ public class Octree {
                     //Matrix.multiplyMV(triangle, 8, modelMatrix, 0, triangle, 8);
                     triangles.add(triangle);
                 } else if (drawOrder instanceof ShortBuffer){
+                    int i1 = Short.toUnsignedInt(((ShortBuffer) drawOrder).get(i));
+                    int i2 = Short.toUnsignedInt(((ShortBuffer) drawOrder).get(i+1));
+                    int i3 = Short.toUnsignedInt(((ShortBuffer) drawOrder).get(i+2));
                     float[] triangle = new float[]{
-                            buffer.get(((ShortBuffer)drawOrder).get(i)), buffer.get(((ShortBuffer)drawOrder).get(i) + 1), buffer.get(((ShortBuffer)drawOrder).get(i) + 2), 1,
-                            buffer.get(((ShortBuffer)drawOrder).get(i + 1)), buffer.get(((ShortBuffer)drawOrder).get(i + 1) + 1), buffer.get(((ShortBuffer)drawOrder).get(i + 1) + 2), 1,
-                            buffer.get(((ShortBuffer)drawOrder).get(i + 2)), buffer.get(((ShortBuffer)drawOrder).get(i + 2) + 1), buffer.get(((ShortBuffer)drawOrder).get(i + 2) + 2), 1,
+                            buffer.get(i1), buffer.get(i1 + 1), buffer.get(i1 + 2), 1,
+                            buffer.get(i2), buffer.get(i2 + 1), buffer.get(i2 + 2), 1,
+                            buffer.get(i3), buffer.get(i3 + 1), buffer.get(i3 + 2), 1,
                     };
                     //Matrix.multiplyMV(triangle, 0, modelMatrix, 0, triangle, 0);
                     //Matrix.multiplyMV(triangle, 4, modelMatrix, 0, triangle, 4);

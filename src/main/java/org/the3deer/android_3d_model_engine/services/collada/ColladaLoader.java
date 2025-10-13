@@ -78,7 +78,7 @@ public final class ColladaLoader {
             }
 
             // load visual scene
-            // we need this first in order to progressively load geometries with it's binded transform
+            // we need this first in order to progressively load geometries with it's bound transform
             Log.v("ColladaLoaderTask", "--------------------------------------------------");
             Log.d("ColladaLoaderTask", "Loading visual nodes...");
             Log.v("ColladaLoaderTask", "--------------------------------------------------");
@@ -87,7 +87,7 @@ public final class ColladaLoader {
             try {
                 // load joints
                 SkeletonLoader jointsLoader = new SkeletonLoader(xml);
-                skeletons = jointsLoader.loadJoints();
+                skeletons = jointsLoader.loadSkeletons(scene);
 
             } catch (Exception ex) {
                 Log.e("ColladaLoaderTask", "Error loading visual scene", ex);
@@ -415,8 +415,14 @@ public final class ColladaLoader {
                             skeletonData = skeletons.get("default");
                         }
 
+                        // register skeleton
                         data3D.setSkeleton(skeletonData);
-                        data3D.setAnimations(Collections.singletonList(animation));
+                        scene.addSkeleton(skeletonData);
+
+                        // register animation
+                        if (scene.getAnimations() == null || !scene.getAnimations().contains(animation)) {
+                            scene.addAnimation(animation);
+                        }
 
                         // FIXME: this should be handled differently - this must be null for iris mechanical + countdown timer
                         data3D.setWorldTransform(null);

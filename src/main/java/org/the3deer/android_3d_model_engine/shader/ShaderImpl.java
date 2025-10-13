@@ -348,8 +348,7 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
 
         if (supportsAnimation) {
             final boolean animationOK = obj instanceof AnimatedModel
-                    && ((AnimatedModel) obj).getCurrentAnimation() != null
-                    && ((AnimatedModel) obj).getJointMatrices() != null
+                    && ((AnimatedModel) obj).getSkeleton() != null
                     && ((AnimatedModel) obj).getVertexWeights() != null
                     && ((AnimatedModel) obj).getJointIds() != null;
             boolean toggle = this.animationEnabled && animationOK;
@@ -446,7 +445,7 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
         }
 
         textures.add(texture);
-        Log.d(TAG, "Loaded texture " + textureId + " for " + id);
+        Log.v(TAG, "Loaded texture " + textureId + " for " + id);
     }
 
     private int setVBO(final String shaderVariableName, final Buffer buffer, int componentsPerVertex, int glType) {
@@ -675,7 +674,7 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
     }
 
     private void setJointTransforms(AnimatedModel animatedModel) {
-        float[][] jointTransformsArray = animatedModel.getJointMatrices();
+        float[][] jointTransformsArray = animatedModel.getSkeleton().getJointTransforms();
 
         // TODO: optimize this (memory allocation)
         for (int i = 0; i < jointTransformsArray.length; i++) {

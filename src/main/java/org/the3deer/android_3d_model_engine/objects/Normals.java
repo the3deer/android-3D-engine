@@ -255,9 +255,7 @@ public final class Normals {
         normalsObj.setReadOnly(true);
         normalsObj.setElements(newElements);
         normalsObj.setDrawUsingArrays(false);
-        normalsObj.setAnimations(obj.getAnimations());
         normalsObj.setSkeleton(obj.getSkeleton());
-        normalsObj.setRootJoint(obj.getRootJoint());
         normalsObj.setBindShapeMatrix(obj.getBindShapeMatrix());
 
         // skinned normals only for skinned models

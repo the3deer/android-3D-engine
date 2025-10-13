@@ -1,5 +1,7 @@
 package org.the3deer.android_3d_model_engine.services.collada.entities;
 
+import android.opengl.Matrix;
+
 import org.the3deer.android_3d_model_engine.model.Node;
 
 import java.util.List;
@@ -14,11 +16,18 @@ public class SkeletonData {
     private List<Node> bones;
     private float[] bindShapeMatrix;
 
+    private float[][] jointMatrices;
 
     public SkeletonData(List<Node> nodes, List<Node> bones, Node headNode) {
         this.nodes = nodes;
         this.bones = bones;
         this.headNode = headNode;
+
+        // init skinning matrix
+        this.setJointMatrices(new float[getBoneCount()][16]);  // 16 is the size of the matrix
+        for(int i = 0; i < this.getJointMatrices().length; i++){
+            Matrix.setIdentityM(this.getJointMatrices()[i], 0);
+        }
     }
 
     public List<Node> getJoints() {
@@ -89,6 +98,69 @@ public class SkeletonData {
             return headNode.find(geometryId);
         }
         return null;
+    }
+
+    /**
+     * @return The root joint of the joint hierarchy. This joint has no parent,
+     * and every other joint in the skeleton is a descendant of this
+     * joint.
+     */
+    public Node getRootJoint() {
+        return headNode;
+    }
+
+    // In your model class (e.g., Object3DData or AnimatedModel)
+
+    public void update() {
+        // Start the recursive update for the entire model's node hierarchy.
+        // We begin at the root joint, and its parent is the world origin (Identity Matrix).
+        if (headNode != null) {
+            float[] identityMatrix = new float[16];
+            Matrix.setIdentityM(identityMatrix, 0);
+            headNode.updateBindWorldTransform(identityMatrix);
+        }
+    }
+
+    /**
+     * Gets an array of the all important model-space transforms of all the
+     * joints (with the current animation pose applied) in the entity. The
+     * joints are ordered in the array based on their joint index. The position
+     * of each joint's transform in the array is equal to the joint's index.
+     *
+     * @return The array of model-space transforms of the joints in the current
+     * animation pose.
+     */
+    public float[][] getJointTransforms() {
+        return getJointMatrices();
+    }
+
+    public void updateSkinTransform(Node node, float[] animatedWorldTransform) {
+
+        // check
+        if (node.getIndex() >= getBoneCount()) return;
+
+        // update
+        getJointTransforms()[node.getIndex()] = animatedWorldTransform;
+    }
+
+
+
+    public float[][] getJointMatrices() {
+
+        // FIXME: legacy - collada
+        if (jointMatrices == null && boneCount > 0) {
+            // init skinning matrix
+            this.setJointMatrices(new float[getBoneCount()][16]);  // 16 is the size of the matrix
+            for(int i = 0; i < this.getJointMatrices().length; i++){
+                Matrix.setIdentityM(this.getJointMatrices()[i], 0);
+            }
+        }
+
+        return jointMatrices;
+    }
+
+    public void setJointMatrices(float[][] jointMatrices) {
+        this.jointMatrices = jointMatrices;
     }
 
 }

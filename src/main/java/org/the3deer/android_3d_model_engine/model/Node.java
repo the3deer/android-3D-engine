@@ -47,7 +47,9 @@ public class Node {
 
 	private Node parent;
 	public final List<Node> children = new ArrayList<>();
-
+	public List<Object3DData> meshes;
+	// scene
+	private Scene scene;
 	// camera
 	private Camera camera;
 
@@ -111,7 +113,15 @@ public class Node {
 		this.parent = parent;
 	}
 
-	public List<String> getMeshes() {
+	public Scene getScene() {
+		return scene;
+	}
+
+	public void setScene(Scene scene) {
+		this.scene = scene;
+	}
+
+	public List<String> getMeshesId() {
 		if (meshId != null) {
 			return Collections.singletonList(meshId);
 		} else {
@@ -318,5 +328,13 @@ public class Node {
 
 	public Camera getCamera() {
 		return camera;
+	}
+
+	public void setMeshes(List<Object3DData> meshes) {
+		this.meshes = meshes;
+	}
+
+	public List<Object3DData> getMeshes() {
+		return meshes;
 	}
 }

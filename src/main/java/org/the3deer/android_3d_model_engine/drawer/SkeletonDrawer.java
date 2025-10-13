@@ -11,6 +11,7 @@ import org.the3deer.android_3d_model_engine.model.Object3DData;
 import org.the3deer.android_3d_model_engine.model.Scene;
 import org.the3deer.android_3d_model_engine.objects.Skeleton;
 import org.the3deer.android_3d_model_engine.renderer.Drawer;
+import org.the3deer.android_3d_model_engine.scene.SceneManager;
 import org.the3deer.android_3d_model_engine.shader.Shader;
 import org.the3deer.android_3d_model_engine.shader.ShaderFactory;
 import org.the3deer.util.bean.BeanOrder;
@@ -38,7 +39,7 @@ public class SkeletonDrawer implements Drawer, EventListener {
     @Inject
     private ShaderFactory shaderFactory;
     @Inject
-    private Scene scene;
+    private SceneManager sceneManager;
     @Inject
     private Camera camera;
     // The skeleton associated
@@ -78,9 +79,13 @@ public class SkeletonDrawer implements Drawer, EventListener {
         if (!enabled) return;
 
         // assert
-        if (scene == null || camera == null) {
+        if (sceneManager == null || camera == null) {
             return;
         }
+
+        // get scene
+        final Scene scene = sceneManager.getCurrentScene();
+        if (scene == null) return;
 
         // we need to write on top of everything
         GLES20.glClear(GLES20.GL_DEPTH_BUFFER_BIT);
@@ -89,11 +94,11 @@ public class SkeletonDrawer implements Drawer, EventListener {
         final Camera camera = config != null && config.camera != null ? config.camera : this.camera;
         List<Object3DData> objects = scene.getObjects();
         for (int i = 0; i < objects.size(); i++) {
-            drawObject(camera, objects, i);
+            drawObject(scene, camera, objects, i);
         }
     }
 
-    private void drawObject(Camera camera, List<Object3DData> objects, int i) {
+    private void drawObject(Scene scene, Camera camera, List<Object3DData> objects, int i) {
         Object3DData objData = null;
         try {
             objData = objects.get(i);
@@ -111,8 +116,11 @@ public class SkeletonDrawer implements Drawer, EventListener {
             if (((AnimatedModel) objData).getSkeleton() == null) return;
             if (((AnimatedModel) objData).getSkeleton().getHeadJoint() == null) return;
 
+            // FIXME: maybe this is needed.  we need to draw the hierarchy without
+            if (((AnimatedModel) objData).getSkeleton().getJointCount() == 0) return;
+
             // get shader
-            Shader drawerObject = shaderFactory.getShader(objData, false, false, false, true, false, false);
+            Shader drawerObject = shaderFactory.getShader(scene, objData, false, false, false, true, false, false);
             if (drawerObject == null) {
                 Log.e(TAG, "No drawer for " + objData.getId());
                 return;

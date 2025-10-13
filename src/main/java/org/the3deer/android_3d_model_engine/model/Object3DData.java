@@ -1023,7 +1023,7 @@ public class Object3DData {
             // init normal buffer
             normalsBuffer = IOUtils.createFloatBuffer(getVertexBuffer().capacity());
 
-            for (int i = 0; i < vertexBuffer.capacity(); i += 9) {
+            for (int i = 0; i < vertexBuffer.capacity()-9; i += 9) {
 
                 final float[] v1 = getVertexBufferValue(i);
                 final float[] v2 = getVertexBufferValue(i + 3);
@@ -1047,9 +1047,9 @@ public class Object3DData {
         if (indexBuffer instanceof IntBuffer) {
             ret = ((IntBuffer) indexBuffer).get(i);
         } else if (indexBuffer instanceof ShortBuffer) {
-            ret = ((ShortBuffer) indexBuffer).get(i);
+            ret = Short.toUnsignedInt(((ShortBuffer) indexBuffer).get(i));
         } else if (indexBuffer instanceof ByteBuffer) {
-            ret = ((ByteBuffer) indexBuffer).get(i);
+            ret = Byte.toUnsignedInt(((ByteBuffer) indexBuffer).get(i));
         }
         return ret;
     }

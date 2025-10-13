@@ -4,6 +4,7 @@ import android.opengl.Matrix;
 import android.util.Log;
 
 import org.the3deer.android_3d_model_engine.model.Node;
+import org.the3deer.android_3d_model_engine.model.Scene;
 import org.the3deer.android_3d_model_engine.services.collada.entities.SkeletonData;
 import org.the3deer.android_3d_model_engine.services.collada.entities.SkinningData;
 import org.the3deer.util.math.Math3DUtils;
@@ -33,7 +34,7 @@ public class SkeletonLoader {
 	}
 
 	// <visual_scene>
-	public Map<String,SkeletonData> loadJoints(){
+	public Map<String,SkeletonData> loadSkeletons(Scene scene){
 
 		Log.d("SkeletonLoader", "Loading skeleton...");
 
@@ -76,11 +77,11 @@ public class SkeletonLoader {
 					count.incrementAndGet();
 
 					// add current node
-					final Node instanceNode = createJointData(node, rootNode2, count);
+					final Node instanceNode = parseNode(node, rootNode2, count);
 					rootNode2.addChild(instanceNode);
 
 					// bind linked child node
-					Node joint = loadSkeleton(visualScene.getChildWithAttributeRecursive("node", "id", skeletonId), instanceNode, count);
+					Node joint = loadNode(visualScene.getChildWithAttributeRecursive("node", "id", skeletonId), instanceNode, count);
 					instanceNode.addChild(joint);
 
 					// log event
@@ -89,6 +90,9 @@ public class SkeletonLoader {
 					// add to returned list
 					ret.put(geometryId, new SkeletonData(count.get(), rootNode2));
 
+					// register root node
+					scene.addRootNode(rootNode2);
+
 				} catch (Exception e) {
 					Log.e("SkeletonLoader", e.getMessage(), e);
 				}
@@ -96,8 +100,12 @@ public class SkeletonLoader {
 			} else {
 
 				// parse joints
-				Node joint = loadSkeleton(node, rootNode, defaultCount);
+				Node joint = loadNode(node, rootNode, defaultCount);
 				rootNode.addChild(joint);
+
+				// register root node
+				scene.addRootNode(joint);
+
 				Log.v("SkeletonLoader", "Node found. joints: " + defaultCount.get());
 			}
 		}
@@ -115,18 +123,18 @@ public class SkeletonLoader {
 		return ret;
 	}
 
-	private Node loadSkeleton(XmlNode jointNode, Node parent, AtomicInteger count){
-		Node node = createJointData(jointNode, parent, count);
+	private Node loadNode(XmlNode jointNode, Node parent, AtomicInteger count){
+		Node node = parseNode(jointNode, parent, count);
 
 		// Log.i("SkeletonLoader","Joint: index "+joint.index+", name: "+joint.nameId);
 		for(XmlNode childNode : jointNode.getChildren("node")){
-			Node child = loadSkeleton(childNode, node, count);
+			Node child = loadNode(childNode, node, count);
 			node.addChild(child);
 		}
 		return node;
 	}
 
-	private Node createJointData(XmlNode jointNode, Node parent, AtomicInteger count){
+	private Node parseNode(XmlNode jointNode, Node parent, AtomicInteger count){
 
 
 		float[] bindLocalMatrix = null;

@@ -6,14 +6,13 @@ import android.util.Log;
 import org.the3deer.android_3d_model_engine.R;
 import org.the3deer.android_3d_model_engine.animation.Animator;
 import org.the3deer.android_3d_model_engine.camera.CameraManager;
-import org.the3deer.android_3d_model_engine.model.AnimatedModel;
 import org.the3deer.android_3d_model_engine.model.Camera;
 import org.the3deer.android_3d_model_engine.model.Light;
-import org.the3deer.android_3d_model_engine.model.Node;
 import org.the3deer.android_3d_model_engine.model.Object3DData;
 import org.the3deer.android_3d_model_engine.model.Projection;
 import org.the3deer.android_3d_model_engine.model.Scene;
 import org.the3deer.android_3d_model_engine.renderer.Drawer;
+import org.the3deer.android_3d_model_engine.services.collada.entities.SkeletonData;
 import org.the3deer.android_3d_model_engine.shader.Shader;
 import org.the3deer.android_3d_model_engine.shader.ShaderFactory;
 import org.the3deer.util.event.EventListener;
@@ -115,18 +114,26 @@ public class SceneDrawer implements Drawer, EventListener {
         // 1. UPDATE THE STATIC SCENE GRAPH
         // This sets the base pose for everything, including skeletons.
         if (scene.getRootNodes() != null && !scene.getRootNodes().isEmpty()) {
-            for (Node rootNode : scene.getRootNodes()) {
+            for (int i=0; i<scene.getRootNodes().size(); i++) {
                 // This method should recursively update all children
-                rootNode.updateBindWorldTransform(scene.getWorldMatrix());
+                scene.getRootNodes().get(i).updateBindWorldTransform(scene.getWorldMatrix());
             }
         }
 
-        for (int i = 0; i < objects.size(); i++) {
-            Object3DData obj = objects.get(i);
-            if (obj instanceof AnimatedModel) {
-                animator.update(((AnimatedModel) obj).getRootJoint(), ((AnimatedModel) obj).getCurrentAnimation(), scene.getWorldMatrix(), obj, false);
+        if (scene.getSkeletons() != null && !scene.getSkeletons().isEmpty()) {
+            for (int i = 0; i < scene.getSkeletons().size(); i++) {
+                SkeletonData skeleton = scene.getSkeletons().get(i);
+                animator.update(skeleton.getHeadJoint(), scene.getCurrentAnimation(),
+                        scene.getWorldMatrix(), skeleton, false);
             }
         }
+
+        /*for (int i = 0; i < objects.size(); i++) {
+            Object3DData obj = objects.get(i);
+            if (obj instanceof AnimatedModel) {
+                animator.update(((AnimatedModel) obj).getRootJoint(), scene.getCurrentAnimation(), scene.getWorldMatrix(), obj, false);
+            }
+        }*/
 
         // 2. DRAW ALL OBJECTS
         for (int i = 0; i < objects.size(); i++) {

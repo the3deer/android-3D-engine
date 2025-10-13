@@ -8,6 +8,7 @@ import androidx.annotation.NonNull;
 import org.the3deer.android_3d_model_engine.R;
 import org.the3deer.android_3d_model_engine.model.AnimatedModel;
 import org.the3deer.android_3d_model_engine.model.Object3DData;
+import org.the3deer.android_3d_model_engine.model.Scene;
 import org.the3deer.util.bean.BeanInit;
 import org.the3deer.util.io.IOUtils;
 
@@ -96,14 +97,14 @@ public class ShaderFactory {
      * @param isUsingShadows
      * @return
      */
-    public Shader getShader(Object3DData obj, boolean usingSkyBox,
+    public Shader getShader(Scene scene, Object3DData obj, boolean usingSkyBox,
                             boolean usingTextures, boolean usingLights,
                             boolean usingAnimation, boolean isShadow, boolean isUsingShadows) {
 
         // double check features
         final boolean animationOK = obj instanceof AnimatedModel
-                && ((AnimatedModel) obj).getCurrentAnimation() != null
-                && (((AnimatedModel) obj).getCurrentAnimation()).isInitialized();
+                && scene.getCurrentAnimation() != null
+                && scene.getCurrentAnimation().isInitialized();
         final boolean isAnimated = usingAnimation && animationOK;
         final boolean isLighted = usingLights && obj != null && obj.getNormalsBuffer() != null;
         final boolean isTextured = usingTextures && obj != null && obj.getTextureBuffer() != null;

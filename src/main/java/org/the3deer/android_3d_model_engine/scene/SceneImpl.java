@@ -9,6 +9,7 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 
+import org.the3deer.android_3d_model_engine.animation.Animation;
 import org.the3deer.android_3d_model_engine.animation.Animator;
 import org.the3deer.android_3d_model_engine.collision.CollisionEvent;
 import org.the3deer.android_3d_model_engine.controller.TouchEvent;
@@ -22,6 +23,7 @@ import org.the3deer.android_3d_model_engine.model.Node;
 import org.the3deer.android_3d_model_engine.model.Object3DData;
 import org.the3deer.android_3d_model_engine.model.Transform;
 import org.the3deer.android_3d_model_engine.objects.Point;
+import org.the3deer.android_3d_model_engine.services.collada.entities.SkeletonData;
 import org.the3deer.android_3d_model_engine.view.RenderListener;
 import org.the3deer.util.event.EventListener;
 import org.the3deer.util.event.EventManager;
@@ -72,9 +74,22 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
      */
     private List<Node> rootNodes = new ArrayList<>();
     /**
+     * Skin data for every root node
+     */
+    private List<SkeletonData> skeletonData = new ArrayList<>();
+    /**
      * List of 3D models
      */
     private List<Object3DData> objects = new ArrayList<>();
+    /**
+     * List of Animations
+     */
+    private List<Animation> animations;
+    /**
+     * Current animation
+     */
+    private Animation currentAnimation;
+
     /**
      * Point of view camera
      */
@@ -268,6 +283,18 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
         return rootNodes;
     }
 
+    public void addSkeleton(SkeletonData skeletonData) {
+        this.skeletonData.add(skeletonData);
+    }
+
+    public List<SkeletonData> getSkeletons() {
+        return skeletonData;
+    }
+
+    public void setSkeletonData(List<SkeletonData> skeletonData) {
+        this.skeletonData = skeletonData;
+    }
+
     public boolean isFixCoordinateSystem() {
         return this.isFixCoordinateSystem;
     }
@@ -370,6 +397,28 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
     @Override
     public final synchronized List<Object3DData> getObjects() {
         return objects;
+    }
+
+    public void addAnimation(Animation animation) {
+        if (this.animations == null){
+            this.animations = new ArrayList<>();
+        }
+        this.animations.add(animation);
+        if (getCurrentAnimation() == null) {
+            setCurrentAnimation(animation);
+        }
+    }
+
+    public List<Animation> getAnimations() {
+        return animations;
+    }
+
+    public Animation getCurrentAnimation() {
+        return currentAnimation;
+    }
+
+    public void setCurrentAnimation(Animation currentAnimation) {
+        this.currentAnimation = currentAnimation;
     }
 
     /*public final synchronized List<Object3DData> getGUIObjects() {

@@ -10,6 +10,7 @@ import org.the3deer.android_3d_model_engine.model.Object3DData;
 import org.the3deer.android_3d_model_engine.model.Scene;
 import org.the3deer.android_3d_model_engine.objects.Wireframe;
 import org.the3deer.android_3d_model_engine.renderer.Drawer;
+import org.the3deer.android_3d_model_engine.scene.SceneManager;
 import org.the3deer.android_3d_model_engine.shader.Shader;
 import org.the3deer.android_3d_model_engine.shader.ShaderFactory;
 import org.the3deer.util.event.EventListener;
@@ -35,7 +36,7 @@ public class WireframeDrawer implements Drawer, EventListener {
     @Inject
     private ShaderFactory shaderFactory;
     @Inject
-    private Scene scene;
+    private SceneManager sceneManager;
     @Inject
     private Camera camera;
     // The wireframe associated shape (it should be made of lines only)
@@ -71,19 +72,20 @@ public class WireframeDrawer implements Drawer, EventListener {
         if (!enabled) return;
 
         // assert
-        if (scene == null || camera == null) {
+        if (sceneManager == null || camera == null) {
             return;
         }
+        final Scene scene = sceneManager.getCurrentScene();
 
         // draw
         List<Object3DData> objects = scene.getObjects();
         for (int i = 0; i < objects.size(); i++) {
             final Camera camera = config != null && config.camera != null ? config.camera : this.camera;
-            drawObject(camera, objects, i);
+            drawObject(scene, camera, objects, i);
         }
     }
 
-    private void drawObject(Camera camera, List<Object3DData> objects, int i) {
+    private void drawObject(Scene scene, Camera camera, List<Object3DData> objects, int i) {
         Object3DData objData = null;
         try {
             objData = objects.get(i);
@@ -92,13 +94,13 @@ public class WireframeDrawer implements Drawer, EventListener {
             }
 
             if (objData instanceof AnimatedModel){
-                if (((AnimatedModel) objData).getJointTransforms() == null){
+                if (((AnimatedModel) objData).getSkeleton() == null){
                     // patch. we have to wait loader to finish loading
                     return;
                 }
             }
 
-            Shader drawerObject = shaderFactory.getShader(objData, false, false, false, true, false, false);
+            Shader drawerObject = shaderFactory.getShader(scene, objData, false, false, false, true, false, false);
             if (drawerObject == null) {
                 Log.e(TAG, "No drawer for " + objData.getId());
                 return;

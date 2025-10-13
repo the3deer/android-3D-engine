@@ -114,7 +114,11 @@ public final class Transform {
         this.matrix = null;
         this.scale = scale;
         this.quaternion = quaternion;
-        this.rotation = quaternion.toAnglesF(null);
+        if (quaternion != null) {
+            this.rotation = quaternion.toAnglesF(null);
+        } else {
+            this.rotation = null;
+        }
         this.translation = translation;
 
         // 1. Create a new 4x4 matrix, initialized to identity

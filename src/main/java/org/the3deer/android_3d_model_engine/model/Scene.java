@@ -2,7 +2,9 @@ package org.the3deer.android_3d_model_engine.model;
 
 import androidx.annotation.NonNull;
 
+import org.the3deer.android_3d_model_engine.animation.Animation;
 import org.the3deer.android_3d_model_engine.animation.Animator;
+import org.the3deer.android_3d_model_engine.services.collada.entities.SkeletonData;
 
 import java.util.List;
 
@@ -23,6 +25,10 @@ public interface Scene {
 
     List<Node> getRootNodes();
 
+    void addSkeleton(SkeletonData skeleton);
+
+    List<SkeletonData> getSkeletons();
+
     void addObjects(List<Object3DData> objs);
 
     List<Object3DData> getObjects();
@@ -30,6 +36,14 @@ public interface Scene {
     Object3DData getSelectedObject();
 
     void setCamera(Camera camera);
+
+    void addAnimation(Animation animation);
+
+    List<Animation> getAnimations();
+
+    void setCurrentAnimation(Animation animation);
+
+    Animation getCurrentAnimation();
 
     void onLoadComplete();
 
@@ -45,5 +59,6 @@ public interface Scene {
     Animator getAnimator();
 
     public float[] getWorldMatrix();
+
 
 }
