@@ -52,7 +52,7 @@ public class Object3DData {
     /**
      * The node where this object is attached to (when there is a scene node hierarchy)
      */
-    private Node parentNode;
+    protected Node parentNode;
     /**
      * CAD Tool used to generate model
      */
@@ -64,7 +64,7 @@ public class Object3DData {
     /**
      * Bind transformation to parent
      */
-    private boolean isParentBound;
+    protected boolean isParentBound;
     /**
      * model resource locator
      */
@@ -802,8 +802,7 @@ public class Object3DData {
             // ...get the node's current, final, animated world transform.
             if (parentNode.getAnimatedWorldTransform() != null){
                 return parentNode.getAnimatedWorldTransform();
-            }
-            else {
+            } else {
                 return parentNode.getBindWorldTransform();
             }
         }

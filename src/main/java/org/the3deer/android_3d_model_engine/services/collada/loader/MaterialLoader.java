@@ -7,7 +7,7 @@ import org.the3deer.android_3d_model_engine.model.Material;
 import org.the3deer.android_3d_model_engine.model.Node;
 import org.the3deer.android_3d_model_engine.model.Texture;
 import org.the3deer.android_3d_model_engine.services.collada.entities.MeshData;
-import org.the3deer.android_3d_model_engine.services.collada.entities.SkeletonData;
+import org.the3deer.android_3d_model_engine.model.Skeleton;
 import org.the3deer.util.xml.XmlNode;
 
 import java.util.ArrayList;
@@ -51,10 +51,10 @@ public class MaterialLoader {
         }
     }
 
-    public void loadMaterialFromVisualScene(MeshData meshData, SkeletonData skeletonData){
+    public void loadMaterialFromVisualScene(MeshData meshData, Skeleton skeleton){
 
         // if no joints do nothing
-        if (skeletonData == null) return;
+        if (skeleton == null) return;
 
         // get mesh id to update
         final String geometryId = meshData.getId();
@@ -76,7 +76,7 @@ public class MaterialLoader {
             Log.i("MaterialLoader", "Loading instance material '"+materialId+"' for element: "+i++);
 
             // parse material
-            final Material material = parseInstanceMaterial(geometryId, geometryName, materialId, skeletonData);
+            final Material material = parseInstanceMaterial(geometryId, geometryName, materialId, skeleton);
             if (material != null) {
 
                 // if there is instance material, overwrite
@@ -93,11 +93,11 @@ public class MaterialLoader {
     }
 
 
-    private Material parseInstanceMaterial(String geometryId, String geometryName, String material, SkeletonData skeletonData){
-        if (skeletonData != null) {
-            Node node = skeletonData.find(geometryId);
+    private Material parseInstanceMaterial(String geometryId, String geometryName, String material, Skeleton skeleton){
+        if (skeleton != null) {
+            Node node = skeleton.find(geometryId);
             if (node == null && geometryName != null) {
-                node = skeletonData.find(geometryName);
+                node = skeleton.find(geometryName);
             }
             if (node != null && node.containsMaterial(material)) {
                 return parseMaterial(node.getMaterial(material));

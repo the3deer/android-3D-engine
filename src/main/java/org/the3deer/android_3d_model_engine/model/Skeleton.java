@@ -1,12 +1,10 @@
-package org.the3deer.android_3d_model_engine.services.collada.entities;
+package org.the3deer.android_3d_model_engine.model;
 
 import android.opengl.Matrix;
 
-import org.the3deer.android_3d_model_engine.model.Node;
-
 import java.util.List;
 
-public class SkeletonData {
+public class Skeleton {
 
     private Node headNode;
     private int jointCount;
@@ -18,7 +16,7 @@ public class SkeletonData {
 
     private float[][] jointMatrices;
 
-    public SkeletonData(List<Node> nodes, List<Node> bones, Node headNode) {
+    public Skeleton(List<Node> nodes, List<Node> bones, Node headNode) {
         this.nodes = nodes;
         this.bones = bones;
         this.headNode = headNode;
@@ -38,12 +36,12 @@ public class SkeletonData {
         return bones;
     }
 
-    public SkeletonData(int jointCount, Node headNode) {
+    public Skeleton(int jointCount, Node headNode) {
         this.jointCount = jointCount;
         this.headNode = headNode;
     }
 
-    public SkeletonData(int jointCount, int boneCount, Node headNode) {
+    public Skeleton(int jointCount, int boneCount, Node headNode) {
         this.jointCount = jointCount;
         this.boneCount = boneCount;
         this.headNode = headNode;
@@ -81,7 +79,7 @@ public class SkeletonData {
         return bindShapeMatrix;
     }
 
-    public SkeletonData setBindShapeMatrix(float[] bindShapeMatrix) {
+    public Skeleton setBindShapeMatrix(float[] bindShapeMatrix) {
         this.bindShapeMatrix = bindShapeMatrix;
         return this;
     }

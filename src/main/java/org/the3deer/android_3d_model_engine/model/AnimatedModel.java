@@ -1,6 +1,5 @@
 package org.the3deer.android_3d_model_engine.model;
 
-import org.the3deer.android_3d_model_engine.services.collada.entities.SkeletonData;
 import org.the3deer.util.math.Math3DUtils;
 
 import java.nio.Buffer;
@@ -19,7 +18,7 @@ import java.nio.FloatBuffer;
 public class AnimatedModel extends Object3DData {
 
     // skeleton
-    private SkeletonData skeleton;
+    private Skeleton skeleton;
 
     // bind_shape_matrix
 	/* The bind shape matrix describes how to transform the geometry into the right
@@ -44,15 +43,6 @@ public class AnimatedModel extends Object3DData {
         super(vertexBuffer, drawOrderBuffer);
     }
 
-    /**
-     * This is the bind shape transform found in sking (ie. {@code <library_controllers><skin><bind_shape_matrix>}
-     * The issue on handling this in the shader, is that we lose the transformation and cannot calculate further attributes (i.e. dimension)
-     */
-    public void setBindShapeMatrix(float[] matrix) {
-        //this.bindShapeMatrix = matrix;
-        super.setBindShapeMatrix(matrix);
-    }
-
     public float[] getBindShapeMatrix() {
         if (bindShapeMatrix == null) {
             return Math3DUtils.IDENTITY_MATRIX;
@@ -60,12 +50,12 @@ public class AnimatedModel extends Object3DData {
         return bindShapeMatrix;
     }
 
-    public AnimatedModel setSkeleton(SkeletonData jointsData) {
+    public AnimatedModel setSkeleton(Skeleton jointsData) {
         this.skeleton = jointsData;
         return this;
     }
 
-    public SkeletonData getSkeleton() {
+    public Skeleton getSkeleton() {
         return skeleton;
     }
 

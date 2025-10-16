@@ -5,7 +5,7 @@ import android.util.Log;
 
 import org.the3deer.android_3d_model_engine.model.Node;
 import org.the3deer.android_3d_model_engine.model.Scene;
-import org.the3deer.android_3d_model_engine.services.collada.entities.SkeletonData;
+import org.the3deer.android_3d_model_engine.model.Skeleton;
 import org.the3deer.android_3d_model_engine.services.collada.entities.SkinningData;
 import org.the3deer.util.math.Math3DUtils;
 import org.the3deer.util.xml.XmlNode;
@@ -34,7 +34,7 @@ public class SkeletonLoader {
 	}
 
 	// <visual_scene>
-	public Map<String,SkeletonData> loadSkeletons(Scene scene){
+	public Map<String, Skeleton> loadSkeletons(Scene scene){
 
 		Log.d("SkeletonLoader", "Loading skeleton...");
 
@@ -53,7 +53,7 @@ public class SkeletonLoader {
 
 
 		// list with all parsed instance skeletons
-		Map<String,SkeletonData> ret = new HashMap<>();
+		Map<String, Skeleton> ret = new HashMap<>();
 
 		// analyze all nodes to get skeleton
 		for (XmlNode node : nodes){
@@ -88,10 +88,10 @@ public class SkeletonLoader {
 					Log.i("SkeletonLoader", "Node found. skeleton: "+skeletonId+", geometryId: "+geometryId+", joints: " + count.get());
 
 					// add to returned list
-					ret.put(geometryId, new SkeletonData(count.get(), rootNode2));
+					ret.put(geometryId, new Skeleton(count.get(), rootNode2));
 
 					// register root node
-					scene.addRootNode(rootNode2);
+					//scene.addRootNode(rootNode2);
 
 				} catch (Exception e) {
 					Log.e("SkeletonLoader", e.getMessage(), e);
@@ -111,7 +111,7 @@ public class SkeletonLoader {
 		}
 
 		// add to returned list
-		ret.put("default", new SkeletonData(defaultCount.get(), rootNode));
+		ret.put("default", new Skeleton(defaultCount.get(), rootNode));
 
 		// no skeleton found at all
 		if (ret.isEmpty()){
@@ -272,14 +272,14 @@ public class SkeletonLoader {
 		);
 	}
 
-	public void updateJointData(Map<String, SkinningData> skinningDataMap, Map<String,SkeletonData> skeletons) {
+	public void updateJointData(Map<String, SkinningData> skinningDataMap, Map<String, Skeleton> skeletons) {
 
 		List<String> defaultBoneList = new ArrayList<>();
 		if (skinningDataMap != null && !skinningDataMap.isEmpty()) {
 			defaultBoneList = skinningDataMap.values().iterator().next().jointOrder;
 		}
 
-		for (Map.Entry<String,SkeletonData> entry : skeletons.entrySet()) {
+		for (Map.Entry<String, Skeleton> entry : skeletons.entrySet()) {
 
 			// we need skinning data to get inverse_bind_matrix
 			SkinningData skinningData = null;
@@ -316,10 +316,10 @@ public class SkeletonLoader {
 
 	}
 
-	private void updateChildJointData(Node childNode, SkinningData skinningData, SkeletonData skeletonData, List<String> boneOrder) {
-		upateJointData_impl(childNode, skinningData,skeletonData, boneOrder);
+	private void updateChildJointData(Node childNode, SkinningData skinningData, Skeleton skeleton, List<String> boneOrder) {
+		upateJointData_impl(childNode, skinningData, skeleton, boneOrder);
 		for (Node node : childNode.children){
-			updateChildJointData(node, skinningData,skeletonData, boneOrder);
+			updateChildJointData(node, skinningData, skeleton, boneOrder);
 		}
 	}
 
@@ -327,10 +327,10 @@ public class SkeletonLoader {
 	 *
 	 * @param node
 	 * @param skinningData skin data containing the "Name_array"
-	 * @param skeletonData
+	 * @param skeleton
 	 * @param boneOrder
 	 */
-	private void upateJointData_impl(Node node, SkinningData skinningData, SkeletonData skeletonData, List<String> boneOrder){
+	private void upateJointData_impl(Node node, SkinningData skinningData, Skeleton skeleton, List<String> boneOrder){
 
 		final String nodeName = node.getName();
 		final String nodeSid = node.getSid();
@@ -362,7 +362,7 @@ public class SkeletonLoader {
 		if (index == -1){
 			Log.v("SkeletonLoader", "Found unlinked node. " + nodeId);
 		} else{
-			skeletonData.incrementBoneCount();
+			skeleton.incrementBoneCount();
 		}
 
 		node.setIndex(index);

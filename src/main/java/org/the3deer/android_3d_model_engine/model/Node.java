@@ -151,7 +151,7 @@ public class Node {
 		// extra data
 		this.meshId = id;
 		this.materials = null;
-	}
+    }
 
 	public String getId() {
 		return id;

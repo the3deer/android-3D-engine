@@ -23,7 +23,7 @@ import org.the3deer.android_3d_model_engine.model.Node;
 import org.the3deer.android_3d_model_engine.model.Object3DData;
 import org.the3deer.android_3d_model_engine.model.Transform;
 import org.the3deer.android_3d_model_engine.objects.Point;
-import org.the3deer.android_3d_model_engine.services.collada.entities.SkeletonData;
+import org.the3deer.android_3d_model_engine.model.Skeleton;
 import org.the3deer.android_3d_model_engine.view.RenderListener;
 import org.the3deer.util.event.EventListener;
 import org.the3deer.util.event.EventManager;
@@ -76,7 +76,7 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
     /**
      * Skin data for every root node
      */
-    private List<SkeletonData> skeletonData = new ArrayList<>();
+    private List<Skeleton> skeletonData = new ArrayList<>();
     /**
      * List of 3D models
      */
@@ -283,15 +283,15 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
         return rootNodes;
     }
 
-    public void addSkeleton(SkeletonData skeletonData) {
-        this.skeletonData.add(skeletonData);
+    public void addSkeleton(Skeleton skeleton) {
+        this.skeletonData.add(skeleton);
     }
 
-    public List<SkeletonData> getSkeletons() {
+    public List<Skeleton> getSkeletons() {
         return skeletonData;
     }
 
-    public void setSkeletonData(List<SkeletonData> skeletonData) {
+    public void setSkeletonData(List<Skeleton> skeletonData) {
         this.skeletonData = skeletonData;
     }
 
@@ -739,7 +739,7 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
         }
 
         // fix coordinate system
-        fixCoordinateSystem();
+        //fixCoordinateSystem();
 
         // rescale objects so they all fit in the viewport
         rescale(list, Constants.DEFAULT_MODEL_SIZE, new float[3]);
@@ -984,7 +984,7 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
                 Matrix.scaleM(this.worldMatrix, 0, scaleFactor, scaleFactor, scaleFactor);
             }
             Log.v(TAG, "World matrix for Node: "+Arrays.toString(this.worldMatrix));
-        } else {
+        }/* else {
             Log.v(TAG, "Scale delta for objects: "+scaleFactor);
             for (Object3DData data : datas) {
 
@@ -1012,7 +1012,7 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
                 float localTranlactionZ = original.getTranslation()[2] * scaleFactor + globalDifference[2];
                 data.setLocation(new float[]{localTranlactionX, localTranlactionY, localTranlactionZ});
             }
-        }
+        }*/
     }
 
 

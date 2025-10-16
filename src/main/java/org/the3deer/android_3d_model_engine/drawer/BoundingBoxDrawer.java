@@ -72,7 +72,8 @@ public class BoundingBoxDrawer implements Drawer {
             final Object3DData objData = objects.get(i);
             try {
                 if (objData == scene.getSelectedObject() && objData.isRender()) {
-                    Object3DData boundingBoxData = getBoundingBox(objData);
+
+                    final Object3DData boundingBoxData = getBoundingBox(objData);
 
                     final Shader drawerObject = shaderFactory.getShader(R.raw.shader_basic_vert, R.raw.shader_basic_frag);
                     if (drawerObject == null) {

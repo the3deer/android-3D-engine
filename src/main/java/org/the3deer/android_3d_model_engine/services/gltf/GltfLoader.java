@@ -18,7 +18,7 @@ import org.the3deer.android_3d_model_engine.model.Scene;
 import org.the3deer.android_3d_model_engine.model.Texture;
 import org.the3deer.android_3d_model_engine.scene.SceneImpl;
 import org.the3deer.android_3d_model_engine.services.LoadListener;
-import org.the3deer.android_3d_model_engine.services.collada.entities.SkeletonData;
+import org.the3deer.android_3d_model_engine.model.Skeleton;
 import org.the3deer.util.android.AndroidUtils;
 import org.the3deer.util.android.ContentUtils;
 import org.the3deer.util.math.Quaternion;
@@ -127,22 +127,10 @@ public final class GltfLoader {
             final List<Scene> scenes = loadSceneModel(callback, gltfModel, nodeList, meshesListMap);
 
             callback.onProgress("Loading skeletons...");
-            final SkeletonData skeleton = loadSkeleton(gltfModel, nodeList);
+            final Skeleton skeleton = loadSkeleton(gltfModel, nodeList);
 
             callback.onProgress("Loading animations...");
             final List<Animation> animations = loadAnimations(gltfModel, nodeList, callback);
-
-            // link model
-            // FIXME: link animations to correct mesh
-            for (List<Object3DData> meshList : meshesListMap.values()) {
-                for (Object3DData obj : meshList) {
-                    final AnimatedModel model = (AnimatedModel) obj;
-                    if (skeleton != null) {
-                        model.setSkeleton(skeleton);
-                        model.setBindShapeMatrix(skeleton.getBindShapeMatrix());
-                    }
-                }
-            }
 
         } catch (Exception ex) {
             Log.e(TAG, "Problem loading model", ex);
@@ -606,7 +594,7 @@ public final class GltfLoader {
 
 
 
-    private SkeletonData loadSkeleton(GltfModel gltfModel, List<Node> nodeDataList){
+    private Skeleton loadSkeleton(GltfModel gltfModel, List<Node> nodeDataList){
 
         final List<NodeModel> nodeModels = gltfModel.getNodeModels();
 
@@ -633,12 +621,12 @@ public final class GltfLoader {
                 return null;
             }
 
-            SkeletonData skeletonData = new SkeletonData(nodeDataList, Collections.emptyList(), headNode);
+            Skeleton skeleton = new Skeleton(nodeDataList, Collections.emptyList(), headNode);
 
             // register skeleton
-            headNode.getScene().getSkeletons().add(skeletonData);
+            headNode.getScene().getSkeletons().add(skeleton);
 
-            return skeletonData;
+            return skeleton;
         }
 
         // --- 3. Process skin data: assign inverse bind matrices and create bone list ---
@@ -707,15 +695,25 @@ public final class GltfLoader {
             return null;
         }
 
-        final SkeletonData skeletonData = new SkeletonData(nodeDataList, Arrays.asList(boneDataList), headNode)
+
+        final Skeleton skeleton = new Skeleton(nodeDataList, Arrays.asList(boneDataList), headNode)
                 .setBindShapeMatrix(skinModel.getBindShapeMatrix(null));
 
+        // link skeleton to meshes
+        for (Node node : nodeDataList) {
+            if (node.getMeshes() != null) {
+                for (Object3DData mesh : node.getMeshes()) {
+                    ((AnimatedModel) mesh).setSkeleton(skeleton);
+                    mesh.setBindShapeMatrix(skeleton.getBindShapeMatrix());
+                }
+            }
+        }
         // register skeleton
-        headNode.getScene().getSkeletons().add(skeletonData);
+        headNode.getScene().getSkeletons().add(skeleton);
 
         Log.d(TAG, "Skeleton loaded successfully. Joints: " + nodeDataList.size() + ", Bones: " + boneDataList.length + ", Head: '" + headNode.getName() + "'");
 
-        return skeletonData;
+        return skeleton;
     }
 
     private List<Animation> loadAnimations(GltfModel gltfModel, List<Node> nodeList, LoadListener callback) {

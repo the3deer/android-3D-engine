@@ -15,7 +15,7 @@ import org.the3deer.android_3d_model_engine.model.Scene;
 import org.the3deer.android_3d_model_engine.scene.SceneImpl;
 import org.the3deer.android_3d_model_engine.services.LoadListener;
 import org.the3deer.android_3d_model_engine.services.collada.entities.MeshData;
-import org.the3deer.android_3d_model_engine.services.collada.entities.SkeletonData;
+import org.the3deer.android_3d_model_engine.model.Skeleton;
 import org.the3deer.android_3d_model_engine.services.collada.entities.SkinningData;
 import org.the3deer.android_3d_model_engine.services.collada.loader.AnimationLoader;
 import org.the3deer.android_3d_model_engine.services.collada.loader.GeometryLoader;
@@ -83,7 +83,7 @@ public final class ColladaLoader {
             Log.d("ColladaLoaderTask", "Loading visual nodes...");
             Log.v("ColladaLoaderTask", "--------------------------------------------------");
             callback.onProgress("Loading visual nodes...");
-            Map<String, SkeletonData> skeletons = null;
+            Map<String, Skeleton> skeletons = null;
             try {
                 // load joints
                 SkeletonLoader jointsLoader = new SkeletonLoader(xml);
@@ -137,12 +137,12 @@ public final class ColladaLoader {
                         // TODO: we may have several instances - should be clone all of them here?
 
                         Node node = null;
-                        SkeletonData skeletonData = skeletons.get(meshData.getId());
-                        if (skeletonData == null) {
-                            skeletonData = skeletons.get("default");
+                        Skeleton skeleton = skeletons.get(meshData.getId());
+                        if (skeleton == null) {
+                            skeleton = skeletons.get("default");
                         }
-                        if (skeletonData != null) {
-                            node = skeletonData.find(meshData.getId());
+                        if (skeleton != null) {
+                            node = skeleton.find(meshData.getId());
                         }
                         if (node != null) {
                             Log.d("ColladaLoaderTask", "Mesh joint found. id: "+ node.getName()+", bindTransform: "+ Arrays.toString(node.getBindWorldTransform()));
@@ -199,11 +199,11 @@ public final class ColladaLoader {
                     final MeshData meshData = meshDatas.get(i);
                     final Object3DData data3D = ret.get(i);
 
-                    SkeletonData skeletonData = skeletons.get(meshData.getId());
-                    if (skeletonData == null) {
-                        skeletonData = skeletons.get("default");
+                    Skeleton skeleton = skeletons.get(meshData.getId());
+                    if (skeleton == null) {
+                        skeleton = skeletons.get("default");
                     }
-                    materialLoader.loadMaterialFromVisualScene(meshData, skeletonData);
+                    materialLoader.loadMaterialFromVisualScene(meshData, skeleton);
                 }
 
                 // bind instance geometries
@@ -216,15 +216,15 @@ public final class ColladaLoader {
                     final MeshData meshData = meshDatas.get(i);
                     final AnimatedModel data3D = (AnimatedModel) ret.get(i);
 
-                    SkeletonData skeletonData = skeletons.get(meshData.getId());
-                    if (skeletonData == null) {
-                        skeletonData = skeletons.get("default");
+                    Skeleton skeleton = skeletons.get(meshData.getId());
+                    if (skeleton == null) {
+                        skeleton = skeletons.get("default");
                     }
 
-                    if (skeletonData == null) continue;;
+                    if (skeleton == null) continue;;
 
                     // no joint linked to geometry - just draw as it is
-                    List<Node> allNodeData = skeletonData.getHeadJoint().findAll(meshData.getId());
+                    List<Node> allNodeData = skeleton.getHeadJoint().findAll(meshData.getId());
                     if (allNodeData.isEmpty()) {
                         Log.d("ColladaLoaderTask", "No joint linked to mesh: " + meshData.getId());
                         continue;
@@ -366,13 +366,13 @@ public final class ColladaLoader {
                         final AnimatedModel data3D = (AnimatedModel) ret.get(i);
 
 
-                        SkeletonData skeletonData = skeletons.get(meshData.getId());
-                        if (skeletonData == null) {
-                            skeletonData = skeletons.get("default");
+                        Skeleton skeleton = skeletons.get(meshData.getId());
+                        if (skeleton == null) {
+                            skeleton = skeletons.get("default");
                         }
 
                         // initialize jointIds and vertex weights array
-                        SkinLoader.loadSkinningData(meshData, skins != null? skins.get(meshData.getId()) : null, skeletonData);
+                        SkinLoader.loadSkinningData(meshData, skins != null? skins.get(meshData.getId()) : null, skeleton);
 
                         // load skin arrays
                         SkinLoader.loadSkinningArrays(meshData);
@@ -410,14 +410,14 @@ public final class ColladaLoader {
                         final MeshData meshData = allMeshes.get(i);
                         final AnimatedModel data3D = (AnimatedModel) ret.get(i);
 
-                        SkeletonData skeletonData = skeletons.get(meshData.getId());
-                        if (skeletonData == null) {
-                            skeletonData = skeletons.get("default");
+                        Skeleton skeleton = skeletons.get(meshData.getId());
+                        if (skeleton == null) {
+                            skeleton = skeletons.get("default");
                         }
 
                         // register skeleton
-                        data3D.setSkeleton(skeletonData);
-                        scene.addSkeleton(skeletonData);
+                        data3D.setSkeleton(skeleton);
+                        scene.addSkeleton(skeleton);
 
                         // register animation
                         if (scene.getAnimations() == null || !scene.getAnimations().contains(animation)) {

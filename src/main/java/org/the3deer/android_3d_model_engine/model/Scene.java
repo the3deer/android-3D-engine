@@ -4,7 +4,6 @@ import androidx.annotation.NonNull;
 
 import org.the3deer.android_3d_model_engine.animation.Animation;
 import org.the3deer.android_3d_model_engine.animation.Animator;
-import org.the3deer.android_3d_model_engine.services.collada.entities.SkeletonData;
 
 import java.util.List;
 
@@ -25,9 +24,9 @@ public interface Scene {
 
     List<Node> getRootNodes();
 
-    void addSkeleton(SkeletonData skeleton);
+    void addSkeleton(Skeleton skeleton);
 
-    List<SkeletonData> getSkeletons();
+    List<Skeleton> getSkeletons();
 
     void addObjects(List<Object3DData> objs);
 

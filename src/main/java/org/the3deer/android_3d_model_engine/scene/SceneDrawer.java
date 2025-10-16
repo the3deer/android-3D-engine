@@ -12,7 +12,7 @@ import org.the3deer.android_3d_model_engine.model.Object3DData;
 import org.the3deer.android_3d_model_engine.model.Projection;
 import org.the3deer.android_3d_model_engine.model.Scene;
 import org.the3deer.android_3d_model_engine.renderer.Drawer;
-import org.the3deer.android_3d_model_engine.services.collada.entities.SkeletonData;
+import org.the3deer.android_3d_model_engine.model.Skeleton;
 import org.the3deer.android_3d_model_engine.shader.Shader;
 import org.the3deer.android_3d_model_engine.shader.ShaderFactory;
 import org.the3deer.util.event.EventListener;
@@ -122,7 +122,7 @@ public class SceneDrawer implements Drawer, EventListener {
 
         if (scene.getSkeletons() != null && !scene.getSkeletons().isEmpty()) {
             for (int i = 0; i < scene.getSkeletons().size(); i++) {
-                SkeletonData skeleton = scene.getSkeletons().get(i);
+                Skeleton skeleton = scene.getSkeletons().get(i);
                 animator.update(skeleton.getHeadJoint(), scene.getCurrentAnimation(),
                         scene.getWorldMatrix(), skeleton, false);
             }

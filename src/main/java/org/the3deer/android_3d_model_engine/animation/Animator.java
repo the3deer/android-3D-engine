@@ -6,7 +6,7 @@ import android.util.Log;
 
 import org.the3deer.android_3d_model_engine.model.AnimatedModel;
 import org.the3deer.android_3d_model_engine.model.Node;
-import org.the3deer.android_3d_model_engine.services.collada.entities.SkeletonData;
+import org.the3deer.android_3d_model_engine.model.Skeleton;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -41,6 +41,7 @@ public class Animator {
     private final float speed = 1f;
 
     private final Map<String, Object> cache = new HashMap<>();
+    private final Map<String, Object> cache2 = new HashMap<>();
 
     // cache
     private final Map<String, float[]> currentPose = new HashMap<>();
@@ -56,7 +57,7 @@ public class Animator {
      * time of the animation, and then applies that pose to all the model's
      * joints by setting the joint transforms.
      */
-    public void update(Node rootNode, Animation currentAnimation, float[] worldMatrix, SkeletonData skeleton, boolean bindPoseOnly) {
+    public void update(Node rootNode, Animation currentAnimation, float[] worldMatrix, Skeleton skeleton, boolean bindPoseOnly) {
 
         if (rootNode == null || currentAnimation == null || skeleton == null) return;
 
@@ -321,7 +322,7 @@ public class Animator {
      *                        the pose.
      * @param bindPoseOnly
      */
-    private void applyPoseToJoints(SkeletonData skeleton, Map<String, float[]> pose, Node node, float[]
+    private void applyPoseToJoints(Skeleton skeleton, Map<String, float[]> pose, Node node, float[]
             parentAnimatedWorldTransform, int limit, boolean bindPoseOnly) {
 
         // 1. Get the joint's LOCAL animation transform for this frame.
@@ -344,15 +345,15 @@ public class Animator {
 
         // 3. Calculate the skinning matrix that goes to the shader.
         //    Skinning Matrix = My Final Animated World Pose * My Inverse Bind Matrix
-        // FIXME: cache this
-        float[] temp = new float[16];
-        Matrix.setIdentityM(temp,0);
+        float[] temp = (float[]) cache2.get(node.getName());
+        if (temp == null) {
+            temp = new float[16];
+            cache2.put(node.getName(), temp);
+        }
         Matrix.multiplyMM(temp, 0, finalAnimatedWorldTransform, 0, node.getInverseBindLocalTransform(), 0);
 
         // Update the joint array for the shader if necessary
         if (skeleton != null && node.getIndex() != -1){
-            // FIXME: update skinning transform elsewhere
-            // otherwise, we have to iterate all objects
             skeleton.updateSkinTransform(node, temp);
         } else {
             node.setAnimatedWorldTransform(temp);

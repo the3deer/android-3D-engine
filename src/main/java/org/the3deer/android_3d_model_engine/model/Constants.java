@@ -23,7 +23,7 @@ public class Constants {
     /**
      * Default model size: 1 meter = 100 cm = 100f
      */
-    public static final float DEFAULT_MODEL_SIZE = UNIT * 100f;
+    public static final float DEFAULT_MODEL_SIZE = UNIT * 1000f;
     /**
      * Perspective camera. Near clipping panel
      */
@@ -39,7 +39,7 @@ public class Constants {
     /**
      * Default camera position on Z axis
      */
-    public static final float[] DEFAULT_CAMERA_POSITION = new float[]{0,0,DEFAULT_MODEL_SIZE};
+    public static final float[] DEFAULT_CAMERA_POSITION = new float[]{0,0,100f};
     /**
      * Light bulb location (3d object) - it's a point in the center - location will be different
      */
