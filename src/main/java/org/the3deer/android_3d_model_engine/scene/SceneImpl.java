@@ -731,18 +731,28 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
             if (getObjects().get(i).isPinned()) continue;
             list.add(getObjects().get(i));
         }
-        if (list.size() == 1) {
-            for (int i = 0; i < getObjects().size(); i++) {
-                if (getObjects().get(i).isPinned()) continue;
-                getObjects().get(i).setCentered(true);
+        /*if (list.size() == 1) {
+            for (int i = 0; i < list.size(); i++) {
+                list.get(i).setCentered(true);
             }
-        }
+        }*/
 
         // fix coordinate system
         //fixCoordinateSystem();
 
+        // 1. UPDATE THE STATIC SCENE GRAPH
+        // This sets the base pose for everything, including skeletons.
+        if (getRootNodes() != null && !getRootNodes().isEmpty()) {
+            for (int i=0; i<getRootNodes().size(); i++) {
+                // This method should recursively update all children
+                getRootNodes().get(i).updateBindWorldTransform(getWorldMatrix());
+            }
+        }
+
         // rescale objects so they all fit in the viewport
         rescale(list, Constants.DEFAULT_MODEL_SIZE, new float[3]);
+
+
     }
 
     private void rescale(List<Object3DData> objs, float size) {
@@ -974,14 +984,16 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
         float translationX = -centerX + newPosition[0];
         float translationY = -centerY + newPosition[1];
         float translationZ = -centerZ + newPosition[2];
-        final float[] globalDifference = new float[]{translationX * scaleFactor, translationY * scaleFactor, translationZ * scaleFactor};
+        final float[] globalDifference = new float[]{translationX, translationY, translationZ};
         Log.v(TAG, "Translation delta: " + Arrays.toString(globalDifference));
 
         if (getRootNodes() != null && !getRootNodes().isEmpty()) {
             Matrix.setIdentityM(this.worldMatrix, 0);
-            Matrix.translateM(this.worldMatrix, 0, globalDifference[0], globalDifference[1], globalDifference[2]);
             if (scaleFactor < 0.5f || scaleFactor > 1.5f) {
+                Matrix.translateM(this.worldMatrix, 0, globalDifference[0]*scaleFactor, globalDifference[1]*scaleFactor, globalDifference[2]*scaleFactor);
                 Matrix.scaleM(this.worldMatrix, 0, scaleFactor, scaleFactor, scaleFactor);
+            } else {
+                Matrix.translateM(this.worldMatrix, 0, globalDifference[0], globalDifference[1], globalDifference[2]);
             }
             Log.v(TAG, "World matrix for Node: "+Arrays.toString(this.worldMatrix));
         }/* else {

@@ -224,7 +224,7 @@ public final class ColladaLoader {
                     if (skeleton == null) continue;;
 
                     // no joint linked to geometry - just draw as it is
-                    List<Node> allNodeData = skeleton.getHeadJoint().findAll(meshData.getId());
+                    List<Node> allNodeData = skeleton.getSceneRoot().findAll(meshData.getId());
                     if (allNodeData.isEmpty()) {
                         Log.d("ColladaLoaderTask", "No joint linked to mesh: " + meshData.getId());
                         continue;

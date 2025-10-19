@@ -2,6 +2,7 @@ package org.the3deer.android_3d_model_engine.model;
 
 import android.opengl.Matrix;
 
+import org.the3deer.util.math.Math3DUtils;
 import org.the3deer.util.math.Quaternion;
 
 import java.util.ArrayList;
@@ -29,25 +30,32 @@ public class Node {
 	// private Mesh mesh; // This is a REFERENCE to an object in the Scene's mesh library.
 	private String meshId;
 
+	private int skinIndex = -1;
+
 	private Map<String,String> materials;
 
 	// local transform
 	private final Transform localTransform;
 
+	// this holds the animated local space transform
+	private float[] animatedLocalTransform;
+
 	// This holds the final calculated world-space transform
 	protected final float[] bindWorldTransform;
 
-	// this holds the final animated skinning matrix
+	// this holds the final animated world space transform
 	private float[] animatedWorldTransform;
 
 	// used in Animation
 	// index referenced by skinning data
 	// the order may need to be provided by the bone ordered list
-	private int index = -1;
+	private int jointIndex = -1;
 
 	private Node parent;
 	public final List<Node> children = new ArrayList<>();
 	public List<Object3DData> meshes;
+	private Skeleton skeleton;
+
 	// scene
 	private Scene scene;
 	// camera
@@ -121,6 +129,14 @@ public class Node {
 		this.scene = scene;
 	}
 
+	public Skeleton getSkeleton() {
+		return skeleton;
+	}
+
+	public void setSkeleton(Skeleton skeleton) {
+		this.skeleton = skeleton;
+	}
+
 	public List<String> getMeshesId() {
 		if (meshId != null) {
 			return Collections.singletonList(meshId);
@@ -139,7 +155,7 @@ public class Node {
 	 * @param id id of the visual scene
 	 */
 	public Node(String id) {
-		this.index = -1;
+		this.jointIndex = -1;
 		this.id = id;
 		this.name = id;
 		this.sid = id;
@@ -166,17 +182,33 @@ public class Node {
 		return sid;
 	}
 
-	public void setIndex(int index) {
-		this.index = index;
+	public void setJointIndex(int jointIndex) {
+		this.jointIndex = jointIndex;
 	}
 
-	public int getIndex() {
-		return index;
+	public int getJointIndex() {
+		return jointIndex;
+	}
+
+	public int getSkinIndex() {
+		return skinIndex;
+	}
+
+	public void setSkinIndex(int skinIndex) {
+		this.skinIndex = skinIndex;
 	}
 
 	public Transform getLocalTransform() {
 		return localTransform;
 	}
+
+	public boolean isStatic() {
+		// A node is static if its local animated transform is the identity matrix.
+		// You may need to add a utility function for this check.
+		return Math3DUtils.isIdentity(this.animatedLocalTransform);
+	}
+
+
 
 	public void updateBindWorldTransform(float[] parentWorldTransform) {
 		// 1. Calculate this node's final world transform
@@ -188,10 +220,43 @@ public class Node {
 			child.updateBindWorldTransform(this.bindWorldTransform);
 		}
 	}
+
+	public float[] getAnimatedLocalTransform() {
+		return animatedLocalTransform;
+	}
+
+	public void setAnimatedLocalTransform(float[] animatedLocalTransform) {
+		this.animatedLocalTransform = animatedLocalTransform;
+	}
+
 	public void setAnimatedWorldTransform(float[] animatedWorldTransform) {
 		this.animatedWorldTransform = animatedWorldTransform;
 	}
 
+	/**
+	 * Calculates the final world transform for the current frame, taking animation into account.
+	 * It recursively multiplies the parent's final transform with this node's (potentially animated) local transform.
+	 * @param parentAnimatedWorldTransform The final transform of the parent node.
+	 */
+	//private final float[] temp = new float[16];
+
+	public void updateAnimatedWorldTransform(float[] parentAnimatedWorldTransform) {
+		// 1. Calculate this node's final world transform for this frame.
+		// animatedWorldTransform = parentAnimatedWorldTransform * this.localTransform
+		if (this.animatedWorldTransform == null) this.animatedWorldTransform = new float[16];
+
+		if (this.getAnimatedLocalTransform() != null) {
+			Matrix.multiplyMM(this.animatedWorldTransform, 0, parentAnimatedWorldTransform, 0, this.getAnimatedLocalTransform(), 0);
+		} else {
+			Matrix.multiplyMM(this.animatedWorldTransform, 0, parentAnimatedWorldTransform, 0, this.getLocalTransform().getTransform(), 0);
+		}
+		//Matrix.multiplyMM(this.animatedWorldTransform, 0, temp, 0, this.getInverseBindMatrix(), 0);
+
+		// 2. Recursively update all children using THIS node's final transform as the new parent.
+		for (Node child : getChildren()) {
+			child.updateAnimatedWorldTransform(this.animatedWorldTransform);
+		}
+	}
 
 	/**
 	 * The animated transform is the transform that gets loaded up to the shader
@@ -213,11 +278,11 @@ public class Node {
 		return this.meshId;
 	}
 
-	public void setInverseBindLocalTransform(float[] inverseBindTransform) {
+	public void setInverseBindMatrix(float[] inverseBindTransform) {
 		this.localTransform.setInverseTransform(inverseBindTransform);
 	}
 
-	public float[] getInverseBindLocalTransform() {
+	public float[] getInverseBindMatrix() {
 		return localTransform.getInverseTransform();
 	}
 
@@ -299,7 +364,7 @@ public class Node {
 	@Override
 	public String toString() {
 		return "JointData{" +
-				"index=" + getIndex() +
+				"index=" + getJointIndex() +
 				", id='" + getId() + '\'' +
 				", name='" + getName() + '\'' +
 				'}';
@@ -337,4 +402,6 @@ public class Node {
 	public List<Object3DData> getMeshes() {
 		return meshes;
 	}
+
+
 }

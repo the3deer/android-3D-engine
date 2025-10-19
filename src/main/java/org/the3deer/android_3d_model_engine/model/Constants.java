@@ -23,7 +23,7 @@ public class Constants {
     /**
      * Default model size: 1 meter = 100 cm = 100f
      */
-    public static final float DEFAULT_MODEL_SIZE = UNIT * 1000f;
+    public static final float DEFAULT_MODEL_SIZE = UNIT * 100f;
     /**
      * Perspective camera. Near clipping panel
      */

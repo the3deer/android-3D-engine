@@ -43,6 +43,77 @@ public class AnimatedModel extends Object3DData {
         super(vertexBuffer, drawOrderBuffer);
     }
 
+    @Override
+    public float[] getModelMatrix() {
+        // If this animated model is attached to a node that has a skeleton,
+        // it means the vertex positions will be fully calculated by the
+        // skinning matrices (u_jointMat) in the vertex shader.
+        // The skinning matrices already contain the full world transformation.
+        //
+        // Therefore, the main model matrix (u_modelMatrix) must be an identity matrix
+        // to avoid applying the world transformation twice.
+        if (getParentNode() != null && getParentNode().getSkeleton() != null) {
+            return Math3DUtils.IDENTITY_MATRIX;
+        }
+
+        // If there is no skeleton, this model is being animated by node transforms only.
+        // In this case, fall back to the standard behavior.
+        return super.getModelMatrix();
+    }
+
+    /**
+     * Returns the definitive final world transform for this object, which can be used
+     * to position and orient non-deforming helper objects like a Bounding Box.
+     *
+     * This method correctly handles three distinct cases:
+     * 1. Skinned Models (like BrainStem, CesiumMan): It returns the animated transform of the skeleton's root joint.
+     * 2. Node-Animated Models (like BoxAnimated): It falls back to getting the transform from the scene graph node.
+     * 3. Static Models: It falls back and returns the basic model matrix.
+     *
+     * @return The final, world-space transformation matrix for this object.
+     */
+    // In AnimatedModel.java
+
+    // In AnimatedModel.java
+
+    // In AnimatedModel.java
+    // In AnimatedModel.java
+    @Override
+    public float[] getFinalWorldTransform() {
+
+        // --- CASE 1: SKINNED MODEL (like BrainStem) ---
+        // Does this primitive have a primary joint assigned from the loader?
+        if (getSkeleton() != null && getPrimaryJointIndex() != -1) {
+
+            // Get the skinning matrices that are calculated for the GPU each frame.
+            float[][] jointMatrices = getSkeleton().getJointMatrices();
+
+            // Check if the matrices are available and our joint index is valid.
+            if (jointMatrices != null && jointMatrices.length > getPrimaryJointIndex()) {
+
+                // This is the FINAL skinning matrix for our specific joint.
+                // This matrix is designed to transform a vertex from its original local T-pose
+                // position directly to its final animated world position.
+                float[] skinningMatrix = jointMatrices[getPrimaryJointIndex()];
+
+                // This is the primitive's original LOCAL transform (its T-pose position relative to the model's origin).
+                // This is the correct matrix to multiply with the skinning matrix.
+                float[] myLocalTransform = getLocalTransformMatrix(); // The safe getter from Object3DData
+
+                // Calculate the final transform for the bounding box.
+                // final = final_skinning_matrix * primitive's_local_transform
+                float[] finalTransform = new float[16];
+                android.opengl.Matrix.multiplyMM(finalTransform, 0, skinningMatrix, 0, myLocalTransform, 0);
+                return finalTransform;
+            }
+        }
+
+        // --- CASE 2: NODE-ANIMATED (CesiumMan) or if the above fails ---
+        // Fallback to the method that works for correctly structured models.
+        return super.getFinalWorldTransform();
+    }
+
+
     public float[] getBindShapeMatrix() {
         if (bindShapeMatrix == null) {
             return Math3DUtils.IDENTITY_MATRIX;

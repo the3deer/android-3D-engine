@@ -114,7 +114,7 @@ public class SkeletonDrawer implements Drawer, EventListener {
 
             // check
             if (((AnimatedModel) objData).getSkeleton() == null) return;
-            if (((AnimatedModel) objData).getSkeleton().getHeadJoint() == null) return;
+            if (((AnimatedModel) objData).getSkeleton().getSceneRoot() == null) return;
 
             // FIXME: maybe this is needed.  we need to draw the hierarchy without
             if (((AnimatedModel) objData).getSkeleton().getJointCount() == 0) return;

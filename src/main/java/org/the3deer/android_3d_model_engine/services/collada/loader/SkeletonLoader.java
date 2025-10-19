@@ -293,19 +293,19 @@ public class SkeletonLoader {
 				boneList = skinningData.jointOrder;
 			}
 
-			for (Node node : entry.getValue().getHeadJoint().children) {
+			for (Node node : entry.getValue().getSceneRoot().children) {
 				updateChildJointData(node, skinningData, entry.getValue(), boneList != null? boneList : defaultBoneList);
 			}
 
 			// log event
 			StringBuilder jointIndicesString = new StringBuilder();
 			List<Node> pending = new ArrayList<>();
-			pending.add(entry.getValue().getHeadJoint());
+			pending.add(entry.getValue().getSceneRoot());
 			while(!pending.isEmpty()){
 				Node current = pending.get(0);
-				if (current.getIndex() != -1) {
+				if (current.getJointIndex() != -1) {
 					jointIndicesString.append(current.getName() != null? current.getName():current.getId())
-							.append(":").append(current.getIndex()).append(", ");
+							.append(":").append(current.getJointIndex()).append(", ");
 				}
 				pending.addAll(current.children);
 				pending.remove(0);
@@ -365,7 +365,7 @@ public class SkeletonLoader {
 			skeleton.incrementBoneCount();
 		}
 
-		node.setIndex(index);
-		node.setInverseBindLocalTransform(inverseBindMatrix);
+		node.setJointIndex(index);
+		node.setInverseBindMatrix(inverseBindMatrix);
 	}
 }

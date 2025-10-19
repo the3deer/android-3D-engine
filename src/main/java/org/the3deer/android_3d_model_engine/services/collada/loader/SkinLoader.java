@@ -181,17 +181,17 @@ public class SkinLoader {
 			// failover to skeleton if no skinning data is available
 			if (weightsData == null & skeleton != null) {
 				// FIXME: process all joints?
-				Node node = skeleton.getHeadJoint().find(geometryId);
+				Node node = skeleton.getSceneRoot().find(geometryId);
 				if (node == null) {
 					Log.v("SkinLoader", "Joint not found for " + geometryId + ". Using root joint");
-					node = skeleton.getHeadJoint();
+					node = skeleton.getSceneRoot();
 				} else {
 					//Log.v("SkinLoader", "Joint found for " + geometryId + ". Bone " + jointData.getName());
 				}
 				if (node != null) {
 					//Log.v("SkinLoader", "vertex_weights not found. Using root joint effect");
 					weightsData = new VertexSkinData();
-					weightsData.addJointEffect(node.getIndex(), 1);
+					weightsData.addJointEffect(node.getJointIndex(), 1);
 					weightsData.limitJointNumber(Constants.MAX_VERTEX_WEIGHTS);
 				}
 			}

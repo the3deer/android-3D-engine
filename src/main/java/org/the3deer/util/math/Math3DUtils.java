@@ -34,6 +34,16 @@ public class Math3DUtils {
         return matrix;
     }
 
+    public static boolean isIdentity(float[] matrix) {
+        if (matrix == null) return false;
+        for (int i = 0; i < 16; i++) {
+            if (matrix[i] != ((i % 5 == 0) ? 1.0f : 0.0f)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     /**
      * Matrix - column major order:
      *

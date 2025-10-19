@@ -91,4 +91,16 @@ public final class IOUtils {
             }
         }
     }
+
+    public static int getIntBufferValue(Buffer indexBuffer, int i) {
+        int ret = -1;
+        if (indexBuffer instanceof IntBuffer) {
+            ret = ((IntBuffer) indexBuffer).get(i);
+        } else if (indexBuffer instanceof ShortBuffer) {
+            ret = Short.toUnsignedInt(((ShortBuffer) indexBuffer).get(i));
+        } else if (indexBuffer instanceof ByteBuffer) {
+            ret = Byte.toUnsignedInt(((ByteBuffer) indexBuffer).get(i));
+        }
+        return ret;
+    }
 }

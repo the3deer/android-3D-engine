@@ -15,10 +15,7 @@ import org.the3deer.util.math.Quaternion;
 
 import java.net.URI;
 import java.nio.Buffer;
-import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
-import java.nio.IntBuffer;
-import java.nio.ShortBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -37,6 +34,8 @@ import java.util.Set;
  * @author andresoviedo
  */
 public class Object3DData {
+
+
 
     public static class ChangeEvent extends EventObject {
         public ChangeEvent(Object3DData source) {
@@ -212,6 +211,9 @@ public class Object3DData {
     // event listeners
     private final Set<EventListener> listeners = new HashSet<>();
 
+    // skin property
+    private boolean isSkinned = false;
+
 
     public Object3DData() {
     }
@@ -317,6 +319,14 @@ public class Object3DData {
         return this.name;
     }
 
+    public void setSkined(boolean skinned) {
+        this.isSkinned = skinned;
+    }
+
+    public boolean isSkined() {
+        return this.isSkinned;
+    }
+
     public void setUri(URI uri) {
         this.uri = uri;
     }
@@ -404,7 +414,7 @@ public class Object3DData {
                     final Buffer indexBuffer = element.getIndexBuffer();
                     for (int i = 0; i < indexBuffer.capacity(); i++) {
                         final int idx;
-                        idx = getIndexBufferValue(indexBuffer, i);
+                        idx = IOUtils.getIntBufferValue(indexBuffer, i);
                         if (idx < 0 || idx >= vertexBuffer.capacity()) {
                             Log.w("Object3DData", "Wrong index: " + idx);
                             continue;
@@ -794,20 +804,54 @@ public class Object3DData {
         propagate(new ChangeEvent(this));
     }
 
+    /**
+     * Returns the raw, local model matrix for this object without any other calculations.
+     * This is safe to call from anywhere and will not cause recursion.
+     */
+    public float[] getLocalTransformMatrix() {
+        return this.modelMatrix;
+    }
+
     public float[] getModelMatrix() {
+
         if (isParentBound && parent != null) {
-            return parent.getModelMatrix();
-        } else if (parentNode != null){
+            // A parent-bound object (like a BoundingBox) needs the TRUE world
+            // transform of its parent, not the matrix used for shader drawing.
+            // We use the new helper method here to get the correct animated transform.
+            return parent.getFinalWorldTransform();
+
+        } else if (parentNode != null && parentNode.getJointIndex() == -1){
             // If this mesh is attached to a node in the scene graph...
             // ...get the node's current, final, animated world transform.
-            if (parentNode.getAnimatedWorldTransform() != null){
-                return parentNode.getAnimatedWorldTransform();
-            } else {
-                return parentNode.getBindWorldTransform();
-            }
+            return getFinalWorldTransform();
+
         }
         return modelMatrix;
     }
+
+    // In Object3DData.java
+
+    /**
+     * Returns the true final world transform of this object, considering animation.
+     * This method is intended to be called by children or special cases like a bounding box,
+     * bypassing any specific logic in getModelMatrix() like returning an identity matrix for skinning.
+     *
+     * @return the final world-space transformation matrix.
+     */
+    public float[] getFinalWorldTransform() {
+        // If this mesh is attached to a node in the scene graph, get the node's final transform.
+        if (parentNode != null){
+            if (parentNode.getAnimatedWorldTransform() != null) {
+                return parentNode.getAnimatedWorldTransform();
+            }
+            if (parentNode.getBindWorldTransform() != null){
+                return parentNode.getBindWorldTransform();
+            }
+        }
+        // Otherwise, fall back to the object's static model matrix.
+        return modelMatrix;
+    }
+
 
     public float[] getNormalMatrix() {
         // 1. Get the FINAL model matrix that is being used for the vertices.
@@ -824,7 +868,6 @@ public class Object3DData {
             // to prevent rendering artifacts or crashes.
             Matrix.setIdentityM(normalMatrix, 0);
         }
-        Matrix.setIdentityM(normalMatrix, 0);
         return normalMatrix;
     }
 
@@ -961,6 +1004,17 @@ public class Object3DData {
         return this;
     }
 
+    // In Object3DData.java
+    protected int primaryJointIndex = -1;
+
+    public int getPrimaryJointIndex() {
+        return primaryJointIndex;
+    }
+
+    public void setPrimaryJointIndex(int primaryJointIndex) {
+        this.primaryJointIndex = primaryJointIndex;
+    }
+
     @Override
     public Object3DData clone() {
         Object3DData ret = new Object3DData();
@@ -991,6 +1045,7 @@ public class Object3DData {
         ret.setMaterial(this.getMaterial());
         ret.setDrawMode(this.getDrawMode());
         ret.setDrawUsingArrays(this.isDrawUsingArrays());
+        ret.setParentNode(this.getParentNode());
         //ret.setDrawUsingArrays(this.isDrawUsingArrays());
     }
 
@@ -1039,18 +1094,6 @@ public class Object3DData {
 
             Log.v("Object3DData", "Generating normals finished. " + getId());
         }
-    }
-
-    private static int getIndexBufferValue(Buffer indexBuffer, int i) {
-        int ret = -1;
-        if (indexBuffer instanceof IntBuffer) {
-            ret = ((IntBuffer) indexBuffer).get(i);
-        } else if (indexBuffer instanceof ShortBuffer) {
-            ret = Short.toUnsignedInt(((ShortBuffer) indexBuffer).get(i));
-        } else if (indexBuffer instanceof ByteBuffer) {
-            ret = Byte.toUnsignedInt(((ByteBuffer) indexBuffer).get(i));
-        }
-        return ret;
     }
 
     private float[] getVertexBufferValue(int offset) {

@@ -40,15 +40,15 @@ public final class Skeleton {
         Log.i("Skeleton", "Building skeleton... joints: " + animSkeleton.getJointCount());
 
         // build
-        Node node = animSkeleton.getSkeleton().getHeadJoint();
+        Node node = animSkeleton.getSkeleton().getSceneRoot();
 
         // point
         float[] point = new float[]{0,0,0,1};
         float[] inverted = new float[16];
-        Matrix.invertM(inverted,0, node.getInverseBindLocalTransform(), 0);
+        Matrix.invertM(inverted,0, node.getInverseBindMatrix(), 0);
         Matrix.multiplyMV(point, 0, inverted, 0, point, 0);
         point[3] = 1;
-        buildBones(animSkeleton, node, point, node.getIndex(), colorBuffer);
+        buildBones(animSkeleton, node, point, node.getJointIndex(), colorBuffer);
 
         //skeleton.setBindShapeMatrix(animatedModel.getBindShapeMatrix22222());
 
@@ -66,7 +66,7 @@ public final class Skeleton {
         //point[2] = joint.getBindTransform()[14];
 
         float[] inverted = new float[16];
-        Matrix.invertM(inverted,0, node.getInverseBindLocalTransform(), 0);
+        Matrix.invertM(inverted,0, node.getInverseBindMatrix(), 0);
         Matrix.multiplyMV(point, 0, inverted, 0, point, 0);
         point[3] = 1;
 
@@ -107,17 +107,17 @@ public final class Skeleton {
         animatedModel.getVertexBuffer().put(point2[1]);
         animatedModel.getVertexBuffer().put(point2[2]);
         for (int i = 0; i < 2; i++) {
-            ((FloatBuffer)animatedModel.getJointIds()).put(Math.max(node.getIndex(), 0));
+            ((FloatBuffer)animatedModel.getJointIds()).put(Math.max(node.getJointIndex(), 0));
             ((FloatBuffer)animatedModel.getJointIds()).put(0);
             ((FloatBuffer)animatedModel.getJointIds()).put(0);
             ((FloatBuffer)animatedModel.getJointIds()).put(0);
-            ((FloatBuffer)animatedModel.getVertexWeights()).put(Math.max(node.getIndex(), 0));
+            ((FloatBuffer)animatedModel.getVertexWeights()).put(Math.max(node.getJointIndex(), 0));
             ((FloatBuffer)animatedModel.getVertexWeights()).put(0);
             ((FloatBuffer)animatedModel.getVertexWeights()).put(0);
             ((FloatBuffer)animatedModel.getVertexWeights()).put(0);
         }
 
-        if (node.getIndex()<0){
+        if (node.getJointIndex()<0){
             final float color = 0.75f;
             colorBuffer.put(new float[]{color,0,color,1f});
             colorBuffer.put(new float[]{color,0,color,1f});
@@ -131,7 +131,7 @@ public final class Skeleton {
         }
 
         for (Node child : node.getChildren()) {
-            buildBones(animatedModel, child, point, node.getIndex(), colorBuffer);
+            buildBones(animatedModel, child, point, node.getJointIndex(), colorBuffer);
         }
     }
 }
