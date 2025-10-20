@@ -60,7 +60,7 @@ public class Octree {
     static Octree build(Object3DData object){
         Log.d("Octree", "Building octree for "+object.getId());
         final Octree ret = new Octree(object.getBoundingBox());
-        if (object.getDrawOrder() == null) {
+        if (object.getIndexBuffer() == null) {
             // vertex array contains vertex in sequence
             final FloatBuffer buffer = object.getVertexBuffer().asReadOnlyBuffer();
             final List<float[]> triangles = new ArrayList<>(buffer.capacity() / 3 * 4);
@@ -80,7 +80,7 @@ public class Octree {
             ret.pending.addAll(triangles);
         } else {
             // faces are built
-            final Buffer drawOrder = object.getDrawOrder();
+            final Buffer drawOrder = object.getIndexBuffer();
             final FloatBuffer buffer = object.getVertexBuffer().asReadOnlyBuffer();
             final List<float[]> triangles = new ArrayList<>(drawOrder.capacity() / 3 * 4);
             //final float[] modelMatrix = object.getModelMatrix();

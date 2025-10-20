@@ -74,8 +74,9 @@ public class BoundingBoxDrawer implements Drawer {
                 if (objData == scene.getSelectedObject() && objData.isRender()) {
 
                     final Object3DData boundingBoxData = getBoundingBox(objData);
+                    if (boundingBoxData == null) return;
 
-                    final Shader drawerObject = shaderFactory.getShader(R.raw.shader_basic_vert, R.raw.shader_basic_frag);
+                    final Shader drawerObject = shaderFactory.getShader(R.raw.shader_animated_vert, R.raw.shader_animated_frag);
                     if (drawerObject == null) {
                         // Log.e(TAG, "No drawer for " + objData.getId());
                         return;
@@ -102,13 +103,19 @@ public class BoundingBoxDrawer implements Drawer {
         Object3DData boundingBoxData = boundingBoxes.get(objData);
         if (boundingBoxData == null) {
             Log.v(TAG, "Building bounding box... id: " + objData.getId());
-            boundingBoxData = BoundingBox.build(objData);
-            //boundingBoxData.setModelMatrix(objData.getModelMatrix());
-            //boundingBoxData.setParentBound(true);
-            boundingBoxData.setSolid(false);
-            //boundingBoxData.setReadOnly(true);
-            //boundingBoxData.setScale(objData.getScale());
-            boundingBoxes.put(objData, boundingBoxData);
+            if (objData instanceof AnimatedModel && ((AnimatedModel) objData).getSkeleton() != null){
+                boundingBoxData = BoundingBox.buildSkinned((AnimatedModel) objData);
+            } else {
+                boundingBoxData = BoundingBox.build(objData);
+            }
+            if (boundingBoxData != null) {
+                //boundingBoxData.setModelMatrix(objData.getModelMatrix());
+                //boundingBoxData.setParentBound(true);
+                boundingBoxData.setSolid(false);
+                //boundingBoxData.setReadOnly(true);
+                //boundingBoxData.setScale(objData.getScale());
+                boundingBoxes.put(objData, boundingBoxData);
+            }
         }
 
         /*boundingBoxData.setColor(Constants.COLOR_GRAY);

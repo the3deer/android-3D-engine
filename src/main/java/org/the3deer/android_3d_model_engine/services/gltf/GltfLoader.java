@@ -447,7 +447,7 @@ public final class GltfLoader {
         model.setNormalsBuffer(normalBuffer);
         model.setTangentBuffer(tangentBuffer);
         model.setColorsBuffer(colorBuffer);
-        model.setDrawOrder(drawBuffer);
+        model.setIndexBuffer(drawBuffer);
         model.setDrawUsingArrays(drawBuffer == null);
         model.setDrawMode(meshPrimitiveModel.getMode());
 

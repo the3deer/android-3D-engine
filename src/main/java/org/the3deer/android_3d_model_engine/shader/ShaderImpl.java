@@ -699,7 +699,7 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
             vertexBuffer = obj.getVertexBuffer();
         } else {
             vertexBuffer = obj.getVertexBuffer();
-            drawOrderBuffer = obj.getDrawOrder();
+            drawOrderBuffer = obj.getIndexBuffer();
 
             if (!drawUsingInt && drawOrderBuffer instanceof IntBuffer) {
                 ShortBuffer indexShortBuffer;
@@ -709,7 +709,7 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
                     indexShortBuffer.put((short) ((IntBuffer) drawOrderBuffer).get(j));
                 }
                 drawOrderBuffer = indexShortBuffer;
-                obj.setDrawOrder(drawOrderBuffer);
+                obj.setIndexBuffer(drawOrderBuffer);
             }
 
             if (drawOrderBuffer instanceof IntBuffer) {

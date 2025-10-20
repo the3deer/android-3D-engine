@@ -146,7 +146,7 @@ public class SceneDrawer implements Drawer, EventListener {
         // 4. DRAW ALL OBJECTS
         for (int i = 0; i < objects.size(); i++) {
             //final Object3DData object3DData = objects.get(i);
-            drawObject(camera, light.getLocation(), null, camera.getPos(),
+             drawObject(camera, light.getLocation(), null, camera.getPos(),
                     true, light.isEnabled(), false, true, true, objects, i);
         }
 

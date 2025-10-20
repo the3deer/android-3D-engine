@@ -84,7 +84,7 @@ public class Exploder {
             vertexBufferNew.put(i + 2, z * explodeFactor);
         }
 
-        if (object3DData.getDrawOrder() != null) {
+        if (object3DData.getIndexBuffer() != null) {
             Log.e("Object3DData", "Cant explode object composed of indexes '" + object3DData.getId() + "'");
             return;
         }

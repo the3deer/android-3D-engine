@@ -322,20 +322,20 @@ public final class Normals {
     private static Object3DData calculateNormalsLinesByIndices(Object3DData obj) {
         Log.i("Normals", "Calculating normals for '" + obj.getId() + "' using indices...");
 
-        FloatBuffer normalsLines = IOUtils.createFloatBuffer(obj.getDrawOrder().capacity() * 3);
+        FloatBuffer normalsLines = IOUtils.createFloatBuffer(obj.getIndexBuffer().capacity() * 3);
 
-        for (int i = 0; i < obj.getDrawOrder().capacity(); i += 3) {
+        for (int i = 0; i < obj.getIndexBuffer().capacity(); i += 3) {
             final int v1;
             final int v2;
             final int v3;
-            if (obj.getDrawOrder() instanceof IntBuffer){
-                v1 = ((IntBuffer)obj.getDrawOrder()).get(i)* COORDS_PER_VERTEX;
-                v2 = ((IntBuffer)obj.getDrawOrder()).get(i + 1)* COORDS_PER_VERTEX;
-                v3 = ((IntBuffer)obj.getDrawOrder()).get(i + 2)* COORDS_PER_VERTEX;
-            }else if (obj.getDrawOrder() instanceof ShortBuffer){
-                v1 = ((ShortBuffer)obj.getDrawOrder()).get(i)* COORDS_PER_VERTEX;
-                v2 = ((ShortBuffer)obj.getDrawOrder()).get(i + 1)* COORDS_PER_VERTEX;
-                v3 = ((ShortBuffer)obj.getDrawOrder()).get(i + 2)* COORDS_PER_VERTEX;
+            if (obj.getIndexBuffer() instanceof IntBuffer){
+                v1 = ((IntBuffer)obj.getIndexBuffer()).get(i)* COORDS_PER_VERTEX;
+                v2 = ((IntBuffer)obj.getIndexBuffer()).get(i + 1)* COORDS_PER_VERTEX;
+                v3 = ((IntBuffer)obj.getIndexBuffer()).get(i + 2)* COORDS_PER_VERTEX;
+            }else if (obj.getIndexBuffer() instanceof ShortBuffer){
+                v1 = ((ShortBuffer)obj.getIndexBuffer()).get(i)* COORDS_PER_VERTEX;
+                v2 = ((ShortBuffer)obj.getIndexBuffer()).get(i + 1)* COORDS_PER_VERTEX;
+                v3 = ((ShortBuffer)obj.getIndexBuffer()).get(i + 2)* COORDS_PER_VERTEX;
             } else {
                 throw new IllegalStateException("The IndexBuffer is of unknown type");
             }

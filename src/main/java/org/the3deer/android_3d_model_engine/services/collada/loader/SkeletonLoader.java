@@ -91,7 +91,7 @@ public class SkeletonLoader {
 					ret.put(geometryId, new Skeleton(count.get(), rootNode2));
 
 					// register root node
-					//scene.addRootNode(rootNode2);
+					scene.addRootNode(rootNode2);
 
 				} catch (Exception e) {
 					Log.e("SkeletonLoader", e.getMessage(), e);

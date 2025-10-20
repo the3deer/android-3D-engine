@@ -81,7 +81,7 @@ public class AnimatedModel extends Object3DData {
     @Override
     public float[] getFinalWorldTransform() {
 
-        // --- CASE 1: SKINNED MODEL (like BrainStem) ---
+        /*// --- CASE 1: SKINNED MODEL (like BrainStem) ---
         // Does this primitive have a primary joint assigned from the loader?
         if (getSkeleton() != null && getPrimaryJointIndex() != -1) {
 
@@ -106,7 +106,7 @@ public class AnimatedModel extends Object3DData {
                 android.opengl.Matrix.multiplyMM(finalTransform, 0, skinningMatrix, 0, myLocalTransform, 0);
                 return finalTransform;
             }
-        }
+        }*/
 
         // --- CASE 2: NODE-ANIMATED (CesiumMan) or if the above fails ---
         // Fallback to the method that works for correctly structured models.

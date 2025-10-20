@@ -43,12 +43,14 @@ public class Skeleton {
     public Skeleton(int jointCount, Node sceneRoot) {
         this.jointCount = jointCount;
         this.sceneRoot = sceneRoot;
+        this.rootJoint = sceneRoot;
     }
 
     public Skeleton(int jointCount, int boneCount, Node sceneRoot) {
         this.jointCount = jointCount;
         this.boneCount = boneCount;
         this.sceneRoot = sceneRoot;
+        this.rootJoint = sceneRoot;
     }
 
     public void incrementBoneCount() {

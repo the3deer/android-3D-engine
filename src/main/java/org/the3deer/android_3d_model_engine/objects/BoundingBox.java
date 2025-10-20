@@ -3,83 +3,128 @@ package org.the3deer.android_3d_model_engine.objects;
 import android.opengl.GLES20;
 import android.util.Log;
 
+import org.the3deer.android_3d_model_engine.model.AnimatedModel;
 import org.the3deer.android_3d_model_engine.model.Dimensions;
 import org.the3deer.android_3d_model_engine.model.Object3DData;
+import org.the3deer.android_3d_model_engine.model.Node;
 import org.the3deer.util.io.IOUtils;
 
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
-import java.util.ArrayList;
-import java.util.List;
 
 public final class BoundingBox {
 
     public static Object3DData build(Object3DData obj) {
+        if (obj instanceof AnimatedModel && ((AnimatedModel) obj).getSkeleton() != null) {
+            return buildSkinned((AnimatedModel) obj);
+        }
+        return buildStatic(obj);
+    }
 
-        Log.v("BoundingBox","Building bounding box... "+obj);
+    public static Object3DData buildSkinned(AnimatedModel sourcePrimitive) {
+
+        Log.d("BoundingBox", "Building SKINNED bounding box for: " + sourcePrimitive.getId());
+
+        AnimatedModel boundingBox = sourcePrimitive.clone();
+
+        boundingBox.setId(sourcePrimitive.getId() + "_boundingBox_skinned");
+        boundingBox.setParent(sourcePrimitive);
+        boundingBox.setParentBound(true);
+        boundingBox.setSolid(false);
+
+        Dimensions box = sourcePrimitive.getDimensions();
+        FloatBuffer vertices = IOUtils.createFloatBuffer(8 * 3);
+        //@formatter:off
+        vertices.put(box.getMin()[0]).put(box.getMin()[1]).put(box.getMin()[2]);
+        vertices.put(box.getMin()[0]).put(box.getMax()[1]).put(box.getMin()[2]);
+        vertices.put(box.getMax()[0]).put(box.getMax()[1]).put(box.getMin()[2]);
+        vertices.put(box.getMax()[0]).put(box.getMin()[1]).put(box.getMin()[2]);
+        vertices.put(box.getMin()[0]).put(box.getMin()[1]).put(box.getMax()[2]);
+        vertices.put(box.getMin()[0]).put(box.getMax()[1]).put(box.getMax()[2]);
+        vertices.put(box.getMax()[0]).put(box.getMax()[1]).put(box.getMax()[2]);
+        vertices.put(box.getMax()[0]).put(box.getMin()[1]).put(box.getMax()[2]);
+        //@formatter:on
+        vertices.flip();
+        boundingBox.setVertexBuffer(vertices);
+
+        // --- ROBUST SKINNING --- //
+        // Bind all 8 vertices of the bounding box to the root joint of the skeleton.
+        // This makes the box move as a rigid unit with the model's root, which is the correct behavior.
+        Node rootJoint = sourcePrimitive.getSkeleton().getRootJoint();
+        if (rootJoint == null) {
+            Log.e("BoundingBox", "Source primitive " + sourcePrimitive.getId() + " has no root joint!");
+            return buildStatic(sourcePrimitive); // Fallback to a static box
+        }
+        int rootJointId = Math.max(rootJoint.getJointIndex(), 0);
+        int finalJointId = sourcePrimitive.getPrimaryJointIndex() != -1 ?sourcePrimitive.getPrimaryJointIndex() : rootJointId;
+
+        IntBuffer bboxJoints = IOUtils.createIntBuffer(8 * 4);
+        FloatBuffer bboxWeights = IOUtils.createFloatBuffer(8 * 4);
+
+        for (int i = 0; i < 8; i++) {
+            // Bind to root joint with 100% weight
+            bboxJoints.put(finalJointId).put(0).put(0).put(0);
+            bboxWeights.put(1.0f).put(0f).put(0f).put(0f);
+        }
+
+        bboxJoints.flip();
+        bboxWeights.flip();
+        boundingBox.setJoints(bboxJoints);
+        boundingBox.setWeights(bboxWeights);
+
+        final IntBuffer indexBuffer = IOUtils.createIntBuffer(24);
+        //@formatter:off
+        // back face
+        indexBuffer.put(0).put(1); indexBuffer.put(1).put(2); indexBuffer.put(2).put(3); indexBuffer.put(3).put(0);
+        // front face
+        indexBuffer.put(4).put(5); indexBuffer.put(5).put(6); indexBuffer.put(6).put(7); indexBuffer.put(7).put(4);
+        // connectors
+        indexBuffer.put(0).put(4); indexBuffer.put(1).put(5); indexBuffer.put(2).put(6); indexBuffer.put(3).put(7);
+        //@formatter:on
+        indexBuffer.flip();
+        boundingBox.setIndexBuffer(indexBuffer);
+        boundingBox.getElements().get(0).setIndexBuffer(indexBuffer);
+        boundingBox.setDrawMode(GLES20.GL_LINES);
+        boundingBox.setDrawUsingArrays(false);
+        boundingBox.setDrawModeList(null);
+
+        return boundingBox;
+    }
+
+    private static Object3DData buildStatic(Object3DData obj) {
+
+        Log.v("BoundingBox", "Building STATIC bounding box for: " + obj.getId());
 
         Dimensions box = obj.getDimensions();
 
         final FloatBuffer vertices = IOUtils.createFloatBuffer(8 * 3);
         //@formatter:off
-        vertices.put(box.getMin()[0]).put(box.getMin()[1]).put(box.getMin()[2]);  // down-left (far)
-        vertices.put(box.getMin()[0]).put(box.getMax()[1]).put(box.getMin()[2]);  // up-left (far)
-        vertices.put(box.getMax()[0]).put(box.getMax()[1]).put(box.getMin()[2]);  // up-right (far)
-        vertices.put(box.getMax()[0]).put(box.getMin()[1]).put(box.getMin()[2]);  // down-right  (far)
-        vertices.put(box.getMin()[0]).put(box.getMin()[1]).put(box.getMax()[2]);  // down-left (near)
-        vertices.put(box.getMin()[0]).put(box.getMax()[1]).put(box.getMax()[2]);  // up-left (near)
-        vertices.put(box.getMax()[0]).put(box.getMax()[1]).put(box.getMax()[2]);  // up-right (near)
-        vertices.put(box.getMax()[0]).put(box.getMin()[1]).put(box.getMax()[2]);  // down-right (near)
+        vertices.put(box.getMin()[0]).put(box.getMin()[1]).put(box.getMin()[2]);
+        vertices.put(box.getMin()[0]).put(box.getMax()[1]).put(box.getMin()[2]);
+        vertices.put(box.getMax()[0]).put(box.getMax()[1]).put(box.getMin()[2]);
+        vertices.put(box.getMax()[0]).put(box.getMin()[1]).put(box.getMin()[2]);
+        vertices.put(box.getMin()[0]).put(box.getMin()[1]).put(box.getMax()[2]);
+        vertices.put(box.getMin()[0]).put(box.getMax()[1]).put(box.getMax()[2]);
+        vertices.put(box.getMax()[0]).put(box.getMax()[1]).put(box.getMax()[2]);
+        vertices.put(box.getMax()[0]).put(box.getMin()[1]).put(box.getMax()[2]);
         //@formatter:on
+        vertices.flip();
 
-        final IntBuffer indexBuffer = IOUtils.createIntBuffer(6 * 4);
+        final IntBuffer indexBuffer = IOUtils.createIntBuffer(24);
+        //@formatter:off
+        // back face
+        indexBuffer.put(0).put(1); indexBuffer.put(1).put(2); indexBuffer.put(2).put(3); indexBuffer.put(3).put(0);
+        // front face
+        indexBuffer.put(4).put(5); indexBuffer.put(5).put(6); indexBuffer.put(6).put(7); indexBuffer.put(7).put(4);
+        // connectors
+        indexBuffer.put(0).put(4); indexBuffer.put(1).put(5); indexBuffer.put(2).put(6); indexBuffer.put(3).put(7);
+        //@formatter:on
+        indexBuffer.flip();
 
-        // back-face
-        indexBuffer.put(0);
-        indexBuffer.put(1);
-        indexBuffer.put(2);
-        indexBuffer.put(3);
-
-        // front-face
-        indexBuffer.put(4);
-        indexBuffer.put(5);
-        indexBuffer.put(6);
-        indexBuffer.put(7);
-
-        // left-face
-        indexBuffer.put(4);
-        indexBuffer.put(5);
-        indexBuffer.put(1);
-        indexBuffer.put(0);
-
-        // right-face
-        indexBuffer.put(3);
-        indexBuffer.put(2);
-        indexBuffer.put(6);
-        indexBuffer.put(7);
-
-        // top-face
-        indexBuffer.put(1);
-        indexBuffer.put(2);
-        indexBuffer.put(6);
-        indexBuffer.put(5);
-
-        // bottom-face
-        indexBuffer.put(0);
-        indexBuffer.put(3);
-        indexBuffer.put(7);
-        indexBuffer.put(4);
-
-        List<int[]> drawList = new ArrayList<>();
-        int drawOrderPos = 0;
-        for (int i = 0; i < indexBuffer.capacity(); i += 4) {
-            drawList.add(new int[]{GLES20.GL_LINE_LOOP, drawOrderPos, 4});
-            drawOrderPos += 4;
-        }
-
-        return new Object3DData(vertices, indexBuffer).setDrawModeList(drawList)
-                .setDrawMode(GLES20.GL_LINE_LOOP)
+        return new Object3DData(vertices, indexBuffer)
+                .setDrawMode(GLES20.GL_LINES)
                 .setDrawUsingArrays(false)
-                .setId(obj.getId() + "_boundingBox").setParent(obj).setParentBound(true);
+                .setSolid(false)
+                .setId(obj.getId() + "_boundingBox_static").setParent(obj).setParentBound(true);
     }
 }

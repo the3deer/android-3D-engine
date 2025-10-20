@@ -90,7 +90,7 @@ public class Wireframe {
                 Log.i("Wireframe", "Building wireframe... Total vertices: " + vertexBuffer.capacity()/3);
 
                 final IntBuffer newBuffer = IOUtils.createIntBuffer(vertexBuffer.capacity()/3 * 2);
-                ret.setDrawOrder(newBuffer);
+                ret.setIndexBuffer(newBuffer);
                 Log.i("Wireframe", "Wireframe: Total indices: " + newBuffer.capacity());
 
                 for (int i = 0; i < vertexBuffer.capacity() / 3 - 2; i += 3) {

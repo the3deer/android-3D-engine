@@ -875,11 +875,11 @@ public class Object3DData {
         return new Transform(this.scale, this.rotation, this.location);
     }
 
-    public Buffer getDrawOrder() {
+    public Buffer getIndexBuffer() {
         return indexBuffer;
     }
 
-    public Object3DData setDrawOrder(Buffer drawBuffer) {
+    public Object3DData setIndexBuffer(Buffer drawBuffer) {
         this.indexBuffer = drawBuffer;
         return this;
     }
@@ -977,8 +977,8 @@ public class Object3DData {
      * @return either list of elements (when using indices), otherwise <code>null</code>
      */
     public List<Element> getElements() {
-        if (elements == null && getDrawOrder() != null) {
-            Element element = new Element(getId(), getDrawOrder(), null);
+        if (elements == null && getIndexBuffer() != null) {
+            Element element = new Element(getId(), getIndexBuffer(), null);
             element.setMaterial(this.getMaterial());
             elements = Collections.singletonList(element);
         }
@@ -1032,7 +1032,7 @@ public class Object3DData {
 
         //ret.setCurrentDimensions(this.getCurrentDimensions());
         ret.setVertexBuffer(this.getVertexBuffer());
-        ret.setDrawOrder(this.getDrawOrder());
+        ret.setIndexBuffer(this.getIndexBuffer());
         ret.setNormalsBuffer(this.getNormalsBuffer());
         ret.setColorsBuffer(this.getColorsBuffer());
         ret.setTextureBuffer(this.getTextureBuffer());
