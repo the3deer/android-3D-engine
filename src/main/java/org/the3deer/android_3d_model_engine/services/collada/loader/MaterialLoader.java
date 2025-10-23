@@ -5,16 +5,16 @@ import android.util.Log;
 import org.the3deer.android_3d_model_engine.model.Element;
 import org.the3deer.android_3d_model_engine.model.Material;
 import org.the3deer.android_3d_model_engine.model.Node;
+import org.the3deer.android_3d_model_engine.model.Skin;
 import org.the3deer.android_3d_model_engine.model.Texture;
 import org.the3deer.android_3d_model_engine.services.collada.entities.MeshData;
-import org.the3deer.android_3d_model_engine.model.Skeleton;
 import org.the3deer.util.xml.XmlNode;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public class MaterialLoader {
+public class                                                                                               MaterialLoader {
 
     private final XmlNode materialsData;
     private final XmlNode imagesNode;
@@ -51,10 +51,10 @@ public class MaterialLoader {
         }
     }
 
-    public void loadMaterialFromVisualScene(MeshData meshData, Skeleton skeleton){
+    public void loadMaterialFromVisualScene(MeshData meshData, Skin skin){
 
         // if no joints do nothing
-        if (skeleton == null) return;
+        if (skin == null) return;
 
         // get mesh id to update
         final String geometryId = meshData.getId();
@@ -76,7 +76,7 @@ public class MaterialLoader {
             Log.i("MaterialLoader", "Loading instance material '"+materialId+"' for element: "+i++);
 
             // parse material
-            final Material material = parseInstanceMaterial(geometryId, geometryName, materialId, skeleton);
+            final Material material = parseInstanceMaterial(geometryId, geometryName, materialId, skin);
             if (material != null) {
 
                 // if there is instance material, overwrite
@@ -93,11 +93,11 @@ public class MaterialLoader {
     }
 
 
-    private Material parseInstanceMaterial(String geometryId, String geometryName, String material, Skeleton skeleton){
-        if (skeleton != null) {
-            Node node = skeleton.find(geometryId);
+    private Material parseInstanceMaterial(String geometryId, String geometryName, String material, Skin skin){
+        if (skin != null) {
+            Node node = skin.find(geometryId);
             if (node == null && geometryName != null) {
-                node = skeleton.find(geometryName);
+                node = skin.find(geometryName);
             }
             if (node != null && node.containsMaterial(material)) {
                 return parseMaterial(node.getMaterial(material));

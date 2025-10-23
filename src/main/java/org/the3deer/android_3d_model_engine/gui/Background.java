@@ -28,11 +28,11 @@ public class Background extends Widget {
         // vertex buffer
         int size = 12;
         final FloatBuffer vertexBuffer = IOUtils.createNativeByteBuffer(size * 3 * 4).asFloatBuffer();
-        setVertexBuffer(vertexBuffer);
+        setVertexArrayBuffer(vertexBuffer);
 
         // color buffer
         final FloatBuffer colorsBuffer = IOUtils.createNativeByteBuffer(size * 4 * 4).asFloatBuffer();
-        setColorsBuffer(colorsBuffer);
+        setVertexColorsArrayBuffer(colorsBuffer);
 
         int idxColor = 0;
         colorsBuffer.put(idxColor++, 0.5f).put(idxColor++, 0.5f).put(idxColor++, 0.5f).put(idxColor++, GUIConstants.UI_BACKGROUND_ALPHA);
@@ -108,21 +108,21 @@ public class Background extends Widget {
         int idx = 0;
         float minZ = min[2];
 
-        vertexBuffer.put(idx++, min[0]).put(idx++, max[1]).put(idx++, minZ);
-        vertexBuffer.put(idx++, max[0]).put(idx++, max[1]).put(idx++, minZ);
-        vertexBuffer.put(idx++, min[0]).put(idx++, min[1]).put(idx++, minZ);
-        vertexBuffer.put(idx++, min[0]).put(idx++, min[1]).put(idx++, minZ);
-        vertexBuffer.put(idx++, max[0]).put(idx++, min[1]).put(idx++, minZ);
-        vertexBuffer.put(idx++, max[0]).put(idx++, max[1]).put(idx++, minZ);
+        vertexArrayBuffer.put(idx++, min[0]).put(idx++, max[1]).put(idx++, minZ);
+        vertexArrayBuffer.put(idx++, max[0]).put(idx++, max[1]).put(idx++, minZ);
+        vertexArrayBuffer.put(idx++, min[0]).put(idx++, min[1]).put(idx++, minZ);
+        vertexArrayBuffer.put(idx++, min[0]).put(idx++, min[1]).put(idx++, minZ);
+        vertexArrayBuffer.put(idx++, max[0]).put(idx++, min[1]).put(idx++, minZ);
+        vertexArrayBuffer.put(idx++, max[0]).put(idx++, max[1]).put(idx++, minZ);
 
-        vertexBuffer.put(idx++, min[0] + EFFECT_3D).put(idx++, max[1] - EFFECT_3D).put(idx++, minZ);
-        vertexBuffer.put(idx++, max[0] + EFFECT_3D).put(idx++, max[1] - EFFECT_3D).put(idx++, minZ);
-        vertexBuffer.put(idx++, min[0] + EFFECT_3D).put(idx++, min[1] - EFFECT_3D).put(idx++, minZ);
-        vertexBuffer.put(idx++, min[0] + EFFECT_3D).put(idx++, min[1] - EFFECT_3D).put(idx++, minZ);
-        vertexBuffer.put(idx++, max[0] + EFFECT_3D).put(idx++, min[1] - EFFECT_3D).put(idx++, minZ);
-        vertexBuffer.put(idx++, max[0] + EFFECT_3D).put(idx++, max[1] - EFFECT_3D).put(idx++, minZ);
+        vertexArrayBuffer.put(idx++, min[0] + EFFECT_3D).put(idx++, max[1] - EFFECT_3D).put(idx++, minZ);
+        vertexArrayBuffer.put(idx++, max[0] + EFFECT_3D).put(idx++, max[1] - EFFECT_3D).put(idx++, minZ);
+        vertexArrayBuffer.put(idx++, min[0] + EFFECT_3D).put(idx++, min[1] - EFFECT_3D).put(idx++, minZ);
+        vertexArrayBuffer.put(idx++, min[0] + EFFECT_3D).put(idx++, min[1] - EFFECT_3D).put(idx++, minZ);
+        vertexArrayBuffer.put(idx++, max[0] + EFFECT_3D).put(idx++, min[1] - EFFECT_3D).put(idx++, minZ);
+        vertexArrayBuffer.put(idx++, max[0] + EFFECT_3D).put(idx++, max[1] - EFFECT_3D).put(idx++, minZ);
 
-        setVertexBuffer(vertexBuffer);
+        setVertexArrayBuffer(vertexArrayBuffer);
 
         this.setDimensions(parent.getDimensions());
 

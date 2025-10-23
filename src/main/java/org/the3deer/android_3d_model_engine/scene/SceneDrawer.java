@@ -1,7 +1,6 @@
 package org.the3deer.android_3d_model_engine.scene;
 
 import android.opengl.GLES20;
-import android.opengl.Matrix;
 import android.util.Log;
 
 import org.the3deer.android_3d_model_engine.R;
@@ -13,8 +12,8 @@ import org.the3deer.android_3d_model_engine.model.Light;
 import org.the3deer.android_3d_model_engine.model.Object3DData;
 import org.the3deer.android_3d_model_engine.model.Projection;
 import org.the3deer.android_3d_model_engine.model.Scene;
+import org.the3deer.android_3d_model_engine.model.Skin;
 import org.the3deer.android_3d_model_engine.renderer.Drawer;
-import org.the3deer.android_3d_model_engine.model.Skeleton;
 import org.the3deer.android_3d_model_engine.shader.Shader;
 import org.the3deer.android_3d_model_engine.shader.ShaderFactory;
 import org.the3deer.util.event.EventListener;
@@ -136,10 +135,10 @@ public class SceneDrawer implements Drawer, EventListener {
         // Now that all nodes have their final world transforms, we can compute the skinning matrices.
         if (scene.getSkeletons() != null && !scene.getSkeletons().isEmpty()) {
             for (int i = 0; i < scene.getSkeletons().size(); i++) {
-                Skeleton skeleton = scene.getSkeletons().get(i);
+                Skin skin = scene.getSkeletons().get(i);
                 // This method now loops through the skeleton's joints and calculates the final skinning matrix
                 // using the now-correct animatedWorldTransform of each joint node.
-                skeleton.updateSkinMatrices();
+                skin.updateSkinMatrices();
             }
         }
 

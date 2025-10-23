@@ -212,9 +212,9 @@ public class Widget extends Object3DData implements EventListener {
 
     public Widget(Object3DData source) {
         this.source = source;
-        setVertexBuffer(source.getVertexBuffer());
+        setVertexArrayBuffer(source.getVertexArrayBuffer());
         setDrawMode(source.getDrawMode());
-        setColorsBuffer(source.getColorsBuffer());
+        setVertexColorsArrayBuffer(source.getVertexColorsArrayBuffer());
     }
 
     /**
@@ -316,7 +316,7 @@ public class Widget extends Object3DData implements EventListener {
         super.setColor(color);
 
         if (!isDrawUsingArrays()) return this;
-        if (getColorsBuffer() == null) return this;
+        if (getVertexColorsArrayBuffer() == null) return this;
 
 
         /*FloatBuffer buffer = getColorsBuffer();

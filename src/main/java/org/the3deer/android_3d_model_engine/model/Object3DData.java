@@ -36,6 +36,25 @@ import java.util.Set;
 public class Object3DData {
 
 
+    public Object3DData(String id, FloatBuffer positions, FloatBuffer normals, FloatBuffer texCoords, FloatBuffer colors, Material material) {
+        this.id=id;
+        this.vertexArrayBuffer = positions;
+        this.vertexNormalsArrayBuffer = normals;
+        this.textureCoordsArrayBuffer = texCoords;
+        this.vertexColorsArrayBuffer = colors;
+        this.material = material;
+    }
+
+    private boolean isIndexed = false;
+
+    public Object isIndexed() {
+        return this.isIndexed;
+    }
+
+    public void setIndexed(boolean indexed) {
+        this.isIndexed = indexed;
+        this.drawUsingArrays = !indexed;
+    }
 
     public static class ChangeEvent extends EventObject {
         public ChangeEvent(Object3DData source) {
@@ -113,11 +132,11 @@ public class Object3DData {
     private MeshData meshData = null;
 
     // Model data
-    protected FloatBuffer vertexBuffer = null;
-    private FloatBuffer normalsBuffer = null;
+    protected FloatBuffer vertexArrayBuffer = null;
+    protected FloatBuffer vertexNormalsArrayBuffer = null;
     private FloatBuffer tangentBuffer = null;
-    protected Buffer colorsBuffer = null;
-    private FloatBuffer textureBuffer = null;
+    protected Buffer vertexColorsArrayBuffer = null;
+    protected FloatBuffer textureCoordsArrayBuffer = null;
     protected List<Element> elements;
     /**
      * Object materials
@@ -126,7 +145,7 @@ public class Object3DData {
 
     // simple object variables for drawing using arrays
     private Material material = new Material("default");
-    private Buffer indexBuffer = null;
+    protected Buffer indexBuffer = null;
 
     // Processed arrays
     private List<int[]> drawModeList = null;
@@ -173,13 +192,13 @@ public class Object3DData {
     /**
      * This is the final model transformation
      */
-    private float[] newModelMatrix = new float[16];
+    private float[] finalModelMatrix = new float[16];
 
     {
         //
         Matrix.setIdentityM(modelMatrix, 0);
         Matrix.setIdentityM(modelMatrix2, 0);
-        Matrix.setIdentityM(newModelMatrix, 0);
+        Matrix.setIdentityM(finalModelMatrix, 0);
         Matrix.setIdentityM(orientationMatrix, 0);
     }
 
@@ -234,32 +253,32 @@ public class Object3DData {
         return meshData;
     }
 
-    public Object3DData(FloatBuffer vertexBuffer) {
-        this.vertexBuffer = vertexBuffer;
+    public Object3DData(FloatBuffer vertexArrayBuffer) {
+        this.vertexArrayBuffer = vertexArrayBuffer;
         this.setDrawUsingArrays(true);
         updateDimensions();
     }
 
-    public Object3DData(FloatBuffer vertexBuffer, Buffer drawOrder) {
-        this.vertexBuffer = vertexBuffer;
+    public Object3DData(FloatBuffer vertexArrayBuffer, Buffer drawOrder) {
+        this.vertexArrayBuffer = vertexArrayBuffer;
         this.indexBuffer = drawOrder;
         this.setDrawUsingArrays(false);
         updateDimensions();
     }
 
-    public Object3DData(FloatBuffer vertexBuffer, FloatBuffer textureBuffer, byte[] texData) {
-        this.vertexBuffer = vertexBuffer;
-        this.textureBuffer = textureBuffer;
+    public Object3DData(FloatBuffer vertexArrayBuffer, FloatBuffer textureCoordsArrayBuffer, byte[] texData) {
+        this.vertexArrayBuffer = vertexArrayBuffer;
+        this.textureCoordsArrayBuffer = textureCoordsArrayBuffer;
         this.getMaterial().setColorTexture(new Texture().setData(texData));
         this.setDrawUsingArrays(true);
         updateDimensions();
     }
 
-    public Object3DData(FloatBuffer vertexBuffer, FloatBuffer colorsBuffer,
-                        FloatBuffer textureBuffer, byte[] texData) {
-        this.vertexBuffer = vertexBuffer;
-        this.colorsBuffer = colorsBuffer;
-        this.textureBuffer = textureBuffer;
+    public Object3DData(FloatBuffer vertexArrayBuffer, FloatBuffer vertexColorsArrayBuffer,
+                        FloatBuffer textureCoordsArrayBuffer, byte[] texData) {
+        this.vertexArrayBuffer = vertexArrayBuffer;
+        this.vertexColorsArrayBuffer = vertexColorsArrayBuffer;
+        this.textureCoordsArrayBuffer = textureCoordsArrayBuffer;
         this.getMaterial().setColorTexture(new Texture().setData(texData));
         this.setDrawUsingArrays(true);
         updateDimensions();
@@ -268,8 +287,8 @@ public class Object3DData {
     public Object3DData(FloatBuffer verts, FloatBuffer normals,
                         Materials materials) {
         super();
-        this.vertexBuffer = verts;
-        this.normalsBuffer = normals;
+        this.vertexArrayBuffer = verts;
+        this.vertexNormalsArrayBuffer = normals;
         this.materials = materials;
         this.setDrawUsingArrays(false);
         this.updateDimensions();
@@ -403,23 +422,29 @@ public class Object3DData {
     private void refreshDimensions() {
         final Dimensions dimensions = new Dimensions();
 
-        if (vertexBuffer != null) {
+        if (vertexArrayBuffer != null) {
 
             if (this.elements == null || this.elements.isEmpty()) {
-                for (int i = 0; i < vertexBuffer.capacity() - 2; i += 3) {
-                    dimensions.update(vertexBuffer.get(i), vertexBuffer.get(i + 1), vertexBuffer.get(i + 2));
+                for (int i = 0; i < vertexArrayBuffer.capacity() - 2; i += 3) {
+                    dimensions.update(vertexArrayBuffer.get(i), vertexArrayBuffer.get(i + 1), vertexArrayBuffer.get(i + 2));
                 }
             } else {
                 for (Element element : getElements()) {
                     final Buffer indexBuffer = element.getIndexBuffer();
-                    for (int i = 0; i < indexBuffer.capacity(); i++) {
-                        final int idx;
-                        idx = IOUtils.getIntBufferValue(indexBuffer, i);
-                        if (idx < 0 || idx >= vertexBuffer.capacity()) {
-                            Log.w("Object3DData", "Wrong index: " + idx);
-                            continue;
+                    if (indexBuffer != null) {
+                        for (int i = 0; i < indexBuffer.capacity(); i++) {
+                            final int idx;
+                            idx = IOUtils.getIntBufferValue(indexBuffer, i);
+                            if (idx < 0 || idx >= vertexArrayBuffer.capacity()) {
+                                Log.w("Object3DData", "Wrong index: " + idx);
+                                continue;
+                            }
+                            dimensions.update(vertexArrayBuffer.get(idx * 3), vertexArrayBuffer.get(idx * 3 + 1), vertexArrayBuffer.get(idx * 3 + 2));
                         }
-                        dimensions.update(vertexBuffer.get(idx * 3), vertexBuffer.get(idx * 3 + 1), vertexBuffer.get(idx * 3 + 2));
+                    } else {
+                        for (int i = 0; i < vertexArrayBuffer.capacity() - 2; i += 3) {
+                            dimensions.update(vertexArrayBuffer.get(i), vertexArrayBuffer.get(i + 1), vertexArrayBuffer.get(i + 2));
+                        }
                     }
                 }
             }
@@ -628,6 +653,11 @@ public class Object3DData {
         }
     }*/
 
+    public Object3DData setMatrix(float[] modelMatrix) {
+        System.arraycopy(modelMatrix, 0, this.modelMatrix, 0, 16);
+        return this;
+    }
+
     public Object3DData setModelMatrix(float[] modelMatrix) {
         System.arraycopy(modelMatrix, 0, this.modelMatrix, 0, 16);
         return this;
@@ -735,26 +765,6 @@ public class Object3DData {
         return worldTransform;
     }
 
-    /**
-     * This is the bind shape transform found in skin (ie. {@code <library_controllers><skin><bind_shape_matrix>}
-     */
-    public void setBindShapeMatrix(float[] matrix) {
-        if (matrix == null) return;
-
-        float[] vertex = new float[]{0, 0, 0, 1};
-        float[] shaped = new float[]{0, 0, 0, 1};
-        for (int i = 0; i < this.vertexBuffer.capacity(); i += 3) {
-            vertex[0] = this.vertexBuffer.get(i);
-            vertex[1] = this.vertexBuffer.get(i + 1);
-            vertex[2] = this.vertexBuffer.get(i + 2);
-            Matrix.multiplyMV(shaped, 0, matrix, 0, vertex, 0);
-            this.vertexBuffer.put(i, shaped[0]);
-            this.vertexBuffer.put(i + 1, shaped[1]);
-            this.vertexBuffer.put(i + 2, shaped[2]);
-        }
-        updateDimensions();
-    }
-
     protected void updateModelMatrix() {
 
         if (isReadOnly()) return;
@@ -813,17 +823,39 @@ public class Object3DData {
     }
 
     public float[] getModelMatrix() {
-
         if (isParentBound && parent != null) {
-            // A parent-bound object (like a BoundingBox) needs the TRUE world
-            // transform of its parent, not the matrix used for shader drawing.
-            // We use the new helper method here to get the correct animated transform.
-            return parent.getFinalWorldTransform();
-
-        } else if (parentNode != null && parentNode.getJointIndex() == -1){
+            return parent.getModelMatrix();
+        } else if (parentNode != null){
             // If this mesh is attached to a node in the scene graph...
             // ...get the node's current, final, animated world transform.
-            return getFinalWorldTransform();
+            if (parentNode.getAnimatedWorldTransform() != null){
+
+                // Get the parent's final animated world transform.
+                // This will be an identity matrix for static scenes like the door,
+                // or the true animated transform for skeletons.
+                final float[] parentWorldTransform = parentNode.getAnimatedWorldTransform();
+
+                // Calculate the final world matrix for THIS object by applying its local
+                // transform on top of its parent's world transform.
+                // Final = ParentWorld * Local
+                Matrix.multiplyMM(finalModelMatrix, 0, parentWorldTransform, 0, this.modelMatrix, 0);
+
+                return finalModelMatrix;
+            }
+            else {
+
+                // Get the parent's final animated world transform.
+                // This will be an identity matrix for static scenes like the door,
+                // or the true animated transform for skeletons.
+                final float[] parentWorldTransform = parentNode.getBindWorldTransform();
+
+                // Calculate the final world matrix for THIS object by applying its local
+                // transform on top of its parent's world transform.
+                // Final = ParentWorld * Local
+                Matrix.multiplyMM(finalModelMatrix, 0, parentWorldTransform, 0, this.modelMatrix, 0);
+
+                return finalModelMatrix;
+            }
 
         }
         return modelMatrix;
@@ -840,11 +872,11 @@ public class Object3DData {
      */
     public float[] getFinalWorldTransform() {
         // If this mesh is attached to a node in the scene graph, get the node's final transform.
-        if (parentNode != null){
+        if (parentNode != null) {
             if (parentNode.getAnimatedWorldTransform() != null) {
                 return parentNode.getAnimatedWorldTransform();
             }
-            if (parentNode.getBindWorldTransform() != null){
+            if (parentNode.getBindWorldTransform() != null) {
                 return parentNode.getBindWorldTransform();
             }
         }
@@ -887,26 +919,34 @@ public class Object3DData {
 
     // -------------------- Buffers ---------------------- //
 
-    public FloatBuffer getVertexBuffer() {
-        return vertexBuffer;
+    public FloatBuffer getVerts() {
+        return vertexArrayBuffer;
     }
 
-    public Object3DData setVertexBuffer(FloatBuffer vertexBuffer) {
-        this.vertexBuffer = vertexBuffer;
+    public FloatBuffer getVertexArrayBuffer() {
+        return vertexArrayBuffer;
+    }
+
+    public Object3DData setVertices(FloatBuffer vertexArray) {
+        return setVertexArrayBuffer(vertexArray);
+    }
+
+    public Object3DData setVertexArrayBuffer(FloatBuffer vertexArrayBuffer) {
+        this.vertexArrayBuffer = vertexArrayBuffer;
         updateDimensions();
         return this;
     }
 
-    public FloatBuffer getNormalsBuffer() {
-        return normalsBuffer;
+    public FloatBuffer getVertexNormalsArrayBuffer() {
+        return vertexNormalsArrayBuffer;
     }
 
     public FloatBuffer getTangentBuffer() {
         return tangentBuffer;
     }
 
-    public Object3DData setNormalsBuffer(FloatBuffer normalsBuffer) {
-        this.normalsBuffer = normalsBuffer;
+    public Object3DData setVertexNormalsArrayBuffer(FloatBuffer vertexNormalsArrayBuffer) {
+        this.vertexNormalsArrayBuffer = vertexNormalsArrayBuffer;
         return this;
     }
 
@@ -915,12 +955,12 @@ public class Object3DData {
         return this;
     }
 
-    public FloatBuffer getTextureBuffer() {
-        return textureBuffer;
+    public FloatBuffer getTextureCoordsArrayBuffer() {
+        return textureCoordsArrayBuffer;
     }
 
-    public Object3DData setTextureBuffer(FloatBuffer textureBuffer) {
-        this.textureBuffer = textureBuffer;
+    public Object3DData setTextureCoordsArrayBuffer(FloatBuffer textureCoordsArrayBuffer) {
+        this.textureCoordsArrayBuffer = textureCoordsArrayBuffer;
         return this;
     }
 
@@ -933,14 +973,14 @@ public class Object3DData {
         return this;
     }
 
-    public Buffer getColorsBuffer() {
-        return colorsBuffer;
+    public Buffer getVertexColorsArrayBuffer() {
+        return vertexColorsArrayBuffer;
     }
 
-    public Object3DData setColorsBuffer(Buffer colorsBuffer) {
+    public Object3DData setVertexColorsArrayBuffer(Buffer colorsBuffer) {
         if (colorsBuffer != null && colorsBuffer.capacity() % 4 != 0)
             throw new IllegalArgumentException("Color buffer not multiple of 4 floats");
-        this.colorsBuffer = colorsBuffer;
+        this.vertexColorsArrayBuffer = colorsBuffer;
         return this;
     }
 
@@ -1031,11 +1071,11 @@ public class Object3DData {
         ret.orientation = this.orientation;
 
         //ret.setCurrentDimensions(this.getCurrentDimensions());
-        ret.setVertexBuffer(this.getVertexBuffer());
+        ret.setVertexArrayBuffer(this.getVertexArrayBuffer());
         ret.setIndexBuffer(this.getIndexBuffer());
-        ret.setNormalsBuffer(this.getNormalsBuffer());
-        ret.setColorsBuffer(this.getColorsBuffer());
-        ret.setTextureBuffer(this.getTextureBuffer());
+        ret.setVertexNormalsArrayBuffer(this.getVertexNormalsArrayBuffer());
+        ret.setVertexColorsArrayBuffer(this.getVertexColorsArrayBuffer());
+        ret.setTextureCoordsArrayBuffer(this.getTextureCoordsArrayBuffer());
         if (this.getElements() != null) {
             ret.setElements(new ArrayList<>());
             for (int i = 0; i < this.getElements().size(); i++) {
@@ -1054,8 +1094,8 @@ public class Object3DData {
         this.listeners.clear();
         this.parent = null;
 
-        this.vertexBuffer = null;
-        this.colorsBuffer = null;
+        this.vertexArrayBuffer = null;
+        this.vertexColorsArrayBuffer = null;
         this.indexBuffer = null;
     }
 
@@ -1070,14 +1110,14 @@ public class Object3DData {
         if (drawMode != GLES20.GL_TRIANGLES) return;
 
         // loop indices
-        if (normalsBuffer == null && vertexBuffer != null) {
+        if (vertexNormalsArrayBuffer == null && vertexArrayBuffer != null) {
 
             Log.v("Object3DData", "Generating normals... " + getId());
 
             // init normal buffer
-            normalsBuffer = IOUtils.createFloatBuffer(getVertexBuffer().capacity());
+            vertexNormalsArrayBuffer = IOUtils.createFloatBuffer(getVertexArrayBuffer().capacity());
 
-            for (int i = 0; i < vertexBuffer.capacity()-9; i += 9) {
+            for (int i = 0; i < vertexArrayBuffer.capacity() - 9; i += 9) {
 
                 final float[] v1 = getVertexBufferValue(i);
                 final float[] v2 = getVertexBufferValue(i + 3);
@@ -1087,9 +1127,9 @@ public class Object3DData {
                 final float[] calculatedNormal = Math3DUtils.calculateNormal(v1, v2, v3);
 
                 // add normal
-                normalsBuffer.put(calculatedNormal);
-                normalsBuffer.put(calculatedNormal);
-                normalsBuffer.put(calculatedNormal);
+                vertexNormalsArrayBuffer.put(calculatedNormal);
+                vertexNormalsArrayBuffer.put(calculatedNormal);
+                vertexNormalsArrayBuffer.put(calculatedNormal);
             }
 
             Log.v("Object3DData", "Generating normals finished. " + getId());
@@ -1097,7 +1137,7 @@ public class Object3DData {
     }
 
     private float[] getVertexBufferValue(int offset) {
-        return new float[]{vertexBuffer.get(offset), vertexBuffer.get(offset + 1), vertexBuffer.get(offset + 2)};
+        return new float[]{vertexArrayBuffer.get(offset), vertexArrayBuffer.get(offset + 1), vertexArrayBuffer.get(offset + 2)};
     }
 
     @Override
@@ -1106,17 +1146,74 @@ public class Object3DData {
                 "id='" + id + "'" +
                 ", name=" + getName() +
                 ", isVisible=" + isVisible +
-                ", color=" + (getColorsBuffer() != null ? getColorsBuffer().toString() : Arrays.toString(getMaterial().getColor())) +
+                ", color=" + (getVertexColorsArrayBuffer() != null ? getVertexColorsArrayBuffer().toString() : Arrays.toString(getMaterial().getColor())) +
                 ", position=" + Arrays.toString(location) +
                 ", scale=" + Arrays.toString(scale) +
                 ", indexed=" + !isDrawUsingArrays() +
-                ", vertices: " + (vertexBuffer != null ? vertexBuffer.capacity() / 3 : 0) +
-                ", normals: " + (normalsBuffer != null ? normalsBuffer.capacity() / 3 : 0) +
+                ", vertices: " + (vertexArrayBuffer != null ? vertexArrayBuffer.capacity() / 3 : 0) +
+                ", normals: " + (vertexNormalsArrayBuffer != null ? vertexNormalsArrayBuffer.capacity() / 3 : 0) +
                 ", dimensions: " + this.dimensions +
                 //", current dimensions: " + this.currentDimensions +
                 ", material=" + getMaterial() +
                 ", elements=" + this.elements +
                 ", matrix=" + Arrays.toString(modelMatrix) +
                 '}';
+    }
+
+    public void debug() {
+        try {
+            // --- EXPANDED LOGGING ---
+            Log.d("MODEL_DEBUG", "--- MODEL DATA --- " + getId());
+// Print first 30 floats (10 vertices)
+            if (modelMatrix != null) {
+                StringBuilder pos_sb = new StringBuilder("modelMatrix: ").append(Arrays.toString(modelMatrix));
+                Log.d("MODEL_DEBUG", pos_sb.toString());
+            }
+
+            if (vertexArrayBuffer != null) {
+                StringBuilder pos_sb = new StringBuilder("Positions: ").append("(").append(vertexArrayBuffer.capacity()).append(") ");
+                for (int i = 0; i < 16 && i < vertexArrayBuffer.capacity(); i++) {
+                    pos_sb.append(vertexArrayBuffer.get(i)).append(" ");
+                }
+                Log.d("MODEL_DEBUG", pos_sb.toString());
+            }
+
+// Print first 30 floats (10 normals)
+// IMPORTANT: Add a null check for finalNormals
+            if (vertexNormalsArrayBuffer != null && vertexNormalsArrayBuffer.capacity() >= 30) {
+                StringBuilder norm_sb = new StringBuilder("Normals:   ").append("(").append(vertexNormalsArrayBuffer.capacity()).append(") ");;
+                for (int i = 0; i < 16 && i < vertexNormalsArrayBuffer.capacity(); i++) {
+                    norm_sb.append(vertexNormalsArrayBuffer.get(i)).append(" ");
+                }
+                Log.d("MODEL_DEBUG", norm_sb.toString());
+            } else {
+                Log.d("MODEL_DEBUG", "Normals: null or too short.");
+            }
+
+            // Print first 15 indices
+            if (indexBuffer != null) {
+                StringBuilder idx_sb = new StringBuilder("Indices:   ").append("(").append(indexBuffer.capacity()).append(") ");;
+                idx_sb.append("(").append(indexBuffer.getClass().getSimpleName()).append(")");
+
+                for (int i = 0; i < 16 && i < indexBuffer.capacity(); i++) {
+                    idx_sb.append(IOUtils.getIntBufferValue(indexBuffer, i)).append(" ");
+                }
+                Log.d("MODEL_DEBUG", idx_sb.toString());
+            }
+
+            if (textureCoordsArrayBuffer != null) {
+                StringBuilder norm_sb = new StringBuilder("Textures:   ").append("(").append(textureCoordsArrayBuffer.capacity()).append(") ");;
+                for (int i = 0; i < 16 && i < textureCoordsArrayBuffer.capacity(); i++) {
+                    norm_sb.append(textureCoordsArrayBuffer.get(i)).append(" ");
+                }
+                Log.d("MODEL_DEBUG", norm_sb.toString());
+            } else {
+                Log.d("MODEL_DEBUG", "Textures: null or too short.");
+            }
+
+            // --- END LOGGING ---
+        } catch (Exception e) {
+            Log.e("MODEL_DEBUG", e.getMessage(), e);
+        }
     }
 }

@@ -106,8 +106,8 @@ public class ShaderFactory {
                 && scene.getCurrentAnimation() != null
                 && scene.getCurrentAnimation().isInitialized();
         final boolean isAnimated = usingAnimation && animationOK;
-        final boolean isLighted = usingLights && obj != null && obj.getNormalsBuffer() != null;
-        final boolean isTextured = usingTextures && obj != null && obj.getTextureBuffer() != null;
+        final boolean isLighted = usingLights && obj != null && obj.getVertexNormalsArrayBuffer() != null;
+        final boolean isTextured = usingTextures && obj != null && obj.getTextureCoordsArrayBuffer() != null;
 
         // match shaders
         final ShaderResource shader;

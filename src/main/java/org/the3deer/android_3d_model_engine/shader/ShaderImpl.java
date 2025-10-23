@@ -30,6 +30,7 @@ import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.nio.ShortBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -112,6 +113,8 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
 
     // state
     private List<Texture> textures = new ArrayList<>();
+
+    private final Set<String> logset = new HashSet<>();
 
     @Override
     public int getId() {
@@ -257,19 +260,19 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
         }
 
         // pass in vertex buffer
-        int mPositionHandle = setVBO("a_Position", obj.getVertexBuffer(), COORDS_PER_VERTEX, GLES20.GL_FLOAT);
+        int mPositionHandle = setVBO("a_Position", obj.getVertexArrayBuffer(), COORDS_PER_VERTEX, GLES20.GL_FLOAT);
 
         // pass in normals buffer for lighting
         int mNormalHandle = -1;
-        if (supportsNormals && obj.getNormalsBuffer() != null) {
-            mNormalHandle = setVBO("a_Normal", obj.getNormalsBuffer(), COORDS_PER_VERTEX, GLES20.GL_FLOAT);
+        if (supportsNormals && obj.getVertexNormalsArrayBuffer() != null) {
+            mNormalHandle = setVBO("a_Normal", obj.getVertexNormalsArrayBuffer(), COORDS_PER_VERTEX, GLES20.GL_FLOAT);
             setUniformMatrix4(obj.getNormalMatrix(), "u_NormalMatrix");
         }
 
         // pass in normals map for lighting
         int mNormalMapHandle = -1;
         if (supportsTangent) {
-            boolean toggle = obj.getNormalsBuffer() != null && obj.getTangentBuffer() != null;
+            boolean toggle = obj.getVertexNormalsArrayBuffer() != null && obj.getTangentBuffer() != null;
             mNormalMapHandle = setVBO("a_Tangent", obj.getTangentBuffer(), COORDS_PER_VERTEX, GLES20.GL_FLOAT);
             setFeatureFlag("u_NormalTextured", toggle);
         }
@@ -284,9 +287,9 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
         // colors
         int mColorHandle = -1;
         if (supportsColors) {
-            setFeatureFlag("u_Coloured", obj.getColorsBuffer() != null);
-            if (obj.getColorsBuffer() != null) {
-                mColorHandle = setVBO("a_Color", obj.getColorsBuffer(), COLOR_COORDS_PER_VERTEX, -1);
+            setFeatureFlag("u_Coloured", obj.getVertexColorsArrayBuffer() != null);
+            if (obj.getVertexColorsArrayBuffer() != null) {
+                mColorHandle = setVBO("a_Color", obj.getVertexColorsArrayBuffer(), COLOR_COORDS_PER_VERTEX, -1);
             }
         }
 
@@ -304,8 +307,8 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
         if (supportsTextures) {
             setFeatureFlag("u_Textured", false);
 
-            if (obj.getTextureBuffer() != null){
-                mTextureHandle = setVBO("a_TexCoordinate", obj.getTextureBuffer(), TEXTURE_COORDS_PER_VERTEX, GLES20.GL_FLOAT);
+            if (obj.getTextureCoordsArrayBuffer() != null){
+                mTextureHandle = setVBO("a_TexCoordinate", obj.getTextureCoordsArrayBuffer(), TEXTURE_COORDS_PER_VERTEX, GLES20.GL_FLOAT);
 
                 if (obj.getMaterial().getColorTexture() != null) {
                     loadTexture(obj.getMaterial().getColorTexture());
@@ -336,7 +339,7 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
 
         // pass in light position for lighting
         if (supportsLighting && lightPosInWorldSpace != null && cameraPos != null) {
-            boolean toggle = lightingEnabled && obj.getNormalsBuffer() != null;
+            boolean toggle = lightingEnabled && obj.getVertexNormalsArrayBuffer() != null;
             setFeatureFlag("u_Lighted", toggle);
             setUniform3(lightPosInWorldSpace, "u_LightPos");
             setUniform3(cameraPos, "u_cameraPos");
@@ -346,20 +349,27 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
         int in_weightsHandle = -1;
         int in_jointIndicesHandle = -1;
 
+
+
         if (supportsAnimation) {
             final boolean animationOK = obj instanceof AnimatedModel
-                    && ((AnimatedModel) obj).getSkeleton() != null
+                    && ((AnimatedModel) obj).getSkin() != null
                     && ((AnimatedModel) obj).getVertexWeights() != null
                     && ((AnimatedModel) obj).getJointIds() != null;
             boolean toggle = this.animationEnabled && animationOK;
             if (toggle) {
                 in_weightsHandle = setVBO("in_weights", ((AnimatedModel) obj).getVertexWeights(), ((AnimatedModel) obj).getWeightsComponents(), -1);
                 in_jointIndicesHandle = setVBO("in_jointIndices", ((AnimatedModel) obj).getJointIds(), ((AnimatedModel) obj).getJointComponents(), -1);
-                setUniformMatrix4(((AnimatedModel) obj).getBindShapeMatrix(), "u_BindShapeMatrix");
+                setUniformMatrix4(((AnimatedModel) obj).getSkin().getBindShapeMatrix(), "u_BindShapeMatrix");
                 setJointTransforms((AnimatedModel) obj);
             }
             //Log.v(TAG, "u_Animated: " + toggle + " ("+obj.getId()+")");
             setFeatureFlag("u_Animated", toggle);
+        }
+
+        if (!logset.contains(obj.getId())){
+            Log.v("SHADER_DEBUG", "id: "+obj.getId()+", modelMatrix = "+ Arrays.toString(obj.getModelMatrix()));
+            logset.add(obj.getId());
         }
 
         // FIXME:
@@ -674,7 +684,7 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
     }
 
     private void setJointTransforms(AnimatedModel animatedModel) {
-        float[][] jointTransformsArray = animatedModel.getSkeleton().getJointTransforms();
+        float[][] jointTransformsArray = animatedModel.getSkin().getJointTransforms();
 
         // TODO: optimize this (memory allocation)
         for (int i = 0; i < jointTransformsArray.length; i++) {
@@ -696,9 +706,9 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
         final FloatBuffer vertexBuffer;
         if (obj.isDrawUsingArrays()) {
             drawOrderBuffer = null;
-            vertexBuffer = obj.getVertexBuffer();
+            vertexBuffer = obj.getVertexArrayBuffer();
         } else {
-            vertexBuffer = obj.getVertexBuffer();
+            vertexBuffer = obj.getVertexArrayBuffer();
             drawOrderBuffer = obj.getIndexBuffer();
 
             if (!drawUsingInt && drawOrderBuffer instanceof IntBuffer) {
@@ -767,7 +777,7 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
     private void drawTrianglesUsingIndex(Object3DData obj, Element el, int drawMode, int drawSize, Buffer drawOrderBuffer, int drawBufferType) {
 
 
-        if (drawSize <= 0) {
+        if (drawSize <= 0 && obj.getElements() != null) {
 
             if (el != null) {
                 drawObjectElement(obj, el, drawMode, drawBufferType);
@@ -894,7 +904,7 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
 
         // default is no textured
         if (supportsTextures) {
-            setFeatureFlag("u_Textured", obj.getTextureBuffer() != null
+            setFeatureFlag("u_Textured", obj.getTextureCoordsArrayBuffer() != null
                     && element.getMaterial() != null && element.getMaterial().getColorTexture() != null
                     && element.getMaterial().getColorTexture().hasId()
                     && texturesEnabled);
@@ -942,7 +952,7 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
                 setUniformInt(element.getMaterial().getAlphaMode().ordinal(), "u_AlphaMode");
             }
 
-            if (supportsTextures && obj.getTextureBuffer() != null
+            if (supportsTextures && obj.getTextureCoordsArrayBuffer() != null
                     && element.getMaterial().getColorTexture() != null
                     && texturesEnabled) {
                 loadTexture(element.getMaterial().getColorTexture());

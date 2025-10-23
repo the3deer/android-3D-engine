@@ -620,8 +620,8 @@ public class Glyph extends Widget {
             build(vertexBuffer, 0, colorBuffer, this.code, Constants.COLOR_WHITE, 0f, 0f, 0f);
 
             // setup
-            setVertexBuffer(vertexBuffer);
-            setColorsBuffer(colorBuffer);
+            setVertexArrayBuffer(vertexBuffer);
+            setVertexColorsArrayBuffer(colorBuffer);
         } catch (Exception e) {
             Log.e("Glyph", e.getMessage(), e);
         }

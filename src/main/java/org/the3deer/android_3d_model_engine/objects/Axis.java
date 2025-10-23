@@ -53,6 +53,6 @@ public final class Axis {
     public static Object3DData build() {
         return new Object3DData(IOUtils.createFloatBuffer(axisVertexLinesData.length).put(axisVertexLinesData))
                 .setDrawMode(GLES20.GL_LINES).
-                setColorsBuffer(IOUtils.createFloatBuffer(axisColorLinesData.length).put(axisColorLinesData));
+                setVertexColorsArrayBuffer(IOUtils.createFloatBuffer(axisColorLinesData.length).put(axisColorLinesData));
     }
 }

@@ -94,7 +94,7 @@ public class WireframeDrawer implements Drawer, EventListener {
             }
 
             if (objData instanceof AnimatedModel){
-                if (((AnimatedModel) objData).getSkeleton() == null){
+                if (((AnimatedModel) objData).getSkin() == null){
                     // patch. we have to wait loader to finish loading
                     return;
                 }

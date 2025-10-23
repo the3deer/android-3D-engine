@@ -103,7 +103,7 @@ public class BoundingBoxDrawer implements Drawer {
         Object3DData boundingBoxData = boundingBoxes.get(objData);
         if (boundingBoxData == null) {
             Log.v(TAG, "Building bounding box... id: " + objData.getId());
-            if (objData instanceof AnimatedModel && ((AnimatedModel) objData).getSkeleton() != null){
+            if (objData instanceof AnimatedModel && ((AnimatedModel) objData).getSkin() != null){
                 boundingBoxData = BoundingBox.buildSkinned((AnimatedModel) objData);
             } else {
                 boundingBoxData = BoundingBox.build(objData);

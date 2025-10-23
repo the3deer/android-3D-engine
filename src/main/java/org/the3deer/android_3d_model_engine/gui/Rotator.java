@@ -26,8 +26,8 @@ public class Rotator extends Widget {
             // build
             build(vertexBuffer, colorBuffer, getColor(), widget_dimensions);
             // setup
-            setVertexBuffer(vertexBuffer);
-            setColorsBuffer(colorBuffer);
+            setVertexArrayBuffer(vertexBuffer);
+            setVertexColorsArrayBuffer(colorBuffer);
 
             widget.addListener(this);
         } catch (Exception e) {

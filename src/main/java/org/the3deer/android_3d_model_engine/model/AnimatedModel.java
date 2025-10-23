@@ -1,9 +1,14 @@
 package org.the3deer.android_3d_model_engine.model;
 
+import android.util.Log;
+
+import org.the3deer.util.io.IOUtils;
 import org.the3deer.util.math.Math3DUtils;
 
 import java.nio.Buffer;
 import java.nio.FloatBuffer;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * This class represents an entity in the world that can be animated. It
@@ -18,13 +23,10 @@ import java.nio.FloatBuffer;
 public class AnimatedModel extends Object3DData {
 
     // skeleton
-    private Skeleton skeleton;
+    private Skin skin;
 
-    // bind_shape_matrix
-	/* The bind shape matrix describes how to transform the geometry into the right
-	coordinate system for use with the joints */
-    private float[] bindShapeMatrix;
-
+    private List<String> jointNames;
+    private float[] inverseBindMatrices;
     private Buffer jointIds;
     private Buffer vertexWeigths;
 
@@ -41,6 +43,12 @@ public class AnimatedModel extends Object3DData {
 
     public AnimatedModel(FloatBuffer vertexBuffer, Buffer drawOrderBuffer) {
         super(vertexBuffer, drawOrderBuffer);
+    }
+
+    public AnimatedModel(String id, FloatBuffer positions, FloatBuffer normals, FloatBuffer colors, FloatBuffer texCoords, Material material, Skin skin) {
+        super(id, positions, normals, texCoords, colors, null);
+        setMaterial(material);
+        setSkin(skin);
     }
 
     @Override
@@ -64,7 +72,7 @@ public class AnimatedModel extends Object3DData {
     /**
      * Returns the definitive final world transform for this object, which can be used
      * to position and orient non-deforming helper objects like a Bounding Box.
-     *
+     * <p>
      * This method correctly handles three distinct cases:
      * 1. Skinned Models (like BrainStem, CesiumMan): It returns the animated transform of the skeleton's root joint.
      * 2. Node-Animated Models (like BoxAnimated): It falls back to getting the transform from the scene graph node.
@@ -113,30 +121,22 @@ public class AnimatedModel extends Object3DData {
         return super.getFinalWorldTransform();
     }
 
-
-    public float[] getBindShapeMatrix() {
-        if (bindShapeMatrix == null) {
-            return Math3DUtils.IDENTITY_MATRIX;
-        }
-        return bindShapeMatrix;
-    }
-
-    public AnimatedModel setSkeleton(Skeleton jointsData) {
-        this.skeleton = jointsData;
+    public AnimatedModel setSkin(Skin skin) {
+        this.skin = skin;
         return this;
     }
 
-    public Skeleton getSkeleton() {
-        return skeleton;
+    public Skin getSkin() {
+        return skin;
     }
 
     public int getJointCount() {
-        return skeleton.getJointCount();
+        return skin.getJointCount();
     }
 
     public int getBoneCount() {
-        if (skeleton != null) {
-            return skeleton.getBoneCount();
+        if (skin != null) {
+            return skin.getBoneCount();
         }
         return 0;
     }
@@ -160,14 +160,13 @@ public class AnimatedModel extends Object3DData {
     }
 
 
-
     @Override
     public AnimatedModel clone() {
         final AnimatedModel ret = new AnimatedModel();
         super.copy(ret);
         ret.setJoints(this.getJointIds());
         ret.setWeights(this.getVertexWeights());
-        ret.skeleton = this.skeleton;
+        ret.skin = this.skin;
         //ret.setBindShapeMatrix(this.getBindShapeMatrix());
         return ret;
     }
@@ -187,5 +186,80 @@ public class AnimatedModel extends Object3DData {
 
     public int getWeightsComponents() {
         return weightsComponents;
+    }
+
+    public void setJointNames(List<String> jointNames) {
+        this.jointNames = jointNames;
+    }
+
+    public List<String> getJointNames() {
+        return jointNames;
+    }
+
+    public void setInverseBindMatrices(float[] inverseBindMatrices) {
+        this.inverseBindMatrices = inverseBindMatrices;
+    }
+
+    public float[] getInverseBindMatrices() {
+        return inverseBindMatrices;
+    }
+
+    @Override
+    public void debug() {
+        try {
+            // --- EXPANDED LOGGING ---
+            Log.d("MODEL_DEBUG", "--- MODEL DATA --- " + getId());
+
+            if (modelMatrix != null) {
+                StringBuilder pos_sb = new StringBuilder("modelMatrix: ").append(Arrays.toString(modelMatrix));
+                Log.d("MODEL_DEBUG", pos_sb.toString());
+            }
+
+// Print first 30 floats (10 vertices)
+            if (vertexArrayBuffer != null) {
+                StringBuilder pos_sb = new StringBuilder("Positions: ").append("(").append(vertexArrayBuffer.capacity()).append(") ");
+                for (int i = 0; i < 16 && i < vertexArrayBuffer.capacity(); i++) {
+                    pos_sb.append(vertexArrayBuffer.get(i)).append(" ");
+                }
+                Log.d("MODEL_DEBUG", pos_sb.toString());
+            }
+
+// Print first 30 floats (10 normals)
+// IMPORTANT: Add a null check for finalNormals
+            if (vertexNormalsArrayBuffer != null && vertexNormalsArrayBuffer.capacity() >= 30) {
+                StringBuilder norm_sb = new StringBuilder("Normals:   ").append("(").append(vertexNormalsArrayBuffer.capacity()).append(") ");;
+                for (int i = 0; i < 16 && i < vertexNormalsArrayBuffer.capacity(); i++) {
+                    norm_sb.append(vertexNormalsArrayBuffer.get(i)).append(" ");
+                }
+                Log.d("MODEL_DEBUG", norm_sb.toString());
+            } else {
+                Log.d("MODEL_DEBUG", "Normals: null or too short.");
+            }
+
+            // Print first 15 indices
+            if (indexBuffer != null) {
+                StringBuilder idx_sb = new StringBuilder("Indices:   ").append("(").append(indexBuffer.capacity()).append(") ");;
+                idx_sb.append("(").append(indexBuffer.getClass().getSimpleName()).append(")");
+
+                for (int i = 0; i < 16 && i < indexBuffer.capacity(); i++) {
+                    idx_sb.append(IOUtils.getIntBufferValue(indexBuffer, i)).append(" ");
+                }
+                Log.d("MODEL_DEBUG", idx_sb.toString());
+            }
+
+            if (textureCoordsArrayBuffer != null) {
+                StringBuilder norm_sb = new StringBuilder("Textures:   ").append("(").append(textureCoordsArrayBuffer.capacity()).append(") ");;
+                for (int i = 0; i < 16 && i < textureCoordsArrayBuffer.capacity(); i++) {
+                    norm_sb.append(textureCoordsArrayBuffer.get(i)).append(" ");
+                }
+                Log.d("MODEL_DEBUG", norm_sb.toString());
+            } else {
+                Log.d("MODEL_DEBUG", "Textures: null or too short.");
+            }
+
+            // --- END LOGGING ---
+        } catch (Exception e) {
+            Log.e("MODEL_DEBUG", e.getMessage(), e);
+        }
     }
 }

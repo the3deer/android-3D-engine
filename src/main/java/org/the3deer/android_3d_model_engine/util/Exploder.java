@@ -22,7 +22,7 @@ public class Exploder {
         float topPt = Float.MIN_VALUE, bottomPt = Float.MAX_VALUE; // on y-axis
         float farPt = Float.MAX_VALUE, nearPt = Float.MIN_VALUE; // on z-axis
 
-        FloatBuffer vertexBuffer = object3DData.getVertexBuffer() != null ? object3DData.getVertexBuffer() : object3DData.getVertexBuffer();
+        FloatBuffer vertexBuffer = object3DData.getVertexArrayBuffer() != null ? object3DData.getVertexArrayBuffer() : object3DData.getVertexArrayBuffer();
         if (vertexBuffer == null) {
             Log.v("Object3DData", "Scaling for '" + object3DData.getId() + "' I found that there is no vertex data");
             return;
@@ -125,7 +125,7 @@ public class Exploder {
             vertexBuffer.put(i + 8, z3 + (center2[2] - center1[2]));
         }
 
-        object3DData.setVertexBuffer(vertexBuffer);
+        object3DData.setVertexArrayBuffer(vertexBuffer);
 
     }
 }

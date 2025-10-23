@@ -34,12 +34,12 @@ public class UnionTri {
     public static Object3DData merge(List<Object3DData> objects) {
         int newCapacity = 0;
         for (Object3DData obj : objects) {
-            newCapacity += obj.getVertexBuffer().capacity();
+            newCapacity += obj.getVertexArrayBuffer().capacity();
         }
         FloatBuffer vb = IOUtils.createFloatBuffer(newCapacity);
         for (Object3DData obj : objects) {
             // every game object is positioned somewhere (modelmatrix)
-            FloatBuffer vertexBuffer = obj.getVertexBuffer().asReadOnlyBuffer();
+            FloatBuffer vertexBuffer = obj.getVertexArrayBuffer().asReadOnlyBuffer();
             vertexBuffer.position(0);
             for (int i = 0; i < vertexBuffer.capacity(); i++) {
                 vb.put(vertexBuffer.get());
@@ -53,8 +53,8 @@ public class UnionTri {
         List<float[]> newBuffer = new ArrayList<>();
 
 
-        FloatBuffer vertexBuffer = object.getVertexBuffer().asReadOnlyBuffer();
-        FloatBuffer vertexBuffer2 = object.getVertexBuffer().asReadOnlyBuffer();
+        FloatBuffer vertexBuffer = object.getVertexArrayBuffer().asReadOnlyBuffer();
+        FloatBuffer vertexBuffer2 = object.getVertexArrayBuffer().asReadOnlyBuffer();
         vertexBuffer.position(0);
         for (int i = 0; i < vertexBuffer.capacity(); i += 9) {
             float[][] U = new float[3][3];

@@ -2,9 +2,18 @@ package org.the3deer.android_3d_model_engine.model;
 
 import android.opengl.Matrix;
 
+import org.the3deer.android_3d_model_engine.services.collada.entities.VertexWeights;
+import org.the3deer.util.math.Math3DUtils;
+
+import java.nio.Buffer;
+import java.nio.FloatBuffer;
+import java.nio.IntBuffer;
 import java.util.List;
 
-public class Skeleton {
+public class Skin {
+
+    private int jointComponents = Constants.MAX_VERTEX_WEIGHTS;
+    private int weightsComponents = Constants.MAX_VERTEX_WEIGHTS;
 
     private Node sceneRoot;
     private Node rootJoint;
@@ -14,12 +23,15 @@ public class Skeleton {
 
     private List<Node> nodes;
     private List<Node> bones;
+    private List<String> jointNames;
 
+    private Buffer jointsBuffer;
+    private Buffer weightsBuffer;
     private float[] bindShapeMatrix;
-
     private float[][] jointMatrices;
+    private float[] inverseBindMatrix;
 
-    public Skeleton(List<Node> nodes, List<Node> bones, Node sceneRoot, Node rootJoint) {
+    public Skin(List<Node> nodes, List<Node> bones, Node sceneRoot, Node rootJoint) {
         this.nodes = nodes;
         this.bones = bones;
         this.sceneRoot = sceneRoot;
@@ -32,6 +44,13 @@ public class Skeleton {
         }
     }
 
+    public Skin(IntBuffer jointIds, FloatBuffer weights, float[] inverseBindMatrices, List<String> jointNames) {
+        this.jointsBuffer = jointIds;
+        this.weightsBuffer = weights;
+        this.inverseBindMatrix = inverseBindMatrices;
+        this.jointNames = jointNames;
+    }
+
     public List<Node> getJoints() {
         return nodes;
     }
@@ -40,17 +59,34 @@ public class Skeleton {
         return bones;
     }
 
-    public Skeleton(int jointCount, Node sceneRoot) {
+    public Skin(int jointCount, Node sceneRoot) {
         this.jointCount = jointCount;
         this.sceneRoot = sceneRoot;
         this.rootJoint = sceneRoot;
     }
 
-    public Skeleton(int jointCount, int boneCount, Node sceneRoot) {
+    public Skin(int jointCount, int boneCount, Node sceneRoot) {
         this.jointCount = jointCount;
         this.boneCount = boneCount;
         this.sceneRoot = sceneRoot;
         this.rootJoint = sceneRoot;
+    }
+
+
+    public int getJointComponents() {
+        return jointComponents;
+    }
+
+    public void setJointComponents(int jointComponents) {
+        this.jointComponents = jointComponents;
+    }
+
+    public int getWeightsComponents() {
+        return weightsComponents;
+    }
+
+    public void setWeightsComponents(int weightsComponents) {
+        this.weightsComponents = weightsComponents;
     }
 
     public void incrementBoneCount() {
@@ -82,12 +118,39 @@ public class Skeleton {
     }
 
     public float[] getBindShapeMatrix() {
+        if (bindShapeMatrix == null) {
+            return Math3DUtils.IDENTITY_MATRIX;
+        }
         return bindShapeMatrix;
     }
 
-    public Skeleton setBindShapeMatrix(float[] bindShapeMatrix) {
+    public Skin setBindShapeMatrix(float[] bindShapeMatrix) {
         this.bindShapeMatrix = bindShapeMatrix;
         return this;
+    }
+
+    public Buffer getJointsBuffer() {
+        return jointsBuffer;
+    }
+
+    public void setJointsBuffer(Buffer jointsBuffer) {
+        this.jointsBuffer = jointsBuffer;
+    }
+
+    public Buffer getWeightsBuffer() {
+        return weightsBuffer;
+    }
+
+    public void setWeightsBuffer(Buffer weightsBuffer) {
+        this.weightsBuffer = weightsBuffer;
+    }
+
+    public float[] getInverseBindMatrix() {
+        return inverseBindMatrix;
+    }
+
+    public void setInverseBindMatrix(float[] inverseBindMatrix) {
+        this.inverseBindMatrix = inverseBindMatrix;
     }
 
     public Node find(String geometryId) {

@@ -74,7 +74,7 @@ public class Plane2 {
 	public static Object3DData build() {
 		FloatBuffer vertexBuffer = IOUtils.createFloatBuffer(planePositionData.length ).put(planePositionData);
 		FloatBuffer normalBuffer = IOUtils.createFloatBuffer(planeNormalData.length ).put(planeNormalData);
-		return new Object3DData(vertexBuffer).setNormalsBuffer(normalBuffer).setDrawMode(GLES20.GL_TRIANGLES).setId("plane2");
+		return new Object3DData(vertexBuffer).setVertexNormalsArrayBuffer(normalBuffer).setDrawMode(GLES20.GL_TRIANGLES).setId("plane2");
 	}
 	
 	public void render(int mProgram, int positionAttribute, int normalAttribute, int colorAttribute, boolean onlyPosition) {

@@ -5,6 +5,7 @@ import androidx.annotation.NonNull;
 import org.the3deer.android_3d_model_engine.animation.Animation;
 import org.the3deer.android_3d_model_engine.animation.Animator;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public interface Scene {
@@ -24,11 +25,13 @@ public interface Scene {
 
     List<Node> getRootNodes();
 
-    void addSkeleton(Skeleton skeleton);
+    void addSkeleton(Skin skin);
 
-    List<Skeleton> getSkeletons();
+    List<Skin> getSkeletons();
 
     void addObjects(List<Object3DData> objs);
+
+    void setObjects(List<Object3DData> objs);
 
     List<Object3DData> getObjects();
 
@@ -60,4 +63,5 @@ public interface Scene {
     public float[] getWorldMatrix();
 
 
+    void setMaterials(ArrayList<Material> materials);
 }

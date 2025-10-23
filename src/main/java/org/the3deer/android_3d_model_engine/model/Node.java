@@ -54,7 +54,7 @@ public class Node {
 	private Node parent;
 	public final List<Node> children = new ArrayList<>();
 	public List<Object3DData> meshes;
-	private Skeleton skeleton;
+	private Skin skin;
 
 	// scene
 	private Scene scene;
@@ -129,12 +129,12 @@ public class Node {
 		this.scene = scene;
 	}
 
-	public Skeleton getSkeleton() {
-		return skeleton;
+	public Skin getSkeleton() {
+		return skin;
 	}
 
-	public void setSkeleton(Skeleton skeleton) {
-		this.skeleton = skeleton;
+	public void setSkin(Skin skin) {
+		this.skin = skin;
 	}
 
 	public List<String> getMeshesId() {
@@ -145,8 +145,12 @@ public class Node {
 		}
 	}
 
-	public void setMesh(String meshId) {
+	public void setMeshId(String meshId) {
 		this.meshId = meshId;
+	}
+
+	public void setMesh(Object3DData mesh) {
+		this.meshes = new ArrayList<>(Collections.singletonList(mesh));
 	}
 
 	/**

@@ -113,11 +113,11 @@ public class SkeletonDrawer implements Drawer, EventListener {
             if (objData.getDrawMode() != GLES20.GL_TRIANGLES) return;
 
             // check
-            if (((AnimatedModel) objData).getSkeleton() == null) return;
-            if (((AnimatedModel) objData).getSkeleton().getSceneRoot() == null) return;
+            if (((AnimatedModel) objData).getSkin() == null) return;
+            if (((AnimatedModel) objData).getSkin().getSceneRoot() == null) return;
 
             // FIXME: maybe this is needed.  we need to draw the hierarchy without
-            if (((AnimatedModel) objData).getSkeleton().getJointCount() == 0) return;
+            if (((AnimatedModel) objData).getSkin().getJointCount() == 0) return;
 
             // get shader
             Shader drawerObject = shaderFactory.getShader(scene, objData, false, false, false, true, false, false);

@@ -25,7 +25,7 @@ Features
 - [x] Lighting support
 - [x] Debuggers
     - [x] wireframe
-    - [x] skeleton
+    - [x] skin
 - [x] skeletal animations (collada dae, gltf)
 - [x] ray collision detection
 - [x] other:

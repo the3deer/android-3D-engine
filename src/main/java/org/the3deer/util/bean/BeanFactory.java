@@ -245,7 +245,7 @@ public class BeanFactory {
                         candidate = find(field.getType(), context);
                     }
                     if (candidate != null) {
-                        Log.v("BeanFactory", "Dependency " + id + "." + field.getName() + ": " + candidate);
+                        //Log.v("BeanFactory", "Dependency " + id + "." + field.getName() + ": " + candidate);
                         field.set(bean, candidate);
                     } else {
                         Log.v("BeanFactory", "Dependency not found: " + id + "." + field.getName()+", class: "+ field.getType());
@@ -422,7 +422,7 @@ public class BeanFactory {
                                 field.set(bean, beanUpdated);
                                 field.setAccessible(false);
                                 onBeanUpdateCallback(bean, id, beanUpdated);
-                                Log.v("BeanFactory", "Dependency injected (Named). " + beanId + "." + field.getName() + ": " + beanUpdated);
+                                //Log.v("BeanFactory", "Dependency injected (Named). " + beanId + "." + field.getName() + ": " + beanUpdated);
                             }
 
                             // singleton
@@ -430,7 +430,7 @@ public class BeanFactory {
                                 field.set(bean, beanUpdated);
                                 field.setAccessible(false);
                                 onBeanUpdateCallback(bean, id, beanUpdated);
-                                Log.v("BeanFactory", "Dependency injected (Singleton). " + beanId + "." + field.getName() + ": " + beanUpdated);
+                                //Log.v("BeanFactory", "Dependency injected (Singleton). " + beanId + "." + field.getName() + ": " + beanUpdated);
                             }
 
                             // default bean
@@ -438,7 +438,7 @@ public class BeanFactory {
                                 field.set(bean, beanUpdated);
                                 field.setAccessible(false);
                                 onBeanUpdateCallback(bean, id, beanUpdated);
-                                Log.v("BeanFactory", "Dependency injected (Default). " + beanId + "." + field.getName() + ": " + beanUpdated);
+                                //Log.v("BeanFactory", "Dependency injected (Default). " + beanId + "." + field.getName() + ": " + beanUpdated);
                             }
                         }
 
@@ -454,7 +454,7 @@ public class BeanFactory {
                             field.set(bean, all);
                             field.setAccessible(false);
                             onBeanUpdateCallback(bean, beanId, beanUpdated);
-                            Log.v("BeanFactory", "Dependency updated (List). " + beanId + "." + field.getName() + ": " + all);
+                            //Log.v("BeanFactory", "Dependency updated (List). " + beanId + "." + field.getName() + ": " + all);
                         }
                     }
                     currentClass = currentClass.getSuperclass();

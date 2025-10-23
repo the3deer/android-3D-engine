@@ -19,11 +19,12 @@ import org.the3deer.android_3d_model_engine.model.Camera;
 import org.the3deer.android_3d_model_engine.model.Constants;
 import org.the3deer.android_3d_model_engine.model.Dimensions;
 import org.the3deer.android_3d_model_engine.model.Light;
+import org.the3deer.android_3d_model_engine.model.Material;
 import org.the3deer.android_3d_model_engine.model.Node;
 import org.the3deer.android_3d_model_engine.model.Object3DData;
+import org.the3deer.android_3d_model_engine.model.Skin;
 import org.the3deer.android_3d_model_engine.model.Transform;
 import org.the3deer.android_3d_model_engine.objects.Point;
-import org.the3deer.android_3d_model_engine.model.Skeleton;
 import org.the3deer.android_3d_model_engine.view.RenderListener;
 import org.the3deer.util.event.EventListener;
 import org.the3deer.util.event.EventManager;
@@ -49,7 +50,7 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
 
     public static final String TAG = SceneImpl.class.getSimpleName();
 
-    private String name = "Scene_"+System.identityHashCode(this);
+    private String name = "Scene_" + System.identityHashCode(this);
     /**
      * Parent component
      */
@@ -76,7 +77,7 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
     /**
      * Skin data for every root node
      */
-    private List<Skeleton> skeletonData = new ArrayList<>();
+    private List<Skin> skinData = new ArrayList<>();
     /**
      * List of 3D models
      */
@@ -136,6 +137,7 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
      * Whether to draw using colors or use default white color
      */
     private boolean drawColors = true;
+    private ArrayList<Material> materials;
 
     /**
      * Light toggle feature: we have 3 states: no light, light, light + rotation
@@ -279,20 +281,24 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
         this.rootNodes.add(node);
     }
 
+    public void setRootNodes(List<Node> rootNodes) {
+        this.rootNodes = rootNodes;
+    }
+
     public List<Node> getRootNodes() {
         return rootNodes;
     }
 
-    public void addSkeleton(Skeleton skeleton) {
-        this.skeletonData.add(skeleton);
+    public void addSkeleton(Skin skin) {
+        this.skinData.add(skin);
     }
 
-    public List<Skeleton> getSkeletons() {
-        return skeletonData;
+    public List<Skin> getSkeletons() {
+        return skinData;
     }
 
-    public void setSkeletonData(List<Skeleton> skeletonData) {
-        this.skeletonData = skeletonData;
+    public void setSkeletonData(List<Skin> skinData) {
+        this.skinData = skinData;
     }
 
     public boolean isFixCoordinateSystem() {
@@ -312,8 +318,14 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
         return worldMatrix;
     }
 
+
+    @Override
+    public void setMaterials(ArrayList<Material> materials) {
+        this.materials = materials;
+    }
+
     private void makeToastText(final String text, final int toastDuration) {
-        if(parent == null) return;
+        if (parent == null) return;
         parent.runOnUiThread(() -> Toast.makeText(parent.getApplicationContext(), text, toastDuration).show());
     }
 
@@ -363,7 +375,7 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
 
     @Override
     public final synchronized void addObject(Object3DData obj) {
-        Log.d(TAG, "Adding object to scene: "+getName()+", obj: " + obj);
+        Log.d(TAG, "Adding object to scene: " + getName() + ", obj: " + obj);
         objects.add(obj);
         //requestRender();
 
@@ -371,6 +383,13 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
         // FIXME: this does not be reviewed
         //rescale(this.getObjects(), DEFAULT_MAX_MODEL_SIZE, new float[3]);
     }
+
+    @Override
+    public final synchronized void setObjects(List<Object3DData> objs) {
+        Log.d(TAG, "Setting scene objects: " + objs);
+        this.objects = objs;
+    }
+
 
     @Override
     public final synchronized void addObjects(List<Object3DData> objs) {
@@ -400,7 +419,7 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
     }
 
     public void addAnimation(Animation animation) {
-        if (this.animations == null){
+        if (this.animations == null) {
             this.animations = new ArrayList<>();
         }
         this.animations.add(animation);
@@ -704,7 +723,7 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
 
     public synchronized void onLoadComplete() {
 
-        Log.i(TAG, "onLoadComplete: "+getName()+", Objects: " + objects.size());
+        Log.i(TAG, "onLoadComplete: " + getName() + ", Objects: " + objects.size());
 
 
         // get complete list of objects loaded
@@ -737,13 +756,28 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
             }
         }*/
 
+        // Ensure all objects have a parent node to unify the rendering pipeline.
+        if (getRootNodes() == null || getRootNodes().isEmpty()) {
+            Log.i(TAG, "Scene has no root nodes. Creating default nodes for all objects.");
+            List<Node> rootNodes = new ArrayList<>();
+            for (Object3DData obj : getObjects()) {
+                // Create a new node and assign the object to it.
+                Node node = new Node();
+                node.setMesh(obj); // Link the visible object to this node.
+                obj.setParentNode(node);
+                obj.setParentBound(true);
+                rootNodes.add(node);
+            }
+            setRootNodes(rootNodes);
+        }
+
         // fix coordinate system
         //fixCoordinateSystem();
 
         // 1. UPDATE THE STATIC SCENE GRAPH
         // This sets the base pose for everything, including skeletons.
         if (getRootNodes() != null && !getRootNodes().isEmpty()) {
-            for (int i=0; i<getRootNodes().size(); i++) {
+            for (int i = 0; i < getRootNodes().size(); i++) {
                 // This method should recursively update all children
                 getRootNodes().get(i).updateBindWorldTransform(getWorldMatrix());
             }
@@ -751,32 +785,6 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
 
         // rescale objects so they all fit in the viewport
         rescale(list, Constants.DEFAULT_MODEL_SIZE, new float[3]);
-
-
-    }
-
-    private void rescale(List<Object3DData> objs, float size) {
-        Log.v(TAG, "Rescaling objects... " + objs.size());
-
-        // get largest object in scene
-        float largest = 1;
-        for (int i = 0; i < objs.size(); i++) {
-            Object3DData data = objs.get(i);
-            float candidate = data.getCurrentDimensions().getLargest();
-            if (candidate > largest) {
-                largest = candidate;
-            }
-        }
-        Log.v(TAG, "Object largest dimension: " + largest);
-
-        // rescale objects
-        float ratio = size / largest;
-        Log.v(TAG, "Scaling " + objs.size() + " objects with factor: " + ratio);
-        float[] newScale = new float[]{ratio, ratio, ratio};
-        for (Object3DData data : objs) {
-            // data.center();
-            data.setScale(newScale);
-        }
     }
 
     @Override
@@ -839,11 +847,11 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
 
                 float[] rightd = Math3DUtils.multiply(right, touch.getdY());
                 float[] upd = Math3DUtils.multiply(up, touch.getdX());
-                float[] rot = Math3DUtils.add(rightd,upd);
-                if (Math3DUtils.length(rot)>0) {
+                float[] rot = Math3DUtils.add(rightd, upd);
+                if (Math3DUtils.length(rot) > 0) {
                     rot = Math3DUtils.normalize2(rot);
                 } else {
-                    rot = new float[]{1,0,0};
+                    rot = new float[]{1, 0, 0};
                 }
 
                 float angle1 = touch.getLength() / 360;
@@ -888,7 +896,7 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
             return;
         }
 
-        Log.v(TAG, "Scaling datas... total: " + datas.size());
+        Log.d(TAG, "Calculating world matrix... objects: " + datas.size());
         // calculate the global max length
         final Object3DData firstObject = datas.get(0);
         final Dimensions currentDimensions;
@@ -987,44 +995,14 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
         final float[] globalDifference = new float[]{translationX, translationY, translationZ};
         Log.v(TAG, "Translation delta: " + Arrays.toString(globalDifference));
 
-        if (getRootNodes() != null && !getRootNodes().isEmpty()) {
-            Matrix.setIdentityM(this.worldMatrix, 0);
-            if (scaleFactor < 0.5f || scaleFactor > 1.5f) {
-                Matrix.translateM(this.worldMatrix, 0, globalDifference[0]*scaleFactor, globalDifference[1]*scaleFactor, globalDifference[2]*scaleFactor);
-                Matrix.scaleM(this.worldMatrix, 0, scaleFactor, scaleFactor, scaleFactor);
-            } else {
-                Matrix.translateM(this.worldMatrix, 0, globalDifference[0], globalDifference[1], globalDifference[2]);
-            }
-            Log.v(TAG, "World matrix for Node: "+Arrays.toString(this.worldMatrix));
-        }/* else {
-            Log.v(TAG, "Scale delta for objects: "+scaleFactor);
-            for (Object3DData data : datas) {
-
-                final Transform original;
-                if (this.originalTransforms.containsKey(data)) {
-                    original = this.originalTransforms.get(data);
-                    //Log.v(TAG, "Found transform: " + original);
-                } else {
-                    original = data.getTransform();
-                    this.originalTransforms.put(data, original);
-                }
-
-                // rescale (only if we have to)
-                if (scaleFactor < 0.5f || scaleFactor > 1.5f) {
-                    float localScaleX = scaleFactor * original.getScale()[0];
-                    float localScaleY = scaleFactor * original.getScale()[1];
-                    float localScaleZ = scaleFactor * original.getScale()[2];
-                    data.setScale(new float[]{localScaleX, localScaleY, localScaleZ});
-                }
-                //Log.v(TAG, "Mew model scale: " + Arrays.toString(data.getScale()));
-
-                // relocate (to the center)
-                float localTranlactionX = original.getTranslation()[0] * scaleFactor + globalDifference[0];
-                float localTranlactionY = original.getTranslation()[1] * scaleFactor + globalDifference[1];
-                float localTranlactionZ = original.getTranslation()[2] * scaleFactor + globalDifference[2];
-                data.setLocation(new float[]{localTranlactionX, localTranlactionY, localTranlactionZ});
-            }
-        }*/
+        Matrix.setIdentityM(this.worldMatrix, 0);
+        if (scaleFactor < 0.5f || scaleFactor > 1.5f) {
+            Matrix.translateM(this.worldMatrix, 0, globalDifference[0] * scaleFactor, globalDifference[1] * scaleFactor, globalDifference[2] * scaleFactor);
+            Matrix.scaleM(this.worldMatrix, 0, scaleFactor, scaleFactor, scaleFactor);
+        } else {
+            Matrix.translateM(this.worldMatrix, 0, globalDifference[0], globalDifference[1], globalDifference[2]);
+        }
+        Log.d(TAG, "World matrix: " + Arrays.toString(this.worldMatrix));
     }
 
 

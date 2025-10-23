@@ -101,9 +101,7 @@ public class WavefrontLoader {
             Log.i("WavefrontLoader", "Loading model... " + modelURI);
 
             // log event
-            Log.v("WavefrontLoader", "--------------------------------------------------");
             Log.d("WavefrontLoader", "Parsing geometries... ");
-            Log.v("WavefrontLoader", "--------------------------------------------------");
 
             // open stream, parse model, then close stream
             final InputStream is = modelURI.toURL().openStream();
@@ -140,8 +138,8 @@ public class WavefrontLoader {
                 data3D.setMeshData(meshData);
                 data3D.setId(meshData.getId());
                 data3D.setName(meshData.getName());
-                data3D.setNormalsBuffer(meshData.getNormalsBuffer());
-                data3D.setTextureBuffer(meshData.getTextureBuffer());
+                data3D.setVertexNormalsArrayBuffer(meshData.getNormalsBuffer());
+                data3D.setTextureCoordsArrayBuffer(meshData.getTextureBuffer());
                 data3D.setElements(meshData.getElements());
                 data3D.setId(modelURI.toString());
                 data3D.setUri(modelURI);
@@ -181,9 +179,7 @@ public class WavefrontLoader {
         if (meshData.getMaterialFile() == null) return;
 
         // log event
-        Log.v("WavefrontLoader", "--------------------------------------------------");
         Log.d("WavefrontLoader", "Parsing materials... ");
-        Log.v("WavefrontLoader", "--------------------------------------------------");
 
         try {
 

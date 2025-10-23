@@ -3,10 +3,10 @@ package org.the3deer.android_3d_model_engine.services.collada;
 import android.app.Activity;
 
 import org.the3deer.android_3d_model_engine.model.Object3DData;
+import org.the3deer.android_3d_model_engine.model.Scene;
 import org.the3deer.android_3d_model_engine.services.LoadListener;
 import org.the3deer.android_3d_model_engine.services.LoaderTask;
 
-import java.io.IOException;
 import java.net.URI;
 import java.util.List;
 
@@ -17,7 +17,18 @@ public class ColladaLoaderTask extends LoaderTask {
     }
 
     @Override
-    protected List<Object3DData> build() throws IOException {
-        return new ColladaLoader().load(uri, callback);
+    protected List<Object3DData> build() throws Exception {
+
+        callback.onStart();
+        // 1. Load the new model using your new parser
+        final Scene scene = new ColladaLoader().load(uri);
+        List<Object3DData> loadNew = scene.getObjects();
+
+        // --- testing...
+        scene.onLoadComplete();
+        callback.onLoad(scene);
+
+        return loadNew;
     }
+
 }

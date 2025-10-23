@@ -15,7 +15,7 @@ import java.nio.IntBuffer;
 public final class BoundingBox {
 
     public static Object3DData build(Object3DData obj) {
-        if (obj instanceof AnimatedModel && ((AnimatedModel) obj).getSkeleton() != null) {
+        if (obj instanceof AnimatedModel && ((AnimatedModel) obj).getSkin() != null) {
             return buildSkinned((AnimatedModel) obj);
         }
         return buildStatic(obj);
@@ -45,12 +45,12 @@ public final class BoundingBox {
         vertices.put(box.getMax()[0]).put(box.getMin()[1]).put(box.getMax()[2]);
         //@formatter:on
         vertices.flip();
-        boundingBox.setVertexBuffer(vertices);
+        boundingBox.setVertexArrayBuffer(vertices);
 
         // --- ROBUST SKINNING --- //
         // Bind all 8 vertices of the bounding box to the root joint of the skeleton.
         // This makes the box move as a rigid unit with the model's root, which is the correct behavior.
-        Node rootJoint = sourcePrimitive.getSkeleton().getRootJoint();
+        Node rootJoint = sourcePrimitive.getSkin().getRootJoint();
         if (rootJoint == null) {
             Log.e("BoundingBox", "Source primitive " + sourcePrimitive.getId() + " has no root joint!");
             return buildStatic(sourcePrimitive); // Fallback to a static box

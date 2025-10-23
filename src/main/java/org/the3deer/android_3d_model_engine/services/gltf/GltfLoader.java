@@ -15,10 +15,10 @@ import org.the3deer.android_3d_model_engine.model.Material;
 import org.the3deer.android_3d_model_engine.model.Node;
 import org.the3deer.android_3d_model_engine.model.Object3DData;
 import org.the3deer.android_3d_model_engine.model.Scene;
+import org.the3deer.android_3d_model_engine.model.Skin;
 import org.the3deer.android_3d_model_engine.model.Texture;
 import org.the3deer.android_3d_model_engine.scene.SceneImpl;
 import org.the3deer.android_3d_model_engine.services.LoadListener;
-import org.the3deer.android_3d_model_engine.model.Skeleton;
 import org.the3deer.util.android.AndroidUtils;
 import org.the3deer.util.android.ContentUtils;
 import org.the3deer.util.math.Quaternion;
@@ -127,7 +127,7 @@ public final class GltfLoader {
             final List<Scene> scenes = loadSceneModel(callback, gltfModel, nodeList, meshesListMap);
 
             callback.onProgress("Loading skeletons...");
-            final List<Skeleton> skeletons = loadSkeletons(gltfModel, nodeList);
+            final List<Skin> skins = loadSkeletons(gltfModel, nodeList);
 
             callback.onProgress("Loading animations...");
             final List<Animation> animations = loadAnimations(gltfModel, nodeList, callback);
@@ -300,7 +300,6 @@ public final class GltfLoader {
                     // process
                     for (Object3DData originalObj : originalObjsList) {
 
-                        // --- THE FIX ---
                         // If the original object already has a parent, it means this is a shared mesh.
                         // We need to create a clone for this new node.
                         if (originalObj.getParentNode() != null) {
@@ -443,10 +442,10 @@ public final class GltfLoader {
         }
 
         // build 3d model
-        model.setVertexBuffer(vertexBuffer);
-        model.setNormalsBuffer(normalBuffer);
+        model.setVertexArrayBuffer(vertexBuffer);
+        model.setVertexNormalsArrayBuffer(normalBuffer);
         model.setTangentBuffer(tangentBuffer);
-        model.setColorsBuffer(colorBuffer);
+        model.setVertexColorsArrayBuffer(colorBuffer);
         model.setIndexBuffer(drawBuffer);
         model.setDrawUsingArrays(drawBuffer == null);
         model.setDrawMode(meshPrimitiveModel.getMode());
@@ -570,7 +569,7 @@ public final class GltfLoader {
         if (meshPrimitiveModel.getAttributes().containsKey("TEXCOORD_0")) {
             AccessorData texture_0 = meshPrimitiveModel.getAttributes().get("TEXCOORD_0").getAccessorData();
             textureBuffer = texture_0.createByteBuffer().asFloatBuffer();
-            model.setTextureBuffer(textureBuffer);
+            model.setTextureCoordsArrayBuffer(textureBuffer);
         }
 
         // load skinning data
@@ -636,7 +635,7 @@ public final class GltfLoader {
     }
 
 
-    private List<Skeleton> loadSkeletons(GltfModel gltfModel, List<Node> nodeDataList) {
+    private List<Skin> loadSkeletons(GltfModel gltfModel, List<Node> nodeDataList) {
 
         final List<NodeModel> nodeModels = gltfModel.getNodeModels();
 
@@ -663,15 +662,15 @@ public final class GltfLoader {
                 return null;
             }
 
-            Skeleton skeleton = new Skeleton(nodeDataList, Collections.emptyList(), headNode, null);
+            Skin skin = new Skin(nodeDataList, Collections.emptyList(), headNode, null);
 
             // register skeleton
-            headNode.getScene().getSkeletons().add(skeleton);
+            headNode.getScene().getSkeletons().add(skin);
 
-            return Collections.singletonList(skeleton);
+            return Collections.singletonList(skin);
         }
 
-        final List<Skeleton> skeletons = new ArrayList<>();
+        final List<Skin> skins = new ArrayList<>();
         for (int s = 0; s < skinModels.size(); s++) {
 
             // --- 3. Process skin data: assign inverse bind matrices and create bone list ---
@@ -729,31 +728,29 @@ public final class GltfLoader {
             Log.v(TAG, "Final skeleton root found by climbing hierarchy to the top: '" + rootJoint.getName() + "'");
 
 // This headNode is now the true root of the scene graph for this skeleton.
-            final Skeleton skeleton = new Skeleton(nodeDataList, Arrays.asList(boneDataList), headNode, rootJoint)
+            final Skin skin = new Skin(nodeDataList, Arrays.asList(boneDataList), headNode, rootJoint)
                     .setBindShapeMatrix(skinModel.getBindShapeMatrix(null));
 
             // link skeleton to nodes / meshes
             for (Node node : nodeDataList) {
-                node.setSkeleton(skeleton);
-
+                node.setSkin(skin);
                 if (node.getMeshes() != null) {
                     for (Object3DData mesh : node.getMeshes()) {
-                        ((AnimatedModel) mesh).setSkeleton(skeleton);
-                        mesh.setBindShapeMatrix(skeleton.getBindShapeMatrix());
+                        ((AnimatedModel) mesh).setSkin(skin);
                     }
                 }
             }
 
             // register skeleton
-            skeletons.add(skeleton);
+            skins.add(skin);
 
             // add skeleton
-            headNode.getScene().getSkeletons().add(skeleton);
+            headNode.getScene().getSkeletons().add(skin);
 
             Log.d(TAG, "Skeleton loaded successfully. Joints: " + nodeDataList.size() + ", Bones: " + boneDataList.length + ", Head: '" + headNode.getName() + "'");
         }
 
-        return skeletons;
+        return skins;
     }
 
     private List<Animation> loadAnimations(GltfModel gltfModel, List<Node> nodeList, LoadListener callback) {

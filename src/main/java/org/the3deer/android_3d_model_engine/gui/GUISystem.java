@@ -153,7 +153,7 @@ public class GUISystem implements EventListener, Drawer {
         if (!widget.isVisible()) return;
 
         // not something to render
-        if (!widget.isRender() || widget.getVertexBuffer() == null) return;
+        if (!widget.isRender() || widget.getVertexArrayBuffer() == null) return;
 
         // draw all GUI objects
         //GLES20.glClear(GLES20.GL_DEPTH_BUFFER_BIT);

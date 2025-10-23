@@ -1,0 +1,437 @@
+package org.the3deer.android_3d_model_engine.services.collada;
+
+import android.opengl.GLES20;
+import android.util.Log;
+
+import androidx.annotation.NonNull;
+
+import org.the3deer.android_3d_model_engine.animation.Animation;
+import org.the3deer.android_3d_model_engine.model.AnimatedModel;
+import org.the3deer.android_3d_model_engine.model.Constants;
+import org.the3deer.android_3d_model_engine.model.Element;
+import org.the3deer.android_3d_model_engine.model.Node;
+import org.the3deer.android_3d_model_engine.model.Object3DData;
+import org.the3deer.android_3d_model_engine.model.Scene;
+import org.the3deer.android_3d_model_engine.model.Skin;
+import org.the3deer.android_3d_model_engine.scene.SceneImpl;
+import org.the3deer.android_3d_model_engine.services.LoadListener;
+import org.the3deer.android_3d_model_engine.services.collada.entities.MeshData;
+import org.the3deer.android_3d_model_engine.services.collada.entities.SkinningData;
+import org.the3deer.android_3d_model_engine.services.collada.loader.AnimationLoader;
+import org.the3deer.android_3d_model_engine.services.collada.loader.GeometryLoader;
+import org.the3deer.android_3d_model_engine.services.collada.loader.MaterialLoader;
+import org.the3deer.android_3d_model_engine.services.collada.loader.SkeletonLoader;
+import org.the3deer.android_3d_model_engine.services.collada.loader.SkinLoader;
+import org.the3deer.util.android.ContentUtils;
+import org.the3deer.util.io.IOUtils;
+import org.the3deer.util.xml.XmlNode;
+import org.the3deer.util.xml.XmlParser;
+
+import java.io.InputStream;
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
+public final class ColladaLoaderLegacy {
+
+    /**
+     * @param is file stream
+     * @return all the texture files found in the file
+     */
+    public static List<String> getImages(InputStream is) {
+        try {
+            final XmlNode xml = XmlParser.parse(is);
+            return new MaterialLoader(xml.getChild("library_materials"),
+                    xml.getChild("library_effects"), xml.getChild("library_images")).getImages();
+        } catch (Exception ex) {
+            Log.e("ColladaLoaderTask", "Error loading materials", ex);
+            return null;
+        }
+    }
+
+    @NonNull
+    public List<Object3DData> load(URI uri, LoadListener callback) {
+        final List<Object3DData> ret = new ArrayList<>();
+        final List<MeshData> allMeshes = new ArrayList<>();
+
+        // TODO: load multiple scenes
+        final Scene scene = new SceneImpl();
+
+        if (callback != null) callback.onLoad(scene);
+
+        try (InputStream is = ContentUtils.getInputStream(uri)) {
+
+            Log.i("ColladaLoaderTask", "Parsing file... " + uri);
+            if (callback != null) callback.onProgress("Loading file...");
+            final XmlNode xml = XmlParser.parse(is);
+
+            // get authoring tool
+            String authoring_tool = null;
+            try {
+                XmlNode child = xml.getChild("asset").getChild("contributor").getChild("authoring_tool");
+                authoring_tool = child.getData();
+                Log.i("ColladaLoaderTask","authoring_tool: "+ authoring_tool);
+            } catch (Exception e) {
+                // ignore
+            }
+
+            // load visual scene
+            // we need this first in order to progressively load geometries with it's bound transform
+            Log.d("ColladaLoaderTask", "Loading visual nodes...");
+            if (callback != null) callback.onProgress("Loading visual nodes...");
+            Map<String, Skin> skeletons = null;
+            try {
+                // load joints
+                SkeletonLoader jointsLoader = new SkeletonLoader(xml);
+                skeletons = jointsLoader.loadSkeletons(scene);
+
+            } catch (Exception ex) {
+                Log.e("ColladaLoaderTask", "Error loading visual scene", ex);
+            }
+
+
+            // load geometries
+            Log.d("ColladaLoaderTask", "Loading geometries...");
+            if (callback != null)  callback.onProgress("Loading geometries...");
+            List<MeshData> meshDatas = null;
+            try {
+                GeometryLoader g = new GeometryLoader(xml.getChild("library_geometries"));
+                List<XmlNode> geometries = xml.getChild("library_geometries").getChildren("geometry");
+                meshDatas = new ArrayList<>();
+                for (int i = 0; i < geometries.size(); i++) {
+
+                    // alert user if loading several meshes
+                    if (geometries.size() > 1) {
+                        if (callback != null)  callback.onProgress("Loading geometries... " + (i + 1) + " / " + geometries.size());
+                    }
+
+                    // load next mesh
+                    XmlNode geometry = geometries.get(i);
+                    MeshData meshData = g.loadGeometry(geometry);
+                    if (meshData == null) continue;
+                    meshDatas.add(meshData);
+                    allMeshes.add(meshData);
+
+                    // create 3D Model
+                    AnimatedModel data3D = new AnimatedModel(meshData.getVertexBuffer(), null);
+                    data3D.setAuthoringTool(authoring_tool);
+                    data3D.setMeshData(meshData);
+                    data3D.setId(meshData.getId());
+                    data3D.setVertexArrayBuffer(meshData.getVertexBuffer());
+                    data3D.setVertexNormalsArrayBuffer(meshData.getNormalsBuffer());
+                    data3D.setVertexColorsArrayBuffer(meshData.getColorsBuffer());
+                    data3D.setElements(meshData.getElements());
+                    //data3D.setDimensions(meshData.getDimension());
+                    data3D.setDrawMode(GLES20.GL_TRIANGLES);
+                    data3D.setDrawUsingArrays(false);
+
+                    // bind transform
+                    if (skeletons != null) {
+
+                        // TODO: we may have several instances - should be clone all of them here?
+
+                        Node node = null;
+                        Skin skin = skeletons.get(meshData.getId());
+                        if (skin == null) {
+                            skin = skeletons.get("default");
+                        }
+                        if (skin != null) {
+                            node = skin.find(meshData.getId());
+                        }
+                        if (node != null) {
+                            Log.d("ColladaLoaderTask", "Mesh joint found. id: "+ node.getName()+", bindTransform: "+ Arrays.toString(node.getBindWorldTransform()));
+                            data3D.setName(node.getName());
+                            data3D.setWorldTransform(node.getBindWorldTransform());
+                        }
+                    }
+
+                    if (callback != null) callback.onLoad(scene, data3D);
+                    ret.add(data3D);
+                }
+                if (callback != null) callback.onLoadComplete(scene);
+            } catch (Exception ex) {
+                Log.e("ColladaLoaderTask", "Error loading geometries", ex);
+                return Collections.emptyList();
+            }
+
+            // load materials
+            Log.d("ColladaLoaderTask", "Loading materials...");
+            if (callback != null) callback.onProgress("Loading materials...");
+            try {
+                final MaterialLoader materialLoader = new MaterialLoader(xml.getChild("library_materials"),
+                        xml.getChild("library_effects"), xml.getChild("library_images"));
+                for (int i = 0; i < meshDatas.size(); i++) {
+                    final MeshData meshData = meshDatas.get(i);
+                    final Object3DData data3D = ret.get(i);
+
+                    // load material for mesh
+                    materialLoader.loadMaterial(meshData);
+                    data3D.setTextureCoordsArrayBuffer(meshData.getTextureBuffer());
+                }
+            } catch (Exception ex) {
+                Log.e("ColladaLoaderTask", "Error loading materials", ex);
+            }
+
+
+            // load visual scene
+            Log.i("ColladaLoaderTask", "Loading visual scene...");
+            if (callback != null) callback.onProgress("Loading visual scene...");
+            //SkeletonData jointsData = null;
+            try {
+                // load joints
+                //SkeletonLoader jointsLoader = new SkeletonLoader(xml);
+                //jointsData = jointsLoader.loadJoints();
+
+                // bind instance materials
+                final MaterialLoader materialLoader = new MaterialLoader(xml.getChild("library_materials"),
+                        xml.getChild("library_effects"), xml.getChild("library_images"));
+                for (int i = 0; i < meshDatas.size(); i++) {
+                    final MeshData meshData = meshDatas.get(i);
+                    final Object3DData data3D = ret.get(i);
+
+                    if (skeletons != null) {
+                        Skin skin = skeletons.get(meshData.getId());
+                        if (skin == null) {
+                            skin = skeletons.get("default");
+                        }
+                        materialLoader.loadMaterialFromVisualScene(meshData, skin);
+                    }
+                }
+
+                // bind instance geometries
+
+                // log event
+                Log.d("ColladaLoaderTask", "Loading instance geometries...");
+
+                // clone & bind meshes
+                for (int i = 0; i < meshDatas.size(); i++) {
+                    final MeshData meshData = meshDatas.get(i);
+                    final AnimatedModel data3D = (AnimatedModel) ret.get(i);
+
+                    Skin skin = skeletons.get(meshData.getId());
+                    if (skin == null) {
+                        skin = skeletons.get("default");
+                    }
+
+                    if (skin == null) continue;;
+
+                    // no joint linked to geometry - just draw as it is
+                    List<Node> allNodeData = skin.getSceneRoot().findAll(meshData.getId());
+                    if (allNodeData.isEmpty()) {
+                        Log.d("ColladaLoaderTask", "No joint linked to mesh: " + meshData.getId());
+                        continue;
+                    }
+
+                    // found 1 joint linked to geometry - update matrix
+                    if (allNodeData.size() == 1) {
+                        // Log.d("ColladaLoaderTask", "Found 1 single instance for mesh: " + meshData.getId());
+                        final Node node = allNodeData.get(0);
+                        // FIXME: set this only if not animated
+                        data3D.setWorldTransform(node.getBindWorldTransform());
+                        continue;
+                    }
+
+                    // found several mesh instances - draw them all
+                    Log.i("ColladaLoaderTask", "Found multiple instances for mesh: " + meshData.getId() + ". Total: " + allNodeData.size());
+                    boolean isOriginalMeshConfigured = false;
+                    for (Node jd : allNodeData) {
+
+                        // update matrix for original mesh
+                        if (!isOriginalMeshConfigured) {
+                            data3D.setWorldTransform(jd.getLocalTransform().getTransform());
+                            isOriginalMeshConfigured = true;
+                            continue;
+                        }
+
+                        Log.i("ColladaLoaderTask", "Cloning mesh for joint: " + jd.getName());
+                        final AnimatedModel instance_geometry = data3D.clone();
+                        instance_geometry.setId(data3D.getId() + "_instance_" + jd.getName());
+                        // FIXME: set this only if not animated
+                        instance_geometry.setWorldTransform(jd.getLocalTransform().getTransform());
+
+                        if (callback != null) callback.onLoad(scene, instance_geometry);
+                        ret.add(instance_geometry);
+                        allMeshes.add(meshData.clone());
+                    }
+                }
+            } catch (Exception ex) {
+                Log.e("ColladaLoaderTask", "Error loading visual scene", ex);
+            }
+
+
+            // load materials
+            Log.i("ColladaLoaderTask", "Loading textures...");
+            if (callback != null) callback.onProgress("Loading textures...");
+            try {
+                for (int i = 0; i < meshDatas.size(); i++) {
+                    final MeshData meshData = meshDatas.get(i);
+                    for (int e = 0; e < meshData.getElements().size(); e++) {
+                        final Element element = meshData.getElements().get(e);
+                        if (element.getMaterial() != null && element.getMaterial().getColorTexture() != null &&
+                        element.getMaterial().getColorTexture().getFile() != null) {
+                            final String textureFile = element.getMaterial().getColorTexture().getFile();
+                            // log event
+                            Log.d("ColladaLoaderTask", "Reading texture file... " + textureFile);
+
+                            // read texture data
+                            try (InputStream stream = ContentUtils.getInputStream(textureFile)) {
+
+                                // read data
+                                element.getMaterial().getColorTexture().setData(IOUtils.read(stream));
+
+                                // log event
+                                Log.i("ColladaLoaderTask", "Texture linked... " + element.getMaterial().getColorTexture().getData().length + " (bytes)");
+
+                            } catch (Exception ex) {
+                                Log.e("ColladaLoaderTask", String.format("Error reading texture file: %s", ex.getMessage()));
+                            }
+                        }
+                    }
+                }
+            } catch (Exception ex) {
+                Log.e("ColladaLoaderTask", "Error loading materials", ex);
+            }
+
+
+            // load skinning data
+            Map<String, SkinningData> skins = null;
+            try {
+
+                // log event
+                Log.d("ColladaLoaderTask", "Loading skinning data...");
+
+                XmlNode library_controllers = xml.getChild("library_controllers");
+                if (library_controllers != null && !library_controllers.getChildren("controller").isEmpty()) {
+
+                    // notify user
+                    if (callback != null) callback.onProgress("Loading skinning data...");
+
+                    // load skin data
+                    SkinLoader skinLoader = new SkinLoader(library_controllers, Constants.MAX_VERTEX_WEIGHTS);
+                    skins = skinLoader.loadSkinData();
+
+                    // update bind_shape_matrix
+                    for (int i = 0; i < allMeshes.size(); i++) {
+                        SkinningData skinningData = skins.get(allMeshes.get(i).getId());
+                        if (skinningData != null) {
+                            final MeshData meshData = allMeshes.get(i);
+                            final AnimatedModel data3D = (AnimatedModel) ret.get(i);
+                            meshData.setBindShapeMatrix(skinningData.getBindShapeMatrix());
+                            // FIXME: removed only because refactoring is broken otherwise
+                            // data3D.setBindShapeMatrix(meshData.getBindShapeMatrix());
+                        }
+                    }
+
+                } else {
+                    Log.i("ColladaLoaderTask", "No skinning data available");
+                }
+            } catch (Exception ex) {
+                Log.e("ColladaLoaderTask", "Error loading skinning data", ex);
+            }
+
+            final AnimationLoader loader = new AnimationLoader(xml);
+
+            // finish skinning + joint update
+
+            try {
+                if (loader.isAnimated()) {
+
+                    // log event
+                    Log.d("ColladaLoaderTask", "Loading joints...");
+
+                    // notify user
+                    if (callback != null) callback.onProgress("Loading joints...");
+
+                    // update joint indices
+                    // - skinning needs joint indices because auto-generated skinning rely on joint indices
+                    // - skeleton needs skinning because joint index depend on bone order specified in skinning data
+                    SkeletonLoader skeletonLoader = new SkeletonLoader(xml);
+                    skeletonLoader.updateJointData(skins, skeletons);
+
+                    for (int i = 0; i < allMeshes.size(); i++) {
+                        final MeshData meshData = allMeshes.get(i);
+                        final AnimatedModel data3D = (AnimatedModel) ret.get(i);
+
+
+                        Skin skin = skeletons.get(meshData.getId());
+                        if (skin == null) {
+                            skin = skeletons.get("default");
+                        }
+
+                        // initialize jointIds and vertex weights array
+                        SkinLoader.loadSkinningData(meshData, skins != null? skins.get(meshData.getId()) : null, skin);
+
+                        // load skin arrays
+                        SkinLoader.loadSkinningArrays(meshData);
+                        
+                        data3D.setJoints(meshData.getJointsBuffer());
+                        data3D.setWeights(meshData.getWeightsBuffer());
+                        Log.d("ColladaLoader", "Loaded skinning data: "
+                                + "jointIds: " + (meshData.getJointsArray() != null ? meshData.getJointsArray().length : 0)
+                                + ", weights: " + (meshData.getWeightsArray() != null ? meshData.getWeightsArray().length : 0));
+                    }
+
+                }
+            } catch (Exception ex) {
+                Log.e("ColladaLoaderTask", "Error updating joint data", ex);
+            }
+
+            //if (true) return ret;
+
+            // parse animation
+            try {
+                if (loader.isAnimated()) {
+
+                    // log event
+                    Log.i("ColladaLoaderTask", "Loading animation... ");
+
+                    // notify user
+                    if (callback != null) callback.onProgress("Loading animation...");
+
+                    // load animation
+                    final Animation animation = loader.load();
+
+                    for (int i = 0; i < allMeshes.size(); i++) {
+                        final MeshData meshData = allMeshes.get(i);
+                        final AnimatedModel data3D = (AnimatedModel) ret.get(i);
+
+                        Skin skin = skeletons.get(meshData.getId());
+                        if (skin == null) {
+                            skin = skeletons.get("default");
+                        }
+
+                        // register skeleton
+                        data3D.setSkin(skin);
+                        scene.addSkeleton(skin);
+
+                        // register animation
+                        if (scene.getAnimations() == null || !scene.getAnimations().contains(animation)) {
+                            scene.addAnimation(animation);
+                        }
+
+                        // FIXME: this should be handled differently - this must be null for iris mechanical + countdown timer
+                        data3D.setWorldTransform(null);
+                    }
+
+                    if (callback != null) callback.onLoadComplete();
+                }
+            } catch (Exception ex) {
+                Log.e("ColladaLoaderTask", "Error loading animation", ex);
+            }
+
+            // log event
+            if (ret.isEmpty()) {
+                Log.e("ColladaLoaderTask", "Mesh data list empty. Did you exclude any model in GeometryLoader.java?");
+            }
+            Log.i("ColladaLoaderTask", "Loading model finished. Objects: " + ret.size());
+
+        } catch (Exception ex) {
+            Log.e("ColladaLoaderTask", "Problem loading model", ex);
+        }
+        return ret;
+    }
+
+}

@@ -86,7 +86,7 @@ public class Wireframe {
 
             } else {
 
-                final FloatBuffer vertexBuffer = ret.getVertexBuffer();
+                final FloatBuffer vertexBuffer = ret.getVertexArrayBuffer();
                 Log.i("Wireframe", "Building wireframe... Total vertices: " + vertexBuffer.capacity()/3);
 
                 final IntBuffer newBuffer = IOUtils.createIntBuffer(vertexBuffer.capacity()/3 * 2);
@@ -113,7 +113,7 @@ public class Wireframe {
 
                         retA.setCentered(animSource.isCentered());
 
-                        retA.setSkeleton(animSource.getSkeleton());
+                        retA.setSkin(animSource.getSkin());
                         retA.setJoints(animSource.getJointIds());
                         retA.setWeights(animSource.getVertexWeights());
                         retA.refresh();

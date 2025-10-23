@@ -47,11 +47,11 @@ public class Label extends Widget {
 
     @Override
     public void init() {
-        setVertexBuffer(IOUtils.createFloatBuffer(columns * rows * 12 * 3));
-        setColorsBuffer(IOUtils.createFloatBuffer(columns * rows * 12 * 4));
+        setVertexArrayBuffer(IOUtils.createFloatBuffer(columns * rows * 12 * 3));
+        setVertexColorsArrayBuffer(IOUtils.createFloatBuffer(columns * rows * 12 * 4));
 
-        IOUtils.fill(vertexBuffer, 0, vertexBuffer.capacity(), new float[]{0,0, GUIConstants.UI_TEXT_Z_HIDDEN});
-        IOUtils.fill(colorsBuffer, 0, colorsBuffer.capacity(), new float[]{1,0,0,0});
+        IOUtils.fill(vertexArrayBuffer, 0, vertexArrayBuffer.capacity(), new float[]{0,0, GUIConstants.UI_TEXT_Z_HIDDEN});
+        IOUtils.fill(vertexColorsArrayBuffer, 0, vertexColorsArrayBuffer.capacity(), new float[]{1,0,0,0});
 
         // dimensions initialized because there isn't any vertex yet
         setDimensions(new Dimensions(0,
@@ -69,9 +69,9 @@ public class Label extends Widget {
         float[] data = fontFactory.getSymbol(symbol);
 
         Log.v("Label","About to paint symbol");
-        int idx = Glyph.build(getVertexBuffer(), 0, getColorsBuffer(), 0, 0, data, getColor());
-        IOUtils.fill(getVertexBuffer(), idx, getVertexBuffer().capacity(), 0);
-        IOUtils.fill(getColorsBuffer(), idx/3*4, getColorsBuffer().capacity(), 0);
+        int idx = Glyph.build(getVertexArrayBuffer(), 0, getVertexColorsArrayBuffer(), 0, 0, data, getColor());
+        IOUtils.fill(getVertexArrayBuffer(), idx, getVertexArrayBuffer().capacity(), 0);
+        IOUtils.fill(getVertexColorsArrayBuffer(), idx/3*4, getVertexColorsArrayBuffer().capacity(), 0);
 
         this.currentText = symbol;
     }
@@ -81,8 +81,8 @@ public class Label extends Widget {
 
         final String[] lines = text.split("\\r?\\n");
 
-        final FloatBuffer vertexBuffer = getVertexBuffer();
-        final Buffer colorBuffer = getColorsBuffer();
+        final FloatBuffer vertexBuffer = getVertexArrayBuffer();
+        final Buffer colorBuffer = getVertexColorsArrayBuffer();
 
         int idx = 0;
         for (int row = 0; row < this.rows && row < lines.length; row++) {

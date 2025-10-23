@@ -72,6 +72,12 @@ public class Element {
         this.materialId = material;
     }
 
+    public Element(String id, Buffer indexBuffer) {
+        this.id = id;
+        this.indicesArray = null;
+        this.indexBuffer = indexBuffer;
+    }
+
     public Element(String id, Buffer indexBuffer, String material) {
         this.id = id;
         this.indicesArray = null;
@@ -92,7 +98,7 @@ public class Element {
     }
 
     public Buffer getIndexBuffer() {
-        if (indexBuffer == null) {
+        if (indexBuffer == null && indicesArray != null) {
             this.indexBuffer = IOUtils.createIntBuffer(indicesArray.size());
             this.indexBuffer.position(0);
             for (int i = 0; i < indicesArray.size(); i++) {

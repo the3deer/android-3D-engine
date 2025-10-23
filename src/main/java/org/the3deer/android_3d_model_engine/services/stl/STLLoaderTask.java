@@ -94,7 +94,7 @@ public final class STLLoaderTask extends LoaderTask {
             mesh.fixNormals();
 
             // notify succeded!
-            Object3DData data = new Object3DData(mesh.getVertexBuffer()).setNormalsBuffer(mesh.getNormalsBuffer());
+            Object3DData data = new Object3DData(mesh.getVertexBuffer()).setVertexNormalsArrayBuffer(mesh.getNormalsBuffer());
             data.setMeshData(mesh);
             data.setDrawUsingArrays(true);
             data.setDrawMode(GLES20.GL_TRIANGLES);

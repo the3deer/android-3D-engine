@@ -6,7 +6,7 @@ import android.util.Log;
 import org.the3deer.android_3d_model_engine.model.Constants;
 import org.the3deer.android_3d_model_engine.model.Node;
 import org.the3deer.android_3d_model_engine.services.collada.entities.MeshData;
-import org.the3deer.android_3d_model_engine.model.Skeleton;
+import org.the3deer.android_3d_model_engine.model.Skin;
 import org.the3deer.android_3d_model_engine.services.collada.entities.SkinningData;
 import org.the3deer.android_3d_model_engine.services.collada.entities.Vertex;
 import org.the3deer.android_3d_model_engine.services.collada.entities.VertexSkinData;
@@ -145,7 +145,7 @@ public class SkinLoader {
 		return skinningData;
 	}
 
-	public static void loadSkinningData(MeshData meshData, SkinningData skinningData, Skeleton skeleton) {
+	public static void loadSkinningData(MeshData meshData, SkinningData skinningData, Skin skin) {
 
 		Log.d("SkinLoader", "Loading skinning data...");
 		final String geometryId = meshData.getId();
@@ -179,12 +179,12 @@ public class SkinLoader {
 			}
 
 			// failover to skeleton if no skinning data is available
-			if (weightsData == null & skeleton != null) {
+			if (weightsData == null & skin != null) {
 				// FIXME: process all joints?
-				Node node = skeleton.getSceneRoot().find(geometryId);
+				Node node = skin.getSceneRoot().find(geometryId);
 				if (node == null) {
 					Log.v("SkinLoader", "Joint not found for " + geometryId + ". Using root joint");
-					node = skeleton.getSceneRoot();
+					node = skin.getSceneRoot();
 				} else {
 					//Log.v("SkinLoader", "Joint found for " + geometryId + ". Bone " + jointData.getName());
 				}
