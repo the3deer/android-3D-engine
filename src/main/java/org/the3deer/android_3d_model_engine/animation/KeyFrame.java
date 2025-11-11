@@ -1,6 +1,7 @@
 package org.the3deer.android_3d_model_engine.animation;
 
 import java.util.Map;
+import java.util.TreeMap;
 
 /**
  * 
@@ -59,9 +60,12 @@ public class KeyFrame {
 
 	@Override
 	public String toString() {
+
+		final TreeMap<String,KeyFrame> sorted = new TreeMap(pose);
+
 		return "KeyFrame{" +
 				"timeStamp=" + timeStamp +
-				", pose=" + pose +
+				", pose=" + sorted +
 				'}';
 	}
 }

@@ -262,18 +262,21 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
      * Therefore, this function is to fix orientation towards y-axis (natural up-vector)
      */
     public void fixCoordinateSystem() {
-        /*final List<Object3DData> objects = getObjects();
+        final List<Object3DData> objects = getObjects();
         for (int i = 0; i < objects.size(); i++) {
             final Object3DData objData = objects.get(i);
             if (objData.getAuthoringTool() != null && objData.getAuthoringTool().toLowerCase().contains("blender")) {
-                Quaternion quaternion = Quaternion.getQuaternion(new float[]{1, 0, 0}, (float) (-Math.PI / 2f));
+                Matrix.rotateM(this.worldMatrix, 0, -90, 1,0, 0);
+                Log.d(TAG, "Fixed coordinate system to -90 degrees on y axis. worldMatrix: " + Arrays.toString(this.worldMatrix));
+                break;
+                /*Quaternion quaternion = Quaternion.getQuaternion(new float[]{1, 0, 0}, (float) (-Math.PI / 2f));
                 quaternion.normalize();
                 objData.setOrientation(quaternion);
                 Log.i(TAG, "Fixed coordinate system to -90 degrees on x axis. object: " + objData.getId());
-                this.isFixCoordinateSystem = true;
+                this.isFixCoordinateSystem = true;*/
                 //break;
             }
-        }*/
+        }
     }
 
     //...
@@ -290,6 +293,10 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
     }
 
     public void addSkeleton(Skin skin) {
+
+        // check
+        if (this.skinData.contains(skin)) return;
+
         this.skinData.add(skin);
     }
 
@@ -303,6 +310,16 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
 
     public boolean isFixCoordinateSystem() {
         return this.isFixCoordinateSystem;
+    }
+
+    @Override
+    public void setAnimations(List<Animation> animations) {
+        this.animations = animations;
+
+        // default animation
+        if (animations != null && !animations.isEmpty()){
+            setCurrentAnimation(animations.get(0));
+        }
     }
 
     @Override
@@ -771,9 +788,6 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
             setRootNodes(rootNodes);
         }
 
-        // fix coordinate system
-        //fixCoordinateSystem();
-
         // 1. UPDATE THE STATIC SCENE GRAPH
         // This sets the base pose for everything, including skeletons.
         if (getRootNodes() != null && !getRootNodes().isEmpty()) {
@@ -783,8 +797,15 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
             }
         }
 
+        // prepare world matrix
+        Matrix.setIdentityM(this.worldMatrix, 0);
+
+        // fix coordinate system
+        fixCoordinateSystem();
+
         // rescale objects so they all fit in the viewport
         rescale(list, Constants.DEFAULT_MODEL_SIZE, new float[3]);
+
     }
 
     @Override
@@ -995,7 +1016,7 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
         final float[] globalDifference = new float[]{translationX, translationY, translationZ};
         Log.v(TAG, "Translation delta: " + Arrays.toString(globalDifference));
 
-        Matrix.setIdentityM(this.worldMatrix, 0);
+
         if (scaleFactor < 0.5f || scaleFactor > 1.5f) {
             Matrix.translateM(this.worldMatrix, 0, globalDifference[0] * scaleFactor, globalDifference[1] * scaleFactor, globalDifference[2] * scaleFactor);
             Matrix.scaleM(this.worldMatrix, 0, scaleFactor, scaleFactor, scaleFactor);

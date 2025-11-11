@@ -123,6 +123,17 @@ public class JointTransform {
         refresh();
     }
 
+    public void setTransform(float[] matrix){
+        this.matrix = matrix;
+
+        this.qRotation = Quaternion.fromMatrix(matrix);
+        this.scale = Math3DUtils.scaleFromMatrix(matrix);
+        if (matrix != null) {
+            this.rotation = Quaternion.fromMatrix(matrix).normalize().toAnglesF(null);
+        }
+        this.location = new Float[]{matrix[12], matrix[13], matrix[14]};
+    }
+
     public Float[] getScale() {
         return scale;
     }
@@ -350,6 +361,10 @@ public class JointTransform {
         refresh();
     }
 
+    public void addRotation(Float x, Float y, Float z) {
+        addRotation(new Float[]{x,y,z});
+    }
+
     public void addRotation(Float[] extra) {
         if (this.rotation == null) {
             this.rotation = extra;
@@ -357,6 +372,10 @@ public class JointTransform {
             add(this.rotation, extra);
         }
         refresh();
+    }
+
+    public void addLocation(Float x, Float y, Float z) {
+        addLocation(new Float[]{x,y,z});
     }
 
     public void addLocation(Float[] extra) {
@@ -552,6 +571,7 @@ public class JointTransform {
                 Matrix.rotateM(transform, 0, rotation[0], 1, 0, 0);
         }
 
+        // FIXME: what's this
         if (matrix != null){
             Matrix.multiplyMM(tempMatrix, 0, tempMatrix, 0, matrix, 0);
         }

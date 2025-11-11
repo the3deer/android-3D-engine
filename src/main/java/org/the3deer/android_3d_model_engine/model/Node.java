@@ -35,7 +35,7 @@ public class Node {
 	private Map<String,String> materials;
 
 	// local transform
-	private final Transform localTransform;
+	private Transform localTransform;
 
 	// this holds the animated local space transform
 	private float[] animatedLocalTransform;
@@ -65,7 +65,15 @@ public class Node {
 		this(new Transform());
 	}
 
+	public Node(int index) {
+		this.id = String.valueOf(index); // The ID is the index.
+		this.localTransform = new Transform();
+		this.bindWorldTransform = new float[16];
+		Matrix.setIdentityM(this.bindWorldTransform,0);
+	}
+
 	public Node(Transform localTransform) {
+		this.id = "-2";
 		this.localTransform = localTransform;
 		this.bindWorldTransform = new float[16];
 		Matrix.setIdentityM(this.bindWorldTransform,0);
@@ -81,7 +89,7 @@ public class Node {
 		return new Node(new Transform(floatArrayToFloatWrapperArray(scale), quaternion, floatArrayToFloatWrapperArray(translation)));
 	}
 
-	// collada
+	// collada legacy
 	public Node(String id, String name, String sid,
 				float[] bindLocalMatrix, Float[] bindLocalScale, Float[] bindLocalRotation, Float[] bindLocalTranslation,
 				final float[] localTransform, final float[] bindWorldTransform,
@@ -103,14 +111,17 @@ public class Node {
 		this.bindWorldTransform = bindWorldTransform;
 	}
 
-	public Node setId(String id) {
-		this.id = id;
-		return this;
-	}
+
 
 	public Node setName(String name) {
 		this.name = name;
 		return this;
+	}
+
+
+
+	public void setMatrix(float[] matrix) {
+		this.localTransform = new Transform(matrix);
 	}
 
 	public Node getParent() {
@@ -129,7 +140,7 @@ public class Node {
 		this.scene = scene;
 	}
 
-	public Skin getSkeleton() {
+	public Skin getSkin() {
 		return skin;
 	}
 
@@ -151,6 +162,11 @@ public class Node {
 
 	public void setMesh(Object3DData mesh) {
 		this.meshes = new ArrayList<>(Collections.singletonList(mesh));
+	}
+
+	public Object3DData getMesh(){
+		if (this.meshes == null || this.meshes.isEmpty()) return null;
+		return this.meshes.get(0);
 	}
 
 	/**
@@ -247,7 +263,10 @@ public class Node {
 	public void updateAnimatedWorldTransform(float[] parentAnimatedWorldTransform) {
 		// 1. Calculate this node's final world transform for this frame.
 		// animatedWorldTransform = parentAnimatedWorldTransform * this.localTransform
-		if (this.animatedWorldTransform == null) this.animatedWorldTransform = new float[16];
+		if (this.animatedWorldTransform == null) {
+			this.animatedWorldTransform = new float[16];
+			Matrix.setIdentityM(this.animatedWorldTransform,0);
+		}
 
 		if (this.getAnimatedLocalTransform() != null) {
 			Matrix.multiplyMM(this.animatedWorldTransform, 0, parentAnimatedWorldTransform, 0, this.getAnimatedLocalTransform(), 0);
@@ -367,10 +386,10 @@ public class Node {
 
 	@Override
 	public String toString() {
-		return "JointData{" +
-				"index=" + getJointIndex() +
-				", id='" + getId() + '\'' +
+		return "Node{" +
+				"id='" + getId() + '\'' +
 				", name='" + getName() + '\'' +
+				", index=" + getJointIndex() +
 				'}';
 	}
 
@@ -407,5 +426,12 @@ public class Node {
 		return meshes;
 	}
 
+	public void setLocalTransform(Transform transform) {
+		this.localTransform = transform;
+	}
 
+	@Deprecated
+	public void setId(String id) {
+		this.id = id;
+	}
 }

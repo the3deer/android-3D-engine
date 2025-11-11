@@ -10,7 +10,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.the3deer.android_3d_model_engine.animation.Animation;
 import org.the3deer.android_3d_model_engine.model.AnimatedModel;
+
 import org.the3deer.android_3d_model_engine.model.Material;
 import org.the3deer.android_3d_model_engine.model.Object3DData;
 import org.the3deer.android_3d_model_engine.model.Scene;
@@ -26,6 +28,8 @@ public class ColladaLoader {
 
     private static final String TAG = ColladaLoader.class.getSimpleName();
 
+    private String authoringTool;
+
     public ColladaLoader() {
     }
 
@@ -36,20 +40,21 @@ public class ColladaLoader {
             ColladaParser parser = new ColladaParser();
             parser.parse(stream);
 
+            // get metadata
+            authoringTool = parser.getAuthoringTool();
+
             // 2. GET ALL PARSED LIBRARIES
             Map<String, Geometry> geometries = parser.getGeometryLibrary();
             Map<String, Controller> controllers = parser.getControllerLibrary();
             Map<String, Material> materials = parser.getMaterialLibrary();
+            List<Animation> animations = parser.getAnimationLibrary();
 
             // Load the actual texture file data for all materials that have one.
             loadTextureDatas(uri, materials);
 
-            // --- START OF NEW LOGIC ---
-
             // 3. BUILD TEMPLATE MODELS
             // Create one "template" object for each geometry, which can be static or animated.
             // These templates will be cloned as we build the scene graph.
-            // In ColladaLoader.java, inside the load() method, at the start of "Step 3"
             // Map of templates, keyed by the GEOMETRY ID they are based on.
             Map<String, Object3DData> geometryTemplates = new HashMap<>();
             // Map of templates, keyed by the CONTROLLER ID that uses them.
@@ -80,16 +85,53 @@ public class ColladaLoader {
             }
 
             // 4. BUILD THE SCENE GRAPH
+
+            // This map will cache our newly created model.Nodes so we can link them later.
+            Map<Node, org.the3deer.android_3d_model_engine.model.Node> nodeMap = new HashMap<>();
+
+            // First, build the hierarchy of the engine's Node objects for animation.
+            List<org.the3deer.android_3d_model_engine.model.Node> rootModelNodes = buildNodeHierarchy(parser.getRootNodes(), nodeMap);
+
+            // LINK THE SKINS TO THE SKELETONS
+            Log.i(TAG, "Linking skins to skeleton nodes...");
+            for (Node parserNode : parser.getNodeLibrary().values()) { // Iterate through ALL parser nodes
+
+                // Find nodes that instance a controller, like our "Cube" node.
+                if (parserNode.getInstanceControllerId() != null && parserNode.getSkinId() != null) {
+
+                    String controllerId = parserNode.getInstanceControllerId(); // e.g., "Armature_Cube-skin"
+                    String skeletonRootId = parserNode.getSkinId(); // e.g., "Torso"
+
+                    // Get the AnimatedModel template that contains the skin data
+                    Object3DData template = controllerTemplates.get(controllerId);
+                    if (template instanceof AnimatedModel) {
+                        AnimatedModel animatedTemplate = (AnimatedModel) template;
+
+                        // Find the engine Node that represents the root of the skeleton (e.g., the "Torso" node)
+                        org.the3deer.android_3d_model_engine.model.Node skeletonRootNode = findNodeInMap(skeletonRootId, nodeMap);
+
+                        if (skeletonRootNode != null) {
+                            animatedTemplate.getSkin().setRootJoint(skeletonRootNode);
+                            // Attach the actual Skin object to the skeleton's root Node.
+                            skeletonRootNode.setSkin(animatedTemplate.getSkin());
+                            Log.i(TAG, "LINK ESTABLISHED: Skin from controller '" + controllerId + "' attached to skeleton root node '" + skeletonRootId + "'");
+                        } else {
+                            Log.e(TAG, "LINK FAILED: Could not find skeleton root node '" + skeletonRootId + "' in node map.");
+                        }
+                    }
+                }
+            }
+
+
+            // Then, build the flat list of renderable Object3DData instances.
             List<Object3DData> finalModels = new ArrayList<>();
+            List<Node> rootParserNodes = parser.getRootNodes(); // <--- Your caret was here.
 
-            // Get the LIST of root nodes from the parser
-            List<Node> rootNodes = parser.getRootNodes();
-
-            if (!rootNodes.isEmpty()) {
+            if (!rootParserNodes.isEmpty()) {
                 // Iterate through each root node and build its part of the scene
-                for (Node rootNode : rootNodes) {
+                for (Node rootNode : rootParserNodes) {
                     // The parent matrix is null for a root node
-                    buildScene(rootNode, null, geometryTemplates, controllerTemplates, finalModels);
+                    buildScene(rootNode, null, geometryTemplates, controllerTemplates, finalModels, nodeMap);
                 }
             } else {
                 Log.e(TAG, "No root nodes found in visual scene. Falling back to flat list.");
@@ -99,11 +141,73 @@ public class ColladaLoader {
             // 5. POPULATE AND RETURN THE SCENE
             scene.setObjects(finalModels);
             scene.setMaterials(new ArrayList<>(materials.values()));
-            // TODO: Set animations, cameras, lights etc. on the scene later
+            scene.setAnimations(animations);
+            scene.setRootNodes(rootModelNodes); // <-- Attach the hierarchy to the scene
+
             return scene;
-            // --- END OF NEW LOGIC ---
         }
     }
+
+    // In ColladaLoader.java, add these new methods
+
+    /**
+     * Builds the final scene graph of model.Node objects from the parser's DTO nodes.
+     *
+     * @param rootParserNodes The list of root nodes from the parser.
+     * @param nodeMap
+     * @return A list of the root nodes of the final model hierarchy.
+     */
+    private List<org.the3deer.android_3d_model_engine.model.Node> buildNodeHierarchy(List<Node> rootParserNodes, Map<Node, org.the3deer.android_3d_model_engine.model.Node> nodeMap) {
+        if (rootParserNodes == null || rootParserNodes.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        // This map ensures we create each model.Node only once.
+        // Key: Parser DTO Node, Value: Final model.Node
+        List<org.the3deer.android_3d_model_engine.model.Node> rootModelNodes = new ArrayList<>();
+
+        for (Node rootParserNode : rootParserNodes) {
+            // Root nodes have a null parent.
+            rootModelNodes.add(buildModelNode(rootParserNode, null, nodeMap));
+        }
+
+        return rootModelNodes;
+    }
+
+    /**
+     * Recursively creates a single model.Node and all its children.
+     * @param parserNode The current DTO node to process.
+     * @param parentModelNode The parent model.Node to inherit from.
+     * @param nodeMap A map to cache created nodes and avoid duplicates.
+     * @return The created (or cached) model.Node.
+     */
+    private org.the3deer.android_3d_model_engine.model.Node buildModelNode(Node parserNode,
+                                                                           org.the3deer.android_3d_model_engine.model.Node parentModelNode,
+                                                                           Map<Node, org.the3deer.android_3d_model_engine.model.Node> nodeMap){
+    // If we've already created this node, return the cached version.
+        if (nodeMap.containsKey(parserNode)) {
+            return nodeMap.get(parserNode);
+        }
+
+        // Create a new model Node using its ID from the COLLADA file.
+        // Assuming your model.Node has a constructor that accepts an ID string.
+        org.the3deer.android_3d_model_engine.model.Node modelNode = new org.the3deer.android_3d_model_engine.model.Node(parserNode.getId());
+        modelNode.setName(parserNode.getName());
+        modelNode.setParent(parentModelNode);
+        modelNode.setMatrix(parserNode.getTransform());
+
+        // Cache the new node *before* recursing to handle circular dependencies.
+        nodeMap.put(parserNode, modelNode);
+
+        // Recursively build all children and add them to the new model node.
+        for (Node childParserNode : parserNode.getChildren()) {
+            org.the3deer.android_3d_model_engine.model.Node childModelNode = buildModelNode(childParserNode, modelNode, nodeMap);
+            modelNode.addChild(childModelNode);
+        }
+
+        return modelNode;
+    }
+
 
     /**
      * Recursively traverses the parser's Node tree and builds the final scene graph.
@@ -116,7 +220,9 @@ public class ColladaLoader {
     private void buildScene(Node parserNode, float[] parentMatrix,
                             Map<String, Object3DData> geometryTemplates,
                             Map<String, Object3DData> controllerTemplates,
-                            List<Object3DData> finalModels) {
+                            List<Object3DData> finalModels,
+                            Map<Node, org.the3deer.android_3d_model_engine.model.Node> nodeMap) {
+
         // Calculate the world matrix for this node
         float[] worldMatrix = new float[16];
         if (parentMatrix != null) {
@@ -149,7 +255,26 @@ public class ColladaLoader {
             Object3DData newInstance = template.clone();
             newInstance.setId(parserNode.getId());
             newInstance.setMatrix(worldMatrix);
+
+            // Find the corresponding model.Node from the map and set it.
+            org.the3deer.android_3d_model_engine.model.Node parentModelNode = nodeMap.get(parserNode);
+            newInstance.setParentNode(parentModelNode);
+
+            // Find the engine Node that represents the root of the skeleton (e.g., the "Torso" node)
+            final String skinId = parserNode.getSkinId();
+            if (skinId != null) {
+                org.the3deer.android_3d_model_engine.model.Node skeletonRootNode = findNodeInMap(skinId, nodeMap);
+                if (skeletonRootNode != null) {
+                    // Attach the actual Skin object to the skeleton's root Node.
+                    newInstance.setParentNode(skeletonRootNode);
+                    Log.i(TAG, "LINK ESTABLISHED: Skin from controller '" + skinId + "' attached to skeleton root node '" + parserNode.getId() + "'");
+                } else {
+                    Log.e(TAG, "LINK FAILED: Could not find skeleton root node '" + skinId + "' in node map.");
+                }
+            }
+
             finalModels.add(newInstance);
+            Log.d(TAG, "Node '" + parserNode.getId() + "' resolved to template "+parserNode.getId());
 
             // This log is now even more useful
             Log.d(TAG, "Node '" + parserNode.getId() + "' resolved to template "+parserNode.getId());
@@ -157,7 +282,7 @@ public class ColladaLoader {
 
         // Recurse for all children
         for (Node childNode : parserNode.getChildren()) {
-            buildScene(childNode, worldMatrix, geometryTemplates, controllerTemplates, finalModels);
+            buildScene(childNode, worldMatrix, geometryTemplates, controllerTemplates, finalModels, nodeMap);
         }
     }
 
@@ -180,8 +305,71 @@ public class ColladaLoader {
         }
     }
 
+    /**
+     * Searches the nodeMap for a final engine Node by its string ID.
+     *
+     * @param nodeId  The ID of the node to find (e.g., "Torso").
+     * @param nodeMap The map containing all the created engine nodes.
+     * @return The found model.Node, or null if it doesn't exist.
+     */
+    private org.the3deer.android_3d_model_engine.model.Node findNodeInMap(String nodeId, Map<Node, org.the3deer.android_3d_model_engine.model.Node> nodeMap) {
+        if (nodeId == null || nodeMap == null) {
+            return null;
+        }
+
+        // We iterate through the DTO->Engine Node map to find the one with the matching ID.
+        for (org.the3deer.android_3d_model_engine.model.Node modelNode : nodeMap.values()) {
+            if (nodeId.equals(modelNode.getId())) {
+                return modelNode;
+            }
+        }
+
+        // If no node with the given ID was found.
+        return null;
+    }
+
+
     private AnimatedModel buildAnimatedModel(Geometry geometry, Controller controller, Map<String, Material> materials) {// --- THIS IS THE FIX ---
+
+        // Skinning data for the 710 unique vertices
+        int[] sourceJointIndices = controller.getSkin().getWeights().getJointIndices();
+        float[] sourceWeights = controller.getSkin().getWeights().getWeights();
+
+        // Geometry index data (4260 indices)
+        int[] vertexIndices = geometry.getVertexJointIndices();
+        int finalVertexCount = vertexIndices.length;
+
+        // --- THIS IS THE UNROLLING LOGIC ---
+        // Create final, correctly-sized buffers
+        float[] finalJointIndicesAsFloats = new float[finalVertexCount * 4];
+        float[] finalWeights = new float[finalVertexCount * 4];
+
+        for (int i = 0; i < finalVertexCount; i++) {
+            // Get the original vertex index (e.g., a number between 0 and 709)
+            int originalVertexIndex = vertexIndices[i];
+
+            // For this final vertex, copy the 4 joints and 4 weights from the source data
+            for (int j = 0; j < 4; j++) {
+                // Source index for the skinning data
+                int sourceIndex = originalVertexIndex * 4 + j;
+                // Destination index for the final buffer
+                int destIndex = i * 4 + j;
+
+                finalJointIndicesAsFloats[destIndex] = (float) sourceJointIndices[sourceIndex];
+                finalWeights[destIndex] = sourceWeights[sourceIndex];
+            }
+        }
+        // --- END OF UNROLLING LOGIC ---
+
         // The method signature was wrong, it should now get jointNames from the skin object.
+        Skin skin = new Skin(
+                controller.getSkin().getBindShapeMatrix(),
+                IOUtils.createFloatBuffer(finalJointIndicesAsFloats), // skinning data
+                IOUtils.createFloatBuffer(finalWeights),
+                controller.getSkin().getInverseBindMatrices(),
+                controller.getSkin().getJointNames());
+        skin.setDoInverseBindTranspose(true);
+
         AnimatedModel model = new AnimatedModel(
                 geometry.getId(), // id
                 geometry.getPositions(), // vertex attribute
@@ -189,14 +377,14 @@ public class ColladaLoader {
                 geometry.getColors(), // vertex attribute
                 geometry.getTexCoords(), // vertex attribute
                 materials.get(geometry.getMaterialId()), // vertex color/texture
-                new Skin(
-                        IOUtils.createIntBuffer(controller.getSkin().getWeights().getJointIndices()), // skinning data
-                        IOUtils.createFloatBuffer(controller.getSkin().getWeights().getWeights()),
-                        controller.getSkin().getInverseBindMatrices(),
-                        controller.getSkin().getJointNames()) // is this needed here ?
+                skin // is this needed here ?
         );
         model.setIndexed(false);
         model.setDrawMode(GLES20.GL_TRIANGLES);
+
+        // metadata
+        model.setAuthoringTool(this.authoringTool);
+
         return model;
     }
 
@@ -214,6 +402,10 @@ public class ColladaLoader {
         }
         model.setIndexed(false);
         model.setDrawMode(GLES20.GL_TRIANGLES);
+
+        // metadata
+        model.setAuthoringTool(this.authoringTool);
+
         return model;
     }
 }

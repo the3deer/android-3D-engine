@@ -35,7 +35,6 @@ import java.util.Set;
  */
 public class Object3DData {
 
-
     public Object3DData(String id, FloatBuffer positions, FloatBuffer normals, FloatBuffer texCoords, FloatBuffer colors, Material material) {
         this.id=id;
         this.vertexArrayBuffer = positions;
@@ -360,10 +359,12 @@ public class Object3DData {
 
     public Object3DData setDrawUsingArrays(boolean drawUsingArrays) {
         this.drawUsingArrays = drawUsingArrays;
+        this.isIndexed = !drawUsingArrays;
         return this;
     }
 
     public Material getMaterial() {
+        if (material == null) material = new Material("default");
         return material;
     }
 
@@ -757,7 +758,7 @@ public class Object3DData {
     // binding coming from skeleton
     public Object3DData setWorldTransform(float[] matrix) {
         this.worldTransform = matrix;
-        this.updateModelMatrix();
+        //this.updateModelMatrix();
         return this;
     }
 
@@ -823,12 +824,17 @@ public class Object3DData {
     }
 
     public float[] getModelMatrix() {
+
         if (isParentBound && parent != null) {
             return parent.getModelMatrix();
         } else if (parentNode != null){
             // If this mesh is attached to a node in the scene graph...
             // ...get the node's current, final, animated world transform.
+
             if (parentNode.getAnimatedWorldTransform() != null){
+
+                // FIXME: this needs to be true for the door.dae
+                if (true) return parentNode.getAnimatedWorldTransform();
 
                 // Get the parent's final animated world transform.
                 // This will be an identity matrix for static scenes like the door,
@@ -848,6 +854,8 @@ public class Object3DData {
                 // This will be an identity matrix for static scenes like the door,
                 // or the true animated transform for skeletons.
                 final float[] parentWorldTransform = parentNode.getBindWorldTransform();
+
+                if (true) return parentWorldTransform;
 
                 // Calculate the final world matrix for THIS object by applying its local
                 // transform on top of its parent's world transform.
@@ -1087,6 +1095,9 @@ public class Object3DData {
         ret.setDrawUsingArrays(this.isDrawUsingArrays());
         ret.setParentNode(this.getParentNode());
         //ret.setDrawUsingArrays(this.isDrawUsingArrays());
+
+        // metadata
+        ret.authoringTool = this.authoringTool;
     }
 
     public void dispose() {

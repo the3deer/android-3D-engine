@@ -23,6 +23,8 @@ public interface Scene {
 
     void addRootNode(Node node);
 
+    void setRootNodes(List<Node> nodes);
+
     List<Node> getRootNodes();
 
     void addSkeleton(Skin skin);
@@ -64,4 +66,6 @@ public interface Scene {
 
 
     void setMaterials(ArrayList<Material> materials);
+
+    void setAnimations(List<Animation> sceneAnimations);
 }

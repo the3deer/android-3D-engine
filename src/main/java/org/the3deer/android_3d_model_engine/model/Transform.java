@@ -212,4 +212,8 @@ public final class Transform {
 
         return wrapperArray;
     }
+
+    public static Transform of(Float[] scale, Quaternion rotation, Float[] translation) {
+        return new Transform(scale, rotation, translation);
+    }
 }

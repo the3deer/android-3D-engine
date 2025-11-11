@@ -91,7 +91,7 @@ public final class BoundingBox {
         return boundingBox;
     }
 
-    private static Object3DData buildStatic(Object3DData obj) {
+    public static Object3DData buildStatic(Object3DData obj) {
 
         Log.v("BoundingBox", "Building STATIC bounding box for: " + obj.getId());
 

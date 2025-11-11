@@ -2,13 +2,16 @@ package org.the3deer.android_3d_model_engine.services;
 
 import android.util.Log;
 
+import org.the3deer.android_3d_model_engine.model.AnimatedModel;
 import org.the3deer.android_3d_model_engine.model.Element;
 import org.the3deer.android_3d_model_engine.model.Material;
 import org.the3deer.android_3d_model_engine.model.Object3DData;
 
 import java.nio.Buffer;
+import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
+import java.nio.ShortBuffer;
 
 public class ModelComparator {
 
@@ -29,6 +32,7 @@ public class ModelComparator {
         // Compare buffers by content
         compareFloatBuffer("Vertex Array", legacyModel.getVertexArrayBuffer(), newModel.getVertexArrayBuffer());
         compareFloatBuffer("Normals Array", legacyModel.getVertexNormalsArrayBuffer(), newModel.getVertexNormalsArrayBuffer());
+        compareGenericBuffer("Colors Array", legacyModel.getVertexColorsArrayBuffer(), newModel.getVertexColorsArrayBuffer());
         compareFloatBuffer("Texture Array", legacyModel.getTextureCoordsArrayBuffer(), newModel.getTextureCoordsArrayBuffer());
         compareFloatBuffer("Colors Array", (FloatBuffer) legacyModel.getVertexColorsArrayBuffer(), (FloatBuffer) newModel.getVertexColorsArrayBuffer());
 
@@ -50,11 +54,37 @@ public class ModelComparator {
                 Element newElement = newModel.getElements().get(i);
 
                 // Compare the element's index buffer
-                compareIntBuffer("Element Index Buffer", (IntBuffer) legacyElement.getIndexBuffer(), (IntBuffer) newElement.getIndexBuffer());
+                compareGenericBuffer("Element Index Buffer", legacyElement.getIndexBuffer(), newElement.getIndexBuffer());
 
                 // Compare material
                 compareMaterial("Element Material", legacyElement.getMaterial(), newElement.getMaterial());
             }
+        }
+
+        if (legacyModel instanceof AnimatedModel && newModel instanceof AnimatedModel) {
+          AnimatedModel legacyAnimated = (AnimatedModel) legacyModel;
+          AnimatedModel newAnimated = (AnimatedModel) newModel;
+          if (legacyAnimated.getSkin() != null && newAnimated.getSkin() != null) {
+              compareGenericBuffer("Joints", legacyAnimated.getSkin().getJointsBuffer(), newAnimated.getSkin().getJointsBuffer());
+              compareGenericBuffer("Weights", legacyAnimated.getSkin().getWeightsBuffer(), newAnimated.getSkin().getWeightsBuffer());
+          } else if (legacyAnimated.getSkin() == null || newAnimated.getSkin() == null){
+              Log.e("MODEL_COMPARE", "DIFFERENCE: Skin is null. Legacy: " + (legacyAnimated.getSkin() == null) + ", New: " + (newAnimated.getSkin() == null));
+          }
+
+
+
+        } else if (legacyModel instanceof AnimatedModel || newModel instanceof AnimatedModel){
+            Log.e("MODEL_COMPARE", "DIFFERENCE: Class is different. Legacy: " + legacyModel.getClass() + ", New: " + newModel.getClass());
+        }
+
+        if (legacyModel.getMaterial() == null && newModel.getMaterial() == null){
+            Log.i("MODEL_COMPARE", "Material is both null");
+        }
+        else if (legacyModel.getMaterial() == null || newModel.getMaterial() == null) {
+            Log.e("MODEL_COMPARE", "DIFFERENCE: Material is null. Legacy: " + (legacyModel.getMaterial() == null) + ", New: " + (newModel.getMaterial() == null));
+        } else {
+            // Compare material
+            compareMaterial("Material", legacyModel.getMaterial(), newModel.getMaterial());
         }
 
         Log.i("MODEL_COMPARE", "--- Comparison Finished ---");
@@ -116,30 +146,52 @@ public class ModelComparator {
         newBuf.position(0);
     }
 
-    private static void compareIntBuffer(String name, IntBuffer legacy, IntBuffer newBuf) {
-        compareBuffer(name, legacy, newBuf);
+    // Replace the old compareIntBuffer with this generic version
+    private static void compareGenericBuffer(String name, Buffer legacy, Buffer newBuf) {
+        compareBuffer(name, legacy, newBuf); // This already handles null and capacity checks
         if (legacy == null || newBuf == null || legacy.capacity() != newBuf.capacity()) return;
 
-        legacy.position(0);
-        newBuf.position(0);
+        // Make sure we put the buffer position back to 0, even if something goes wrong
+        try {
+            legacy.position(0);
+            newBuf.position(0);
 
-        for (int i = 0; i < legacy.capacity(); i++) {
-            int legacyVal = legacy.get();
-            int newVal = newBuf.get();
-            if (legacyVal != newVal) {
-                Log.e("MODEL_COMPARE", "DIFFERENCE: " + name + " buffer content at index [" + i + "]. Legacy: "
-                        + legacyVal + ", New: " + newVal);
-                // Put positions back to 0 before returning
-                legacy.position(0);
-                newBuf.position(0);
-                return;
+            for (int i = 0; i < legacy.capacity(); i++) {
+                // Read value as Long to handle all integer types (byte, short, int) without data loss
+                long legacyVal = getLongFromBuffer(legacy, i);
+                long newVal = getLongFromBuffer(newBuf, i);
+
+                if (legacyVal != newVal) {
+                    Log.e("MODEL_COMPARE", "DIFFERENCE: " + name + " buffer content at index [" + i + "]. Legacy: "
+                            + legacyVal + ", New: " + newVal + " (Type: " + legacy.getClass().getSimpleName() + ")");
+                    return; // Exit on first difference
+                }
             }
+            Log.i("MODEL_COMPARE", "OK: " + name + " buffer contents are the same.");
+
+        } finally {
+            // Always reset buffer positions
+            if(legacy != null) legacy.position(0);
+            if(newBuf != null) newBuf.position(0);
         }
-        Log.i("MODEL_COMPARE", "OK: " + name + " buffer contents are the same.");
-        // Put positions back to 0
-        legacy.position(0);
-        newBuf.position(0);
     }
+
+    // Helper method to read from any integer-based buffer type
+    private static long getLongFromBuffer(Buffer buf, int index) {
+        if (buf instanceof ByteBuffer) {
+            // Convert unsigned byte to long
+            return ((ByteBuffer) buf).get(index) & 0xFFL;
+        } else if (buf instanceof ShortBuffer) {
+            // Convert unsigned short to long
+            return ((ShortBuffer) buf).get(index) & 0xFFFFL;
+        } else if (buf instanceof IntBuffer) {
+            // Convert unsigned int to long
+            return ((IntBuffer) buf).get(index) & 0xFFFFFFFFL;
+        }
+        // Return a sentinel value for unsupported types to make errors obvious
+        return -1L;
+    }
+
 
     private static void compareMaterial(String name, Material legacy, Material newMat) {
         if (legacy == null && newMat == null) {
@@ -154,6 +206,8 @@ public class ModelComparator {
 
         String legacyTexture = (legacy.getColorTexture() != null) ? legacy.getColorTexture().getFile() : "null";
         String newTexture = (newMat.getColorTexture() != null) ? newMat.getColorTexture().getFile() : "null";
+        if (legacyTexture == null ) legacyTexture = "null";
+        if (newTexture == null ) newTexture = "null";
 
         if (!legacyTexture.equals(newTexture)){
             Log.e("MODEL_COMPARE", "DIFFERENCE: " + name + " texture. Legacy: " + legacyTexture + ", New: " + newTexture);

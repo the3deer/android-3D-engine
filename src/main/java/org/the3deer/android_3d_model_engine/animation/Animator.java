@@ -7,6 +7,7 @@ import org.the3deer.android_3d_model_engine.model.AnimatedModel;
 import org.the3deer.android_3d_model_engine.model.Node;
 import org.the3deer.util.math.Math3DUtils;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -47,6 +48,9 @@ public class Animator {
     private final Map<String, float[]> currentPose = new HashMap<>();
     private KeyFrame[] previousAndNextKeyFrames = new KeyFrame[2];
 
+    // debug
+    private final Set<String> log = new HashSet<>();
+
     public Animator() {
     }
 
@@ -63,10 +67,47 @@ public class Animator {
         if (rootNodes == null || rootNodes.isEmpty() || currentAnimation == null)
             return;
 
-        // process
-        for (int i=0; i<rootNodes.size(); i++) {
+        // 2. Find the specific root node FOR THIS ANIMATION from the scene.
+        Node rootNode = currentAnimation.getRootNode();
+        if (rootNode == null){
+            search: for (KeyFrame keyFrame : currentAnimation.getKeyFrames()){
+                final Set<String> strings = keyFrame.getPose().keySet();
+                for (String nodeId : strings){
+                    for (Node node : rootNodes) {
+                        if (node.find(nodeId) != null) {
+                            rootNode = node;
+                            Log.d("Animator", "Animation '" + currentAnimation.getName() + "' found rootNode. " + node.getId());
+                            currentAnimation.setRootNode(node);
+                            break search;
+                        }
+                    }
+                }
+            }
+        }
 
-            final Node rootNode = rootNodes.get(i);
+        if (rootNode == null){
+            Log.e("Animator", "Animation '"+currentAnimation.getName()+"' has no root node set. Cannot play.");
+            return;
+        }
+
+        initAnimation(rootNode, currentAnimation);
+        increaseAnimationTime(currentAnimation);
+
+        final Map<String, float[]> currentPose = calculateCurrentAnimationPose(currentAnimation);
+        applyPoseToJoints(rootNode, currentPose,
+                Math3DUtils.IDENTITY_MATRIX,
+                Integer.MAX_VALUE, bindPoseOnly);
+
+        // debug
+        if (!log.contains(rootNode.getId())){
+            debugNode(rootNode);
+            log.add(rootNode.getId());
+        }
+
+        // process
+        /*for (int i=1; i<rootNodes.size(); i++) {
+
+            //final Node rootNode = rootNodes.get(i);
 
             initAnimation(rootNode, currentAnimation);
             increaseAnimationTime(currentAnimation);
@@ -77,7 +118,7 @@ public class Animator {
             applyPoseToJoints(rootNode, currentPose,
                     Math3DUtils.IDENTITY_MATRIX,
                     Integer.MAX_VALUE, bindPoseOnly);
-        }
+        }*/
 
     }
 
@@ -264,6 +305,9 @@ public class Animator {
         animation.setInitialized(true);
 
         Log.d("Animator", "Initialized " + rootNode.getId() + ". " + keyFrames.length + " key frames");
+
+        // debug
+        animation.debugKeyFrames();
     }
 
     /**
@@ -334,18 +378,18 @@ public class Animator {
 
         // 1. Get the joint's LOCAL animation transform for this frame.
         //    If no animation data, use its LOCAL bind transform (T-Pose).
-        float[] localAnimatedTransform = pose.get(node.getName());
+        float[] localAnimatedTransform = pose.get(node.getId());
         if (bindPoseOnly || localAnimatedTransform == null || limit <= 0) {
             localAnimatedTransform = node.getLocalTransform().getTransform();
         }
 
         // 2. Get the matrix from the Node where the FINAL result should be stored.
         // Let's assume you rename getAnimatedLocalTransform() to getFinalTransform() for clarity.
-        float[] finalWorldTransform = node.getAnimatedLocalTransform();
+/*        float[] finalWorldTransform = node.getAnimatedLocalTransform();
         if (finalWorldTransform == null) {
             finalWorldTransform = new float[16];
             node.setAnimatedLocalTransform(finalWorldTransform);
-        }
+        }*/
         node.setAnimatedLocalTransform(localAnimatedTransform);
 
         // 3. Multiply the parent's final world transform with this node's local animated transform.
@@ -448,5 +492,11 @@ public class Animator {
         return currentPose;
     }
 
+    private void debugNode(Node node){
+        Log.d("Animator", "DEBUG: Node["+node.getId()+"]: " + Arrays.toString(node.getAnimatedLocalTransform()));
+        for (int i=0; i<node.getChildren().size(); i++){
+            debugNode(node.getChildren().get(i));
+        }
+    }
 }
 

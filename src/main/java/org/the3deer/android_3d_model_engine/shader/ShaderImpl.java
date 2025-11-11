@@ -73,10 +73,11 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
     // features
     private final Set<String> features;
     private final boolean supportsColors;
-    private final boolean supportsTangent;
     private final boolean supportsTextures;
     private final boolean supportsLighting;
     private final boolean supportsAnimation;
+    private final boolean supportsNormalTexture;
+
     private final boolean supportsTextureCube;
     private final boolean supportBlending;
     private final boolean supportsTexturesTransformed;
@@ -168,7 +169,7 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
         this.supportsNormals = testShaderFeature(shaderFeatures, shaderCode, "a_Normal")
                 && testShaderFeature(shaderFeatures, shaderCode, "u_NormalMatrix");
         this.supportsColors = testShaderFeature(shaderFeatures, shaderCode, "a_Color");
-        this.supportsTangent = testShaderFeature(shaderFeatures, shaderCode, "a_Tangent");
+        this.supportsNormalTexture = testShaderFeature(shaderFeatures, shaderCode, "a_Tangent");
         this.supportsTextures = testShaderFeature(shaderFeatures, shaderCode, "a_TexCoordinate");
         this.supportsLighting = testShaderFeature(shaderFeatures, shaderCode, "u_LightPos")
                 && testShaderFeature(shaderFeatures, shaderCode, "u_cameraPos");
@@ -271,9 +272,18 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
 
         // pass in normals map for lighting
         int mNormalMapHandle = -1;
-        if (supportsTangent) {
-            boolean toggle = obj.getVertexNormalsArrayBuffer() != null && obj.getTangentBuffer() != null;
-            mNormalMapHandle = setVBO("a_Tangent", obj.getTangentBuffer(), COORDS_PER_VERTEX, GLES20.GL_FLOAT);
+        if (supportsNormalTexture) {
+            boolean toggle = obj.getVertexNormalsArrayBuffer() != null
+                    & obj.getTangentBuffer() != null &&
+                    obj.getMaterial().getNormalTexture() != null;
+
+            if (toggle) {
+                loadTexture(obj.getMaterial().getNormalTexture());
+                setTexture(obj.getMaterial().getNormalTexture(), "u_NormalTexture", 1);
+                setFeatureFlag("u_NormalTextured", true);
+                mNormalMapHandle = setVBO("a_Tangent", obj.getTangentBuffer(), COORDS_PER_VERTEX, GLES20.GL_FLOAT);
+            }
+
             setFeatureFlag("u_NormalTextured", toggle);
         }
 
@@ -316,11 +326,6 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
                     setFeatureFlag("u_Textured", texturesEnabled);
                 }
 
-                if (obj.getMaterial().getNormalTexture() != null) {
-                    loadTexture(obj.getMaterial().getNormalTexture());
-                    setTexture(obj.getMaterial().getNormalTexture(), "u_NormalTexture", 1);
-                    setFeatureFlag("u_NormalTextured", true);
-                }
 
                 boolean enableEmissive = obj.getMaterial().getEmissiveTexture() != null && obj.getMaterial().getEmissiveFactor() != null;
                 setFeatureFlag("u_EmissiveTextured", enableEmissive);
@@ -354,17 +359,23 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
         if (supportsAnimation) {
             final boolean animationOK = obj instanceof AnimatedModel
                     && ((AnimatedModel) obj).getSkin() != null
-                    && ((AnimatedModel) obj).getVertexWeights() != null
-                    && ((AnimatedModel) obj).getJointIds() != null;
+                    && ((AnimatedModel) obj).getSkin().getWeightsBuffer() != null
+                    && ((AnimatedModel) obj).getSkin().getJointsBuffer() != null;
             boolean toggle = this.animationEnabled && animationOK;
             if (toggle) {
-                in_weightsHandle = setVBO("in_weights", ((AnimatedModel) obj).getVertexWeights(), ((AnimatedModel) obj).getWeightsComponents(), -1);
-                in_jointIndicesHandle = setVBO("in_jointIndices", ((AnimatedModel) obj).getJointIds(), ((AnimatedModel) obj).getJointComponents(), -1);
+                in_weightsHandle = setVBO("in_weights", ((AnimatedModel) obj).getSkin().getWeightsBuffer(), ((AnimatedModel) obj).getWeightsComponents(), -1);
+                in_jointIndicesHandle = setVBO("in_jointIndices", ((AnimatedModel) obj).getSkin().getJointsBuffer(), ((AnimatedModel) obj).getJointComponents(), -1);
                 setUniformMatrix4(((AnimatedModel) obj).getSkin().getBindShapeMatrix(), "u_BindShapeMatrix");
                 setJointTransforms((AnimatedModel) obj);
             }
+
             //Log.v(TAG, "u_Animated: " + toggle + " ("+obj.getId()+")");
             setFeatureFlag("u_Animated", toggle);
+
+            // debug
+            if (!logset.contains(obj.getId())) {
+                Log.v("SHADER_DEBUG", "id: " + obj.getId() + ", u_Animated " + toggle);
+            }
         }
 
         if (!logset.contains(obj.getId())){
@@ -439,7 +450,7 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
         if (texture == null || texture.hasId()) return;
 
         // check
-        if (texture.getData() == null && texture.getBitmap() == null) return;
+        if (texture.getData() == null && texture.getBitmap() == null && texture.getBuffer() == null) return;
 
         // load
         final int textureId;
@@ -448,6 +459,9 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
             texture.setId(textureId);
         } else if (texture.getData() != null) {
             textureId = GLUtil.loadTexture(texture.getData());
+            texture.setId(textureId);
+        } else if (texture.getBuffer() != null) {
+            textureId = GLUtil.loadTexture(texture.getBuffer());
             texture.setId(textureId);
         } else {
             Log.e(TAG, "No texture data for " + id);
@@ -589,7 +603,7 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
     }
 
     private boolean supportsTangent() {
-        return supportsTangent;
+        return supportsNormalTexture;
     }
 
     private boolean supportsLighting() {
@@ -695,6 +709,11 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
                 cache1.put(i, jointTransformHandleName);
             }
             setUniformMatrix4(jointTransform, jointTransformHandleName);
+
+            // debug
+            if (!logset.contains(animatedModel.getId())) {
+                Log.v("SHADER_DEBUG", "id: " + animatedModel.getId() + ", jointTransform["+i+"] = " + Arrays.toString(jointTransform));
+            }
         }
     }
 

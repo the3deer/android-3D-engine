@@ -18,4 +18,17 @@ public class VertexWeights {
     public int[] getJointIndices() {
         return jointIndices;
     }
+
+    public float[] getJointIndicesAsFloats() {
+        // check
+        if (jointIndices == null) return null;
+
+        // The shader expects a vec4 (floats), so we must convert our integer indices to floats.
+        // Let's create a new float array to hold the converted indices.
+        float[] jointIndicesAsFloats = new float[jointIndices.length];
+        for (int i = 0; i < jointIndices.length; i++) {
+            jointIndicesAsFloats[i] = (float) jointIndices[i];
+        }
+        return jointIndicesAsFloats;
+    }
 }

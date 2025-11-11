@@ -1,864 +1,287 @@
 package org.the3deer.android_3d_model_engine.services.gltf;
 
 import android.graphics.Bitmap;
-import android.net.Uri;
+import android.opengl.GLES20;
+import android.opengl.Matrix;
 import android.util.Log;
 
-import androidx.annotation.NonNull;
-
 import org.the3deer.android_3d_model_engine.animation.Animation;
-import org.the3deer.android_3d_model_engine.animation.JointTransform;
-import org.the3deer.android_3d_model_engine.animation.KeyFrame;
 import org.the3deer.android_3d_model_engine.model.AnimatedModel;
-import org.the3deer.android_3d_model_engine.model.Camera;
 import org.the3deer.android_3d_model_engine.model.Material;
 import org.the3deer.android_3d_model_engine.model.Node;
 import org.the3deer.android_3d_model_engine.model.Object3DData;
-import org.the3deer.android_3d_model_engine.model.Scene;
 import org.the3deer.android_3d_model_engine.model.Skin;
 import org.the3deer.android_3d_model_engine.model.Texture;
-import org.the3deer.android_3d_model_engine.scene.SceneImpl;
+import org.the3deer.android_3d_model_engine.model.Transform;
 import org.the3deer.android_3d_model_engine.services.LoadListener;
+import org.the3deer.android_3d_model_engine.services.gltf.dto.GltfDto;
+import org.the3deer.android_3d_model_engine.services.gltf.dto.GltfMaterialDto;
+import org.the3deer.android_3d_model_engine.services.gltf.dto.GltfMeshDto;
+import org.the3deer.android_3d_model_engine.services.gltf.dto.GltfNodeDto;
+import org.the3deer.android_3d_model_engine.services.gltf.dto.GltfPrimitiveDto;
+import org.the3deer.android_3d_model_engine.services.gltf.dto.GltfSceneData;
+import org.the3deer.android_3d_model_engine.services.gltf.dto.GltfSkinDto;
 import org.the3deer.util.android.AndroidUtils;
 import org.the3deer.util.android.ContentUtils;
 import org.the3deer.util.math.Quaternion;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
-import java.nio.Buffer;
-import java.nio.BufferUnderflowException;
-import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
-import java.nio.IntBuffer;
-import java.nio.ShortBuffer;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
 
-import de.javagl.jgltf.model.AccessorData;
-import de.javagl.jgltf.model.AccessorModel;
-import de.javagl.jgltf.model.AnimationModel;
-import de.javagl.jgltf.model.CameraModel;
 import de.javagl.jgltf.model.GltfModel;
 import de.javagl.jgltf.model.GltfModels;
-import de.javagl.jgltf.model.MeshModel;
-import de.javagl.jgltf.model.MeshPrimitiveModel;
-import de.javagl.jgltf.model.NodeModel;
-import de.javagl.jgltf.model.SceneModel;
-import de.javagl.jgltf.model.SkinModel;
-import de.javagl.jgltf.model.TextureModel;
 import de.javagl.jgltf.model.io.Buffers;
 import de.javagl.jgltf.model.io.GltfAsset;
 import de.javagl.jgltf.model.io.GltfAssetReader;
-import de.javagl.jgltf.model.io.GltfReference;
 import de.javagl.jgltf.model.io.GltfReferenceResolver;
 import de.javagl.jgltf.model.io.IO;
-import de.javagl.jgltf.model.v2.MaterialModelV2;
 
-public final class GltfLoader {
+public class GltfLoader {
 
-    public static final String TAG = GltfLoader.class.getSimpleName();
+    private static final String TAG = GltfLoader.class.getSimpleName();
 
-    public static List<String> getAllReferences(Uri uri) {
-
-        final List<String> ret = new ArrayList<>();
-        // final List<MeshData> allMeshes = new ArrayList<>();
-
-        try (InputStream is = ContentUtils.getInputStream(uri)) {
-
-            Log.i(TAG, "Loading model file... " + uri);
-
-            // gltf ...
-            GltfAssetReader gltfAssetReader = new GltfAssetReader();
-            GltfAsset gltfAsset = gltfAssetReader.readWithoutReferences(is);
-
-            for (GltfReference ref : gltfAsset.getReferences()) {
-                ret.add(ref.getUri());
-            }
-
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-
-        return ret;
+    public GltfLoader() {
     }
 
-    @NonNull
-    public List<Object3DData> load(URI uri, LoadListener callback) {
+    // In GltfLoader.java - replace the whole load() method
 
-        callback.onProgress("Loading file...");
+    public GltfSceneData load(URI uri, LoadListener callback) throws Exception {
 
-        final List<Object3DData> ret = new ArrayList<>();
-        // final List<MeshData> allMeshes = new ArrayList<>();
+        try (InputStream stream = ContentUtils.getInputStream(uri)) {
+            Log.i(TAG, "Loading and parsing model file... " + uri);
+            callback.onProgress("Parsing " + uri);
 
-        try (InputStream is = ContentUtils.getInputStream(uri)) {
-
-            Log.i(TAG, "Loading model file... " + uri);
-            callback.onProgress("Loading " + uri);
-
-            // gltf ...
+            // --- Stage 1: Parse to DTO ---
             GltfAssetReader gltfAssetReader = new GltfAssetReader();
-            GltfAsset gltfAsset = gltfAssetReader.readWithoutReferences(is);
+            GltfAsset gltfAsset = gltfAssetReader.readWithoutReferences(stream);
             URI baseUri = IO.getParent(uri);
             GltfReferenceResolver.resolveAll(gltfAsset.getReferences(), baseUri);
             GltfModel gltfModel = GltfModels.create(gltfAsset);
+            GltfParser parser = new GltfParser(gltfAsset, gltfModel);
+            GltfDto dto = parser.parse();
 
+            // --- Stage 2: Build Engine Objects from DTO ---
+            Log.i(TAG, "Building engine objects from DTO...");
+            callback.onProgress("Building objects");
 
-            // --- 1. Load All Primitives into a Flat List ---
-            // This creates one Object3DData for every drawable primitive in the file.
-            final Map<MeshModel, List<Object3DData>> meshesListMap = loadMeshModel(gltfModel, callback);
-            if (meshesListMap == null || meshesListMap.isEmpty()) {
-                // No meshes to render
-                return new ArrayList<>();
-            }
-
-            // --- 2. load camera list
-            final List<Camera> cameraList = loadCameraModel(gltfModel, callback);
-
-            // --- 3. load node hierarchy
-            final List<Node> nodeList = loadNodes(gltfModel, meshesListMap, cameraList);
-
-            // --- 4. load scenes
-            final List<Scene> scenes = loadSceneModel(callback, gltfModel, nodeList, meshesListMap);
-
-            callback.onProgress("Loading skeletons...");
-            final List<Skin> skins = loadSkeletons(gltfModel, nodeList);
-
-            callback.onProgress("Loading animations...");
-            final List<Animation> animations = loadAnimations(gltfModel, nodeList, callback);
-
-        } catch (Exception ex) {
-            Log.e(TAG, "Problem loading model", ex);
-        }
-        return ret;
-    }
-
-    private List<Scene> loadSceneModel(LoadListener callback, GltfModel gltfModel,
-                                       List<Node> nodeList, Map<MeshModel, List<Object3DData>> meshListMap) {
-
-        if (gltfModel.getSceneModels() == null || gltfModel.getSceneModels().isEmpty()) {
-            return null;
-        }
-
-        // ret
-        final List<Scene> scenes = new ArrayList<>();
-
-        // load scene...
-        Log.d(TAG, "Loading scenes...");
-        for (SceneModel sceneModel : gltfModel.getSceneModels()) {
-
-            Log.v(TAG, "Loading scene: " + sceneModel.getName());
-            callback.onProgress("Loading scene: " + sceneModel.getName());
-
-            final Scene scene = new SceneImpl();
-            scenes.add(scene);
-            if (sceneModel.getName() != null) {
-                scene.setName(sceneModel.getName());
-            }
-            callback.onLoad(scene);
-
-            // Create a temporary list to hold all objects for THIS scene.
-            final List<Object3DData> sceneObjects = new ArrayList<>();
-
-            // For each ROOT node of the scene, recursively collect all objects.
-            for (NodeModel rootNodeModel : sceneModel.getNodeModels()) {
-                Log.v(TAG, "Traversing scene graph from root node: " + rootNodeModel.getName());
-                final Node node = nodeList.get(gltfModel.getNodeModels().indexOf(rootNodeModel));
-                collectObjects(scene, node, sceneObjects);
-                Log.v(TAG, "Traversing scene collected objects: " + sceneObjects);
-            }
-
-            // Now add all collected objects to the scene at once.
-            if (!sceneObjects.isEmpty()) {
-                //scene.addObjects(sceneObjects);
-                for (Object3DData obj : sceneObjects) {
-                    callback.onLoad(scene, obj);
+            // A. Find which node uses which skin (for dependency lookup)
+            Map<Integer, GltfNodeDto> skinToNodeMap = new HashMap<>();
+            for (GltfNodeDto nodeDto : dto.nodes) {
+                if (nodeDto.skinIndex != null) {
+                    skinToNodeMap.put(nodeDto.skinIndex, nodeDto);
                 }
             }
 
-            // A scene's root nodes are those nodes that have no parent.
-            // Find them and add them to the scene object.
-            for (NodeModel rootNodeModel : sceneModel.getNodeModels()) {
-                int rootNodeIndex = gltfModel.getNodeModels().indexOf(rootNodeModel);
-                if (rootNodeIndex != -1) {
-                    scene.addRootNode(nodeList.get(rootNodeIndex));
-                }
+            // B. Load Meshes and create a map for the skin builder
+            List<Material> materials = buildMaterialsFromDto(dto);
+            Map<Integer, GltfPrimitiveDto> meshToPrimitiveMap = new HashMap<>();
+            List<Object3DData> meshes = buildMeshesFromDto(dto, materials, meshToPrimitiveMap);
+
+            // C. Load Skins, which depend on the mesh primitive data
+            List<Skin> skins = buildSkinsFromDto(dto, skinToNodeMap, meshToPrimitiveMap);
+
+            // D. Load Nodes, which links everything together
+            List<Node> nodes = buildNodesFromDto(dto, meshes, skins);
+
+            // E. Load animations
+            GltfAnimationLoader animationLoader = new GltfAnimationLoader(dto, nodes);
+            List<Animation> animations = animationLoader.load();
+
+            // --- Stage 3: Return all the built parts ---
+            return new GltfSceneData(dto, nodes, meshes, materials, skins, animations);
+        }
+    }
+
+    private List<Material> buildMaterialsFromDto(GltfDto dto) {
+        if (dto.materials == null || dto.materials.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<Material> materials = new ArrayList<>(dto.materials.size());
+        for (int i = 0; i < dto.materials.size(); i++) {
+            GltfMaterialDto materialDto = dto.materials.get(i);
+            Material material = new Material();
+            material.setName(materialDto.name);
+            material.setDiffuse(materialDto.baseColorFactor);
+
+            // diffuse texture
+            if (materialDto.imageData != null) {
+                material.setColorTexture(new Texture().setBuffer(materialDto.imageData));
             }
 
-            scene.onLoadComplete();
+            materials.add(material);
         }
-        return scenes;
+
+        return materials;
     }
 
-    /**
-     * Recursively traverses a node and all its children, collecting all associated
-     * Object3DData from the provided map.
-     *
-     * @param scene            the scene to add objects to.
-     * @param node             The starting node to process.
-     * @param collectedObjects The list where all found objects will be added.
-     */
-    private void collectObjects(Scene scene, Node node,
-                                List<Object3DData> collectedObjects) {
-
-        node.setScene(scene);
-
-        // 1. Get objects from the CURRENT node
-        if (node.getMeshes() != null) {
-            collectedObjects.addAll(node.getMeshes());
+    // Modify buildNodesFromDto to accept the skins list and link them
+    private List<Node> buildNodesFromDto(GltfDto dto, List<Object3DData> meshes, List<Skin> skins) {
+        if (dto.nodes == null || dto.nodes.isEmpty()) {
+            return Collections.emptyList();
         }
 
-        // 2. Recursively call this method for all children
-        if (node.getChildren() != null) {
-            for (Node childNode : node.getChildren()) {
-                collectObjects(scene, childNode, collectedObjects);
-            }
-        }
-    }
-
-
-    private List<Camera> loadCameraModel(GltfModel gltfModel, LoadListener callback) {
-
-        // check
-        if (gltfModel.getCameraModels() == null || gltfModel.getCameraModels().isEmpty())
-            return null;
-
-        // load
-        final List<Camera> cameraList = new ArrayList<>();
-        for (CameraModel cameraModel : gltfModel.getCameraModels()) {
-            float[] floats = cameraModel.computeProjectionMatrix(null, 1.0f);
-            // TODO: load parameters
-            final Camera camera = new Camera();
-            cameraList.add(camera);
-
-            callback.onLoad(camera);
-        }
-        return cameraList;
-    }
-
-    private Map<MeshModel, List<Object3DData>> loadMeshModel(GltfModel gltfModel, LoadListener callback) {
-
-        final List<MeshModel> meshModels = gltfModel.getMeshModels();
-        if (meshModels == null || meshModels.isEmpty()) {
-            Log.w(TAG, "No meshes found.");
-            return null;
+        // 1. First, create all Node objects
+        List<Node> nodes = new ArrayList<>(dto.nodes.size());
+        for (int i = 0; i < dto.nodes.size(); i++) {
+            Node node = new Node(i);
+            nodes.add(node);
         }
 
-        final Map<MeshModel, List<Object3DData>> meshes = new HashMap<>();
-        for (MeshModel meshModel : gltfModel.getMeshModels()) {
-            List<Object3DData> listObjs = loadMeshModel(gltfModel, meshModel, callback);
-            meshes.put(meshModel, listObjs);
-        }
-        return meshes;
-    }
+        // 2. Now, iterate again to set properties and build the hierarchy.
+        for (int i = 0; i < dto.nodes.size(); i++) {
+            GltfNodeDto nodeDto = dto.nodes.get(i);
+            Node node = nodes.get(i);
 
-    private List<Node> loadNodes(GltfModel gltfModel, Map<MeshModel, List<Object3DData>> meshesListMap, List<Camera> cameraList) {
-        Log.d(TAG, "Loading nodes...");
+            node.setName(nodeDto.name);
 
-        // nodes
-        final List<NodeModel> nodeModels = gltfModel.getNodeModels();
-        if (nodeModels == null || nodeModels.isEmpty()) {
-            Log.e(TAG, "GltfModel contains no nodes.");
-            return null;
-        }
-
-        // --- 1. Create a flat list of our engine's Node objects from the glTF nodes ---
-        // This preserves the original file's node hierarchy and local transforms.
-        final List<Node> nodeList = new ArrayList<>();
-        for (int i = 0; i < nodeModels.size(); i++) {
-            final NodeModel nodeModel = nodeModels.get(i);
-
-            final Node node;
-            if (nodeModel.getMatrix() != null) {
-                node = Node.fromMatrix(nodeModel.getMatrix());
-            } else if (nodeModel.getScale() != null || nodeModel.getTranslation() != null || nodeModel.getRotation() != null) {
-                node = Node.fromTransforms(nodeModel.getScale(), Quaternion.fromArray(nodeModel.getRotation()), nodeModel.getTranslation());
+            // Set local transform... (this part is correct)
+            if (nodeDto.matrix != null) {
+                node.setMatrix(nodeDto.matrix);
             } else {
-                node = Node.fromMatrix(nodeModel.computeLocalTransform(null));
+                node.setLocalTransform(new Transform(floatArrayToFloatWrapperArray(nodeDto.scale),
+                        nodeDto.rotation != null ? new Quaternion(nodeDto.rotation) : null,
+                        floatArrayToFloatWrapperArray(nodeDto.translation)
+                ));
             }
 
-            String name = nodeModel.getName();
-            if (name == null) {
-                name = String.valueOf(i);
-            }
-            node.setName(name);
-
-            List<Object3DData> meshes = null;
-            if (nodeModel.getMeshModels() != null && !nodeModel.getMeshModels().isEmpty()) {
-                meshes = new ArrayList<>();
-                for (MeshModel meshModel : nodeModel.getMeshModels()) {
-                    final List<Object3DData> originalObjsList = meshesListMap.get(meshModel);
-
-                    // check
-                    if (originalObjsList == null) continue;
-
-                    // process
-                    for (Object3DData originalObj : originalObjsList) {
-
-                        // If the original object already has a parent, it means this is a shared mesh.
-                        // We need to create a clone for this new node.
-                        if (originalObj.getParentNode() != null) {
-                            // You need to implement a clone() method in Object3DData/AnimatedModel
-                            Object3DData clonedObj = ((AnimatedModel) originalObj).clone();
-                            clonedObj.setParentNode(node);
-
-                            // flag skinned
-                            if (nodeModel.getSkinModel() != null) {
-                                clonedObj.setSkined(true);
-                            }
-
-                            // Add the clone to the scene so it gets rendered
-                            // This part is tricky. You need to collect ALL objects, originals and clones.
-                            // A better way might be to add it to a new "finalObjects" list.
-                            meshes.add(clonedObj);
-                        } else {
-                            // This is the first time we've seen this object.
-                            // Assign it directly.
-                            originalObj.setParentNode(node);
-                            meshes.add(originalObj);
-                        }
-                    }
+            // Link children... (this part is correct)
+            if (nodeDto.children != null) {
+                for (Integer childIndex : nodeDto.children) {
+                    Node childNode = nodes.get(childIndex);
+                    node.addChild(childNode);
+                    childNode.setParent(node);
                 }
             }
 
-            /*// meshes
-            if (nodeModel.getMeshModels() != null && !nodeModel.getMeshModels().isEmpty()) {
-                for (MeshModel meshModel : nodeModel.getMeshModels()) {
-                    final List<Object3DData> objsList = meshesListMap.get(meshModel);
-                    if (objsList != null) {
-                        for (Object3DData obj : objsList) {
-                            obj.setParentNode(node);
-                        }
-                    }
+            // Link mesh and the fully populated skin
+            if (nodeDto.meshIndex != null) {
+                Object3DData mesh = meshes.get(nodeDto.meshIndex);
+                node.setMesh(mesh);
+                mesh.setParentNode(node);
+
+                // --- THIS IS THE FINAL LINK ---
+                // If this node uses a skin, link the fully populated skin object to the mesh
+                if (nodeDto.skinIndex != null && mesh instanceof AnimatedModel) {
+                    ((AnimatedModel) mesh).setSkin(skins.get(nodeDto.skinIndex));
                 }
-            }*/
-            node.setMeshes(meshes);
-
-            // camera
-            if (nodeModel.getCameraModel() != null && gltfModel.getCameraModels() != null) {
-                int cameraIdx = gltfModel.getCameraModels().indexOf(nodeModel.getCameraModel());
-                final Camera camera = cameraList.get(cameraIdx);
-                node.setCamera(camera);
-                camera.setNode(node);
-            }
-
-            // skin
-            if (nodeModel.getSkinModel() != null && gltfModel.getSkinModels() != null) {
-                int skinIdx = gltfModel.getSkinModels().indexOf(nodeModel.getSkinModel());
-                node.setSkinIndex(skinIdx);
-            }
-
-            nodeList.add(node);
-        }
-
-        // --- 2. Reconstruct the parent-child hierarchy in our Node objects ---
-        for (int i = 0; i < nodeModels.size(); i++) {
-            final NodeModel nodeModel = nodeModels.get(i);
-            final Node parentNode = nodeList.get(i);
-            final List<NodeModel> children = nodeModel.getChildren();
-            if (children == null || children.isEmpty()) continue;
-
-            for (NodeModel childNodeModel : children) {
-                final int indexOfChild = nodeModels.indexOf(childNodeModel);
-                final Node childNode = nodeList.get(indexOfChild);
-                childNode.setParent(parentNode);
-                parentNode.addChild(childNode);
             }
         }
-
-        return nodeList;
+        return nodes;
     }
 
-    private List<Object3DData> loadMeshModel(GltfModel gltfModel, MeshModel meshModel, LoadListener callback) {
-
-        final List<MeshPrimitiveModel> meshPrimitiveModels = meshModel.getMeshPrimitiveModels();
-
-        Log.d(TAG, "Loading mesh primitives...");
-        callback.onProgress("Loading mesh primitives...");
-
-        List<Object3DData> meshes = new ArrayList<>();
-        for (MeshPrimitiveModel meshPrimitiveModel : meshPrimitiveModels) {
-            Object3DData model = loadMeshPrimitive(gltfModel, meshModel, meshPrimitiveModel);
-
-            // Give it a unique ID for easier debugging
-            String id = (meshModel.getName() != null ? meshModel.getName() : "mesh" + gltfModel.getMeshModels().indexOf(meshModel))
-                    + "_prim" + meshModel.getMeshPrimitiveModels().indexOf(meshPrimitiveModel);
-            model.setId(id);
-            model.setName(id);
-
-            meshes.add(model);
+    // You will also need the helper method in Node.java or in a utility class
+    private static Float[] floatArrayToFloatWrapperArray(float[] primitiveArray) {
+        if (primitiveArray == null) return null;
+        Float[] wrapperArray = new Float[primitiveArray.length];
+        for (int i = 0; i < primitiveArray.length; i++) {
+            wrapperArray[i] = primitiveArray[i];
         }
-
-        return meshes;
+        return wrapperArray;
     }
 
-    private Object3DData loadMeshPrimitive(GltfModel gltfModel, MeshModel meshModel, MeshPrimitiveModel meshPrimitiveModel) {
-        Log.d(TAG, "Loading mesh primitive...");
+    // In GltfLoader.java
+// Replace your existing buildMeshesFromDto with this one.
 
-        // build model
-        final AnimatedModel model = new AnimatedModel();
-
-        AccessorModel position = meshPrimitiveModel.getAttributes().get("POSITION");
-        FloatBuffer vertexBuffer = position.getAccessorData().createByteBuffer().asFloatBuffer();
-
-        FloatBuffer normalBuffer = null;
-        AccessorModel normal = meshPrimitiveModel.getAttributes().get("NORMAL");
-        if (normal != null) {
-            normalBuffer = normal.getAccessorData().createByteBuffer().asFloatBuffer();
+    private List<Object3DData> buildMeshesFromDto(GltfDto dto, List<Material> materials,
+                                                  Map<Integer, GltfPrimitiveDto> meshToPrimitiveMap) {
+        if (dto.meshes == null || dto.meshes.isEmpty()) {
+            return Collections.emptyList();
         }
 
-        FloatBuffer tangentBuffer = null;
-        AccessorModel tangent = meshPrimitiveModel.getAttributes().get("TANGENT");
-        if (tangent != null) {
-            tangentBuffer = tangent.getAccessorData().createByteBuffer().asFloatBuffer();
-        }
+        List<Object3DData> allPrimitives = new ArrayList<>();
+        for (int i = 0; i < dto.meshes.size(); i++) {
+            GltfMeshDto meshDto = dto.meshes.get(i);
+            if (meshDto.primitives == null) continue;
 
-        Buffer colorBuffer = null;
-        AccessorModel color = meshPrimitiveModel.getAttributes().get("COLOR_0");
-        if (color != null) {
-            if (color.getAccessorData().getComponentType() == short.class) {
-                colorBuffer = color.getAccessorData().createByteBuffer().asShortBuffer();
-            } else if (color.getAccessorData().getComponentType() == float.class) {
-                colorBuffer = color.getAccessorData().createByteBuffer().asFloatBuffer();
-            }
-        }
+            // NOTE: For now, we assume one primitive per mesh for simplicity.
+            // GLTF supports multiple primitives, but our engine structure links one mesh to one node.
+            if (!meshDto.primitives.isEmpty()){
+                GltfPrimitiveDto primitiveDto = meshDto.primitives.get(0);
 
-        Buffer drawBuffer = null;
-        if (meshPrimitiveModel.getIndices() != null) {
-            if (meshPrimitiveModel.getIndices().getAccessorData().getComponentType() == short.class) {
-                drawBuffer = meshPrimitiveModel.getIndices().getAccessorData().createByteBuffer().asShortBuffer();
-            } else if (meshPrimitiveModel.getIndices().getAccessorData().getComponentType() == int.class) {
-                drawBuffer = meshPrimitiveModel.getIndices().getAccessorData().createByteBuffer().asIntBuffer();
-            } else if (meshPrimitiveModel.getIndices().getAccessorData().getComponentType() == byte.class) {
-                drawBuffer = meshPrimitiveModel.getIndices().getAccessorData().createByteBuffer();
-            } else {
-                Log.e("GltfLoader", "unknown buffer type: " + meshPrimitiveModel.getIndices().getAccessorData().getComponentType());
-            }
-        }
+                // Each primitive becomes one drawable Object3DData.
+                AnimatedModel model = new AnimatedModel();
+                model.setId(meshDto.name != null ? meshDto.name + "_" + i : "mesh_" + i);
+                model.setVertexArrayBuffer((FloatBuffer) primitiveDto.positions);
+                model.setVertexNormalsArrayBuffer((FloatBuffer) primitiveDto.normals);
+                model.setTangentBuffer(primitiveDto.tangents);
+                model.setTextureCoordsArrayBuffer((FloatBuffer) primitiveDto.texCoords);
+                model.setVertexColorsArrayBuffer(primitiveDto.colors);
+                model.setIndexBuffer(primitiveDto.indices);
+                model.setDrawUsingArrays(primitiveDto.indices == null);
+                model.setDrawMode(GLES20.GL_TRIANGLES);
 
-        // build 3d model
-        model.setVertexArrayBuffer(vertexBuffer);
-        model.setVertexNormalsArrayBuffer(normalBuffer);
-        model.setTangentBuffer(tangentBuffer);
-        model.setVertexColorsArrayBuffer(colorBuffer);
-        model.setIndexBuffer(drawBuffer);
-        model.setDrawUsingArrays(drawBuffer == null);
-        model.setDrawMode(meshPrimitiveModel.getMode());
-
-        // init normals
-        model.initNormals();
-
-        // check
-        if (drawBuffer != null) {
-            int min = Integer.MAX_VALUE;
-            int max = -Integer.MAX_VALUE;
-            for (int i = 0; i < drawBuffer.capacity(); i++) {
-                if (drawBuffer instanceof IntBuffer) {
-                    min = Math.min(((IntBuffer) drawBuffer).get(i), min);
-                    max = Math.max(((IntBuffer) drawBuffer).get(i), max);
+                if (primitiveDto.materialIndex != null) {
+                    model.setMaterial(materials.get(primitiveDto.materialIndex));
                 }
-                if (drawBuffer instanceof ShortBuffer) {
-                    int tempShort = Short.toUnsignedInt(((ShortBuffer) drawBuffer).get(i));
-                    min = Math.min(tempShort, min);
-                    max = Math.max(tempShort, max);
-                } else if (drawBuffer instanceof ByteBuffer) {
-                    min = Math.min(((ByteBuffer) drawBuffer).get(i), min);
-                    max = Math.max(((ByteBuffer) drawBuffer).get(i), max);
-                }
-            }
 
-            if (min != 0) {
-                Log.e("GltfLoader", "Index not starting in zero: " + min);
+                allPrimitives.add(model);
+
+                // Crucially, map the mesh index to its primitive DTO for the skin builder to use.
+                meshToPrimitiveMap.put(i, primitiveDto);
             }
         }
-
-        //final Element.Builder elementBuilder = new Element.Builder();
-
-        // parse material
-        MaterialModelV2 materialModel = (MaterialModelV2) meshPrimitiveModel.getMaterialModel();
-        if (materialModel != null) {
-            final Material material = new Material(materialModel.getName());
-
-            // map color
-            material.setDiffuse(materialModel.getBaseColorFactor());
-            material.setAlphaCutoff(materialModel.getAlphaCutoff());
-            try {
-                material.setAlhaMode(Material.AlphaMode.valueOf(materialModel.getAlphaMode().name()));
-            } catch (Exception e) {
-                // ignore
-            }
-
-            // map texture
-            if (materialModel.getBaseColorTexture() != null) {
-                ByteBuffer imageData = materialModel.getBaseColorTexture().getImageModel().getImageData();
-
-                Log.v(TAG, "Decoding diffuse bitmap... " + materialModel.getBaseColorTexture().getName());
-                try {
-                    Bitmap bitmap = AndroidUtils.decodeBitmap(Buffers.createByteBufferInputStream(imageData));
-                    material.setColorTexture(new Texture().setBitmap(bitmap).setExtensions(materialModel.getExtensions()));
-                } catch (Exception e) {
-                    Log.e(TAG, "Issue decoding bitmap... " + materialModel.getBaseColorTexture().getName());
-                }
-            }
-
-            // map normal map
-            if (materialModel.getNormalTexture() != null) {
-                ByteBuffer imageData = materialModel.getNormalTexture().getImageModel().getImageData();
-
-                Log.i(TAG, "Decoding normal bitmap... " + materialModel.getNormalTexture().getName());
-                try {
-                    Bitmap bitmap = AndroidUtils.decodeBitmap(Buffers.createByteBufferInputStream(imageData));
-                    material.setNormalTexture(new Texture().setBitmap(bitmap));
-                } catch (Exception e) {
-                    Log.e(TAG, "Issue decoding bitmap... " + materialModel.getBaseColorTexture().getName());
-                }
-            }
-
-            // map emissive map
-            if (materialModel.getEmissiveTexture() != null) {
-                ByteBuffer imageData = materialModel.getEmissiveTexture().getImageModel().getImageData();
-
-                Log.i(TAG, "Decoding emissive bitmap... " + materialModel.getEmissiveTexture().getName());
-                try {
-                    Bitmap bitmap = AndroidUtils.decodeBitmap(Buffers.createByteBufferInputStream(imageData));
-                    material.setEmissiveTexture(new Texture().setBitmap(bitmap));
-                    material.setEmissiveFactor(materialModel.getEmissiveFactor());
-                } catch (Exception e) {
-                    Log.e(TAG, "Issue decoding bitmap... " + materialModel.getBaseColorTexture().getName());
-                }
-            }
-
-            // extensions
-            try {
-                final Map<String, Object> extensions = materialModel.getExtensions();
-                if (extensions != null) {
-                    final Map<String, Object> o = (Map<String, Object>) extensions.get("KHR_materials_volume");
-                    if (o != null) {
-                        final Map<String, Object> o1 = (Map<String, Object>) o.get("thicknessTexture");
-                        Double o2 = (Double) o.get("thicknessFactor");
-                        Double o3 = (Double) o.get("attenuationDistance");
-                        List<Double> o4 = (List<Double>) o.get("attenuationColor");
-
-                        if (o1 != null) {
-                            final Integer texIdx = (Integer) o1.get("index");
-                            final TextureModel textureModel = gltfModel.getTextureModels().get(texIdx);
-                            final ByteBuffer imageData = textureModel.getImageModel().getImageData();
-                            Bitmap bitmap = AndroidUtils.decodeBitmap(Buffers.createByteBufferInputStream(imageData));
-                            material.setTransmissionTexture(new Texture().setBitmap(bitmap));
-                        }
-                        if (o2 != null) material.setThicknessFactor(o2.floatValue());
-                        if (o3 != null) material.setAttenuationDistance(o3.floatValue());
-                        if (o4 != null)
-                            material.setAttenuationColor(new float[]{o4.get(0).floatValue(), o4.get(1).floatValue(),
-                                    o4.get(2).floatValue()});
-                    }
-                }
-            } catch (Exception e) {
-                Log.e(TAG, "Issue decoding extensions... " + e.getMessage(), e);
-            }
-
-            model.setMaterial(material);
-        }
-
-        FloatBuffer textureBuffer = null;
-        if (meshPrimitiveModel.getAttributes().containsKey("TEXCOORD_0")) {
-            AccessorData texture_0 = meshPrimitiveModel.getAttributes().get("TEXCOORD_0").getAccessorData();
-            textureBuffer = texture_0.createByteBuffer().asFloatBuffer();
-            model.setTextureCoordsArrayBuffer(textureBuffer);
-        }
-
-        // load skinning data
-        try {
-            AccessorModel joints = meshPrimitiveModel.getAttributes().get("JOINTS");
-            if (joints == null) {
-                joints = meshPrimitiveModel.getAttributes().get("JOINTS_0");
-            }
-            AccessorModel weights = meshPrimitiveModel.getAttributes().get("WEIGHTS");
-            if (weights == null) {
-                weights = meshPrimitiveModel.getAttributes().get("WEIGHTS_0");
-            }
-            if (joints != null && weights != null) {
-                final ByteBuffer byteBuffer = joints.getAccessorData().createByteBuffer();
-                if (joints.getAccessorData().getComponentType() == int.class) {
-                    model.setJoints(byteBuffer.asIntBuffer());
-                } else if (joints.getAccessorData().getComponentType() == short.class) {
-                    model.setJoints(byteBuffer.asShortBuffer());
-                } else if (joints.getAccessorData().getComponentType() == byte.class) {
-                    model.setJoints(byteBuffer);
-                }
-
-                // Read the VERY FIRST joint index directly from the buffer.
-                // This is more robust than relying on model.getJointIds().
-                int firstJointIndex = -1;
-                final int originalPosition = byteBuffer.position(); // Save original position
-                if (byteBuffer.remaining() > 0) {
-                    if (joints.getAccessorData().getComponentType() == int.class) {
-                        firstJointIndex = byteBuffer.asIntBuffer().get(0);
-                    } else if (joints.getAccessorData().getComponentType() == short.class) {
-                        // GLTF stores joint indices as UNSIGNED_SHORT, so we read it and convert to int.
-                        firstJointIndex = byteBuffer.asShortBuffer().get(0) & 0xFFFF;
-                    } else if (joints.getAccessorData().getComponentType() == byte.class) {
-                        // GLTF stores joint indices as UNSIGNED_BYTE.
-                        firstJointIndex = byteBuffer.get(0) & 0xFF;
-                    }
-                }
-                byteBuffer.position(originalPosition); // Restore original position
-
-                // Store this crucial piece of information!
-                model.setPrimaryJointIndex(firstJointIndex);
-                if (firstJointIndex != -1) {
-                    Log.v(TAG, "Primitive " + model.getId() + " is primarily influenced by Joint Index: " + firstJointIndex);
-                } else {
-                    Log.w(TAG, "Primitive " + model.getId() + " has skinning data but could not determine a primary joint index.");
-                }
-
-
-                model.setJointIdsComponents(joints.getElementType().getNumComponents());
-                final ByteBuffer weightsBuffer = weights.getAccessorData().createByteBuffer();
-                if (weights.getAccessorData().getComponentType() == float.class) {
-                    model.setWeights(weightsBuffer.asFloatBuffer());
-                    model.setWeightsComponents(weights.getElementType().getNumComponents());
-                } else {
-                    Log.e(TAG, "Unknown weights type: " + weights.getAccessorData().getComponentType());
-                }
-            }
-        } catch (Exception ex) {
-            Log.e(TAG, "Issue loading skinning data: " + ex.getMessage(), ex);
-        }
-
-        return model;
+        return allPrimitives;
     }
 
 
-    private List<Skin> loadSkeletons(GltfModel gltfModel, List<Node> nodeDataList) {
 
-        final List<NodeModel> nodeModels = gltfModel.getNodeModels();
+    // In GltfLoader.java
+// Replace your existing buildSkinsFromDto with this one.
 
-        Log.d(TAG, "Loading skin...");
-
-        final List<SkinModel> skinModels = gltfModel.getSkinModels();
-        if (skinModels == null || skinModels.isEmpty()) {
-            // This model has no skinning/skeleton. Return the node list without bone data.
-            // We still need a "head" node for positioning, so we'll pick the first node of the default scene.
-            Node headNode = null;
-            if (gltfModel.getSceneModels() != null && !gltfModel.getSceneModels().iterator().next().getNodeModels().isEmpty()) {
-                final SceneModel firstScene = gltfModel.getSceneModels().iterator().next();
-                for (int i = 0; i < firstScene.getNodeModels().size(); i++) {
-                    final NodeModel nodeModel = firstScene.getNodeModels().get(i);
-                    headNode = nodeDataList.get(nodeModels.indexOf(nodeModel));
-                    headNode.setParent(headNode);
-                }
-            }
-            Log.d(TAG, "No skins found. Returning scene graph without skeleton.");
-
-            if (headNode == null) {
-                Log.e(TAG, "CRITICAL: Could not determine scene root node!");
-                // You might want to throw an exception here as this is a fatal loading error for animated models.
-                return null;
-            }
-
-            Skin skin = new Skin(nodeDataList, Collections.emptyList(), headNode, null);
-
-            // register skeleton
-            headNode.getScene().getSkeletons().add(skin);
-
-            return Collections.singletonList(skin);
+    private List<Skin> buildSkinsFromDto(GltfDto dto, Map<Integer, GltfNodeDto> skinToNodeMap,
+                                         Map<Integer, GltfPrimitiveDto> meshToPrimitiveMap) {
+        if (dto.skins == null || dto.skins.isEmpty()) {
+            return Collections.emptyList();
         }
 
-        final List<Skin> skins = new ArrayList<>();
-        for (int s = 0; s < skinModels.size(); s++) {
+        List<Skin> skins = new ArrayList<>();
+        for (int i = 0; i < dto.skins.size(); i++) {
+            GltfSkinDto skinDto = dto.skins.get(i);
+            GltfNodeDto skinnedNodeDto = skinToNodeMap.get(i);
 
-            // --- 3. Process skin data: assign inverse bind matrices and create bone list ---
-            final SkinModel skinModel = skinModels.get(s); // Assuming one skin for now
-
-            final List<NodeModel> jointNodeModels = skinModel.getJoints();
-            final Node[] boneDataList = new Node[jointNodeModels.size()];
-            for (int i = 0; i < jointNodeModels.size(); i++) {
-                NodeModel jointNodeModel = jointNodeModels.get(i);
-                int index = nodeModels.indexOf(jointNodeModel);
-                if (index != -1) {
-                    Node node = nodeDataList.get(index);
-                    node.setJointIndex(i);
-                    node.setInverseBindMatrix(skinModel.getInverseBindMatrix(i, null));
-                    boneDataList[i] = node;
-                }
+            if (skinnedNodeDto == null || skinnedNodeDto.meshIndex == null) {
+                Log.w(TAG, "Skin " + i + " is not linked to a node with a mesh. Skipping.");
+                skins.add(new Skin()); // Add a placeholder to keep indices correct
+                continue;
             }
 
-            // --- 4. ROBUST SKELETON ROOT FINDING LOGIC ---
-            Node rootJoint = null;
-
-// FIRST, try to get the starting node from the explicit 'skeleton' property.
-            final NodeModel skeletonRootNodeModel = skinModel.getSkeleton();
-            if (skeletonRootNodeModel != null) {
-                int skeletonRootIndex = nodeModels.indexOf(skeletonRootNodeModel);
-                if (skeletonRootIndex != -1) {
-                    rootJoint = nodeDataList.get(skeletonRootIndex);
-                    Log.v(TAG, "Found starting point for hierarchy climb: explicit 'skeleton' property '" + rootJoint.getName() + "'");
-                }
+            // Find the primitive that contains the geometry for this skin
+            GltfPrimitiveDto primitiveDto = meshToPrimitiveMap.get(skinnedNodeDto.meshIndex);
+            if (primitiveDto == null) {
+                Log.w(TAG, "Could not find mesh primitive for skin " + i + ". Skipping.");
+                skins.add(new Skin()); // Add a placeholder
+                continue;
             }
 
-// SECOND, if we still don't have a starting point, use the first joint in the list.
-            if (rootJoint == null) {
-                if (!jointNodeModels.isEmpty()) {
-                    NodeModel firstJointNodeModel = jointNodeModels.get(0);
-                    int firstJointIndex = nodeModels.indexOf(firstJointNodeModel);
-                    if (firstJointIndex != -1) {
-                        rootJoint = nodeDataList.get(firstJointIndex);
-                        Log.v(TAG, "No explicit skeleton root. Found starting point for hierarchy climb: first joint '" + rootJoint.getName() + "'");
-                    }
-                }
+            // Convert the inverse bind matrix buffer to a flat, transposed array
+            float[] ibmArray = new float[skinDto.inverseBindMatrices.remaining()];
+            ((FloatBuffer) skinDto.inverseBindMatrices).get(ibmArray);
+            float[] ibmArrayTransposed = new float[ibmArray.length];
+            int matrixCount = ibmArray.length / 16;
+            for (int m = 0; m < matrixCount; m++) {
+                Matrix.transposeM(ibmArrayTransposed, m * 16, ibmArray, m * 16);
             }
 
-            if (rootJoint == null) {
-                Log.e(TAG, "CRITICAL: Could not find any valid joint to begin hierarchy climb!");
-                // This is a fatal error, you should probably throw an exception.
-                continue; // Or return null
-            }
-
-// NOW, ALWAYS CLIMB TO THE TOP OF THE TREE from the starting node.
-            Node headNode = rootJoint;
-            while (headNode.getParent() != null && headNode.getParent() != headNode) { // Safety check for self-parenting
-                headNode = headNode.getParent();
-            }
-            Log.v(TAG, "Final skeleton root found by climbing hierarchy to the top: '" + rootJoint.getName() + "'");
-
-// This headNode is now the true root of the scene graph for this skeleton.
-            final Skin skin = new Skin(nodeDataList, Arrays.asList(boneDataList), headNode, rootJoint)
-                    .setBindShapeMatrix(skinModel.getBindShapeMatrix(null));
-
-            // link skeleton to nodes / meshes
-            for (Node node : nodeDataList) {
-                node.setSkin(skin);
-                if (node.getMeshes() != null) {
-                    for (Object3DData mesh : node.getMeshes()) {
-                        ((AnimatedModel) mesh).setSkin(skin);
-                    }
-                }
-            }
-
-            // register skeleton
+            // Now, construct the Skin object with ALL its data
+            Skin skin = new Skin(
+                    null, // bindShapeMatrix is not typically used in GLTF this way
+                    primitiveDto.jointIds,
+                    primitiveDto.weights,
+                    ibmArrayTransposed,
+                    null // jointNames will be populated later if needed
+            );
+            skin.setJointComponents(primitiveDto.jointIdsComponents);
+            skin.setWeightsComponents(primitiveDto.weightsComponents);
             skins.add(skin);
-
-            // add skeleton
-            headNode.getScene().getSkeletons().add(skin);
-
-            Log.d(TAG, "Skeleton loaded successfully. Joints: " + nodeDataList.size() + ", Bones: " + boneDataList.length + ", Head: '" + headNode.getName() + "'");
         }
-
         return skins;
     }
 
-    private List<Animation> loadAnimations(GltfModel gltfModel, List<Node> nodeList, LoadListener callback) {
-        callback.onProgress("Loading animation data...");
-        if (gltfModel.getAnimationModels() == null || gltfModel.getAnimationModels().isEmpty())
-            return null;
-
-        final List<Animation> animations = new ArrayList<>();
-        for (AnimationModel an : gltfModel.getAnimationModels()) {
-
-            // load animation
-            AnimationModel animationModel = an;
-
-            /*if (gltfModel.getAnimationModels().size() > 2){
-                animationModel = gltfModel.getAnimationModels().get(2);
-            }*/
-
-            List<AnimationModel.Channel> channels = animationModel.getChannels();
-            if (channels.isEmpty()) break;
-
-
-            final TreeMap<Float, KeyFrame> times = new TreeMap<>();
-            final List<Node> nodesFound = new ArrayList<>();
-
-            for (int ch = 0; ch < channels.size(); ch++) {
-
-                final AnimationModel.Channel animChannel = channels.get(ch);
-
-                final AccessorModel input = animChannel.getSampler().getInput();
-                final FloatBuffer bufferData = input.getAccessorData().createByteBuffer().asFloatBuffer();
-
-                final AccessorModel output = animChannel.getSampler().getOutput();
-                final FloatBuffer transformData = output.getAccessorData().createByteBuffer().asFloatBuffer();
-
-                final String nodeName = animChannel.getNodeModel().getName();
-                final int nodeIdx = gltfModel.getNodeModels().indexOf(animChannel.getNodeModel());
-
-                for (int idx = 0; idx < input.getCount(); idx++) {
-                    float timeStamp = bufferData.get(idx);
-
-                    KeyFrame keyFrame = times.get(timeStamp);
-                    Map<String, JointTransform> transformMap;
-                    if (keyFrame != null) {
-                        transformMap = keyFrame.getPose();
-                    } else {
-                        transformMap = new TreeMap<>();
-                        keyFrame = new KeyFrame(timeStamp, transformMap);
-                        times.put(timeStamp, keyFrame);
-                    }
-
-                    String name = nodeName;
-                    if (name == null) {
-                        //int nodeIdx = gltfModel.getNodeModels().indexOf(animChannel.getNodeModel());
-                        name = String.valueOf(nodeIdx);
-                    }
-                    JointTransform jointTransform = transformMap.get(name);
-                    if (jointTransform == null) {
-                        jointTransform = new JointTransform();
-                        transformMap.put(name, jointTransform);
-                    }
-
-                    /*if (idx * 3 >= transformData.capacity() - 2){
-                        Log.e(TAG, "BufferUnderFlowException: "+idx+", name: "+animChannel.getNodeModel().getName());
-                        break;
-                    }*/
-
-                    try {
-                        if ("translation".equals(animChannel.getPath())) {
-                            float[] transform = new float[3];
-                            transformData.get(transform, 0, 3); // 3 components for translation (float x,float y,float z)
-                            jointTransform.setLocation(transform);
-                        } else if ("rotation".equals(animChannel.getPath())) {
-                            float[] transform = new float[4];
-                            transformData.get(transform, 0, 4); // 4 components for quaternion
-                            jointTransform.setRotation(new Quaternion(transform[0], transform[1], transform[2], transform[3]).normalize().toAnglesF(null));
-                            jointTransform.setQuaternion(new Quaternion(transform[0], transform[1], transform[2], transform[3]));
-                        } else if ("scale".equals(animChannel.getPath())) {
-                            float[] transform = new float[3];
-                            transformData.get(transform, 0, 3); // 3 components to scale (float x,float y,float z)
-                            jointTransform.setScale(transform);
-                        } else {
-                            Log.e(TAG, "Unknown transform: " + animChannel.getPath());
-                        }
-                    } catch (BufferUnderflowException e) {
-                        // ignore
-                    }
-                }
-
-                if (nodeIdx >= 0 && nodeIdx < nodeList.size()) {
-                    nodesFound.add(nodeList.get(nodeIdx));
-                }
-            }
-
-            final String animationName = animationModel.getName() != null ? animationModel.getName() : "Animation-" + System.identityHashCode(animationModel);
-            final Animation animation = new Animation(animationName, times.lastKey(), times.values().toArray(new KeyFrame[0]));
-
-            // register animation
-            for (Node node : nodesFound) {
-                final Scene scene = node.getScene();
-                if (scene.getAnimations() == null || !scene.getAnimations().contains(animation)) {
-                    scene.addAnimation(animation);
-                }
-            }
-
-            // collect animation
-            animations.add(animation);
-        }
-
-        return animations;
-    }
 }

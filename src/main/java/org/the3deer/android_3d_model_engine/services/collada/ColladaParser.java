@@ -3,6 +3,9 @@ package org.the3deer.android_3d_model_engine.services.collada;
 import android.opengl.Matrix;
 import android.util.Log;
 
+import org.the3deer.android_3d_model_engine.animation.Animation;
+import org.the3deer.android_3d_model_engine.animation.JointTransform;
+import org.the3deer.android_3d_model_engine.animation.KeyFrame;
 import org.the3deer.android_3d_model_engine.model.Material;
 import org.the3deer.android_3d_model_engine.model.Texture;
 import org.the3deer.android_3d_model_engine.model.Transform;
@@ -22,6 +25,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeSet;
 
 public class ColladaParser {
 
@@ -35,14 +39,17 @@ public class ColladaParser {
 
     private final Map<String, Material> materialLibrary = new HashMap<>();
 
-    // NEW MAPS for resolving material -> effect -> image
-    private final Map<String, String> effectIdToImageIdMap = new HashMap<>();
+    // Maps an effect ID to its full set of parsed data
+    private final Map<String, EffectData> effectLibrary = new HashMap<>();
     private final Map<String, String> imageIdToFileNameMap = new HashMap<>();
 
     // Node library
-    private Map<String, Node> nodeLibrary = new HashMap<>();
+    private final Map<String, Node> nodeLibrary = new HashMap<>();
     // ADD this new list to hold the top-level nodes of the active scene.
     private final List<Node> rootNodes = new ArrayList<>();
+
+    // metadata
+    private String authoringTool;
 
     private static class Accessor {
         final int stride;
@@ -62,6 +69,35 @@ public class ColladaParser {
             this.semantic = semantic;
             this.sourceId = sourceId;
             this.offset = offset;
+        }
+    }
+
+    private static class ChannelData {
+        String targetNodeId;
+        String targetTransform; // e.g., "matrix", "rotateZ.ANGLE", "translate.X"
+        float[] times;
+        float[] values;
+        int stride; // Number of floats per value (1 for rotation, 3 for translation, 16 for matrix)
+
+        ChannelData(String targetNodeId, String targetTransform, float[] times, float[] values, int stride) {
+            this.targetNodeId = targetNodeId;
+            this.targetTransform = targetTransform;
+            this.times = times;
+            this.values = values;
+            this.stride = stride;
+        }
+    }
+
+    // Add this private static inner class to ColladaParser.java
+    private static class EffectData {
+        String effectId;
+        String imageId;
+        float[] diffuseColor; // To hold the <diffuse><color>
+        Float transparency;   // To hold the <transparency><float>
+        // We can add ambient, specular, etc. here later.
+
+        EffectData(String effectId) {
+            this.effectId = effectId;
         }
     }
 
@@ -88,6 +124,11 @@ public class ColladaParser {
 
                 // 3. Act as a dispatcher based on the tag name
                 switch (tagName) {
+                    case "asset":
+                        Log.d(TAG, "Found <asset>. Parsing...");
+                        this.authoringTool = parseAsset(parser);
+                        Log.i(TAG, "Authoring tool: " + this.authoringTool);
+                        break;
                     case "library_geometries":
                         Log.d(TAG, "Found <library_geometries>. Parsing...");
                         parseGeometriesLibrary(parser);
@@ -116,6 +157,10 @@ public class ColladaParser {
                         Log.d(TAG, "Found <library_visual_scenes>. Parsing...");
                         parseVisualScenes(parser);
                         break;
+                    case "library_animations":
+                        Log.d(TAG, "Found <library_animations>. Parsing...");
+                        parseAnimations(parser);
+                        break;
                 }
             }
             // Move to the next event in the XML file
@@ -124,6 +169,76 @@ public class ColladaParser {
         Log.i(TAG, "Finished parsing DAE file. Geometries found: " + geometryLibrary.size() + ", Nodes found: " + nodeLibrary.size() +
                 ", Controllers found: " + controllerLibrary.size());
     }
+
+    public String getAuthoringTool() {
+        return authoringTool;
+    }
+
+    /**
+     * Parses the <asset> block to find metadata, specifically the <authoring_tool>.
+     * This is a direct port of the old loader's logic.
+     * Assumes the parser is at the START_TAG of <asset>.
+     *
+     * @param parser The XmlPullParser instance.
+     * @return The text content of the <authoring_tool> tag, or null if not found.
+     * @throws Exception if parsing fails.
+     */
+    private String parseAsset(XmlPullParser parser) throws Exception {
+        String foundAuthoringTool = null;
+        boolean assetParsed = false; // Flag to indicate we are done
+
+        // Loop until we are at the end of the <asset> tag
+        while (parser.next() != XmlPullParser.END_TAG || !parser.getName().equals("asset")) {
+            if (parser.getEventType() != XmlPullParser.START_TAG) {
+                continue;
+            }
+
+            // We are looking for <contributor>
+            if ("contributor".equals(parser.getName())) {
+                // Now look for <authoring_tool> inside <contributor>
+                while (parser.next() != XmlPullParser.END_TAG || !parser.getName().equals("contributor")) {
+                    if (parser.getEventType() != XmlPullParser.START_TAG) {
+                        continue;
+                    }
+
+                    if ("authoring_tool".equals(parser.getName())) {
+                        // Found it. Get the text.
+                        foundAuthoringTool = parser.nextText();
+                        // We found what we came for. We can exit all loops.
+                        assetParsed = true;
+                        break; // Exit the inner loop
+                    } else {
+                        // It's a tag inside <contributor> we don't care about, so skip it.
+                        skipTag(parser);
+                    }
+                }
+            } else {
+                // It's a tag inside <asset> we don't care about, so skip it.
+                skipTag(parser);
+            }
+        }
+
+        return foundAuthoringTool;
+    }
+
+    // You will also need this helper method if you don't have it already.
+    private void skipTag(XmlPullParser parser) throws Exception {
+        if (parser.getEventType() != XmlPullParser.START_TAG) {
+            throw new IllegalStateException();
+        }
+        int depth = 1;
+        while (depth != 0) {
+            switch (parser.next()) {
+                case XmlPullParser.END_TAG:
+                    depth--;
+                    break;
+                case XmlPullParser.START_TAG:
+                    depth++;
+                    break;
+            }
+        }
+    }
+
 
     /**
      * Parses the <library_geometries> section of the COLLADA file.
@@ -523,7 +638,9 @@ public class ColladaParser {
         if (finalTexCoords != null) {
             geometry.setTexCoords(IOUtils.createFloatBuffer(finalTexCoords));
         }
-        geometry.setColors(IOUtils.createFloatBuffer(finalColors)); // Always set the RGBA color buffer
+        if (colorSource != null) {
+            geometry.setColors(IOUtils.createFloatBuffer(finalColors)); // Always set the RGBA color buffer
+        }
         geometry.setIndices(null); // This is a non-indexed model
         geometry.setVertexJointIndices(vertexJointIndices); // Save the skinning map
 
@@ -793,36 +910,126 @@ public class ColladaParser {
      * Parses the <library_effects> section to map effect IDs to image IDs.
      * This is the bridge between materials and images.
      */
+    // In ColladaParser.java, REPLACE the entire parseLibraryEffects method with this one.
+
+    /**
+     * Parses the <library_effects> section. This is a deep parsing method that extracts
+     * diffuse color, transparency, and texture references from an <effect>.
+     */
     private void parseLibraryEffects(XmlPullParser parser) throws Exception {
         while (parser.next() != XmlPullParser.END_TAG || !parser.getName().equals("library_effects")) {
             if (parser.getEventType() != XmlPullParser.START_TAG || !parser.getName().equals("effect")) {
                 continue;
             }
             String effectId = parser.getAttributeValue(null, "id");
-            String imageId = null;
+            EffectData currentEffect = new EffectData(effectId);
 
-            // Navigate through profile_COMMON -> newparam (surface) -> init_from (image ID)
+            // Navigate into profile_COMMON
             while (parser.next() != XmlPullParser.END_TAG || !parser.getName().equals("effect")) {
                 if (parser.getEventType() != XmlPullParser.START_TAG) continue;
 
-                // Looking for <newparam sid="...-surface">
-                if ("newparam".equals(parser.getName())) {
-                    while (parser.next() != XmlPullParser.END_TAG || !parser.getName().equals("newparam")) {
-                        if (parser.getEventType() != XmlPullParser.START_TAG) continue;
-                        // Looking for <init_from> inside <surface>
-                        if ("init_from".equals(parser.getName())) {
-                            imageId = parser.nextText();
-                            // We found the image id, we can break out of this inner loop
-                            break;
-                        }
-                    }
+                if ("profile_COMMON".equals(parser.getName())) {
+                    parseEffectProfile(parser, currentEffect);
                 }
-                if (imageId != null) break; // Found it, exit the main effect loop
             }
 
-            if (effectId != null && imageId != null) {
-                effectIdToImageIdMap.put(effectId, imageId);
-                Log.d(TAG, "Mapped Effect ID '" + effectId + "' to Image ID '" + imageId + "'");
+            if (effectId != null) {
+                effectLibrary.put(effectId, currentEffect);
+                Log.d(TAG, "Parsed Effect '" + effectId + "' with texture image ID '" + currentEffect.imageId + "'");
+            }
+        }
+    }
+
+    /**
+     * Parses the <profile_COMMON> tag within an effect to find technique, newparam, etc.
+     */
+    private void parseEffectProfile(XmlPullParser parser, EffectData currentEffect) throws Exception {
+        String textureSamplerSid = null; // The SID of the sampler for the texture (e.g., "surface-sampler")
+        String textureImageId = null;    // The final image ID (e.g., "cowboy_png")
+
+        while (parser.next() != XmlPullParser.END_TAG || !parser.getName().equals("profile_COMMON")) {
+            if (parser.getEventType() != XmlPullParser.START_TAG) continue;
+
+            String tagName = parser.getName();
+            if ("newparam".equals(tagName)) {
+                // This could be a <surface> or a <sampler2D> parameter.
+                String sid = parser.getAttributeValue(null, "sid");
+                if (sid.endsWith("-surface")) { // This convention points to the image
+                    textureImageId = parseNewparamSurface(parser);
+                } else if (sid.endsWith("-sampler")) { // This links the texture to the technique
+                    textureSamplerSid = sid;
+                } else {
+                    skipTag(parser);
+                }
+            } else if ("technique".equals(tagName)) {
+                parseTechnique(parser, currentEffect);
+            } else {
+                skipTag(parser);
+            }
+        }
+
+        if (textureImageId != null) {
+            currentEffect.imageId = textureImageId;
+        }
+    }
+
+    /**
+     * Parses a <newparam> that contains a <surface>, returning the ID of the image.
+     */
+    private String parseNewparamSurface(XmlPullParser parser) throws Exception {
+        String imageId = null;
+        while (parser.next() != XmlPullParser.END_TAG || !parser.getName().equals("newparam")) {
+            if (parser.getEventType() != XmlPullParser.START_TAG) continue;
+            if ("init_from".equals(parser.getName())) {
+                imageId = parser.nextText();
+            }
+        }
+        return imageId;
+    }
+
+    /**
+     * Parses the <technique> (lambert, phong, etc.) to get diffuse color and transparency.
+     */
+    private void parseTechnique(XmlPullParser parser, EffectData currentEffect) throws Exception {
+        while (parser.next() != XmlPullParser.END_TAG || !parser.getName().equals("technique")) {
+            if (parser.getEventType() != XmlPullParser.START_TAG) continue;
+
+            // The technique can be lambert, phong, or blinn. We enter it.
+            String techniqueType = parser.getName();
+            if ("lambert".equals(techniqueType) || "phong".equals(techniqueType) || "blinn".equals(techniqueType)) {
+
+                while (parser.next() != XmlPullParser.END_TAG || !parser.getName().equals(techniqueType)) {
+                    if (parser.getEventType() != XmlPullParser.START_TAG) continue;
+
+                    String propertyName = parser.getName();
+                    if ("diffuse".equals(propertyName)) {
+                        // Check for a <color> tag inside <diffuse>
+                        while (parser.next() != XmlPullParser.END_TAG || !parser.getName().equals("diffuse")) {
+                            if (parser.getEventType() == XmlPullParser.START_TAG && "color".equals(parser.getName())) {
+                                String[] colorData = parser.nextText().trim().split("\\s+");
+                                if (colorData.length >= 4) {
+                                    currentEffect.diffuseColor = new float[]{
+                                            Float.parseFloat(colorData[0]),
+                                            Float.parseFloat(colorData[1]),
+                                            Float.parseFloat(colorData[2]),
+                                            Float.parseFloat(colorData[3])
+                                    };
+                                }
+                                break; // Found color, exit diffuse
+                            }
+                        }
+                    } else if ("transparency".equals(propertyName)) {
+                        // Check for a <float> tag inside <transparency>
+                        while (parser.next() != XmlPullParser.END_TAG || !parser.getName().equals("transparency")) {
+                            if (parser.getEventType() == XmlPullParser.START_TAG && "float".equals(parser.getName())) {
+                                currentEffect.transparency = Float.parseFloat(parser.nextText());
+                                break; // Found float, exit transparency
+                            }
+                        }
+                    } else {
+                        skipTag(parser);
+                    }
+                }
             }
         }
     }
@@ -830,6 +1037,12 @@ public class ColladaParser {
     /**
      * Parses the <library_materials> section. This creates the final Material objects
      * by connecting a material ID to an effect ID, and then resolving the texture file.
+     */
+    // In ColladaParser.java, REPLACE the method at your caret with this.
+
+    /**
+     * Parses the <library_materials> section. This creates the final Material objects
+     * by connecting a material ID to a pre-parsed effect, and then resolving the texture file.
      */
     private void parseLibraryMaterials(XmlPullParser parser) throws Exception {
         while (parser.next() != XmlPullParser.END_TAG || !parser.getName().equals("library_materials")) {
@@ -851,13 +1064,30 @@ public class ColladaParser {
                 // Create the material
                 Material material = new Material(materialId);
 
+                // Get the rich effect data we parsed earlier
+                EffectData effectData = effectLibrary.get(effectId);
+                if (effectData == null) {
+                    Log.w(TAG, "Material '" + materialId + "' references unknown effect '" + effectId + "'");
+                    continue;
+                }
+
+                // Set diffuse color if available
+                if (effectData.diffuseColor != null) {
+                    material.setDiffuse(effectData.diffuseColor);
+                    material.setAlpha(effectData.diffuseColor[3]); // Default alpha from diffuse color
+                }
+
+                // Override alpha with transparency if it exists
+                if (effectData.transparency != null) {
+                    material.setAlpha(effectData.transparency);
+                }
+
                 // Resolve the texture file name through the maps
-                String imageId = effectIdToImageIdMap.get(effectId);
-                if (imageId != null) {
-                    String fileName = imageIdToFileNameMap.get(imageId);
+                if (effectData.imageId != null) {
+                    String fileName = imageIdToFileNameMap.get(effectData.imageId);
                     if (fileName != null) {
                         material.setColorTexture(new Texture().setFile(fileName));
-                        Log.d(TAG, "Created material '" + materialId + "' with texture '" + fileName + "'");
+                        Log.d(TAG, "Assembled material '" + materialId + "' with texture '" + fileName + "'");
                     }
                 }
 
@@ -866,6 +1096,7 @@ public class ColladaParser {
             }
         }
     }
+
 
     // --- PASTE THIS METHOD INTO ColladaParser.java ---
 
@@ -953,15 +1184,13 @@ public class ColladaParser {
 
     private Node parseNode(XmlPullParser parser, Node parent) throws Exception {
         String nodeId = parser.getAttributeValue(null, "id");
-        Node currentNode = new Node(nodeId);
+        String nodeName = parser.getAttributeValue(null, "name");
+        Node currentNode = new Node(nodeId, nodeName);
         currentNode.setParent(parent);
 
         // --- NEW LOGIC: PARSE TRANSFORMATIONS ---
         float[] finalMatrix = new float[16];
         Matrix.setIdentityM(finalMatrix, 0); // Start with an identity matrix
-
-        List<Transform> transforms = new ArrayList<>();
-        // --- END NEW LOGIC ---
 
         while (parser.next() != XmlPullParser.END_TAG || !parser.getName().equals("node")) {
             if (parser.getEventType() != XmlPullParser.START_TAG) continue;
@@ -1016,17 +1245,47 @@ public class ColladaParser {
                 case "instance_geometry":
                 case "instance_controller": {
                     String url = parser.getAttributeValue(null, "url");
-                    if (url != null && url.startsWith("#")) {
-                        String instanceId = url.substring(1);
-                        if ("instance_geometry".equals(tagName)) {
-                            currentNode.setInstanceGeometryId(instanceId);
-                        } else {
-                            currentNode.setInstanceControllerId(instanceId);
-                        }
-                        Log.d(TAG, "Node '" + nodeId + "' instances '" + instanceId + "'");
+                    if (url == null) {
+                        Log.w(TAG, "Instance tag <" + tagName + "> is missing a 'url' attribute for node '" + currentNode.getId() + "'.");
+                        skipToEnd(parser, tagName);
+                        break;
                     }
-                    // Skip the inner <bind_material> for now
-                    skipToEnd(parser, tagName);
+
+                    if ("instance_controller".equals(tagName)) {
+
+                        Log.d(TAG, "Found <instance_controller> for node '" + currentNode.getId() + "' with url: " + url);
+                        currentNode.setInstanceControllerId(cleanId(url));
+
+                        String skinRootId = null; // Variable to hold the skeleton root ID
+
+                        // Look inside <instance_controller> for the <skin> tag
+                        while (parser.next() != XmlPullParser.END_TAG || !parser.getName().equals("instance_controller")) {
+                            if (parser.getEventType() == XmlPullParser.START_TAG && "skin".equals(parser.getName())) {
+                                // The content of the <skin> tag is the ID of the skeleton's root joint
+                                skinRootId = parser.nextText(); // Get the ID (e.g., "#Torso")
+                                Log.d(TAG, "Found <skin> tag with root ID: " + skinRootId);
+                                // We don't break here because we still need to reach the end of the instance_controller tag
+                            }
+                        }
+
+                        // Pass the newly found skin root ID to the Node DTO
+                        if (skinRootId != null) {
+                            currentNode.setSkinId(cleanId(skinRootId));
+                        } else {
+                            Log.w(TAG, "Incomplete <instance_controller> for node '"+currentNode.getId()+"'. Missing <skin> tag inside.");
+                        }
+
+                        // The while loop above already consumed the tag, so we are done.
+
+                    } else { // This is an "instance_geometry"
+                        Log.d(TAG, "Found <instance_geometry> for node '" + currentNode.getId() + "' with url: " + url);
+
+                        // This is a static, non-skinned mesh. Just set the geometry ID.
+                        currentNode.setInstanceGeometryId(cleanId(url));
+
+                        // We still need to skip the rest of the tag (e.g., <bind_material>)
+                        skipToEnd(parser, tagName);
+                    }
                     break;
                 }
                 case "node": {
@@ -1053,6 +1312,248 @@ public class ColladaParser {
         }
     }
 
+    // In ColladaParser.java, replace the empty parseAnimations method
+
+    /**
+     * Parses the <library_animations> section and builds a list of Animation objects.
+     */
+    private void parseAnimations(XmlPullParser parser) throws Exception {
+        List<ChannelData> allChannels = new ArrayList<>();
+
+        while (parser.next() != XmlPullParser.END_TAG || !parser.getName().equals("library_animations")) {
+            if (parser.getEventType() != XmlPullParser.START_TAG) continue;
+
+            if ("animation".equals(parser.getName())) {
+                // An <animation> tag can contain other <animation> tags (nested) or the actual channel data.
+                parseAnimationTag(parser, allChannels);
+            }
+        }
+
+        if (allChannels.isEmpty()) {
+            Log.i(TAG, "No animation channels found.");
+            return; // No animations to build
+        }
+
+        // --- Assemble the parsed channels into KeyFrame objects ---
+
+        // 1. Find all unique timestamps across all channels
+        TreeSet<Float> uniqueTimestamps = new TreeSet<>();
+        for (ChannelData channel : allChannels) {
+            for (float time : channel.times) {
+                uniqueTimestamps.add(time);
+            }
+        }
+        List<Float> keyTimes = new ArrayList<>(uniqueTimestamps);
+        if (keyTimes.isEmpty()){
+            return;
+        }
+
+
+        // 2. Create a KeyFrame for each unique timestamp
+        KeyFrame[] keyFrames = new KeyFrame[keyTimes.size()];
+        for (int i = 0; i < keyTimes.size(); i++) {
+            keyFrames[i] = new KeyFrame(keyTimes.get(i), new HashMap<>());
+        }
+
+        // 3. Populate each KeyFrame's pose map
+        for (ChannelData channel : allChannels) {
+            for (int i = 0; i < channel.times.length; i++) {
+                float time = channel.times[i];
+                int keyFrameIndex = keyTimes.indexOf(time);
+                if (keyFrameIndex == -1) continue;
+
+                KeyFrame keyFrame = keyFrames[keyFrameIndex];
+                Map<String, JointTransform> pose = keyFrame.getPose();
+
+                JointTransform jointTransform = pose.computeIfAbsent(channel.targetNodeId, k -> new JointTransform());
+
+                // Apply the transformation from this channel
+                applyTransform(jointTransform, channel, i);
+            }
+        }
+
+        // 4. Create the final Animation object
+        // For now, we create one animation clip containing all keyframes.
+        float duration = keyTimes.get(keyTimes.size() - 1);
+        Animation animation = new Animation("COLLADA_Animation", duration, keyFrames);
+        animations.add(animation); // Assuming you have a `List<Animation> animations` field in the parser
+
+        Log.i(TAG, "Successfully parsed 1 animation clip with " + keyFrames.length + " keyframes.");
+    }
+
+    /**
+     * Recursively parses an <animation> tag. It can contain other <animation> tags
+     * or the actual source/sampler/channel data for a single transformation.
+     */
+    private void parseAnimationTag(XmlPullParser parser, List<ChannelData> channels) throws Exception {
+        // Look for nested <animation> tags first
+        int startDepth = parser.getDepth();
+        while (parser.next() != XmlPullParser.END_TAG || parser.getDepth() > startDepth) {
+            if (parser.getEventType() != XmlPullParser.START_TAG) continue;
+
+            if ("animation".equals(parser.getName())) {
+                // It's a nested animation, recurse into it
+                parseAnimationTag(parser, channels);
+            } else if ("source".equals(parser.getName())) {
+                // This <animation> tag contains the actual data. Let's parse it as a single channel.
+                ChannelData channel = parseChannel(parser);
+                if (channel != null) {
+                    channels.add(channel);
+                }
+                // We've processed this as a data-holding animation, so we can break the loop.
+                break;
+            }
+        }
+    }
+
+    /**
+     * Parses an <animation> tag that is expected to contain source, sampler, and channel info.
+     * The parser must be at the START_TAG of the first <source>.
+     */
+    private ChannelData parseChannel(XmlPullParser parser) throws Exception {
+        Map<String, float[]> sources = new HashMap<>();
+        String inputSourceId = null;
+        String outputSourceId = null;
+        String targetId = null;
+        String targetTransform = null;
+        int stride = 1;
+
+        // The parser is already at the first <source>. Parse it and any subsequent ones.
+        do {
+            if (parser.getEventType() == XmlPullParser.START_TAG && "source".equals(parser.getName())) {
+                String sourceId = parser.getAttributeValue(null, "id");
+                float[] data = parseSourceData(parser);
+                if (sourceId != null && data != null) {
+                    sources.put(sourceId, data);
+                }
+            }
+            parser.next();
+        } while (parser.getEventType() != XmlPullParser.START_TAG || !"sampler".equals(parser.getName()));
+
+        // Now at the <sampler> tag
+        while (parser.next() != XmlPullParser.END_TAG || !parser.getName().equals("sampler")) {
+            if (parser.getEventType() != XmlPullParser.START_TAG || !parser.getName().equals("input")) continue;
+            String semantic = parser.getAttributeValue(null, "semantic");
+            String sourceUrl = cleanId(parser.getAttributeValue(null, "source"));
+            if ("INPUT".equals(semantic)) {
+                inputSourceId = sourceUrl;
+            } else if ("OUTPUT".equals(semantic)) {
+                outputSourceId = sourceUrl;
+            }
+        }
+
+        // Now find the <channel> tag
+        while(parser.getEventType() != XmlPullParser.START_TAG || !"channel".equals(parser.getName())){
+            parser.next();
+        }
+        String target = parser.getAttributeValue(null, "target");
+        if (target != null) {
+            String[] parts = target.split("/");
+            targetId = parts[0];
+            if (parts.length > 1) {
+                targetTransform = parts[1];
+            }
+        }
+
+        // Find the stride from the output source's accessor
+        for (Map.Entry<String, float[]> entry : sources.entrySet()){
+            if (entry.getKey().equals(outputSourceId)){
+                // This is a simplification; a full implementation would parse the <accessor>
+                // For door.dae, the stride is always 1 for single-axis transforms.
+                // For matrix, it would be 16. We will infer it from the target string.
+                if ("matrix".equalsIgnoreCase(targetTransform)) {
+                    stride = 16;
+                } else {
+                    stride = 1;
+                }
+            }
+        }
+
+
+        if (inputSourceId != null && outputSourceId != null && targetId != null) {
+            float[] times = sources.get(inputSourceId);
+            float[] values = sources.get(outputSourceId);
+            return new ChannelData(targetId, targetTransform, times, values, stride);
+        }
+
+        return null;
+    }
+
+    /**
+     * Parses a <source> tag and returns its float_array data.
+     */
+    private float[] parseSourceData(XmlPullParser parser) throws Exception {
+        while (parser.next() != XmlPullParser.END_TAG || !parser.getName().equals("source")) {
+            if (parser.getEventType() == XmlPullParser.START_TAG && "float_array".equals(parser.getName())) {
+                String text = parser.nextText();
+                String[] floatStrings = text.trim().split("\\s+");
+                float[] data = new float[floatStrings.length];
+                for (int i = 0; i < floatStrings.length; i++) {
+                    data[i] = Float.parseFloat(floatStrings[i]);
+                }
+                return data;
+            }
+        }
+        return null;
+    }
+
+
+    /**
+     * Applies a single transformation from a channel to a JointTransform at a specific time index.
+     */
+    private void applyTransform(JointTransform jointTransform, ChannelData channel, int timeIndex) {
+        float value = channel.values[timeIndex];
+
+        switch (channel.targetTransform.toUpperCase()) {
+            case "ROTATEZ.ANGLE":
+            case "ROTATIONZ.ANGLE":
+                jointTransform.addRotation(null, null, value);
+                break;
+            case "ROTATEY.ANGLE":
+            case "ROTATIONY.ANGLE":
+                jointTransform.addRotation(null, value, null);
+                break;
+            case "ROTATEX.ANGLE":
+            case "ROTATIONX.ANGLE":
+                jointTransform.addRotation(value, null, null);
+                break;
+            case "TRANSLATE.X":
+            case "LOCATION.X":
+                jointTransform.addLocation(value, null, null);
+                break;
+            case "TRANSLATE.Y":
+            case "LOCATION.Y":
+                jointTransform.addLocation(null, value, null);
+                break;
+            case "TRANSLATE.Z":
+            case "LOCATION.Z":
+                jointTransform.addLocation(null, null, value);
+                break;
+            // Add cases for SCALE if needed
+            case "MATRIX":
+            case "TRANSFORM":
+                float[] matrix = new float[16];
+                System.arraycopy(channel.values, timeIndex * 16, matrix, 0, 16);
+                float[] transposed = new float[16];
+                Matrix.transposeM(transposed, 0, matrix, 0);
+                jointTransform.setTransform(transposed); // This will overwrite others, as expected for a matrix.
+                break;
+            default:
+                Log.w(TAG, "Unsupported animation transform target: " + channel.targetTransform);
+                break;
+        }
+    }
+
+
+    // You'll also need to add a List<Animation> field to your parser class
+// and a getter for it.
+    private List<Animation> animations = new ArrayList<>();
+
+    public List<Animation> getAnimationLibrary(){
+        return animations;
+    }
+
+
 
     // Change the getter to return the LIST of nodes
     public List<Node> getRootNodes() {
@@ -1073,5 +1574,9 @@ public class ColladaParser {
 
     public Map<String, Controller> getControllerLibrary() {
         return controllerLibrary;
+    }
+
+    public Map<String, Node> getNodeLibrary() {
+        return nodeLibrary;
     }
 }

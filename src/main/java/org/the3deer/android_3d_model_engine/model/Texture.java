@@ -2,6 +2,8 @@ package org.the3deer.android_3d_model_engine.model;
 
 import android.graphics.Bitmap;
 
+import java.nio.Buffer;
+import java.nio.ByteBuffer;
 import java.util.Map;
 
 public class Texture {
@@ -9,6 +11,8 @@ public class Texture {
     private String file;
 
     private int id = -1;
+
+    private ByteBuffer buffer;
 
     private Bitmap bitmap;
 
@@ -58,6 +62,18 @@ public class Texture {
         this.data = data;
         return this;
     }
+
+
+    public Texture setBuffer(ByteBuffer imageData) {
+        this.buffer = imageData;
+        return this;
+    }
+
+    public ByteBuffer getBuffer() {
+        return buffer;
+    }
+
+
     public Texture setExtensions(Map<String, Object> extensions) {
         this.extensions = extensions;
         return this;
@@ -76,4 +92,5 @@ public class Texture {
                 ", bitmap=" + bitmap +
                 '}';
     }
+
 }

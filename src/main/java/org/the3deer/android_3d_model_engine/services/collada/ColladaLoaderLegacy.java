@@ -145,6 +145,7 @@ public final class ColladaLoaderLegacy {
                             Log.d("ColladaLoaderTask", "Mesh joint found. id: "+ node.getName()+", bindTransform: "+ Arrays.toString(node.getBindWorldTransform()));
                             data3D.setName(node.getName());
                             data3D.setWorldTransform(node.getBindWorldTransform());
+                            //data3D.setParentNode(node);
                         }
                     }
 
@@ -320,24 +321,8 @@ public final class ColladaLoaderLegacy {
                             final MeshData meshData = allMeshes.get(i);
                             final AnimatedModel data3D = (AnimatedModel) ret.get(i);
                             meshData.setBindShapeMatrix(skinningData.getBindShapeMatrix());
-                            // FIXME: removed only because refactoring is broken otherwise
-                            // data3D.setBindShapeMatrix(meshData.getBindShapeMatrix());
                         }
                     }
-
-                } else {
-                    Log.i("ColladaLoaderTask", "No skinning data available");
-                }
-            } catch (Exception ex) {
-                Log.e("ColladaLoaderTask", "Error loading skinning data", ex);
-            }
-
-            final AnimationLoader loader = new AnimationLoader(xml);
-
-            // finish skinning + joint update
-
-            try {
-                if (loader.isAnimated()) {
 
                     // log event
                     Log.d("ColladaLoaderTask", "Loading joints...");
@@ -361,18 +346,39 @@ public final class ColladaLoaderLegacy {
                             skin = skeletons.get("default");
                         }
 
+                        if (skin != null && skins != null && skins.containsKey(meshData.getId())){
+                            skin.setInverseBindMatrices(skins.get(meshData.getId()).getInverseBindMatrix());
+                            skin.setDoInverseBindTranspose(true);
+                        }
+
                         // initialize jointIds and vertex weights array
                         SkinLoader.loadSkinningData(meshData, skins != null? skins.get(meshData.getId()) : null, skin);
 
                         // load skin arrays
                         SkinLoader.loadSkinningArrays(meshData);
-                        
+
                         data3D.setJoints(meshData.getJointsBuffer());
                         data3D.setWeights(meshData.getWeightsBuffer());
                         Log.d("ColladaLoader", "Loaded skinning data: "
                                 + "jointIds: " + (meshData.getJointsArray() != null ? meshData.getJointsArray().length : 0)
                                 + ", weights: " + (meshData.getWeightsArray() != null ? meshData.getWeightsArray().length : 0));
                     }
+
+                } else {
+                    Log.i("ColladaLoaderTask", "No skinning data available");
+                }
+            } catch (Exception ex) {
+                Log.e("ColladaLoaderTask", "Error loading skinning data", ex);
+            }
+
+            final AnimationLoader loader = new AnimationLoader(xml);
+
+            // finish skinning + joint update
+
+            try {
+                if (loader.isAnimated()) {
+
+
 
                 }
             } catch (Exception ex) {
@@ -401,6 +407,12 @@ public final class ColladaLoaderLegacy {
                         Skin skin = skeletons.get(meshData.getId());
                         if (skin == null) {
                             skin = skeletons.get("default");
+                        }
+
+                        if (skin != null) {
+                            skin.setBindShapeMatrix(meshData.getBindShapeMatrix());
+                            skin.setJointsBuffer(meshData.getJointsBuffer());
+                            skin.setWeightsBuffer(meshData.getWeightsBuffer());
                         }
 
                         // register skeleton

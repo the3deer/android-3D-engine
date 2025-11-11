@@ -38,6 +38,11 @@ abstract class AbstractAccessorData implements AccessorData
      * The component type
      */
     private final Class<?> componentType;
+
+    /**
+     * The GL constant for the component type (e.g. 5121, 5123, 5126)
+     */
+    private final int glComponentType;
     
     /**
      * The byte buffer of the buffer view that the accessor
@@ -96,6 +101,7 @@ abstract class AbstractAccessorData implements AccessorData
             "The bufferViewByteBuffer is null");
         
         this.componentType = componentType;
+        this.glComponentType = accessorComponentType;
         this.bufferViewByteBuffer = bufferViewByteBuffer;
         this.byteOffset = byteOffset;
         this.numElements = numElements;
@@ -116,6 +122,12 @@ abstract class AbstractAccessorData implements AccessorData
     public final Class<?> getComponentType()
     {
         return componentType;
+    }
+
+    @Override
+    public final int getGlComponentType()
+    {
+        return glComponentType;
     }
 
     @Override

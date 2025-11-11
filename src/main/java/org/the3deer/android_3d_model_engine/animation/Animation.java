@@ -3,6 +3,8 @@ package org.the3deer.android_3d_model_engine.animation;
 
 import android.util.Log;
 
+import org.the3deer.android_3d_model_engine.model.Node;
+
 /**
  * 
  * Represents an animation that can applied to an {@link org.the3deer.android_3d_model_engine.model.AnimatedModel} . It
@@ -19,6 +21,7 @@ public class Animation {
 	private final float length;//in seconds
 	private final KeyFrame[] keyFrames;
 	private boolean initialized;
+	private Node rootNode;
 
 	/**
 	 * @param name
@@ -34,6 +37,14 @@ public class Animation {
 
 	public String getName() {
 		return name;
+	}
+
+	public Node getRootNode() {
+		return rootNode;
+	}
+
+	public void setRootNode(Node rootNode) {
+		this.rootNode = rootNode;
 	}
 
 	public void setInitialized(boolean initialized){

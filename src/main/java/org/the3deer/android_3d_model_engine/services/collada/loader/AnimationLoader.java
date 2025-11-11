@@ -52,9 +52,12 @@ public class AnimationLoader {
 
             loadTransforms();
 
-			KeyFrame[] frames = buildKeyFrames();
+            KeyFrame[] frames = buildKeyFrames();
 
-			ret = new Animation("Animation-default", this.duration, frames);
+            // FIXME:
+            String rootNodeId = null;
+
+            ret = new Animation("Animation-default", this.duration, frames);
             Log.v("AnimationLoader", "Loaded animation: " + ret);
         } catch (Exception ex) {
             Log.e("AnimationLoader", "Error loading animation", ex);
@@ -62,7 +65,7 @@ public class AnimationLoader {
         return ret;
     }
 
-	private void loadTransforms() {
+    private void loadTransforms() {
         Log.d("AnimationLoader", "Loading key times...");
         TreeSet<Float> timesSorted = getKeyTimes();
         Log.d("AnimationLoader", "Loaded key times: (" + timesSorted.size() + "): " + timesSorted);
@@ -84,7 +87,7 @@ public class AnimationLoader {
 
             Log.d("AnimationLoader", "Loading animation... id: " + animationNode.getAttribute(""));
 
-            if (animationNode.getChildren("animation").isEmpty()){
+            if (animationNode.getChildren("animation").isEmpty()) {
                 loadJointTransforms(animationNode);
                 continue;
             }
@@ -96,41 +99,41 @@ public class AnimationLoader {
         }
     }
 
-	/**
-	 * Object and bone transformation in Blender are applied in the order of scale, rotation, translation.
-	 * As a matrix this would be written like this:
-	 * <p>
-	 * {@code}object_matrix = translation_matrix * rotation_matrix * scale_matrix{@code}
-	 * <p>
-	 * Note that this order ensures there is no shearing, which happens when you do scaling after rotation.
-	 * <p>
-	 * If parenting is included in the matrix, multiple such object or bone matrices might be multiplied together,
-	 * which means there is no longer a clear correct way to decompose the matrix into scale, rotation and translation.
-	 */
-	@NonNull
-	private KeyFrame[] buildKeyFrames() {
-		KeyFrame[] frames = new KeyFrame[this.keyFrames.length];
-		for (int i = 0; i < frames.length; i++) {
-			final Map<String, JointTransform> map = new TreeMap<>();
+    /**
+     * Object and bone transformation in Blender are applied in the order of scale, rotation, translation.
+     * As a matrix this would be written like this:
+     * <p>
+     * {@code}object_matrix = translation_matrix * rotation_matrix * scale_matrix{@code}
+     * <p>
+     * Note that this order ensures there is no shearing, which happens when you do scaling after rotation.
+     * <p>
+     * If parenting is included in the matrix, multiple such object or bone matrices might be multiplied together,
+     * which means there is no longer a clear correct way to decompose the matrix into scale, rotation and translation.
+     */
+    @NonNull
+    private KeyFrame[] buildKeyFrames() {
+        KeyFrame[] frames = new KeyFrame[this.keyFrames.length];
+        for (int i = 0; i < frames.length; i++) {
+            final Map<String, JointTransform> map = new TreeMap<>();
 
-			// process matrix transformation (full transformation)
-			for (JointTransformData jointData : this.keyFrames[i].jointTransforms) {
-				if (jointData.matrix == null) continue;
+            // process matrix transformation (full transformation)
+            for (JointTransformData jointData : this.keyFrames[i].jointTransforms) {
+                if (jointData.matrix == null) continue;
 
-				final JointTransform current = map.get(jointData.jointId);
-				final float[] matrix;
-				if (current == null) {
-					matrix =  new float[16];
-					Matrix.setIdentityM(matrix, 0);
-				} else {
-					// accumulate transformations
-					matrix = current.getTransform();
-				}
-				float[] newMatrix = new float[16];
-				Matrix.multiplyMM(newMatrix, 0, jointData.matrix, 0, matrix, 0);
-				final JointTransform jointTransform = new JointTransform(newMatrix);
-				map.put(jointData.jointId, jointTransform);
-			}
+                final JointTransform current = map.get(jointData.jointId);
+                final float[] matrix;
+                if (current == null) {
+                    matrix = new float[16];
+                    Matrix.setIdentityM(matrix, 0);
+                } else {
+                    // accumulate transformations
+                    matrix = current.getTransform();
+                }
+                float[] newMatrix = new float[16];
+                Matrix.multiplyMM(newMatrix, 0, jointData.matrix, 0, matrix, 0);
+                final JointTransform jointTransform = new JointTransform(newMatrix);
+                map.put(jointData.jointId, jointTransform);
+            }
 
             // process location transformation
             for (JointTransformData jointData : this.keyFrames[i].jointTransforms) {
@@ -168,10 +171,10 @@ public class AnimationLoader {
                 }
             }
 
-			frames[i] = new KeyFrame(this.keyFrames[i].time, map);
+            frames[i] = new KeyFrame(this.keyFrames[i].time, map);
         }
         return frames;
-	}
+    }
 
     /**
      * Process all animations and combine all key frames in order to have the global list of times
@@ -221,7 +224,7 @@ public class AnimationLoader {
             String[] rawData = transformData.getChild("float_array").getData().trim().split("\\s+");
             XmlNode technique_common = transformData.getChild("technique_common");
             XmlNode accessor = technique_common.getChild("accessor");
-            String stride = accessor.getAttribute("stride") != null? accessor.getAttribute("stride") : "1";
+            String stride = accessor.getAttribute("stride") != null ? accessor.getAttribute("stride") : "1";
             if (stride.equals("16")) {
                 processMatrixTransforms(jointNameId, rawTimes, rawData);
             } else if (transform.equals("scale.X")) {
@@ -304,41 +307,41 @@ public class AnimationLoader {
     private void process_scale_X(String jointName, String[] rawTimes, String[] rawData) {
         for (int i = 0; i < rawTimes.length; i++)
             keyFrames[keyTimes.indexOf(Float.parseFloat(rawTimes[i]))].
-					addJointTransform(JointTransformData.ofScale(jointName, new Float[]{Float.parseFloat(rawData[i]), null, null}));
+                    addJointTransform(JointTransformData.ofScale(jointName, new Float[]{Float.parseFloat(rawData[i]), null, null}));
     }
 
     private void process_scale_Y(String jointName, String[] rawTimes, String[] rawData) {
         for (int i = 0; i < rawTimes.length; i++) {
             keyFrames[keyTimes.indexOf(Float.parseFloat(rawTimes[i]))].
-					addJointTransform(JointTransformData.ofScale(jointName, new Float[]{null, Float.parseFloat(rawData[i]), null}));
+                    addJointTransform(JointTransformData.ofScale(jointName, new Float[]{null, Float.parseFloat(rawData[i]), null}));
         }
     }
 
     private void process_scale_Z(String jointName, String[] rawTimes, String[] rawData) {
         for (int i = 0; i < rawTimes.length; i++) {
             keyFrames[keyTimes.indexOf(Float.parseFloat(rawTimes[i]))].
-					addJointTransform(JointTransformData.ofScale(jointName, new Float[]{null, null, Float.parseFloat(rawData[i])}));
+                    addJointTransform(JointTransformData.ofScale(jointName, new Float[]{null, null, Float.parseFloat(rawData[i])}));
         }
     }
 
     private void process_rotation_X(String jointName, String[] rawTimes, String[] rawData) {
         for (int i = 0; i < rawTimes.length; i++) {
             keyFrames[keyTimes.indexOf(Float.parseFloat(rawTimes[i]))].
-                    addJointTransform(JointTransformData.ofRotation(jointName, new Float[]{Float.parseFloat(rawData[i]),null,null}));
+                    addJointTransform(JointTransformData.ofRotation(jointName, new Float[]{Float.parseFloat(rawData[i]), null, null}));
         }
     }
 
     private void process_rotation_Y(String jointName, String[] rawTimes, String[] rawData) {
         for (int i = 0; i < rawTimes.length; i++) {
             keyFrames[keyTimes.indexOf(Float.parseFloat(rawTimes[i]))].
-                    addJointTransform(JointTransformData.ofRotation(jointName, new Float[]{null, Float.parseFloat(rawData[i]),null}));
+                    addJointTransform(JointTransformData.ofRotation(jointName, new Float[]{null, Float.parseFloat(rawData[i]), null}));
         }
     }
 
     private void process_rotation_Z(String jointName, String[] rawTimes, String[] rawData) {
         for (int i = 0; i < rawTimes.length; i++) {
             keyFrames[keyTimes.indexOf(Float.parseFloat(rawTimes[i]))].
-					addJointTransform(JointTransformData.ofRotation(jointName, new Float[]{null, null, Float.parseFloat(rawData[i])}));
+                    addJointTransform(JointTransformData.ofRotation(jointName, new Float[]{null, null, Float.parseFloat(rawData[i])}));
         }
     }
 

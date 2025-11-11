@@ -112,6 +112,10 @@ public class Constants {
     // animation
     public static final boolean PREFER_QUATERNION = true;
     public static final boolean PREFER_QUATERNION_MATRIX = true;
+
+    // experimental
     public final static boolean STRATEGY_NEW = true;
+    public final static boolean STRATEGY_LOAD_NEW = true;
+    public final static boolean STRATEGY_BBOX_NEW = false;
 
 }

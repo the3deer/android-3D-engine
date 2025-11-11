@@ -2,7 +2,6 @@ package org.the3deer.android_3d_model_engine.model;
 
 import android.opengl.Matrix;
 
-import org.the3deer.android_3d_model_engine.services.collada.entities.VertexWeights;
 import org.the3deer.util.math.Math3DUtils;
 
 import java.nio.Buffer;
@@ -12,8 +11,7 @@ import java.util.List;
 
 public class Skin {
 
-    private int jointComponents = Constants.MAX_VERTEX_WEIGHTS;
-    private int weightsComponents = Constants.MAX_VERTEX_WEIGHTS;
+
 
     private Node sceneRoot;
     private Node rootJoint;
@@ -25,11 +23,20 @@ public class Skin {
     private List<Node> bones;
     private List<String> jointNames;
 
+    private int jointComponents = Constants.MAX_VERTEX_WEIGHTS;
+    private int weightsComponents = Constants.MAX_VERTEX_WEIGHTS;
     private Buffer jointsBuffer;
     private Buffer weightsBuffer;
     private float[] bindShapeMatrix;
     private float[][] jointMatrices;
-    private float[] inverseBindMatrix;
+    private float[] inverseBindMatrices;
+
+    private boolean doInverseBindTranspose;
+    private float[] inverseBindMatrices_transposed;
+
+
+    public Skin() {
+    }
 
     public Skin(List<Node> nodes, List<Node> bones, Node sceneRoot, Node rootJoint) {
         this.nodes = nodes;
@@ -38,18 +45,26 @@ public class Skin {
         this.rootJoint = rootJoint;
 
         // init skinning matrix
-        this.setJointMatrices(new float[getBoneCount()][16]);  // 16 is the size of the matrix
-        for (int i = 0; i < this.getJointMatrices().length; i++) {
-            Matrix.setIdentityM(this.getJointMatrices()[i], 0);
+        this.jointMatrices = new float[bones.size()][16];  // 16 is the size of the matrix
+        for (int i = 0; i < this.jointMatrices.length; i++) {
+            Matrix.setIdentityM(this.jointMatrices[i], 0);
         }
     }
 
-    public Skin(IntBuffer jointIds, FloatBuffer weights, float[] inverseBindMatrices, List<String> jointNames) {
+    public Skin(float[] bindShapeMatrix, Buffer jointIds, Buffer weights, float[] inverseBindMatrices, List<String> jointNames) {
+        this.bindShapeMatrix = bindShapeMatrix;
         this.jointsBuffer = jointIds;
         this.weightsBuffer = weights;
-        this.inverseBindMatrix = inverseBindMatrices;
+        this.inverseBindMatrices = inverseBindMatrices;
         this.jointNames = jointNames;
+
+        // init skinning matrix
+        this.jointMatrices = new float[jointNames.size()][16];  // 16 is the size of the matrix
+        for (int i = 0; i < this.jointMatrices.length; i++) {
+            Matrix.setIdentityM(this.jointMatrices[i], 0);
+        }
     }
+
 
     public List<Node> getJoints() {
         return nodes;
@@ -70,23 +85,6 @@ public class Skin {
         this.boneCount = boneCount;
         this.sceneRoot = sceneRoot;
         this.rootJoint = sceneRoot;
-    }
-
-
-    public int getJointComponents() {
-        return jointComponents;
-    }
-
-    public void setJointComponents(int jointComponents) {
-        this.jointComponents = jointComponents;
-    }
-
-    public int getWeightsComponents() {
-        return weightsComponents;
-    }
-
-    public void setWeightsComponents(int weightsComponents) {
-        this.weightsComponents = weightsComponents;
     }
 
     public void incrementBoneCount() {
@@ -129,6 +127,22 @@ public class Skin {
         return this;
     }
 
+    public int getJointComponents() {
+        return jointComponents;
+    }
+
+    public void setJointComponents(int jointComponents) {
+        this.jointComponents = jointComponents;
+    }
+
+    public int getWeightsComponents() {
+        return weightsComponents;
+    }
+
+    public void setWeightsComponents(int weightsComponents) {
+        this.weightsComponents = weightsComponents;
+    }
+
     public Buffer getJointsBuffer() {
         return jointsBuffer;
     }
@@ -145,12 +159,16 @@ public class Skin {
         this.weightsBuffer = weightsBuffer;
     }
 
-    public float[] getInverseBindMatrix() {
-        return inverseBindMatrix;
+    public float[] getInverseBindMatrices() {
+        return inverseBindMatrices;
     }
 
-    public void setInverseBindMatrix(float[] inverseBindMatrix) {
-        this.inverseBindMatrix = inverseBindMatrix;
+    public void setInverseBindMatrices(float[] inverseBindMatrices) {
+        this.inverseBindMatrices = inverseBindMatrices;
+    }
+
+    public void setDoInverseBindTranspose(boolean flag){
+        this.doInverseBindTranspose = flag;
     }
 
     public Node find(String geometryId) {
@@ -165,6 +183,10 @@ public class Skin {
             return sceneRoot.find(geometryId);
         }
         return null;
+    }
+
+    public void setRootJoint(Node rootJoint) {
+        this.rootJoint = rootJoint;
     }
 
     /**
@@ -234,7 +256,13 @@ public class Skin {
 
         // --- 1. Process the current joint ---
 
-        final int jointIndex = jointNode.getJointIndex();
+        int jointIndex = jointNode.getJointIndex();
+
+        // Check if we have a list of joints (collada)
+        if (jointIndex == -1 && jointNames != null) {
+            jointIndex = jointNames.indexOf(jointNode.getId());
+            jointNode.setJointIndex(jointIndex);
+        }
 
         // Only do calculations for nodes that are actual, indexed joints.
         if (jointIndex != -1) {
@@ -242,16 +270,48 @@ public class Skin {
             // Get the final world transform (calculated in Phase 2).
             final float[] finalAnimatedWorldTransform = jointNode.getAnimatedWorldTransform();
 
-            // Get this joint's inverse bind matrix.
-            final float[] inverseBindMatrix = jointNode.getInverseBindMatrix();
+            // Get the target matrix from our skinning array.
+            final float[] targetSkinningMatrix = getJointMatrices()[jointIndex];
 
-            if (finalAnimatedWorldTransform != null && inverseBindMatrix != null && jointIndex < getJointMatrices().length) {
+            // Calculate the position in the flat array for this joint's inverse bind matrix.
+            final int inverseBindMatrixOffset = jointIndex * 16;
 
-                // Get the specific matrix from our array that we need to update.
-                final float[] targetSkinningMatrix = getJointMatrices()[jointIndex];
+            //
+            if (doInverseBindTranspose){
+                if (inverseBindMatrices != null && inverseBindMatrices_transposed == null){
+                    this.inverseBindMatrices_transposed = new float[this.inverseBindMatrices.length];
+                    for (int i = 0; i <= inverseBindMatrices.length - 16; i+=16) {
+                        // Transpose the i-th matrix from the source array into the destination array.
+                        Matrix.transposeM(this.inverseBindMatrices_transposed, i, this.inverseBindMatrices, i);
+                    }
+                }
+            }
 
+            // Ensure all data is valid and within bounds.
+            if (doInverseBindTranspose && finalAnimatedWorldTransform != null && this.inverseBindMatrices_transposed != null
+                    && (inverseBindMatrixOffset + 15) < this.inverseBindMatrices_transposed.length) {
+
+                // --- THIS IS THE CLEAN, STRATEGIC FIX ---
                 // Final Skinning Matrix = finalAnimatedWorldTransform * inverseBindMatrix
-                Matrix.multiplyMM(targetSkinningMatrix, 0, finalAnimatedWorldTransform, 0, inverseBindMatrix, 0);
+                // We multiply directly from the offset in our large, flat inverseBindMatrices array.
+                Matrix.multiplyMM(targetSkinningMatrix, 0, finalAnimatedWorldTransform, 0, this.inverseBindMatrices_transposed, inverseBindMatrixOffset);
+
+            }
+            // Ensure all data is valid and within bounds.
+            else if (finalAnimatedWorldTransform != null && this.inverseBindMatrices != null
+                    && (inverseBindMatrixOffset + 15) < this.inverseBindMatrices.length) {
+
+                // --- THIS IS THE CLEAN, STRATEGIC FIX ---
+                // Final Skinning Matrix = finalAnimatedWorldTransform * inverseBindMatrix
+                // We multiply directly from the offset in our large, flat inverseBindMatrices array.
+                Matrix.multiplyMM(targetSkinningMatrix, 0, finalAnimatedWorldTransform, 0, this.inverseBindMatrices, inverseBindMatrixOffset);
+
+            } else {
+                // This case indicates a problem, either in animation update or data loading.
+                // For safety, we can set the skinning matrix to the animated pose to avoid catastrophic deformation.
+                if (finalAnimatedWorldTransform != null){
+                    System.arraycopy(finalAnimatedWorldTransform, 0, targetSkinningMatrix, 0, 16);
+                }
             }
         }
 
@@ -259,45 +319,6 @@ public class Skin {
         if (jointNode.getChildren() == null) return;
         for (Node childJoint : jointNode.getChildren()) {
             recursiveSkinMatrixUpdate(childJoint);
-        }
-    }
-
-    public void updateSkinMatrices2() {
-
-        // Check if the joint matrices buffer exists.
-        final List<Node> nodeList = nodes != null? nodes : bones;
-
-        if (nodeList == null || getJointMatrices() == null) return;
-
-        // The 'nodes' list contains all the joints for this skeleton.
-        for (Node jointNode : nodeList) {
-
-            // 1. Get the final animated world transform for this joint.
-            // This value was correctly calculated in the previous phase and stored on the node.
-            float[] finalAnimatedWorldTransform = jointNode.getAnimatedWorldTransform();
-
-            // This should never be null if the update phases are correct, but it's a good safety check.
-            if (finalAnimatedWorldTransform == null) continue;
-
-            // 2. Get the inverse bind matrix for THIS specific joint.
-            // I assume this method exists on your Node class.
-            float[] inverseBindMatrix = jointNode.getInverseBindMatrix();
-
-            // 3. Get the target array for this joint from our uniform buffer.
-            // The joint's index determines its slot in the array.
-            int jointIndex = jointNode.getJointIndex();
-            if (jointIndex >= 0 && jointIndex < getJointMatrices().length) {
-                //getJointMatrices()[jointIndex] = finalAnimatedWorldTransform;
-                float[] targetSkinningMatrix = getJointMatrices()[jointIndex];
-
-
-                // 4. THIS IS THE FIX: Calculate the final skinning matrix and store it.
-                // Skinning Matrix = finalAnimatedWorldTransform * inverseBindMatrix
-                Matrix.multiplyMM(targetSkinningMatrix, 0, finalAnimatedWorldTransform, 0, inverseBindMatrix, 0);
-            }
-             else {
-                Matrix.multiplyMM(finalAnimatedWorldTransform, 0, finalAnimatedWorldTransform, 0, inverseBindMatrix, 0);
-            }
         }
     }
 }

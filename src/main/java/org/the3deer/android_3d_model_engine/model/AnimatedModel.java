@@ -8,7 +8,6 @@ import org.the3deer.util.math.Math3DUtils;
 import java.nio.Buffer;
 import java.nio.FloatBuffer;
 import java.util.Arrays;
-import java.util.List;
 
 /**
  * This class represents an entity in the world that can be animated. It
@@ -25,7 +24,6 @@ public class AnimatedModel extends Object3DData {
     // skeleton
     private Skin skin;
 
-    private List<String> jointNames;
     private float[] inverseBindMatrices;
     private Buffer jointIds;
     private Buffer vertexWeigths;
@@ -46,13 +44,13 @@ public class AnimatedModel extends Object3DData {
     }
 
     public AnimatedModel(String id, FloatBuffer positions, FloatBuffer normals, FloatBuffer colors, FloatBuffer texCoords, Material material, Skin skin) {
-        super(id, positions, normals, texCoords, colors, null);
-        setMaterial(material);
+        super(id, positions, normals, texCoords, colors, material);
         setSkin(skin);
     }
 
     @Override
     public float[] getModelMatrix() {
+
         // If this animated model is attached to a node that has a skeleton,
         // it means the vertex positions will be fully calculated by the
         // skinning matrices (u_jointMat) in the vertex shader.
@@ -60,7 +58,7 @@ public class AnimatedModel extends Object3DData {
         //
         // Therefore, the main model matrix (u_modelMatrix) must be an identity matrix
         // to avoid applying the world transformation twice.
-        if (getParentNode() != null && getParentNode().getSkeleton() != null) {
+        if (getParentNode() != null && getParentNode().getSkin() != null) {
             return Math3DUtils.IDENTITY_MATRIX;
         }
 
@@ -160,6 +158,23 @@ public class AnimatedModel extends Object3DData {
     }
 
 
+    public int getJointComponents() {
+        return jointComponents;
+    }
+
+    public void setJointComponents(int jointComponents) {
+        this.jointComponents = jointComponents;
+    }
+
+    public int getWeightsComponents() {
+        return weightsComponents;
+    }
+
+    public void setWeightsComponents(int weightsComponents) {
+        this.weightsComponents = weightsComponents;
+    }
+
+
     @Override
     public AnimatedModel clone() {
         final AnimatedModel ret = new AnimatedModel();
@@ -169,31 +184,6 @@ public class AnimatedModel extends Object3DData {
         ret.skin = this.skin;
         //ret.setBindShapeMatrix(this.getBindShapeMatrix());
         return ret;
-    }
-
-
-    public void setJointIdsComponents(int numComponents) {
-        this.jointComponents = numComponents;
-    }
-
-    public void setWeightsComponents(int numComponents) {
-        this.weightsComponents = numComponents;
-    }
-
-    public int getJointComponents() {
-        return jointComponents;
-    }
-
-    public int getWeightsComponents() {
-        return weightsComponents;
-    }
-
-    public void setJointNames(List<String> jointNames) {
-        this.jointNames = jointNames;
-    }
-
-    public List<String> getJointNames() {
-        return jointNames;
     }
 
     public void setInverseBindMatrices(float[] inverseBindMatrices) {

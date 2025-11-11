@@ -17,6 +17,9 @@ import org.the3deer.android_3d_model_engine.model.CubeMap;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.nio.ByteBuffer;
+
+import de.javagl.jgltf.model.io.Buffers;
 
 public final class GLUtil {
 
@@ -105,6 +108,11 @@ public final class GLUtil {
         }
 
         return shader;
+    }
+
+    public static int loadTexture(final ByteBuffer textureData) {
+        Bitmap bitmap = AndroidUtils.decodeBitmap(Buffers.createByteBufferInputStream(textureData));
+        return loadTexture(bitmap);
     }
 
     public static int loadTexture(final byte[] textureData) {

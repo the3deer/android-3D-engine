@@ -6,6 +6,7 @@ import org.the3deer.android_3d_model_engine.R;
 import org.the3deer.android_3d_model_engine.animation.Animator;
 import org.the3deer.android_3d_model_engine.model.AnimatedModel;
 import org.the3deer.android_3d_model_engine.model.Camera;
+import org.the3deer.android_3d_model_engine.model.Constants;
 import org.the3deer.android_3d_model_engine.model.Object3DData;
 import org.the3deer.android_3d_model_engine.model.Scene;
 import org.the3deer.android_3d_model_engine.objects.BoundingBox;
@@ -103,10 +104,10 @@ public class BoundingBoxDrawer implements Drawer {
         Object3DData boundingBoxData = boundingBoxes.get(objData);
         if (boundingBoxData == null) {
             Log.v(TAG, "Building bounding box... id: " + objData.getId());
-            if (objData instanceof AnimatedModel && ((AnimatedModel) objData).getSkin() != null){
+            if (Constants.STRATEGY_BBOX_NEW && objData instanceof AnimatedModel && ((AnimatedModel) objData).getSkin() != null){
                 boundingBoxData = BoundingBox.buildSkinned((AnimatedModel) objData);
             } else {
-                boundingBoxData = BoundingBox.build(objData);
+                boundingBoxData = BoundingBox.buildStatic(objData);
             }
             if (boundingBoxData != null) {
                 //boundingBoxData.setModelMatrix(objData.getModelMatrix());

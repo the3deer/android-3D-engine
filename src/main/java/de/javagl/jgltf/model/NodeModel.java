@@ -58,6 +58,14 @@ public interface NodeModel extends NamedModelElement
     List<MeshModel> getMeshModels();
 
     /**
+     * Returns the {@link MeshModel} for this node, or <code>null</code> if
+     * this node is not associated with a mesh
+     *
+     * @return the {@link MeshModel} or null if this node is not associated with a mesh
+     */
+    MeshModel getMeshModel();
+
+    /**
      * Returns the {@link SkinModel} for this node, or <code>null</code> if
      * this node is not associated with a skin
      *  
