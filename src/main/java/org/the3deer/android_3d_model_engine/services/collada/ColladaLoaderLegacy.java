@@ -143,7 +143,7 @@ public final class ColladaLoaderLegacy {
                         }
                         if (node != null) {
                             Log.d("ColladaLoaderTask", "Mesh joint found. id: "+ node.getName()+", bindTransform: "+ Arrays.toString(node.getBindWorldTransform()));
-                            data3D.setName(node.getName());
+                            data3D.setName(node.getName()+"."+data3D.hashCode());
                             data3D.setWorldTransform(node.getBindWorldTransform());
                             //data3D.setParentNode(node);
                         }

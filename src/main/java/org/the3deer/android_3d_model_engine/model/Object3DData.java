@@ -143,7 +143,7 @@ public class Object3DData {
     private Materials materials;
 
     // simple object variables for drawing using arrays
-    private Material material = new Material("default");
+    private Material material = new Material("default", "default");
     protected Buffer indexBuffer = null;
 
     // Processed arrays
@@ -297,8 +297,9 @@ public class Object3DData {
         return parentNode;
     }
 
-    public void setParentNode(Node parentNode) {
+    public Object3DData setParentNode(Node parentNode) {
         this.parentNode = parentNode;
+        return this;
     }
 
     public Object3DData getParent() {
@@ -364,7 +365,7 @@ public class Object3DData {
     }
 
     public Material getMaterial() {
-        if (material == null) material = new Material("default");
+        if (material == null) material = new Material("default", "default");
         return material;
     }
 
@@ -420,31 +421,51 @@ public class Object3DData {
         return dimensions;
     }
 
+    // REPLACEMENT for the refreshDimensions() method
+
     private void refreshDimensions() {
         final Dimensions dimensions = new Dimensions();
 
-        if (vertexArrayBuffer != null) {
+        // Do nothing if there are no vertices
+        if (vertexArrayBuffer == null || vertexArrayBuffer.capacity() == 0) {
+            this.dimensions = dimensions;
+            return;
+        }
 
-            if (this.elements == null || this.elements.isEmpty()) {
-                for (int i = 0; i < vertexArrayBuffer.capacity() - 2; i += 3) {
-                    dimensions.update(vertexArrayBuffer.get(i), vertexArrayBuffer.get(i + 1), vertexArrayBuffer.get(i + 2));
-                }
-            } else {
+        // Ensure buffer position is at the start
+        vertexArrayBuffer.position(0);
+
+        // Case 1: The object is drawn using glDrawArrays (non-indexed)
+        // This is typically true when 'elements' is null or empty.
+        if (isDrawUsingArrays()) {
+            for (int i = 0; i < vertexArrayBuffer.capacity() / 3; i++) {
+                dimensions.update(vertexArrayBuffer.get(i * 3), vertexArrayBuffer.get(i * 3 + 1), vertexArrayBuffer.get(i * 3 + 2));
+            }
+        }
+        // Case 2: The object is drawn using glDrawElements (indexed)
+        else {
+            if (this.elements != null && !this.elements.isEmpty()) {
+                // We only need to process the indices. All elements share the same vertex buffer.
+                // Using a Set to avoid updating dimensions for the same vertex multiple times.
+                Set<Integer> processedIndices = new HashSet<>();
                 for (Element element : getElements()) {
                     final Buffer indexBuffer = element.getIndexBuffer();
                     if (indexBuffer != null) {
+                        indexBuffer.position(0);
                         for (int i = 0; i < indexBuffer.capacity(); i++) {
-                            final int idx;
-                            idx = IOUtils.getIntBufferValue(indexBuffer, i);
-                            if (idx < 0 || idx >= vertexArrayBuffer.capacity()) {
-                                Log.w("Object3DData", "Wrong index: " + idx);
+                            final int idx = IOUtils.getIntBufferValue(indexBuffer, i);
+
+                            if (processedIndices.contains(idx)) {
+                                continue; // Already processed this vertex, skip.
+                            }
+
+                            if (idx < 0 || idx >= vertexArrayBuffer.capacity() / 3) {
+                                Log.w("Object3DData", "Wrong index '" + idx + "' while getting dimensions for '" + getId() + "'");
                                 continue;
                             }
+
                             dimensions.update(vertexArrayBuffer.get(idx * 3), vertexArrayBuffer.get(idx * 3 + 1), vertexArrayBuffer.get(idx * 3 + 2));
-                        }
-                    } else {
-                        for (int i = 0; i < vertexArrayBuffer.capacity() - 2; i += 3) {
-                            dimensions.update(vertexArrayBuffer.get(i), vertexArrayBuffer.get(i + 1), vertexArrayBuffer.get(i + 2));
+                            processedIndices.add(idx);
                         }
                     }
                 }
@@ -453,6 +474,7 @@ public class Object3DData {
 
         this.dimensions = dimensions;
     }
+
 
     public Object3DData setRelativeScale(float[] relativeScale) {
         this.relativeScale = relativeScale;
@@ -819,11 +841,24 @@ public class Object3DData {
      * Returns the raw, local model matrix for this object without any other calculations.
      * This is safe to call from anywhere and will not cause recursion.
      */
-    public float[] getLocalTransformMatrix() {
-        return this.modelMatrix;
+    public float[] getNodeMatrix() {
+        if (parentNode == null) {
+            return Math3DUtils.IDENTITY_MATRIX;
+        }
+        final Node rootNode = parentNode.getRoot();
+        return rootNode.getBindWorldTransform();
     }
 
     public float[] getModelMatrix() {
+
+        // bounding box
+        if (id != null && id.contains("_boundingBox_")){
+            if (parentNode != null){
+                final Node rootNode = parentNode.getRoot();
+                return rootNode.getBindWorldTransform();
+
+            }
+        }
 
         if (isParentBound && parent != null) {
             return parent.getModelMatrix();

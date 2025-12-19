@@ -16,6 +16,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class Constants {
 
+    public static final boolean DEBUG = true;
     /**
      * Default unit factor for dimension on any axis. 1cm = 1f
      */

@@ -489,7 +489,7 @@ public final class GltfLoaderLegacy {
         // parse material
         MaterialModelV2 materialModel = (MaterialModelV2) meshPrimitiveModel.getMaterialModel();
         if (materialModel != null) {
-            final Material material = new Material(materialModel.getName());
+            final Material material = new Material(materialModel.getName(), materialModel.getName());
 
             // map color
             material.setDiffuse(materialModel.getBaseColorFactor());

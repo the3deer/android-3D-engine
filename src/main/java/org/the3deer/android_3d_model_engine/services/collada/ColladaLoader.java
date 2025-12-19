@@ -1,6 +1,7 @@
 package org.the3deer.android_3d_model_engine.services.collada;
 
 import android.opengl.GLES20;
+import android.opengl.Matrix;
 import android.util.Log;
 
 import java.io.InputStream;
@@ -17,9 +18,12 @@ import org.the3deer.android_3d_model_engine.model.Material;
 import org.the3deer.android_3d_model_engine.model.Object3DData;
 import org.the3deer.android_3d_model_engine.model.Scene;
 import org.the3deer.android_3d_model_engine.model.Skin;
+import org.the3deer.android_3d_model_engine.model.Texture;
 import org.the3deer.android_3d_model_engine.scene.SceneImpl;
 import org.the3deer.android_3d_model_engine.services.collada.entities.Controller;
+import org.the3deer.android_3d_model_engine.services.collada.entities.EffectData;
 import org.the3deer.android_3d_model_engine.services.collada.entities.Geometry;
+import org.the3deer.android_3d_model_engine.services.collada.entities.MaterialData;
 import org.the3deer.android_3d_model_engine.services.collada.entities.Node; // Import the new Node class
 import org.the3deer.util.android.ContentUtils;
 import org.the3deer.util.io.IOUtils;
@@ -46,10 +50,13 @@ public class ColladaLoader {
             // 2. GET ALL PARSED LIBRARIES
             Map<String, Geometry> geometries = parser.getGeometryLibrary();
             Map<String, Controller> controllers = parser.getControllerLibrary();
-            Map<String, Material> materials = parser.getMaterialLibrary();
+            Map<String, MaterialData> materialsLibrary = parser.getMaterialLibrary();
+            Map<String, EffectData> effectLibrary = parser.getEffectLibrary();
+            Map<String, String> imagesLibrary = parser.getImagesLibrary();
             List<Animation> animations = parser.getAnimationLibrary();
 
             // Load the actual texture file data for all materials that have one.
+            final Map<String, Material> materials = buildMaterials(materialsLibrary, effectLibrary, imagesLibrary);
             loadTextureDatas(uri, materials);
 
             // 3. BUILD TEMPLATE MODELS
@@ -96,6 +103,14 @@ public class ColladaLoader {
             Log.i(TAG, "Linking skins to skeleton nodes...");
             for (Node parserNode : parser.getNodeLibrary().values()) { // Iterate through ALL parser nodes
 
+                // guess root joint from controller
+                if (parserNode.getInstanceControllerId() != null && parserNode.getSkinId() == null){
+                    Controller controller = controllers.get(parserNode.getInstanceControllerId());
+                    if (controller != null) {
+                        parserNode.setSkinId(controller.getSkin().getJointNames().get(0));
+                    }
+                }
+
                 // Find nodes that instance a controller, like our "Cube" node.
                 if (parserNode.getInstanceControllerId() != null && parserNode.getSkinId() != null) {
 
@@ -140,7 +155,7 @@ public class ColladaLoader {
 
             // 5. POPULATE AND RETURN THE SCENE
             scene.setObjects(finalModels);
-            scene.setMaterials(new ArrayList<>(materials.values()));
+            //scene.setMaterials(new ArrayList<>(materials.values()));
             scene.setAnimations(animations);
             scene.setRootNodes(rootModelNodes); // <-- Attach the hierarchy to the scene
 
@@ -227,7 +242,7 @@ public class ColladaLoader {
         float[] worldMatrix = new float[16];
         if (parentMatrix != null) {
             // Inherit parent's transform
-            android.opengl.Matrix.multiplyMM(worldMatrix, 0, parentMatrix, 0, parserNode.getTransform(), 0);
+            Matrix.multiplyMM(worldMatrix, 0, parentMatrix, 0, parserNode.getTransform(), 0);
         } else {
             // This is a root node, its world matrix is its local matrix
             worldMatrix = parserNode.getTransform();
@@ -286,10 +301,56 @@ public class ColladaLoader {
         }
     }
 
+    private Map<String, Material> buildMaterials(Map<String, MaterialData> materialLibrary,
+                                                 Map<String, EffectData> effectLibrary,
+                                                 Map<String, String> imageIdToFileNameMap){
+
+        final Map<String, Material> ret = new HashMap<>();
+
+        for (Map.Entry<String, MaterialData> entry : materialLibrary.entrySet()) {
+            String materialId = entry.getKey();
+            MaterialData materialData = entry.getValue();
+            Material material = new Material(materialData.id, materialData.name);
+            ret.put(materialId, material);
+
+            // check
+            final String effectId = materialData.effectId;
+            if (effectId == null) continue;
+
+            // Get the rich effect data we parsed earlier
+            EffectData effectData = effectLibrary.get(effectId);
+            if (effectData == null) {
+                Log.w(TAG, "Material '" + materialId + "' references unknown effect '" + effectId + "'");
+                continue;
+            }
+
+            // Set diffuse color if available
+            if (effectData.diffuseColor != null) {
+                material.setDiffuse(effectData.diffuseColor);
+                material.setAlpha(effectData.diffuseColor[3]); // Default alpha from diffuse color
+            }
+
+            // Override alpha with transparency if it exists
+            if (effectData.transparency != null) {
+                material.setAlpha(effectData.transparency);
+            }
+
+            // Resolve the texture file name through the maps
+            if (effectData.imageId != null) {
+                String fileName = imageIdToFileNameMap.get(effectData.imageId);
+                if (fileName != null) {
+                    material.setColorTexture(new Texture().setFile(fileName));
+                    Log.d(TAG, "Assembled material '" + materialId + "' with texture '" + fileName + "'");
+                }
+            }
+        }
+        return ret;
+    }
 
     private void loadTextureDatas(URI modelUri, Map<String, Material> materials) {
         if (materials == null) return;
         for (Material mat : materials.values()) {
+
             if (mat.getColorTexture() != null && mat.getColorTexture().getFile() != null) {
                 String textureFile = mat.getColorTexture().getFile();
                 try {
@@ -361,9 +422,15 @@ public class ColladaLoader {
         }
         // --- END OF UNROLLING LOGIC ---
 
+        float[] bindShapeMatrixTransposed = null;
+        if (controller.getSkin().getBindShapeMatrix() != null) {
+            bindShapeMatrixTransposed = new float[16];
+            Matrix.transposeM(bindShapeMatrixTransposed, 0, controller.getSkin().getBindShapeMatrix(), 0);
+        }
+
         // The method signature was wrong, it should now get jointNames from the skin object.
         Skin skin = new Skin(
-                controller.getSkin().getBindShapeMatrix(),
+                bindShapeMatrixTransposed,
                 IOUtils.createFloatBuffer(finalJointIndicesAsFloats), // skinning data
                 IOUtils.createFloatBuffer(finalWeights),
                 controller.getSkin().getInverseBindMatrices(),
@@ -384,6 +451,10 @@ public class ColladaLoader {
 
         // metadata
         model.setAuthoringTool(this.authoringTool);
+
+        // FIXME:
+        model.setBindShapeMatrix(skin.getBindShapeMatrix());
+        skin.setBindShapeMatrix(null);
 
         return model;
     }

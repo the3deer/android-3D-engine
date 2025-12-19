@@ -233,8 +233,8 @@ public class Camera {
         this.orientation.setMatrix(orientationMatrix);
 
         // dimensions
-        this.dimensions2D.set(-Constants.UNIT * screen.getRatio(), Constants.UNIT * screen.getRatio(), Constants.UNIT, -Constants.UNIT, 0, 1);
-        this.dimensions3D.set(0, screen.getWidth(), screen.getHeight(), 0, Constants.near, Constants.far);
+        this.dimensions2D.set(-Constants.UNIT * screen.getRatio(), Constants.UNIT * screen.getRatio(), Constants.UNIT, -Constants.UNIT, 1, 0);
+        this.dimensions3D.set(0, screen.getWidth(), screen.getHeight(), 0, Constants.near, -Constants.far);
 
         // projection
         if (this.projection != null) {

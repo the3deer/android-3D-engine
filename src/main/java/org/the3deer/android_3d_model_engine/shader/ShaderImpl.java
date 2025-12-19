@@ -373,14 +373,18 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
             setFeatureFlag("u_Animated", toggle);
 
             // debug
-            if (!logset.contains(obj.getId())) {
-                Log.v("SHADER_DEBUG", "id: " + obj.getId() + ", u_Animated " + toggle);
+            if (Constants.DEBUG) {
+                if (!logset.contains(obj.getId())) {
+                    Log.v("SHADER_DEBUG", "id: " + obj.getId() + ", u_Animated " + toggle);
+                }
             }
         }
 
-        if (!logset.contains(obj.getId())){
-            Log.v("SHADER_DEBUG", "id: "+obj.getId()+", modelMatrix = "+ Arrays.toString(obj.getModelMatrix()));
-            logset.add(obj.getId());
+        if (Constants.DEBUG) {
+            if (!logset.contains(obj.getId())) {
+                Log.v("SHADER_DEBUG", "id: " + obj.getId() + ", modelMatrix = " + Arrays.toString(obj.getModelMatrix()));
+                logset.add(obj.getId());
+            }
         }
 
         // FIXME:
@@ -711,8 +715,10 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
             setUniformMatrix4(jointTransform, jointTransformHandleName);
 
             // debug
-            if (!logset.contains(animatedModel.getId())) {
-                Log.v("SHADER_DEBUG", "id: " + animatedModel.getId() + ", jointTransform["+i+"] = " + Arrays.toString(jointTransform));
+            if (Constants.DEBUG) {
+                if (!logset.contains(animatedModel.getId())) {
+                    Log.v("SHADER_DEBUG", "id: " + animatedModel.getId() + ", jointTransform[" + i + "] = " + Arrays.toString(jointTransform));
+                }
             }
         }
     }

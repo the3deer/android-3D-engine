@@ -39,6 +39,7 @@ public class Dimensions {
         }
     }
 
+    // called from the UI
     public Dimensions(float[] min, float[] max){
         this.min = min;
         this.max = max;
@@ -51,6 +52,7 @@ public class Dimensions {
         refresh();;
     }
 
+    // called from the UI
     public Dimensions(float leftPt, float rightPt, float topPt, float bottomPt, float nearPt, float farPt) {
         this.leftPt = leftPt;
         this.rightPt = rightPt;
@@ -106,6 +108,19 @@ public class Dimensions {
         this.max[0] = rightPt;
         this.max[1] = topPt;
         this.max[2] = nearPt;
+
+        // assert logic
+        if (this.min[0] > this.max[0]){
+            throw new IllegalStateException(String.format("BUG: min[0] > max[0] : %s > %s", df.format(this.min[0]), df.format(this.max[0])));
+        }
+        if (this.min[1] > this.max[1]) {
+            throw new IllegalStateException(String.format("BUG: min[1] > max[1] : %s > %s", df.format(this.min[1]), df.format(this.max[1])));
+        }
+        if (this.min[2] > this.max[2]) {
+            throw new IllegalStateException("BUG: min[2] > max[2] : " + df.format(this.min[2]) + " > " + df.format(this.max[2]));
+        }
+
+        // center = (max + min)
 
         this.center[0] = (this.max[0] + this.min[0]) / 2.0f;
         this.center[1] = (this.max[1] + this.min[1]) / 2.0f;

@@ -24,6 +24,7 @@ public class Material {
     }
 
     // material name
+    private String id;
     private String name;
 
     // colour info
@@ -53,8 +54,9 @@ public class Material {
     public Material() {
     }
 
-    public Material(String nm) {
-        name = nm;
+    public Material(String id, String nm) {
+        this.id = id;
+        this.name = name;
     }
 
     // --------- set/get methods for colour info --------------

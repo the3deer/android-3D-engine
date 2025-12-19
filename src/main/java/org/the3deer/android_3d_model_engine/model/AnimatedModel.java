@@ -1,5 +1,6 @@
 package org.the3deer.android_3d_model_engine.model;
 
+import android.opengl.Matrix;
 import android.util.Log;
 
 import org.the3deer.util.io.IOUtils;
@@ -174,7 +175,6 @@ public class AnimatedModel extends Object3DData {
         this.weightsComponents = weightsComponents;
     }
 
-
     @Override
     public AnimatedModel clone() {
         final AnimatedModel ret = new AnimatedModel();
@@ -184,6 +184,27 @@ public class AnimatedModel extends Object3DData {
         ret.skin = this.skin;
         //ret.setBindShapeMatrix(this.getBindShapeMatrix());
         return ret;
+    }
+
+    // FIXME:
+    /**
+     * This is the bind shape transform found in skin (ie. {@code <library_controllers><skin><bind_shape_matrix>}
+     */
+    public void setBindShapeMatrix(float[] matrix) {
+        if (matrix == null) return;
+
+        float[] vertex = new float[]{0, 0, 0, 1};
+        float[] shaped = new float[]{0, 0, 0, 1};
+        for (int i = 0; i < this.vertexArrayBuffer.capacity(); i += 3) {
+            vertex[0] = this.vertexArrayBuffer.get(i);
+            vertex[1] = this.vertexArrayBuffer.get(i + 1);
+            vertex[2] = this.vertexArrayBuffer.get(i + 2);
+            Matrix.multiplyMV(shaped, 0, matrix, 0, vertex, 0);
+            this.vertexArrayBuffer.put(i, shaped[0]);
+            this.vertexArrayBuffer.put(i + 1, shaped[1]);
+            this.vertexArrayBuffer.put(i + 2, shaped[2]);
+        }
+        updateDimensions();
     }
 
     public void setInverseBindMatrices(float[] inverseBindMatrices) {

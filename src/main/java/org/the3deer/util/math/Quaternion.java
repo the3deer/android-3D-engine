@@ -919,6 +919,9 @@ public class Quaternion {
         return new Quaternion(-this.x, -this.y, -this.z, this.w);
     }
 
+    public Quaternion multiply(final Quaternion q2) {
+        return multiply(this, q2);
+    }
     /**
      * Returns the Hamilton product of two quaternions.
      *

@@ -13,6 +13,7 @@ public class Geometry {
     private IntBuffer indices;
     private String materialId;
     private int[] vertexJointIndices; // This maps an unrolled vertex back to its original vertex index for skinning
+    private FloatBuffer weights;
 
     public Geometry(String id) {
         this.id = id;
@@ -58,7 +59,7 @@ public class Geometry {
         return texCoords;
     }
 
-    public void setTexCoords(FloatBuffer texCoords) {
+    public void setTextureCoords(FloatBuffer texCoords) {
         this.texCoords = texCoords;
     }
 
@@ -76,5 +77,13 @@ public class Geometry {
 
     public int[] getVertexJointIndices() {
         return vertexJointIndices;
+    }
+
+    public void setJoints(int[] jArr) {
+        setVertexJointIndices(jArr);
+    }
+
+    public void setWeights(FloatBuffer weights) {
+        this.weights = weights;
     }
 }

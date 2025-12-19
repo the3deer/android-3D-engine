@@ -17,7 +17,7 @@ public class Screen {
         this.height = height;
         // derived
         this.ratio = (float) width / height;
-        this.dimensions = new Dimensions(0, width, 0, height, 0, 0);
+        this.dimensions = new Dimensions(0, width, height, 0, 0, 0);
     }
 
     public int getWidth() {

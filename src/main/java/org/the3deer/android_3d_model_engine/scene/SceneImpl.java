@@ -806,6 +806,14 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
         // rescale objects so they all fit in the viewport
         rescale(list, Constants.DEFAULT_MODEL_SIZE, new float[3]);
 
+        // 1. UPDATE THE STATIC SCENE GRAPH
+        // This sets the base pose for everything, including skeletons.
+        if (getRootNodes() != null && !getRootNodes().isEmpty()) {
+            for (int i = 0; i < getRootNodes().size(); i++) {
+                // This method should recursively update all children
+                getRootNodes().get(i).updateBindWorldTransform(getWorldMatrix());
+            }
+        }
     }
 
     @Override
@@ -927,7 +935,8 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
             currentDimensions = firstObject.getCurrentDimensions();
             this.originalDimensions.put(firstObject, currentDimensions);
         }
-        Log.v(TAG, "Model[0] dimension: " + currentDimensions.toString());
+        Log.v(TAG, "Model[0] dimension: " + firstObject.getDimensions());
+        Log.v(TAG, "Model[0] current dimension: " + currentDimensions);
 
         final float[] corner01 = currentDimensions.getCornerLeftTopNearVector();
         ;
@@ -958,7 +967,8 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
             }
 
 
-            Log.v(TAG, "Model[" + i + "] '" + obj.getId() + "' dimension: " + original.toString());
+            Log.v(TAG, "Model["+i+"] '" + obj.getId() + "' dimension: " + obj.getDimensions());
+            Log.v(TAG, "Model[" + i + "] '" + obj.getId() + "' current dimension: " + original.toString());
             final float[] corner1 = original.getCornerLeftTopNearVector();
             final float[] corner2 = original.getCornerRightBottomFar();
             final float[] center = original.getCenter();
@@ -1021,7 +1031,7 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
             Matrix.translateM(this.worldMatrix, 0, globalDifference[0] * scaleFactor, globalDifference[1] * scaleFactor, globalDifference[2] * scaleFactor);
             Matrix.scaleM(this.worldMatrix, 0, scaleFactor, scaleFactor, scaleFactor);
         } else {
-            Matrix.translateM(this.worldMatrix, 0, globalDifference[0], globalDifference[1], globalDifference[2]);
+            Matrix.translateM(this.worldMatrix, 0, globalDifference[0] * scaleFactor, globalDifference[1] * scaleFactor, globalDifference[2] * scaleFactor);
         }
         Log.d(TAG, "World matrix: " + Arrays.toString(this.worldMatrix));
     }

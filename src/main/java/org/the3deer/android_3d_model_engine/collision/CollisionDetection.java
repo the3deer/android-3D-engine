@@ -56,7 +56,7 @@ public class CollisionDetection {
             }
 
             float[] invertedModelMatrix = new float[16];
-            Matrix.invertM(invertedModelMatrix, 0, obj.getModelMatrix(), 0);
+            Matrix.invertM(invertedModelMatrix, 0, obj.getNodeMatrix(), 0);
             float[] nearAA = new float[4];
             float[] farAA = new float[4];
             Matrix.multiplyMV(nearAA, 0, invertedModelMatrix, 0, nearHit, 0);

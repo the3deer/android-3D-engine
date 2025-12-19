@@ -352,6 +352,10 @@ public class JointTransform {
         }
     }
 
+    public void addScale(Float x, Float y, Float z) {
+        addScale(new Float[]{x,y,z});
+    }
+
     public void addScale(Float[] extra) {
         if (this.scale == null) {
             this.scale = extra;
@@ -430,9 +434,36 @@ public class JointTransform {
         interpolateVector(location, locationAY.location, locationBY.location, locationProgressionY);
         interpolateVector(location, locationAZ.location, locationBZ.location, locationProgressionZ);
 
-        if (Constants.PREFER_QUATERNION && rotationAX.qRotation != null) {
-            final Quaternion qRotation = new Quaternion(0, 0, 0, 1);
+        if (Constants.PREFER_QUATERNION) {
+            /*final Quaternion qRotation = new Quaternion(0, 0, 0, 1);
             Quaternion.interpolate(qRotation, rotationAX.qRotation, rotationBX.qRotation, rotationProgressionX);
+            return new JointTransform(scale, qRotation, location);*/
+
+            // 1. Interpolate each axis independently
+            Quaternion qX = new Quaternion(0, 0, 0, 1); // Identity
+            if (rotationAX.qRotation != null && rotationBX.qRotation != null) {
+                Quaternion.interpolate(qX, rotationAX.qRotation, rotationBX.qRotation, rotationProgressionX);
+            }
+
+            Quaternion qY = new Quaternion(0, 0, 0, 1); // Identity
+            if (rotationAY.qRotation != null && rotationBY.qRotation != null) {
+                Quaternion.interpolate(qY, rotationAY.qRotation, rotationBY.qRotation, rotationProgressionY);
+            }
+
+            Quaternion qZ = new Quaternion(0, 0, 0, 1); // Identity
+            if (rotationAZ.qRotation != null && rotationBZ.qRotation != null) {
+                Quaternion.interpolate(qZ, rotationAZ.qRotation, rotationBZ.qRotation, rotationProgressionZ);
+            }
+
+            // 2. Combine them into one final quaternion.
+            // ORDER MATTERS: This depends on your engine's convention (e.g., Z * Y * X)
+            // If these came from separate <rotate> tags in COLLADA, they apply in order.
+            // Assuming standard Z-Y-X application:
+            final Quaternion qRotation = new Quaternion(0, 0, 0, 1);
+
+            // qRotation = qZ * qY * qX
+            qRotation.multiply(qZ).multiply(qY).multiply(qX);
+
             return new JointTransform(scale, qRotation, location);
         } else {
             final Float[] rotation = new Float[3];

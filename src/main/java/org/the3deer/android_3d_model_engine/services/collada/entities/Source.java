@@ -2,9 +2,9 @@ package org.the3deer.android_3d_model_engine.services.collada.entities;// You ca
 
 public class Source {
     private final String id;
-    private final float[] floatData;
+    public final float[] floatData;
     private final String[] stringData; // NEW
-    private final int stride;
+    public final int stride;
 
     public Source(String id, float[] floatData, String[] stringData, int stride) {
         this.id = id;

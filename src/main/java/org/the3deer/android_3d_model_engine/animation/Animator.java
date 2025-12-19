@@ -4,6 +4,7 @@ import android.os.SystemClock;
 import android.util.Log;
 
 import org.the3deer.android_3d_model_engine.model.AnimatedModel;
+import org.the3deer.android_3d_model_engine.model.Constants;
 import org.the3deer.android_3d_model_engine.model.Node;
 import org.the3deer.util.math.Math3DUtils;
 
@@ -99,9 +100,11 @@ public class Animator {
                 Integer.MAX_VALUE, bindPoseOnly);
 
         // debug
-        if (!log.contains(rootNode.getId())){
-            debugNode(rootNode);
-            log.add(rootNode.getId());
+        if (Constants.DEBUG) {
+            if (!log.contains(rootNode.getId())) {
+                debugNode(rootNode);
+                log.add(rootNode.getId());
+            }
         }
 
         // process
@@ -133,7 +136,9 @@ public class Animator {
         Log.d("Animator", "Initializing " + rootNode.getId() + ". " + keyFrames.length + " key frames...");
 
         // debug
-        animation.debugKeyFrames();
+        if (Constants.DEBUG) {
+            animation.debugKeyFrames();
+        }
 
         // get all joint names in the different key frames
         final Set<String> allJointIds = new HashSet<>();
@@ -307,7 +312,9 @@ public class Animator {
         Log.d("Animator", "Initialized " + rootNode.getId() + ". " + keyFrames.length + " key frames");
 
         // debug
-        animation.debugKeyFrames();
+        if (Constants.DEBUG) {
+            animation.debugKeyFrames();
+        }
     }
 
     /**
@@ -391,6 +398,8 @@ public class Animator {
             node.setAnimatedLocalTransform(finalWorldTransform);
         }*/
         node.setAnimatedLocalTransform(localAnimatedTransform);
+
+
 
         // 3. Multiply the parent's final world transform with this node's local animated transform.
         //finalWorldTransform = new float[16];
@@ -493,7 +502,7 @@ public class Animator {
     }
 
     private void debugNode(Node node){
-        Log.d("Animator", "DEBUG: Node["+node.getId()+"]: " + Arrays.toString(node.getAnimatedLocalTransform()));
+        Log.v("Animator", "DEBUG: Node["+node.getId()+"]: " + Arrays.toString(node.getAnimatedLocalTransform()));
         for (int i=0; i<node.getChildren().size(); i++){
             debugNode(node.getChildren().get(i));
         }

@@ -22,7 +22,7 @@ public class ModelComparator {
             return;
         }
 
-        Log.i("MODEL_COMPARE", "--- Comparing models: " + legacyModel.getId() + " (Legacy) vs. " + newModel.getId() + " (New) ---");
+        Log.d("MODEL_COMPARE", "--- Comparing models: " + legacyModel.getId() + " (Legacy) vs. " + newModel.getId() + " (New) ---");
 
         // Compare simple properties
         compareField("ID", legacyModel.getId(), newModel.getId());
@@ -37,19 +37,18 @@ public class ModelComparator {
         compareFloatBuffer("Colors Array", (FloatBuffer) legacyModel.getVertexColorsArrayBuffer(), (FloatBuffer) newModel.getVertexColorsArrayBuffer());
 
         // Compare elements
-        if (legacyModel.getElements() == null && newModel.getElements() == null){
-            Log.i("MODEL_COMPARE", "Elements are both null");
-        }
-        else if (legacyModel.getElements() == null || newModel.getElements() == null){
+        if (legacyModel.getElements() == null && newModel.getElements() == null) {
+            Log.d("MODEL_COMPARE", "Elements are both null");
+        } else if (legacyModel.getElements() == null || newModel.getElements() == null) {
             Log.e("MODEL_COMPARE", "DIFFERENCE: Element is null. Legacy: " + (legacyModel == null)
                     + ", New: " + (newModel == null));
         } else if (legacyModel.getElements().size() != newModel.getElements().size()) {
             Log.e("MODEL_COMPARE", "DIFFERENCE: Element count. Legacy: " + legacyModel.getElements().size()
                     + ", New: " + newModel.getElements().size());
         } else {
-            Log.i("MODEL_COMPARE", "Element count is the same: " + legacyModel.getElements().size());
+            Log.d("MODEL_COMPARE", "Element count is the same: " + legacyModel.getElements().size());
             for (int i = 0; i < legacyModel.getElements().size(); i++) {
-                Log.i("MODEL_COMPARE", "--- Comparing element at index " + i + " ---");
+                Log.d("MODEL_COMPARE", "--- Comparing element at index " + i + " ---");
                 Element legacyElement = legacyModel.getElements().get(i);
                 Element newElement = newModel.getElements().get(i);
 
@@ -62,50 +61,48 @@ public class ModelComparator {
         }
 
         if (legacyModel instanceof AnimatedModel && newModel instanceof AnimatedModel) {
-          AnimatedModel legacyAnimated = (AnimatedModel) legacyModel;
-          AnimatedModel newAnimated = (AnimatedModel) newModel;
-          if (legacyAnimated.getSkin() != null && newAnimated.getSkin() != null) {
-              compareGenericBuffer("Joints", legacyAnimated.getSkin().getJointsBuffer(), newAnimated.getSkin().getJointsBuffer());
-              compareGenericBuffer("Weights", legacyAnimated.getSkin().getWeightsBuffer(), newAnimated.getSkin().getWeightsBuffer());
-          } else if (legacyAnimated.getSkin() == null || newAnimated.getSkin() == null){
-              Log.e("MODEL_COMPARE", "DIFFERENCE: Skin is null. Legacy: " + (legacyAnimated.getSkin() == null) + ", New: " + (newAnimated.getSkin() == null));
-          }
+            AnimatedModel legacyAnimated = (AnimatedModel) legacyModel;
+            AnimatedModel newAnimated = (AnimatedModel) newModel;
+            if (legacyAnimated.getSkin() != null && newAnimated.getSkin() != null) {
+                compareGenericBuffer("Joints", legacyAnimated.getSkin().getJointsBuffer(), newAnimated.getSkin().getJointsBuffer());
+                compareGenericBuffer("Weights", legacyAnimated.getSkin().getWeightsBuffer(), newAnimated.getSkin().getWeightsBuffer());
+            } else if (legacyAnimated.getSkin() == null || newAnimated.getSkin() == null) {
+                Log.e("MODEL_COMPARE", "DIFFERENCE: Skin is null. Legacy: " + (legacyAnimated.getSkin() == null) + ", New: " + (newAnimated.getSkin() == null));
+            }
 
 
-
-        } else if (legacyModel instanceof AnimatedModel || newModel instanceof AnimatedModel){
+        } else if (legacyModel instanceof AnimatedModel || newModel instanceof AnimatedModel) {
             Log.e("MODEL_COMPARE", "DIFFERENCE: Class is different. Legacy: " + legacyModel.getClass() + ", New: " + newModel.getClass());
         }
 
-        if (legacyModel.getMaterial() == null && newModel.getMaterial() == null){
-            Log.i("MODEL_COMPARE", "Material is both null");
-        }
-        else if (legacyModel.getMaterial() == null || newModel.getMaterial() == null) {
+        if (legacyModel.getMaterial() == null && newModel.getMaterial() == null) {
+            Log.d("MODEL_COMPARE", "Material is both null");
+        } else if (legacyModel.getMaterial() == null || newModel.getMaterial() == null) {
             Log.e("MODEL_COMPARE", "DIFFERENCE: Material is null. Legacy: " + (legacyModel.getMaterial() == null) + ", New: " + (newModel.getMaterial() == null));
         } else {
             // Compare material
             compareMaterial("Material", legacyModel.getMaterial(), newModel.getMaterial());
         }
 
-        Log.i("MODEL_COMPARE", "--- Comparison Finished ---");
+        Log.d("MODEL_COMPARE", "--- Comparison Finished ---");
     }
 
     // Helper methods for the comparator
     private static void compareField(String name, Object legacy, Object newObj) {
         if (legacy == null && newObj == null) {
-            Log.i("MODEL_COMPARE", "OK: " + name + " is null in both.");
+            Log.d("MODEL_COMPARE", "OK: " + name + " is null in both.");
             return;
         }
         if (legacy == null || !legacy.equals(newObj)) {
             Log.e("MODEL_COMPARE", "DIFFERENCE: " + name + ". Legacy: " + legacy + ", New: " + newObj);
         } else {
-            Log.i("MODEL_COMPARE", "OK: " + name + " is the same.");
+            Log.d("MODEL_COMPARE", "OK: " + name + " is the same.");
         }
     }
 
     private static void compareBuffer(String name, Buffer legacy, Buffer newBuf) {
         if (legacy == null && newBuf == null) {
-            Log.i("MODEL_COMPARE", "OK: " + name + " buffer is null in both.");
+            Log.d("MODEL_COMPARE", "OK: " + name + " buffer is null in both.");
             return;
         }
         if (legacy == null || newBuf == null) {
@@ -118,7 +115,7 @@ public class ModelComparator {
                     + legacy.capacity() + ", New: " + newBuf.capacity());
             return;
         }
-        Log.i("MODEL_COMPARE", "OK: " + name + " buffer capacity is the same: " + legacy.capacity());
+        Log.d("MODEL_COMPARE", "OK: " + name + " buffer capacity is the same: " + legacy.capacity());
     }
 
     private static void compareFloatBuffer(String name, FloatBuffer legacy, FloatBuffer newBuf) {
@@ -140,7 +137,7 @@ public class ModelComparator {
                 return;
             }
         }
-        Log.i("MODEL_COMPARE", "OK: " + name + " buffer contents are the same.");
+        Log.d("MODEL_COMPARE", "OK: " + name + " buffer contents are the same.");
         // Put positions back to 0
         legacy.position(0);
         newBuf.position(0);
@@ -167,12 +164,12 @@ public class ModelComparator {
                     return; // Exit on first difference
                 }
             }
-            Log.i("MODEL_COMPARE", "OK: " + name + " buffer contents are the same.");
+            Log.d("MODEL_COMPARE", "OK: " + name + " buffer contents are the same.");
 
         } finally {
             // Always reset buffer positions
-            if(legacy != null) legacy.position(0);
-            if(newBuf != null) newBuf.position(0);
+            if (legacy != null) legacy.position(0);
+            if (newBuf != null) newBuf.position(0);
         }
     }
 
@@ -195,7 +192,7 @@ public class ModelComparator {
 
     private static void compareMaterial(String name, Material legacy, Material newMat) {
         if (legacy == null && newMat == null) {
-            Log.i("MODEL_COMPARE", "OK: " + name + " is null in both.");
+            Log.d("MODEL_COMPARE", "OK: " + name + " is null in both.");
             return;
         }
         if (legacy == null || newMat == null) {
@@ -204,15 +201,45 @@ public class ModelComparator {
             return;
         }
 
+        //compareArray("diffuse", legacy.getDiffuse(), newMat.getDiffuse());
+        compareArray("color", legacy.getColor(), newMat.getColor());
+
         String legacyTexture = (legacy.getColorTexture() != null) ? legacy.getColorTexture().getFile() : "null";
         String newTexture = (newMat.getColorTexture() != null) ? newMat.getColorTexture().getFile() : "null";
-        if (legacyTexture == null ) legacyTexture = "null";
-        if (newTexture == null ) newTexture = "null";
+        if (legacyTexture == null) legacyTexture = "null";
+        if (newTexture == null) newTexture = "null";
 
-        if (!legacyTexture.equals(newTexture)){
+        if (!legacyTexture.equals(newTexture)) {
             Log.e("MODEL_COMPARE", "DIFFERENCE: " + name + " texture. Legacy: " + legacyTexture + ", New: " + newTexture);
         } else {
-            Log.i("MODEL_COMPARE", "OK: " + name + " texture is the same.");
+            Log.d("MODEL_COMPARE", "OK: " + name + " texture is the same.");
+        }
+    }
+
+    private static void compareArray(String name, float[] legacyValue, float[] newValue) {
+        if (legacyValue == null && newValue == null) {
+            Log.d("MODEL_COMPARE", "OK: " + name + " is null in both.");
+        } else if (legacyValue != null && newValue != null) {
+            if (legacyValue.length == newValue.length) {
+                boolean ok = true;
+                for (int i = 0; i < legacyValue.length; i++) {
+                    if (Math.abs(legacyValue[i] - newValue[i]) > 0.0001f) {
+                        Log.e("MODEL_COMPARE", "DIFFERENCE: " + name + " array at index [" + i + "]. Legacy: "
+                                + legacyValue[i] + ", New: " + newValue[i]);
+                        ok = false;
+                        break;
+                    }
+                }
+                if (ok) {
+                    Log.d("MODEL_COMPARE", "OK: " + name + " is same in both.");
+                }
+            } else {
+                Log.e("MODEL_COMPARE", "DIFFERENCE: " + name + ". Lengths do not match. Legacy: "
+                        + (legacyValue.length) + ", New: " + (newValue.length));
+            }
+        } else {
+            Log.e("MODEL_COMPARE", "DIFFERENCE: " + name + ". One is null. Legacy: "
+                    + (legacyValue != null) + ", New: " + (newValue != null));
         }
     }
 }

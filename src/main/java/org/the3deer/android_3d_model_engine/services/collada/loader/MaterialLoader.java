@@ -202,7 +202,7 @@ public class                                                                    
                 return null;
             }
 
-            final Material ret = new Material(materialId);
+            final Material ret = new Material(materialId, materialId);
             ret.setDiffuse(color);
             ret.setAlpha(alpha);
 

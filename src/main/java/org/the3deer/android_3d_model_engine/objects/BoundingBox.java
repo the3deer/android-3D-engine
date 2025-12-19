@@ -121,10 +121,14 @@ public final class BoundingBox {
         //@formatter:on
         indexBuffer.flip();
 
+        // prefer topmost node, because some nodes carries a transform + inverse
+        final Node parentNode = obj.getParentNode() != null? obj.getParentNode().getRoot() : null;
+        Log.v("BoundingBox", "Bounding box Node: " + parentNode);
+
         return new Object3DData(vertices, indexBuffer)
                 .setDrawMode(GLES20.GL_LINES)
                 .setDrawUsingArrays(false)
                 .setSolid(false)
-                .setId(obj.getId() + "_boundingBox_static").setParent(obj).setParentBound(true);
+                .setId(obj.getId() + "_boundingBox_static").setParent(obj).setParentNode(parentNode);
     }
 }

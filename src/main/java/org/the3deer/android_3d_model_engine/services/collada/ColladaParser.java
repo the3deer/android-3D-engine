@@ -6,20 +6,22 @@ import android.util.Log;
 import org.the3deer.android_3d_model_engine.animation.Animation;
 import org.the3deer.android_3d_model_engine.animation.JointTransform;
 import org.the3deer.android_3d_model_engine.animation.KeyFrame;
-import org.the3deer.android_3d_model_engine.model.Material;
-import org.the3deer.android_3d_model_engine.model.Texture;
-import org.the3deer.android_3d_model_engine.model.Transform;
 import org.the3deer.android_3d_model_engine.services.collada.entities.Controller;
+import org.the3deer.android_3d_model_engine.services.collada.entities.EffectData;
 import org.the3deer.android_3d_model_engine.services.collada.entities.Geometry;
+import org.the3deer.android_3d_model_engine.services.collada.entities.MaterialData;
 import org.the3deer.android_3d_model_engine.services.collada.entities.Node;
 import org.the3deer.android_3d_model_engine.services.collada.entities.Skin;
 import org.the3deer.android_3d_model_engine.services.collada.entities.Source;
+import org.the3deer.android_3d_model_engine.services.collada.entities.Vertex;
 import org.the3deer.android_3d_model_engine.services.collada.entities.VertexWeights;
+import org.the3deer.android_3d_model_engine.util.HoleCutter;
 import org.the3deer.util.io.IOUtils;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserFactory;
 
 import java.io.InputStream;
+import java.nio.FloatBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -37,7 +39,7 @@ public class ColladaParser {
     // Add a new map at the top of the class to hold the parsed controllers
     private final Map<String, Controller> controllerLibrary = new HashMap<>();
 
-    private final Map<String, Material> materialLibrary = new HashMap<>();
+    private final Map<String, MaterialData> materialLibrary = new HashMap<>();
 
     // Maps an effect ID to its full set of parsed data
     private final Map<String, EffectData> effectLibrary = new HashMap<>();
@@ -85,19 +87,6 @@ public class ColladaParser {
             this.times = times;
             this.values = values;
             this.stride = stride;
-        }
-    }
-
-    // Add this private static inner class to ColladaParser.java
-    private static class EffectData {
-        String effectId;
-        String imageId;
-        float[] diffuseColor; // To hold the <diffuse><color>
-        Float transparency;   // To hold the <transparency><float>
-        // We can add ambient, specular, etc. here later.
-
-        EffectData(String effectId) {
-            this.effectId = effectId;
         }
     }
 
@@ -308,6 +297,9 @@ public class ColladaParser {
                         // SECOND, now that we have all sources and vertices, parse the primitive.
                         // This call is now guaranteed to succeed.
                         parseMeshPrimitive(parser, sources, verticesLibrary, geometry);
+                        //parsePolylistPrimitive(parser, sources, verticesLibrary, geometry);
+                    } else if ("polygons".equals(meshTagName)) {
+                        parsePolygonsPrimitive(parser, sources, verticesLibrary, geometry);
                     } else {
                         // Skip any unhandled tags like <extra> to avoid parsing errors
                         Log.w(TAG, "Skipping unhandled <mesh> tag: " + meshTagName);
@@ -451,6 +443,118 @@ public class ColladaParser {
     }
 
     /**
+     * Parses a <polygons> primitive, which may contain standard polygons <p>
+     * or polygons with holes <ph>.
+     */
+    private void parsePolygonsPrimitive(XmlPullParser parser, Map<String, Source> sources,
+                                        Map<String, List<Input>> verticesLibrary, Geometry geometry) throws Exception {
+
+        List<Input> inputs = new ArrayList<>();
+        String materialId = parser.getAttributeValue(null, "material");
+        int count = Integer.parseInt(parser.getAttributeValue(null, "count"));
+
+        // 1. Parse Inputs (Semantics)
+        int primitiveStartDepth = parser.getDepth();
+        while (parser.next() != XmlPullParser.END_TAG || parser.getDepth() > primitiveStartDepth) {
+            if (parser.getEventType() != XmlPullParser.START_TAG) continue;
+
+            if ("input".equals(parser.getName())) {
+                inputs.add(parseInput(parser));
+            } else if ("ph".equals(parser.getName()) || "p".equals(parser.getName())) {
+                // We found data, break input parsing loop to process data
+                break;
+            }
+        }
+
+        // Resolve inputs (Vertex, Normal, TexCoord, etc.)
+        // This is the same logic as parseMeshPrimitive uses
+        Source positionSource = null;
+        Source normalSource = null;
+        Source texCoordSource = null;
+        Source colorSource = null;
+
+        int vertexOffset = -1, normalOffset = -1, texOffset = -1, colorOffset = -1;
+        int stride = 0;
+
+        for (Input input : inputs) {
+            int offset = input.offset;
+            stride = Math.max(stride, offset + 1);
+
+            if ("VERTEX".equals(input.semantic)) {
+                vertexOffset = offset;
+                // Look up the <vertices> tag to find the actual POSITION source
+                List<Input> vertexInputs = verticesLibrary.get(input.sourceId);
+                if (vertexInputs != null) {
+                    for (Input vInput : vertexInputs) {
+                        if ("POSITION".equals(vInput.semantic)) {
+                            positionSource = sources.get(vInput.sourceId);
+                        }
+                    }
+                }
+            } else if ("NORMAL".equals(input.semantic)) {
+                normalOffset = offset;
+                normalSource = sources.get(input.sourceId);
+            } else if ("TEXCOORD".equals(input.semantic)) {
+                texOffset = offset;
+                texCoordSource = sources.get(input.sourceId);
+            } else if ("COLOR".equals(input.semantic)) {
+                colorOffset = offset;
+                colorSource = sources.get(input.sourceId);
+            }
+        }
+
+        // Prepare lists to hold the unrolled data
+        List<Float> unrolledPositions = new ArrayList<>();
+        List<Float> unrolledNormals = new ArrayList<>();
+        List<Float> unrolledTexCoords = new ArrayList<>();
+        List<Float> unrolledColors = new ArrayList<>();
+
+        // 2. Process <p> and <ph> tags
+        // The parser is currently at the first <p> or <ph> tag from the previous loop
+        do {
+            if (parser.getEventType() == XmlPullParser.START_TAG) {
+                if ("p".equals(parser.getName())) {
+                    // Standard Polygon
+                    String indexData = parser.nextText();
+                    String[] pStrings = indexData.trim().split("\\s+");
+                    int[] indices = null;
+                    indices = new int[pStrings.length];
+                    for (int i = 0; i < pStrings.length; i++) {
+                        indices[i] = Integer.parseInt(pStrings[i]);
+                    }
+                } else if ("ph".equals(parser.getName())) {
+                    // Polygon with Holes
+                     processPolygonWithHoles(parser, stride, vertexOffset, normalOffset, texOffset, colorOffset,
+                            positionSource, normalSource, texCoordSource, colorSource,
+                            unrolledPositions, unrolledNormals, unrolledTexCoords, unrolledColors);
+                }
+            }
+            // Advance to next tag
+            if (parser.next() == XmlPullParser.END_TAG && "polygons".equals(parser.getName())) {
+                break;
+            }
+        } while (parser.getDepth() >= primitiveStartDepth);
+
+
+        // 3. Commit data to Geometry
+        geometry.setPositions(floatListToArray(unrolledPositions));
+        if (unrolledNormals.size() > 0) geometry.setNormals(floatListToArray(unrolledNormals));
+        if (unrolledTexCoords.size() > 0) geometry.setTextureCoords(floatListToArray(unrolledTexCoords));
+        if (unrolledColors.size() > 0) geometry.setColors(floatListToArray(unrolledColors));
+
+        Log.d(TAG, "Parsed <polygons> primitive with " + (unrolledPositions.size() / 3) + " vertices.");
+    }
+
+    private FloatBuffer floatListToArray(List<Float> unrolledPositions) {
+        float[] primitiveFloatArray = new float[unrolledPositions.size()];
+        for (int i = 0; i < unrolledPositions.size(); i++) {
+            primitiveFloatArray[i] = unrolledPositions.get(i);
+        }
+        return IOUtils.createFloatBuffer(primitiveFloatArray);
+    }
+
+
+    /**
      * Parses a mesh primitive tag like <triangles> or <polylist>.
      * It populates the provided Geometry object with the final vertex data.
      * Assumes the parser is at the START_TAG of <triangles> or <polylist>.
@@ -490,6 +594,7 @@ public class ColladaParser {
                     break;
                 case "vcount":
                     // Polylist has a vcount, triangles do not. We can ignore it for our unrolling logic.
+                    // TODO:
                     parser.nextText(); // Consume it
                     break;
             }
@@ -636,7 +741,7 @@ public class ColladaParser {
             geometry.setNormals(IOUtils.createFloatBuffer(finalNormals));
         }
         if (finalTexCoords != null) {
-            geometry.setTexCoords(IOUtils.createFloatBuffer(finalTexCoords));
+            geometry.setTextureCoords(IOUtils.createFloatBuffer(finalTexCoords));
         }
         if (colorSource != null) {
             geometry.setColors(IOUtils.createFloatBuffer(finalColors)); // Always set the RGBA color buffer
@@ -648,6 +753,190 @@ public class ColladaParser {
 
     }
 
+    /**
+     * Parses a <polylist> primitive.
+     * Crucial for the Iris model because it uses Quads (vcount=4), not Triangles.
+     */
+    private void parsePolylistPrimitive(XmlPullParser parser, Map<String, Source> sources,
+                                        Map<String, List<Input>> verticesLibrary, Geometry geometry) throws Exception {
+
+        List<Input> inputs = new ArrayList<>();
+        String materialId = parser.getAttributeValue(null, "material");
+        if (materialId != null) geometry.setMaterialId(materialId);
+
+        // 1. Parse Inputs (Semantics)
+        int primitiveStartDepth = parser.getDepth();
+        while (parser.next() != XmlPullParser.END_TAG || parser.getDepth() > primitiveStartDepth) {
+            if (parser.getEventType() != XmlPullParser.START_TAG) continue;
+
+            if ("input".equals(parser.getName())) {
+                inputs.add(parseInput(parser));
+            } else if ("vcount".equals(parser.getName()) || "p".equals(parser.getName())) {
+                break; // Stop input parsing, we hit data
+            }
+        }
+
+        // Resolve inputs (Vertex, Normal, TexCoord, etc.)
+        Source positionSource = null;
+        Source normalSource = null;
+        Source texCoordSource = null;
+        Source colorSource = null;
+        Source jointSource = null;
+        Source weightSource = null;
+
+        int vertexOffset = -1, normalOffset = -1, texOffset = -1, colorOffset = -1, jointOffset = -1, weightOffset = -1;
+        int stride = 0;
+
+        for (Input input : inputs) {
+            int offset = input.offset;
+            stride = Math.max(stride, offset + 1);
+
+            if ("VERTEX".equals(input.semantic)) {
+                vertexOffset = offset;
+                List<Input> vertexInputs = verticesLibrary.get(input.sourceId);
+                if (vertexInputs != null) {
+                    for (Input vInput : vertexInputs) {
+                        if ("POSITION".equals(vInput.semantic)) {
+                            positionSource = sources.get(vInput.sourceId);
+                        }
+                    }
+                }
+            } else if ("NORMAL".equals(input.semantic)) {
+                normalOffset = offset;
+                normalSource = sources.get(input.sourceId);
+            } else if ("TEXCOORD".equals(input.semantic)) {
+                texOffset = offset;
+                texCoordSource = sources.get(input.sourceId);
+            } else if ("COLOR".equals(input.semantic)) {
+                colorOffset = offset;
+                colorSource = sources.get(input.sourceId);
+            } else if ("JOINT".equals(input.semantic)) {
+                jointOffset = offset;
+                jointSource = sources.get(input.sourceId);
+            } else if ("WEIGHT".equals(input.semantic)) {
+                weightOffset = offset;
+                weightSource = sources.get(input.sourceId);
+            }
+        }
+
+        List<Integer> vCounts = new ArrayList<>();
+        List<Integer> rawIndices = new ArrayList<>();
+
+        // 2. Parse Data Tags (<vcount> and <p>)
+        do {
+            if (parser.getEventType() == XmlPullParser.START_TAG) {
+                if ("vcount".equals(parser.getName())) {
+                    String[] data = parser.nextText().trim().split("\\s+");
+                    for (String s : data) vCounts.add(Integer.parseInt(s));
+                } else if ("p".equals(parser.getName())) {
+                    String[] data = parser.nextText().trim().split("\\s+");
+                    for (String s : data) rawIndices.add(Integer.parseInt(s));
+                }
+            }
+            if (parser.next() == XmlPullParser.END_TAG && "polylist".equals(parser.getName())) {
+                break;
+            }
+        } while (parser.getDepth() >= primitiveStartDepth);
+
+        // 3. Process Indices (Triangulation)
+        List<Float> unrolledPositions = new ArrayList<>();
+        List<Float> unrolledNormals = new ArrayList<>();
+        List<Float> unrolledTexCoords = new ArrayList<>();
+        List<Float> unrolledColors = new ArrayList<>();
+        List<Integer> unrolledJoints = new ArrayList<>();
+        List<Float> unrolledWeights = new ArrayList<>();
+
+        int[] indicesArray = new int[rawIndices.size()];
+        for (int i = 0; i < rawIndices.size(); i++) indicesArray[i] = rawIndices.get(i);
+
+        int currentRawIndex = 0;
+
+        // Iterate over every polygon face defined in vcount
+        for (int i = 0; i < vCounts.size(); i++) {
+            int vertexCount = vCounts.get(i); // e.g., 4 for a Quad
+
+            // TRIANGULATION LOGIC (Triangle Fan)
+            // A Quad (0,1,2,3) becomes Triangle(0,1,2) and Triangle(0,2,3)
+            for (int k = 0; k < vertexCount - 2; k++) {
+                // Vertex 0 (Pivot)
+                addVertex(currentRawIndex, indicesArray, stride, vertexOffset, normalOffset, texOffset, colorOffset, jointOffset, weightOffset,
+                        positionSource, normalSource, texCoordSource, colorSource, jointSource, weightSource,
+                        unrolledPositions, unrolledNormals, unrolledTexCoords, unrolledColors, unrolledJoints, unrolledWeights);
+
+                // Vertex k+1
+                addVertex(currentRawIndex + k + 1, indicesArray, stride, vertexOffset, normalOffset, texOffset, colorOffset, jointOffset, weightOffset,
+                        positionSource, normalSource, texCoordSource, colorSource, jointSource, weightSource,
+                        unrolledPositions, unrolledNormals, unrolledTexCoords, unrolledColors, unrolledJoints, unrolledWeights);
+
+                // Vertex k+2
+                addVertex(currentRawIndex + k + 2, indicesArray, stride, vertexOffset, normalOffset, texOffset, colorOffset, jointOffset, weightOffset,
+                        positionSource, normalSource, texCoordSource, colorSource, jointSource, weightSource,
+                        unrolledPositions, unrolledNormals, unrolledTexCoords, unrolledColors, unrolledJoints, unrolledWeights);
+            }
+
+            // Advance pointer by the number of vertices in this polygon
+            currentRawIndex += vertexCount;
+        }
+
+        // 4. Commit to Geometry
+        geometry.setPositions(floatListToArray(unrolledPositions));
+        // TODO: geometry.setVertexJointIndices(?);
+        if (!unrolledNormals.isEmpty()) geometry.setNormals(floatListToArray(unrolledNormals));
+        if (!unrolledTexCoords.isEmpty())
+            geometry.setTextureCoords(floatListToArray(unrolledTexCoords));
+        if (!unrolledColors.isEmpty()) geometry.setColors(floatListToArray(unrolledColors));
+        if (!unrolledJoints.isEmpty()) {
+            int[] jArr = new int[unrolledJoints.size()];
+            for (int i = 0; i < unrolledJoints.size(); i++) jArr[i] = unrolledJoints.get(i);
+            geometry.setJoints(jArr);
+        }
+        if (!unrolledWeights.isEmpty()) geometry.setWeights(floatListToArray(unrolledWeights));
+    }
+
+    // Helper to unroll a single vertex from raw indices
+    private void addVertex(int vertexIndexInPoly, int[] indices, int stride,
+                           int vertexOffset, int normalOffset, int texOffset, int colorOffset, int jointOffset, int weightOffset,
+                           Source posSrc, Source normSrc, Source texSrc, Source colSrc, Source jointSrc, Source weightSrc,
+                           List<Float> outPos, List<Float> outNorm, List<Float> outTex, List<Float> outCol, List<Integer> outJoints, List<Float> outWeights) {
+
+        int baseIndex = vertexIndexInPoly * stride;
+
+        // Position
+        int pIdx = indices[baseIndex + vertexOffset];
+        outPos.add(posSrc.floatData[pIdx * 3]);
+        outPos.add(posSrc.floatData[pIdx * 3 + 1]);
+        outPos.add(posSrc.floatData[pIdx * 3 + 2]);
+
+        // Normal
+        if (normalOffset >= 0 && normSrc != null) {
+            int nIdx = indices[baseIndex + normalOffset];
+            outNorm.add(normSrc.floatData[nIdx * 3]);
+            outNorm.add(normSrc.floatData[nIdx * 3 + 1]);
+            outNorm.add(normSrc.floatData[nIdx * 3 + 2]);
+        }
+        // TexCoord
+        if (texOffset >= 0 && texSrc != null) {
+            int tIdx = indices[baseIndex + texOffset];
+            outTex.add(texSrc.floatData[tIdx * 2]);
+            outTex.add(texSrc.floatData[tIdx * 2 + 1]);
+        }
+        // Color
+        if (colorOffset >= 0 && colSrc != null) {
+            int cIdx = indices[baseIndex + colorOffset];
+            outCol.add(colSrc.floatData[cIdx * 3]);
+            outCol.add(colSrc.floatData[cIdx * 3 + 1]);
+            outCol.add(colSrc.floatData[cIdx * 3 + 2]);
+            if (colSrc.stride >= 4) outCol.add(colSrc.floatData[cIdx * 3 + 3]);
+            else outCol.add(1.0f);
+        }
+        // Joints & Weights (for completeness, though Iris doesn't use them)
+        if (jointOffset >= 0 && jointSrc != null) {
+            outJoints.add(indices[baseIndex + jointOffset]);
+        }
+        if (weightOffset >= 0 && weightSrc != null) {
+            outWeights.add(weightSrc.floatData[indices[baseIndex + weightOffset]]);
+        }
+    }
 
     private String cleanId(String rawSourceId) {
         if (rawSourceId != null && rawSourceId.length() > 1) {
@@ -944,95 +1233,168 @@ public class ColladaParser {
      * Parses the <profile_COMMON> tag within an effect to find technique, newparam, etc.
      */
     private void parseEffectProfile(XmlPullParser parser, EffectData currentEffect) throws Exception {
-        String textureSamplerSid = null; // The SID of the sampler for the texture (e.g., "surface-sampler")
-        String textureImageId = null;    // The final image ID (e.g., "cowboy_png")
+
+        // This map is the KEY. It stores SID -> referenced ID.
+        // e.g., "character_Texture_png-sampler" -> "character_Texture_png-surface"
+        // e.g., "character_Texture_png-surface" -> "character_Texture_png"
+        Map<String, String> newparamLinks = new HashMap<>();
 
         while (parser.next() != XmlPullParser.END_TAG || !parser.getName().equals("profile_COMMON")) {
             if (parser.getEventType() != XmlPullParser.START_TAG) continue;
 
             String tagName = parser.getName();
             if ("newparam".equals(tagName)) {
-                // This could be a <surface> or a <sampler2D> parameter.
-                String sid = parser.getAttributeValue(null, "sid");
-                if (sid.endsWith("-surface")) { // This convention points to the image
-                    textureImageId = parseNewparamSurface(parser);
-                } else if (sid.endsWith("-sampler")) { // This links the texture to the technique
-                    textureSamplerSid = sid;
-                } else {
-                    skipTag(parser);
-                }
+                // Parse the <newparam> and add its link to our map.
+                parseNewparam(parser, newparamLinks);
             } else if ("technique".equals(tagName)) {
-                parseTechnique(parser, currentEffect);
+                // Pass the linking map to the technique parser.
+                parseTechnique(parser, currentEffect, newparamLinks);
             } else {
                 skipTag(parser);
             }
         }
-
-        if (textureImageId != null) {
-            currentEffect.imageId = textureImageId;
-        }
     }
 
     /**
-     * Parses a <newparam> that contains a <surface>, returning the ID of the image.
+     * A new helper to parse a <newparam> block and update the linking map.
+     * @param parser The XML parser, at the start of a <newparam> tag.
+     * @param links The map to add the new link to.
+     * @throws Exception
      */
-    private String parseNewparamSurface(XmlPullParser parser) throws Exception {
-        String imageId = null;
+    private void parseNewparam(XmlPullParser parser, Map<String, String> links) throws Exception {
+        String paramSid = parser.getAttributeValue(null, "sid");
+        String referencedId = null;
+
         while (parser.next() != XmlPullParser.END_TAG || !parser.getName().equals("newparam")) {
             if (parser.getEventType() != XmlPullParser.START_TAG) continue;
-            if ("init_from".equals(parser.getName())) {
-                imageId = parser.nextText();
-            }
-        }
-        return imageId;
-    }
 
-    /**
-     * Parses the <technique> (lambert, phong, etc.) to get diffuse color and transparency.
-     */
-    private void parseTechnique(XmlPullParser parser, EffectData currentEffect) throws Exception {
-        while (parser.next() != XmlPullParser.END_TAG || !parser.getName().equals("technique")) {
-            if (parser.getEventType() != XmlPullParser.START_TAG) continue;
-
-            // The technique can be lambert, phong, or blinn. We enter it.
-            String techniqueType = parser.getName();
-            if ("lambert".equals(techniqueType) || "phong".equals(techniqueType) || "blinn".equals(techniqueType)) {
-
-                while (parser.next() != XmlPullParser.END_TAG || !parser.getName().equals(techniqueType)) {
-                    if (parser.getEventType() != XmlPullParser.START_TAG) continue;
-
-                    String propertyName = parser.getName();
-                    if ("diffuse".equals(propertyName)) {
-                        // Check for a <color> tag inside <diffuse>
-                        while (parser.next() != XmlPullParser.END_TAG || !parser.getName().equals("diffuse")) {
-                            if (parser.getEventType() == XmlPullParser.START_TAG && "color".equals(parser.getName())) {
-                                String[] colorData = parser.nextText().trim().split("\\s+");
-                                if (colorData.length >= 4) {
-                                    currentEffect.diffuseColor = new float[]{
-                                            Float.parseFloat(colorData[0]),
-                                            Float.parseFloat(colorData[1]),
-                                            Float.parseFloat(colorData[2]),
-                                            Float.parseFloat(colorData[3])
-                                    };
-                                }
-                                break; // Found color, exit diffuse
-                            }
-                        }
-                    } else if ("transparency".equals(propertyName)) {
-                        // Check for a <float> tag inside <transparency>
-                        while (parser.next() != XmlPullParser.END_TAG || !parser.getName().equals("transparency")) {
-                            if (parser.getEventType() == XmlPullParser.START_TAG && "float".equals(parser.getName())) {
-                                currentEffect.transparency = Float.parseFloat(parser.nextText());
-                                break; // Found float, exit transparency
-                            }
-                        }
-                    } else {
-                        skipTag(parser);
+            if ("surface".equals(parser.getName())) {
+                // This is a surface parameter, it points to an image ID
+                while (parser.next() != XmlPullParser.END_TAG || !parser.getName().equals("surface")) {
+                    if (parser.getEventType() == XmlPullParser.START_TAG && "init_from".equals(parser.getName())) {
+                        referencedId = parser.nextText();
+                        break;
+                    }
+                }
+            } else if ("sampler2D".equals(parser.getName())) {
+                // This is a sampler parameter, it points to a surface SID
+                while (parser.next() != XmlPullParser.END_TAG || !parser.getName().equals("sampler2D")) {
+                    if (parser.getEventType() == XmlPullParser.START_TAG && "source".equals(parser.getName())) {
+                        referencedId = parser.nextText();
+                        break;
                     }
                 }
             }
         }
+
+        if (paramSid != null && referencedId != null) {
+            links.put(paramSid, referencedId);
+            Log.d(TAG, "Newparam link created: '" + paramSid + "' -> '" + referencedId + "'");
+        }
     }
+
+
+    // In ColladaParser.java
+// ADD this new parseTechnique method.
+
+
+    // In ColladaParser.java
+// ADD this new method to handle the contents of <phong>, <lambert>, etc.
+
+
+// In ColladaParser.java
+// ADD this small helper method.
+
+    /**
+     * Parses the content of a property tag (like <diffuse>) to find a <texture> tag
+     * and returns the ID of the texture it references.
+     *
+     * @param parser The XML parser, currently at the start of the property tag (e.g., <diffuse>).
+     * @return The texture ID (e.g., "texmap249-image") or null if not found.
+     * @throws Exception
+     */
+    // In ColladaParser.java
+// REPLACE the old parseTextureProperty with this intelligent version.
+
+    // In ColladaParser.java
+// REPLACE the parseTextureProperty method with this corrected version.
+
+    private String parseTextureProperty(XmlPullParser parser, Map<String, String> newparamLinks) throws Exception {
+        String initialTextureId = null;
+        final String propertyName = parser.getName(); // The parent tag, e.g., "diffuse"
+
+        // Find the <texture> tag and get its "texture" attribute
+        while (parser.next() != XmlPullParser.END_TAG || !parser.getName().equals(propertyName)) {
+            if (parser.getEventType() == XmlPullParser.START_TAG && "texture".equals(parser.getName())) {
+                initialTextureId = parser.getAttributeValue(null, "texture");
+                // The loop condition will naturally handle moving past the </texture> tag.
+                // No need for a manual skipToEnd here.
+            }
+        }
+        // At this point, the parser cursor is exactly at the </diffuse> tag, having consumed everything inside it.
+
+        if (initialTextureId == null) {
+            return null; // This property was a solid color, not a texture
+        }
+
+        Log.d(TAG, "Found texture reference: '" + initialTextureId + "'. Resolving final image ID...");
+
+        // --- LINK RESOLUTION LOGIC ---
+        String currentId = initialTextureId;
+        int depth = 0; // Safety break to prevent infinite loops
+        while (newparamLinks.containsKey(currentId) && depth < 5) {
+            currentId = newparamLinks.get(currentId);
+            Log.d(TAG, "Resolving... -> '" + currentId + "'");
+            depth++;
+        }
+
+        // After the loop, 'currentId' is our final image ID
+        Log.i(TAG, "Resolved '" + initialTextureId + "' to final image ID '" + currentId + "'");
+
+        // DO NOT call skipToEnd here. The calling method's loop will handle moving the parser.
+        return currentId;
+    }
+
+    // In ColladaParser.java
+// Modify parseTechnique to accept and pass the map.
+
+    private void parseTechnique(XmlPullParser parser, EffectData currentEffect, Map<String, String> newparamLinks) throws Exception {
+        while (parser.next() != XmlPullParser.END_TAG || !parser.getName().equals("technique")) {
+            if (parser.getEventType() != XmlPullParser.START_TAG) continue;
+
+            String shaderType = parser.getName();
+            if ("phong".equals(shaderType) || "lambert".equals(shaderType) || "blinn".equals(shaderType)) {
+                // Pass the map down one more level
+                parseShaderType(parser, currentEffect, shaderType, newparamLinks);
+            } else {
+                skipTag(parser);
+            }
+        }
+    }
+
+
+    // Modify parseShaderType to accept and pass the map.
+    private void parseShaderType(XmlPullParser parser, EffectData currentEffect, String shaderType, Map<String, String> newparamLinks) throws Exception {
+        while (parser.next() != XmlPullParser.END_TAG || !parser.getName().equals(shaderType)) {
+            if (parser.getEventType() != XmlPullParser.START_TAG) continue;
+
+            String propertyName = parser.getName();
+            if ("diffuse".equals(propertyName)) {
+                String imageId = parseTextureProperty(parser, newparamLinks);
+                if (imageId != null) {
+                    currentEffect.imageId = imageId; // Set the final image ID
+                }
+            } else if ("specular".equals(propertyName)) {
+                String textureId = parseTextureProperty(parser, newparamLinks); // Pass the map here
+                if (textureId != null) {
+                    currentEffect.specularTextureId = textureId;
+                }
+            } else {
+                skipTag(parser);
+            }
+        }
+    }
+
 
     /**
      * Parses the <library_materials> section. This creates the final Material objects
@@ -1059,37 +1421,10 @@ public class ColladaParser {
             }
 
             if (materialId != null && effectUrl != null) {
-                String effectId = cleanId(effectUrl);
 
                 // Create the material
-                Material material = new Material(materialId);
-
-                // Get the rich effect data we parsed earlier
-                EffectData effectData = effectLibrary.get(effectId);
-                if (effectData == null) {
-                    Log.w(TAG, "Material '" + materialId + "' references unknown effect '" + effectId + "'");
-                    continue;
-                }
-
-                // Set diffuse color if available
-                if (effectData.diffuseColor != null) {
-                    material.setDiffuse(effectData.diffuseColor);
-                    material.setAlpha(effectData.diffuseColor[3]); // Default alpha from diffuse color
-                }
-
-                // Override alpha with transparency if it exists
-                if (effectData.transparency != null) {
-                    material.setAlpha(effectData.transparency);
-                }
-
-                // Resolve the texture file name through the maps
-                if (effectData.imageId != null) {
-                    String fileName = imageIdToFileNameMap.get(effectData.imageId);
-                    if (fileName != null) {
-                        material.setColorTexture(new Texture().setFile(fileName));
-                        Log.d(TAG, "Assembled material '" + materialId + "' with texture '" + fileName + "'");
-                    }
-                }
+                MaterialData material = new MaterialData(materialId);
+                material.effectId = cleanId(effectUrl);
 
                 // Add the final, complete material to the library
                 materialLibrary.put(materialId, material);
@@ -1205,7 +1540,7 @@ public class ColladaParser {
                     float[] translationMatrix = new float[16];
                     Matrix.setIdentityM(translationMatrix, 0);
                     Matrix.translateM(translationMatrix, 0, x, y, z);
-                    Matrix.multiplyMM(finalMatrix, 0, translationMatrix, 0, finalMatrix, 0);
+                    Matrix.multiplyMM(finalMatrix, 0, finalMatrix, 0, translationMatrix, 0);
                     break;
                 }
                 case "rotate": {
@@ -1217,7 +1552,7 @@ public class ColladaParser {
                     float[] rotationMatrix = new float[16];
                     Matrix.setIdentityM(rotationMatrix, 0);
                     Matrix.setRotateM(rotationMatrix, 0, angle, x, y, z);
-                    Matrix.multiplyMM(finalMatrix, 0, rotationMatrix, 0, finalMatrix, 0);
+                    Matrix.multiplyMM(finalMatrix, 0, finalMatrix, 0, rotationMatrix, 0);
                     break;
                 }
                 case "scale": {
@@ -1234,7 +1569,7 @@ public class ColladaParser {
                 case "matrix": {
                     String[] values = parser.nextText().trim().split("\\s+");
                     float[] matrix = new float[16];
-                    for (int i=0; i<16; i++) matrix[i] = Float.parseFloat(values[i]);
+                    for (int i = 0; i < 16; i++) matrix[i] = Float.parseFloat(values[i]);
                     // COLLADA matrices are column-major, Android's are too. But we need to transpose
                     // when reading from the file because of the order.
                     float[] transposedMatrix = new float[16];
@@ -1260,10 +1595,10 @@ public class ColladaParser {
 
                         // Look inside <instance_controller> for the <skin> tag
                         while (parser.next() != XmlPullParser.END_TAG || !parser.getName().equals("instance_controller")) {
-                            if (parser.getEventType() == XmlPullParser.START_TAG && "skin".equals(parser.getName())) {
+                            if (parser.getEventType() == XmlPullParser.START_TAG && "skeleton".equals(parser.getName())) {
                                 // The content of the <skin> tag is the ID of the skeleton's root joint
                                 skinRootId = parser.nextText(); // Get the ID (e.g., "#Torso")
-                                Log.d(TAG, "Found <skin> tag with root ID: " + skinRootId);
+                                Log.d(TAG, "Found <skeleton> tag with root ID: " + skinRootId);
                                 // We don't break here because we still need to reach the end of the instance_controller tag
                             }
                         }
@@ -1272,7 +1607,7 @@ public class ColladaParser {
                         if (skinRootId != null) {
                             currentNode.setSkinId(cleanId(skinRootId));
                         } else {
-                            Log.w(TAG, "Incomplete <instance_controller> for node '"+currentNode.getId()+"'. Missing <skin> tag inside.");
+                            Log.w(TAG, "Incomplete <instance_controller> for node '" + currentNode.getId() + "'. Missing <skin> tag inside.");
                         }
 
                         // The while loop above already consumed the tag, so we are done.
@@ -1344,7 +1679,7 @@ public class ColladaParser {
             }
         }
         List<Float> keyTimes = new ArrayList<>(uniqueTimestamps);
-        if (keyTimes.isEmpty()){
+        if (keyTimes.isEmpty()) {
             return;
         }
 
@@ -1432,7 +1767,8 @@ public class ColladaParser {
 
         // Now at the <sampler> tag
         while (parser.next() != XmlPullParser.END_TAG || !parser.getName().equals("sampler")) {
-            if (parser.getEventType() != XmlPullParser.START_TAG || !parser.getName().equals("input")) continue;
+            if (parser.getEventType() != XmlPullParser.START_TAG || !parser.getName().equals("input"))
+                continue;
             String semantic = parser.getAttributeValue(null, "semantic");
             String sourceUrl = cleanId(parser.getAttributeValue(null, "source"));
             if ("INPUT".equals(semantic)) {
@@ -1443,7 +1779,7 @@ public class ColladaParser {
         }
 
         // Now find the <channel> tag
-        while(parser.getEventType() != XmlPullParser.START_TAG || !"channel".equals(parser.getName())){
+        while (parser.getEventType() != XmlPullParser.START_TAG || !"channel".equals(parser.getName())) {
             parser.next();
         }
         String target = parser.getAttributeValue(null, "target");
@@ -1456,8 +1792,8 @@ public class ColladaParser {
         }
 
         // Find the stride from the output source's accessor
-        for (Map.Entry<String, float[]> entry : sources.entrySet()){
-            if (entry.getKey().equals(outputSourceId)){
+        for (Map.Entry<String, float[]> entry : sources.entrySet()) {
+            if (entry.getKey().equals(outputSourceId)) {
                 // This is a simplification; a full implementation would parse the <accessor>
                 // For door.dae, the stride is always 1 for single-axis transforms.
                 // For matrix, it would be 16. We will infer it from the target string.
@@ -1529,7 +1865,25 @@ public class ColladaParser {
             case "LOCATION.Z":
                 jointTransform.addLocation(null, null, value);
                 break;
-            // Add cases for SCALE if needed
+            case "SCALE":
+                if (channel.stride == 3) {
+                    float[] scale = new float[3];
+                    System.arraycopy(channel.values, timeIndex * 3, scale, 0, 3);
+                    jointTransform.setScale(scale);
+                } else {
+                    // Fallback for uniform scale if stride is 1 but target is generic SCALE
+                    jointTransform.setScale(new float[]{value, value, value});
+                }
+                break;
+            case "SCALE.X":
+                jointTransform.addScale(value, null, null);
+                break;
+            case "SCALE.Y":
+                jointTransform.addScale(null, value, null);
+                break;
+            case "SCALE.Z":
+                jointTransform.addScale(null, null, value);
+                break;
             case "MATRIX":
             case "TRANSFORM":
                 float[] matrix = new float[16];
@@ -1544,15 +1898,160 @@ public class ColladaParser {
         }
     }
 
+    // Add this helper method somewhere within ColladaParser.java
+
+    /**
+     * Triangulates a polygon with holes.
+     * This is where you will place your legacy triangulation logic.
+     *
+     * @param polygonLoop The indices for the main polygon's outer loop.
+     * @param holes       A list of index arrays, where each array is a hole.
+     * @return A list of integers representing the triangulated indices.
+     */
+    private List<Integer> triangulatePolygonWithHoles(List<Integer> polygonLoop, List<List<Integer>> holes) {
+        //
+        // --- THIS IS WHERE YOUR LEGACY TRIANGULATION LOGIC GOES ---
+        //
+        // For now, we will implement a simple fan triangulation of the main polygon
+        // and ignore the holes, just to have a working structure.
+        //
+        Log.d(TAG, "Triangulating polygon with " + holes.size() + " holes. (NOTE: Holes are currently ignored)");
+        List<Integer> triangles = new ArrayList<>();
+        if (polygonLoop.size() < 3) {
+            return triangles; // Not a valid polygon
+        }
+
+        // Simple fan triangulation from the first vertex
+        int rootVertex = polygonLoop.get(0);
+        for (int i = 1; i < polygonLoop.size() - 1; i++) {
+            triangles.add(rootVertex);
+            triangles.add(polygonLoop.get(i));
+            triangles.add(polygonLoop.get(i + 1));
+        }
+        return triangles;
+    }
+
+    private void processPolygonWithHoles(XmlPullParser parser, int stride,
+                                         int vertexOffset, int normalOffset, int texOffset, int colorOffset,
+                                         Source posSrc, Source normSrc, Source texSrc, Source colSrc,
+                                         List<Float> outPos, List<Float> outNorm, List<Float> outTex, List<Float> outCol) throws Exception {
+
+        List<Vertex> localOuterBoundary = new ArrayList<>();
+        List<List<Vertex>> localHoles = new ArrayList<>();
+
+        // A <ph> contains one <p> and one or more <h>
+        int phDepth = parser.getDepth();
+        while(parser.next() != XmlPullParser.END_TAG || parser.getDepth() > phDepth) {
+            if(parser.getEventType() != XmlPullParser.START_TAG) continue;
+
+            if("p".equals(parser.getName())) {
+                String[] indices = parser.nextText().trim().split("\\s+");
+                localOuterBoundary = parseLoopIndices(indices, stride, vertexOffset, normalOffset, texOffset, colorOffset);
+            } else if ("h".equals(parser.getName())) {
+                String[] indices = parser.nextText().trim().split("\\s+");
+                localHoles.add(parseLoopIndices(indices, stride, vertexOffset, normalOffset, texOffset, colorOffset));
+            }
+        }
+
+        // Triangulate
+        try {
+            // 1. Extract 3D coords for triangulation logic
+            List<float[]> outerLoopCoords = new ArrayList<>();
+            for (Vertex v : localOuterBoundary) {
+                // Get actual XYZ from source based on index
+                float[] xyz = new float[] {
+                        posSrc.floatData[v.getVertexIndex() * 3],
+                        posSrc.floatData[v.getVertexIndex() * 3 + 1],
+                        posSrc.floatData[v.getVertexIndex() * 3 + 2]
+                };
+                outerLoopCoords.add(xyz);
+            }
+
+            List<List<float[]>> holeLoopsCoords = new ArrayList<>();
+            for (List<Vertex> hole : localHoles) {
+                List<float[]> hCoords = new ArrayList<>();
+                for (Vertex v : hole) {
+                    float[] xyz = new float[] {
+                            posSrc.floatData[v.getVertexIndex() * 3],
+                            posSrc.floatData[v.getVertexIndex() * 3 + 1],
+                            posSrc.floatData[v.getVertexIndex() * 3 + 2]
+                    };
+                    hCoords.add(xyz);
+                }
+                holeLoopsCoords.add(hCoords);
+            }
+
+            // 2. Call the legacy ear-clipping algorithm
+            // Returns indices local to the combined list of (Outer + Hole1 + Hole2...)
+            List<Integer> triangulatedIndices = HoleCutter.pierce(outerLoopCoords, holeLoopsCoords);
+
+            // 3. Flatten all vertices into one list for easy indexing
+            List<Vertex> allPolygonVertices = new ArrayList<>(localOuterBoundary);
+            for(List<Vertex> hole : localHoles) {
+                allPolygonVertices.addAll(hole);
+            }
+
+            // 4. Unroll based on triangulation results
+            for (Integer localIndex : triangulatedIndices) {
+                Vertex v = allPolygonVertices.get(localIndex);
+
+                // Add Position (XYZ)
+                int pIdx = v.getVertexIndex();
+                outPos.add(posSrc.floatData[pIdx * 3]);
+                outPos.add(posSrc.floatData[pIdx * 3 + 1]);
+                outPos.add(posSrc.floatData[pIdx * 3 + 2]);
+
+                // Add Normal
+                if (normalOffset >= 0 && normSrc != null) {
+                    int nIdx = v.getNormalIndex();
+                    outNorm.add(normSrc.floatData[nIdx * 3]);
+                    outNorm.add(normSrc.floatData[nIdx * 3 + 1]);
+                    outNorm.add(normSrc.floatData[nIdx * 3 + 2]);
+                }
+                // Add Texture
+                if (texOffset >= 0 && texSrc != null) {
+                    int tIdx = v.getTextureIndex();
+                    outTex.add(texSrc.floatData[tIdx * 2]);
+                    outTex.add(texSrc.floatData[tIdx * 2 + 1]);
+                }
+                // Add Color
+                if (colorOffset >= 0 && colSrc != null) {
+                    int cIdx = v.getColorIndex();
+                    outCol.add(colSrc.floatData[cIdx * 3]); // Assuming RGB
+                    outCol.add(colSrc.floatData[cIdx * 3 + 1]);
+                    outCol.add(colSrc.floatData[cIdx * 3 + 2]);
+                    // Handle Alpha if stride is 4
+                    if (colSrc.getStride() == 4) outCol.add(colSrc.floatData[cIdx * 3 + 3]);
+                    else outCol.add(1.0f);
+                }
+            }
+
+        } catch (Exception e) {
+            Log.e(TAG, "Triangulation failed", e);
+        }
+    }
+
+    // Helper to parse a string array of indices into Vertex objects
+    private List<Vertex> parseLoopIndices(String[] indices, int stride, int vOff, int nOff, int tOff, int cOff) {
+        List<Vertex> loop = new ArrayList<>();
+        for (int i = 0; i < indices.length; i += stride) {
+            Vertex v = new Vertex(Integer.parseInt(indices[i + vOff]));
+            if (nOff >= 0) v.setNormalIndex(Integer.parseInt(indices[i + nOff]));
+            if (tOff >= 0) v.setTextureIndex(Integer.parseInt(indices[i + tOff]));
+            if (cOff >= 0) v.setColorIndex(Integer.parseInt(indices[i + cOff]));
+            loop.add(v);
+        }
+        return loop;
+    }
+
 
     // You'll also need to add a List<Animation> field to your parser class
 // and a getter for it.
     private List<Animation> animations = new ArrayList<>();
 
-    public List<Animation> getAnimationLibrary(){
+    public List<Animation> getAnimationLibrary() {
         return animations;
     }
-
 
 
     // Change the getter to return the LIST of nodes
@@ -1563,7 +2062,7 @@ public class ColladaParser {
 
 // --- ALSO, ADD THIS GETTER METHOD TO THE END OF ColladaParser.java ---
 
-    public Map<String, Material> getMaterialLibrary() {
+    public Map<String, MaterialData> getMaterialLibrary() {
         return materialLibrary;
     }
 
@@ -1574,6 +2073,14 @@ public class ColladaParser {
 
     public Map<String, Controller> getControllerLibrary() {
         return controllerLibrary;
+    }
+
+    public Map<String, EffectData> getEffectLibrary() {
+        return effectLibrary;
+    }
+
+    public Map<String, String> getImagesLibrary() {
+        return imageIdToFileNameMap;
     }
 
     public Map<String, Node> getNodeLibrary() {

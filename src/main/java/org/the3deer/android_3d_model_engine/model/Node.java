@@ -128,6 +128,19 @@ public class Node {
 		return parent;
 	}
 
+	/**
+	 * Returns the topmost parent node.
+	 *
+	 * @return the topmost parent node
+	 */
+	public Node getRoot() {
+		Node ret = this;
+		while (ret != null && ret.getParent() != null) {
+			ret = ret.getParent();
+		}
+		return ret;
+	}
+
 	public void setParent(Node parent) {
 		this.parent = parent;
 	}
@@ -231,9 +244,18 @@ public class Node {
 
 
 	public void updateBindWorldTransform(float[] parentWorldTransform) {
+
+		// 0. get inverse bind matrix
+		float[] matrix = Math3DUtils.IDENTITY_MATRIX;
+		if (skinIndex != -1 && skin != null && skin.getInverseBindMatrices() != null){
+			matrix = new float[16];
+			Matrix.setIdentityM(matrix,0);
+			Matrix.multiplyMM(matrix, 0, this.getLocalTransform().getTransform(), 0, skin.getInverseBindMatrices(), skinIndex * 16);
+		}
+
 		// 1. Calculate this node's final world transform
 		// worldTransform = parentWorldTransform * this.bindTransform (local matrix)
-		Matrix.multiplyMM(this.bindWorldTransform, 0, parentWorldTransform, 0, this.getLocalTransform().getTransform(), 0);
+		Matrix.multiplyMM(this.bindWorldTransform, 0, parentWorldTransform, 0, matrix, 0);
 
 		// 2. Recursively update all children
 		for (Node child : getChildren()) {
