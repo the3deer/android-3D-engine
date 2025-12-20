@@ -67,7 +67,7 @@ public class Octree {
             //final float[] modelMatrix = object.getModelMatrix();
             //final float[] modelMatrix = Math3DUtils.IDENTITY_MATRIX;
             buffer.position(0);
-            for (int i = 0; i < buffer.capacity(); i += 9) {
+            for (int i = 0; i <= buffer.capacity()-9; i += 9) {
                 float[] triangle = new float[]{buffer.get(), buffer.get(), buffer.get(), 1,
                         buffer.get(), buffer.get(), buffer.get(), 1,
                         buffer.get(), buffer.get(), buffer.get(), 1
