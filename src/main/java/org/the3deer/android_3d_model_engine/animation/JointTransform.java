@@ -16,13 +16,28 @@ import java.util.Arrays;
  * origin, seeing as the root joint has no parent). The transform is stored as a
  * position vector and a quaternion (rotation) so that these values can be
  * easily interpolated, a functionality that this class also provides.
+ * This position and rotation are relative to the parent bone!
+ *
+ * <b>type</b>
+ * <p>The transform is either composite (location, scale, euler rotation) or
+ * absolute (matrix)</p>
+ *
+ * <b>quaternion<b/>
+ * <p>The quaternion rotation is either calculated (from rotation)
+ * or extracted (from matrix)
+ * </p>
+ *
+ * <b>transform<b/>
+ * <p>The final transform is the add-up of the scale position and rotation.
+ * The rotation is either rotation (if composite) or quaternion (if absolute)
+ * </p>
  *
  * @author andresoviedo
  */
 
 public class JointTransform {
 
-    // remember, this position and rotation are relative to the parent bone!
+    // TODO: should matrix be final?
     private float[] matrix;
     private Float[] scale;
     private Quaternion qRotation;
@@ -49,35 +64,38 @@ public class JointTransform {
     private static final Float[] tempLocation = new Float[3];
     private static final float[] tempMatrix = new float[16];
 
+    // gltf - new parser
     public JointTransform() {
         refresh();
     }
 
+    // ui
     public JointTransform(Float[] floats, Object o, Float[] floats1) {
         refresh();
     }
 
+    // collada legacy
     public static JointTransform ofScale(Float[] scale) {
         return new JointTransform(scale, (Float[]) null, null);
     }
 
+    // collada legacy
     public static JointTransform ofRotation(Float[] rotation) {
         return new JointTransform(null, rotation, null);
     }
 
+    // collada legacy
     public static JointTransform ofLocation(Float[] location) {
         return new JointTransform(null, (Float[]) null, location);
     }
 
-    static JointTransform ofIdentity() {
-        return new JointTransform(new Float[]{1f,1f,1f}, new Float[]{0f,0f,0f}, new Float[]{0f,0f,0f});
-    }
-
+    // animator
+    // TODO: is this really needed?
     static JointTransform ofNull() {
         return new JointTransform(new Float[3], new Float[3], new Float[3]);
     }
 
-
+    // ui - gltf legacy
     public JointTransform(float[] matrix) {
         this.matrix = matrix;
 
@@ -111,11 +129,15 @@ public class JointTransform {
         refresh();
     }
 
+    // interpolation / animator - when QUATERNION is enabled
     private JointTransform(Float[] scale, Quaternion qRotation, Float[] location) {
         this.scale = scale;
+        this.matrix = new float[0]; // dummy flag - not composite
         this.qRotation = qRotation;
-        this.rotation = null;
         this.location = location;
+        if (qRotation != null) {
+            this.rotation = qRotation.toAnglesF(null);
+        }
 
         this.visible = true;
         //this.calculatedMatrix = null;
@@ -123,15 +145,34 @@ public class JointTransform {
         refresh();
     }
 
-    public void setTransform(float[] matrix){
+    /**
+     * Set the final matrix for this transform.
+     * Scale, Quaternion and translation are extracted from it.
+     *
+     * @param matrix
+     */
+    public void setTransform(float[] matrix) {
         this.matrix = matrix;
-
         this.qRotation = Quaternion.fromMatrix(matrix);
+
+        // extracted transforms
         this.scale = Math3DUtils.scaleFromMatrix(matrix);
-        if (matrix != null) {
-            this.rotation = Quaternion.fromMatrix(matrix).normalize().toAnglesF(null);
-        }
+        this.rotation = qRotation.toAnglesF();
         this.location = new Float[]{matrix[12], matrix[13], matrix[14]};
+    }
+
+    /**
+     * @return the final matrix for this transform.
+     */
+    public float[] getMatrix() {
+        return matrix;
+    }
+
+    /**
+     * @return true if it does not have a matrix
+     */
+    public boolean isComposite() {
+        return matrix == null;
     }
 
     public Float[] getScale() {
@@ -179,10 +220,7 @@ public class JointTransform {
             this.location = new Float[3];
         }
 
-        if (node == null){
-            this.rotation[0] = this.rotation[1] = this.rotation[2] = 0f;
-            this.location[0] = this.location[1] = this.location[2] = 0f;
-        } else {
+        if (node != null) {
 
             if (node.getBindLocalTranslation() != null) {
                 if (this.location[0] == null && node.getBindLocalTranslation()[0] != null)
@@ -312,15 +350,15 @@ public class JointTransform {
     }
 
     public boolean hasRotationX() {
-        return qRotation != null || rotation != null && rotation[0] != null;
+        return rotation != null && rotation[0] != null;
     }
 
     public boolean hasRotationY() {
-        return qRotation != null || rotation != null && rotation[1] != null;
+        return rotation != null && rotation[1] != null;
     }
 
     public boolean hasRotationZ() {
-        return qRotation != null || rotation != null && rotation[2] != null;
+        return rotation != null && rotation[2] != null;
     }
 
     public boolean hasLocationX() {
@@ -353,7 +391,7 @@ public class JointTransform {
     }
 
     public void addScale(Float x, Float y, Float z) {
-        addScale(new Float[]{x,y,z});
+        addScale(new Float[]{x, y, z});
     }
 
     public void addScale(Float[] extra) {
@@ -366,7 +404,7 @@ public class JointTransform {
     }
 
     public void addRotation(Float x, Float y, Float z) {
-        addRotation(new Float[]{x,y,z});
+        addRotation(new Float[]{x, y, z});
     }
 
     public void addRotation(Float[] extra) {
@@ -375,11 +413,17 @@ public class JointTransform {
         } else {
             add(this.rotation, extra);
         }
+
+        this.qRotation = Quaternion.fromEulerD(
+                rotation[0] != null ? rotation[0] : 0f,
+                rotation[1] != null ? rotation[1] : 0f,
+                rotation[2] != null ? rotation[2] : 0f).normalize();
+
         refresh();
     }
 
     public void addLocation(Float x, Float y, Float z) {
-        addLocation(new Float[]{x,y,z});
+        addLocation(new Float[]{x, y, z});
     }
 
     public void addLocation(Float[] extra) {
@@ -434,7 +478,17 @@ public class JointTransform {
         interpolateVector(location, locationAY.location, locationBY.location, locationProgressionY);
         interpolateVector(location, locationAZ.location, locationBZ.location, locationProgressionZ);
 
-        if (Constants.PREFER_QUATERNION) {
+        if (rotationAX.isComposite() && rotationBX.isComposite()
+                && rotationAY.isComposite() && rotationBY.isComposite()
+                && rotationAZ.isComposite() && rotationBZ.isComposite()) {
+            final Float[] rotation = new Float[3];
+            interpolateVector(rotation, rotationAX.rotation, rotationBX.rotation, rotationProgressionX);
+            interpolateVector(rotation, rotationAY.rotation, rotationBY.rotation, rotationProgressionY);
+            interpolateVector(rotation, rotationAZ.rotation, rotationBZ.rotation, rotationProgressionZ);
+            return new JointTransform(scale, rotation, location);
+        } else {
+
+            // FIXME: this is incomplete
             /*final Quaternion qRotation = new Quaternion(0, 0, 0, 1);
             Quaternion.interpolate(qRotation, rotationAX.qRotation, rotationBX.qRotation, rotationProgressionX);
             return new JointTransform(scale, qRotation, location);*/
@@ -462,16 +516,9 @@ public class JointTransform {
             final Quaternion qRotation = new Quaternion(0, 0, 0, 1);
 
             // qRotation = qZ * qY * qX
-            qRotation.multiply(qZ).multiply(qY).multiply(qX);
+            qRotation.multiply(qZ).multiply(qY).multiply(qX).normalize();
 
             return new JointTransform(scale, qRotation, location);
-        } else {
-            final Float[] rotation = new Float[3];
-            interpolateVector(rotation, rotationAX.rotation, rotationBX.rotation, rotationProgressionX);
-            interpolateVector(rotation, rotationAY.rotation, rotationBY.rotation, rotationProgressionY);
-            interpolateVector(rotation, rotationAZ.rotation, rotationBZ.rotation, rotationProgressionZ);
-
-            return new JointTransform(scale, rotation, location);
         }
     }
 
@@ -496,19 +543,9 @@ public class JointTransform {
         if (tempScale[2] != null)
             Matrix.scaleM(ret, 0, 1, 1, tempScale[2]);
 
-        if (Constants.PREFER_QUATERNION && Constants.PREFER_QUATERNION_MATRIX && frameA.qRotation != null) {
-            tempQRotation.setIdentity();
-            Quaternion.interpolate(tempQRotation, frameA.qRotation, frameB.qRotation, progression);
-            tempQRotation.normalize();
-            Matrix.multiplyMM(ret, 0, ret, 0, tempQRotation.toRotationMatrix(), 0);
-        } else if (Constants.PREFER_QUATERNION && frameA.qRotation != null) {
-            tempQRotation.setIdentity();
-            Quaternion.interpolate(tempQRotation, frameA.qRotation, frameB.qRotation, progression);
-            tempQRotation.normalize();
-            Matrix.rotateM(ret, 0, tempQRotation.toAngles(null)[2], 0, 0, 1);
-            Matrix.rotateM(ret, 0, tempQRotation.toAngles(null)[1], 0, 1, 0);
-            Matrix.rotateM(ret, 0, tempQRotation.toAngles(null)[0], 1, 0, 0);
-        } else {
+        interpolateVector(tempRotation, frameA.rotation, frameB.rotation, progression);
+
+        if (frameA.isComposite() && frameB.isComposite()) {
             interpolateVector(tempRotation, frameA.rotation, frameB.rotation, progression);
             if (tempRotation[2] != null)
                 Matrix.rotateM(ret, 0, tempRotation[2], 0, 0, 1);
@@ -516,6 +553,12 @@ public class JointTransform {
                 Matrix.rotateM(ret, 0, tempRotation[1], 0, 1, 0);
             if (tempRotation[0] != null)
                 Matrix.rotateM(ret, 0, tempRotation[0], 1, 0, 0);
+        } else {
+            tempQRotation.setIdentity();
+            Quaternion.interpolate(tempQRotation, frameA.qRotation, frameB.qRotation, progression);
+            tempQRotation.normalize();
+            System.arraycopy(ret, 0, tempMatrix, 0, 16);
+            Matrix.multiplyMM(ret, 0, tempMatrix, 0, tempQRotation.toRotationMatrix(), 0);
         }
 
         // INFO: cleanup - otherwise next interpolation will have undefined results
@@ -586,28 +629,30 @@ public class JointTransform {
             if (this.scale[2] != null)
                 Matrix.scaleM(transform, 0, 1, 1, scale[2]);
         }
-        if (Constants.PREFER_QUATERNION && this.qRotation != null) {
+
+        if (isComposite()) {
+            if (this.rotation != null) {
+                if (this.rotation[2] != null)
+                    Matrix.rotateM(transform, 0, rotation[2], 0, 0, 1);
+                if (this.rotation[1] != null)
+                    Matrix.rotateM(transform, 0, rotation[1], 0, 1, 0);
+                if (this.rotation[0] != null)
+                    Matrix.rotateM(transform, 0, rotation[0], 1, 0, 0);
+            }
+        } else {
+            if (this.qRotation != null) {
+                System.arraycopy(transform, 0, tempMatrix, 0, 16);
+                Matrix.multiplyMM(transform, 0, tempMatrix, 0, this.qRotation.getMatrix(), 0);
+            }
+        }
+        /*else if (Constants.PREFER_QUATERNION && this.qRotation != null) {
             //this.qRotation.normalize();
             //Matrix.multiplyMM(transform,0, transform, 0, this.qRotation.getMatrix(), 0);
             Matrix.rotateM(transform, 0, this.qRotation.toAngles(null)[2], 0, 0, 1);
             Matrix.rotateM(transform, 0, this.qRotation.toAngles(null)[1], 0, 1, 0);
             Matrix.rotateM(transform, 0, this.qRotation.toAngles(null)[0], 1, 0, 0);
-        }
-        else if (this.rotation != null) {
-            if (this.rotation[2] != null)
-                Matrix.rotateM(transform, 0, rotation[2], 0, 0, 1);
-            if (this.rotation[1] != null)
-                Matrix.rotateM(transform, 0, rotation[1], 0, 1, 0);
-            if (this.rotation[0] != null)
-                Matrix.rotateM(transform, 0, rotation[0], 1, 0, 0);
-        }
-
-        // FIXME: what's this
-        if (matrix != null){
-            Matrix.multiplyMM(tempMatrix, 0, tempMatrix, 0, matrix, 0);
-        }
+        }*/
     }
-
 
     @Override
     public String toString() {
@@ -621,6 +666,7 @@ public class JointTransform {
     }
 
 
+    // gltf - legacy
     public void setQuaternion(Quaternion quaternion) {
         this.qRotation = quaternion;
         if (quaternion != null) {

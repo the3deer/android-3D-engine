@@ -57,27 +57,31 @@ public class ColladaLoaderTask extends LoaderTask {
             }
         }
 
-        // COMPARE
-       List<Object3DData> load = new ColladaLoaderLegacy().load(uri, null);
+        try {
+            // COMPARE
+            List<Object3DData> load = new ColladaLoaderLegacy().load(uri, null);
 
-        Log.e("MODEL_COMPARE", "Comparing...");
-        if (loadNew.size() == 1){
-            ModelComparator.compareModels(load.get(0), loadNew.get(0));
-        } else {
+            Log.e("MODEL_COMPARE", "Comparing...");
+            if (loadNew.size() == 1){
+                ModelComparator.compareModels(load.get(0), loadNew.get(0));
+            } else {
 
-            Map<String, Object3DData> collectLegacy = load.stream().collect(Collectors.toMap(Object3DData::getName, Function.identity()));
+                Map<String, Object3DData> collectLegacy = load.stream().collect(Collectors.toMap(Object3DData::getName, Function.identity()));
 
-            Collections.sort(loadNew, Comparator.comparing(Object3DData::getId));
-            Collections.sort(load, Comparator.comparing(Object3DData::getId));
+                Collections.sort(loadNew, Comparator.comparing(Object3DData::getId));
+                Collections.sort(load, Comparator.comparing(Object3DData::getId));
 
-            for (Map.Entry<String, Object3DData> entry : collectNew.entrySet()) {
-                String key = entry.getKey();
-                Object3DData value = entry.getValue();
-                Object3DData legacyValue = collectLegacy.get(key);
+                for (Map.Entry<String, Object3DData> entry : collectNew.entrySet()) {
+                    String key = entry.getKey();
+                    Object3DData value = entry.getValue();
+                    Object3DData legacyValue = collectLegacy.get(key);
 
-                Log.e("MODEL_COMPARE", "Comparing " + key + "...");
-                ModelComparator.compareModels(legacyValue, value);
+                    Log.e("MODEL_COMPARE", "Comparing " + key + "...");
+                    ModelComparator.compareModels(legacyValue, value);
+                }
             }
+        } catch (Exception e) {
+            Log.e("MODEL_COMPARE", "Comparison failed "+e.getMessage(), e);
         }
 
         // --- testing...

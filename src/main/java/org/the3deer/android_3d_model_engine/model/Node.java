@@ -79,12 +79,12 @@ public class Node {
 		Matrix.setIdentityM(this.bindWorldTransform,0);
 	}
 
-	// gltf
+	// gltf - legacy
 	public static Node fromMatrix(float[] matrix){
 		return new Node(new Transform(matrix));
 	}
 
-	// gltf
+	// gltf - legacy
 	public static Node fromTransforms(float[] scale, Quaternion quaternion, float[] translation) {
 		return new Node(new Transform(floatArrayToFloatWrapperArray(scale), quaternion, floatArrayToFloatWrapperArray(translation)));
 	}

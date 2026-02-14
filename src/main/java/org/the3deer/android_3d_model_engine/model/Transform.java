@@ -50,23 +50,12 @@ public final class Transform {
      * @param rotation    the axis-angle rotation x,y,z
      * @param translation the translation x,y,z
      */
-    public Transform(float[] scale, float[] rotation, float[] translation) {
-        this(floatArrayToFloatWrapperArray(scale), floatArrayToFloatWrapperArray(rotation), floatArrayToFloatWrapperArray(translation));
-    }
-
-    /**
-     * Default transform by components
-     *
-     * @param scale       the scale x,y,z
-     * @param rotation    the axis-angle rotation x,y,z
-     * @param translation the translation x,y,z
-     */
     public Transform(Float[] scale, Float[] rotation, Float[] translation) {
         this.matrix = null;
         this.scale = scale;
         this.rotation = rotation;
         if (rotation != null) {
-            this.quaternion = Quaternion.fromEuler(rotation[0], rotation[1], rotation[2]);
+            this.quaternion = Quaternion.fromEulerD(rotation[0], rotation[1], rotation[2]);
         } else {
             this.quaternion = null;
         }

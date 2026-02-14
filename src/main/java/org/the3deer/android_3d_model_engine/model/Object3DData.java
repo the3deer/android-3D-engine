@@ -946,10 +946,6 @@ public class Object3DData {
         return normalMatrix;
     }
 
-    public Transform getTransform() {
-        return new Transform(this.scale, this.rotation, this.location);
-    }
-
     public Buffer getIndexBuffer() {
         return indexBuffer;
     }

@@ -40,7 +40,7 @@ public class Animator {
 
     private float animationTime = 0;
 
-    private final float speed = 1f;
+    private final float speed = 1.0f;
 
     private final Map<String, Object> cache = new HashMap<>();
     private final Map<String, Object> cache2 = new HashMap<>();
@@ -68,64 +68,38 @@ public class Animator {
         if (rootNodes == null || rootNodes.isEmpty() || currentAnimation == null)
             return;
 
-        // 2. Find the specific root node FOR THIS ANIMATION from the scene.
-        Node rootNode = currentAnimation.getRootNode();
-        if (rootNode == null){
-            search: for (KeyFrame keyFrame : currentAnimation.getKeyFrames()){
-                final Set<String> strings = keyFrame.getPose().keySet();
-                for (String nodeId : strings){
-                    for (Node node : rootNodes) {
-                        if (node.find(nodeId) != null) {
-                            rootNode = node;
-                            Log.d("Animator", "Animation '" + currentAnimation.getName() + "' found rootNode. " + node.getId());
-                            currentAnimation.setRootNode(node);
-                            break search;
-                        }
-                    }
-                }
-            }
-        }
-
-        if (rootNode == null){
-            Log.e("Animator", "Animation '"+currentAnimation.getName()+"' has no root node set. Cannot play.");
-            return;
-        }
-
-        initAnimation(rootNode, currentAnimation);
+        initAnimation(rootNodes, currentAnimation);
         increaseAnimationTime(currentAnimation);
 
         final Map<String, float[]> currentPose = calculateCurrentAnimationPose(currentAnimation);
-        applyPoseToJoints(rootNode, currentPose,
-                Math3DUtils.IDENTITY_MATRIX,
-                Integer.MAX_VALUE, bindPoseOnly);
 
-        // debug
-        if (Constants.DEBUG) {
-            if (!log.contains(rootNode.getId())) {
-                debugNode(rootNode);
-                log.add(rootNode.getId());
+        for (Node rootNode : rootNodes) {
+
+            // debug
+            if (Constants.DEBUG) {
+                if (!log.contains(rootNode.getId())) {
+                    debugNode(rootNode);
+                    log.add(rootNode.getId());
+                }
             }
-        }
 
-        // process
-        /*for (int i=1; i<rootNodes.size(); i++) {
-
-            //final Node rootNode = rootNodes.get(i);
-
-            initAnimation(rootNode, currentAnimation);
-            increaseAnimationTime(currentAnimation);
-            final Map<String, float[]> currentPose = calculateCurrentAnimationPose(currentAnimation);
-
-            // 3. Now, recursively apply the pose to all of the root's CHILDREN,
-            //    using the root's CORRECT world transform as the starting parentTransform.
             applyPoseToJoints(rootNode, currentPose,
                     Math3DUtils.IDENTITY_MATRIX,
                     Integer.MAX_VALUE, bindPoseOnly);
-        }*/
-
+        }
     }
 
-    private static void initAnimation(Node rootNode, Animation animation) {
+    private static Node findNode(List<Node> rootNodes, String nodeId) {
+        for (Node node : rootNodes) {
+            final Node candidate = node.find(nodeId);
+            if (candidate != null) {
+                return candidate;
+            }
+        }
+        return null;
+    }
+
+    private static void initAnimation(List<Node> rootNodes, Animation animation) {
 
         if (animation.isInitialized()) {
             return;
@@ -133,7 +107,7 @@ public class Animator {
 
 
         final KeyFrame[] keyFrames = animation.getKeyFrames();
-        Log.d("Animator", "Initializing " + rootNode.getId() + ". " + keyFrames.length + " key frames...");
+        Log.d("Animator", "Animation '"+animation.getName()+"'. Initializing " + keyFrames.length + " key frames...");
 
         // debug
         if (Constants.DEBUG) {
@@ -163,7 +137,13 @@ public class Animator {
 
                 // if not complete, but first frame we just complete transforms with joint data
                 if (currentTransform != null && i == 0) {
-                    currentTransform.complete(rootNode.find(jointId));
+                    Node node = findNode(rootNodes, jointId);
+                    if (node != null){
+                        Log.v("Animator", "Found node: "+node.getId()+". Animation: "+animation.getName());
+                    } else {
+                        Log.w("Animator", "Didn't find node for joint '"+jointId+"'. Animation: "+animation.getName());
+                    }
+                    currentTransform.complete(node);
                     continue;
                 }
 
@@ -215,19 +195,19 @@ public class Animator {
                         if (keyFrameNextScaleZ == null && candidate.getScale()[2] != null)
                             keyFrameNextScaleZ = keyFrames[k];
                     }
-                    if (candidate.getQRotation() != null) {
-                        if (keyFrameNextRotationX == null)
-                            keyFrameNextRotationX = keyFrames[k];
-                        if (keyFrameNextRotationY == null)
-                            keyFrameNextRotationY = keyFrames[k];
-                        if (keyFrameNextRotationZ == null)
-                            keyFrameNextRotationZ = keyFrames[k];
-                    } else if (candidate.getRotation() != null) {
+                    if (candidate.getRotation() != null) {
                         if (keyFrameNextRotationX == null && candidate.getRotation()[0] != null)
                             keyFrameNextRotationX = keyFrames[k];
                         if (keyFrameNextRotationY == null && candidate.getRotation()[1] != null)
                             keyFrameNextRotationY = keyFrames[k];
                         if (keyFrameNextRotationZ == null && candidate.getRotation()[2] != null)
+                            keyFrameNextRotationZ = keyFrames[k];
+                    } else if (candidate.getQRotation() != null) {
+                        if (keyFrameNextRotationX == null)
+                            keyFrameNextRotationX = keyFrames[k];
+                        if (keyFrameNextRotationY == null)
+                            keyFrameNextRotationY = keyFrames[k];
+                        if (keyFrameNextRotationZ == null)
                             keyFrameNextRotationZ = keyFrames[k];
                     }
                     if (candidate.getLocation() != null) {
@@ -309,7 +289,7 @@ public class Animator {
         }
         animation.setInitialized(true);
 
-        Log.d("Animator", "Initialized " + rootNode.getId() + ". " + keyFrames.length + " key frames");
+        Log.i("Animator", "Animation '"+animation.getName()+"' initialized with " + keyFrames.length + " key frames");
 
         // debug
         if (Constants.DEBUG) {
@@ -375,8 +355,8 @@ public class Animator {
      * loaded up to the vertex shader and used to transform the vertices into
      * the current pose.
      *
-     * @param node       the skeleton that the pose should be applied to.
-     * @param pose           - the current pose
+     * @param node            the skeleton that the pose should be applied to.
+     * @param pose            - the current pose
      * @param parentTransform - parent transform
      * @param bindPoseOnly
      */
@@ -398,7 +378,6 @@ public class Animator {
             node.setAnimatedLocalTransform(finalWorldTransform);
         }*/
         node.setAnimatedLocalTransform(localAnimatedTransform);
-
 
 
         // 3. Multiply the parent's final world transform with this node's local animated transform.
@@ -451,7 +430,7 @@ public class Animator {
         float totalTime = nextFrame.getTimeStamp() - previousFrame.getTimeStamp();
         float currentTime = animationTime - previousFrame.getTimeStamp();
         // TODO: implement key frame display
-        return currentTime / totalTime * this.speed;
+        return currentTime / totalTime;
     }
 
     /**
@@ -501,9 +480,9 @@ public class Animator {
         return currentPose;
     }
 
-    private void debugNode(Node node){
-        Log.v("Animator", "DEBUG: Node["+node.getId()+"]: " + Arrays.toString(node.getAnimatedLocalTransform()));
-        for (int i=0; i<node.getChildren().size(); i++){
+    private void debugNode(Node node) {
+        Log.v("Animator", "DEBUG: Node[" + node.getId() + "]: " + Arrays.toString(node.getAnimatedLocalTransform()));
+        for (int i = 0; i < node.getChildren().size(); i++) {
             debugNode(node.getChildren().get(i));
         }
     }

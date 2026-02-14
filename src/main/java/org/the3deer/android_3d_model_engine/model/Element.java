@@ -132,7 +132,7 @@ public class Element {
 
     @NonNull
     @Override
-    protected Element clone() {
+    public Element clone() {
         final Element ret = new Element();
         if (this.getMaterial() != null)
             ret.setMaterial(this.getMaterial().clone());

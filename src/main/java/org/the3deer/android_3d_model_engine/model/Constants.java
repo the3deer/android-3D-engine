@@ -111,7 +111,7 @@ public class Constants {
     public static AtomicInteger MENU_GROUP_ID = new AtomicInteger(100000);
 
     // animation
-    public static final boolean PREFER_QUATERNION = true;
+    public static final boolean PREFER_QUATERNION = false;
     public static final boolean PREFER_QUATERNION_MATRIX = true;
 
     // experimental
