@@ -4,7 +4,12 @@ package org.the3deer.android_3d_model_engine.services.collada.entities;
 public class EffectData {
     public String effectId;
     public String imageId;
+
     public float[] diffuseColor; // To hold the <diffuse><color>
+    public float[] specularColor;
+    public float[] ambientColor;
+    public float[] emissionColor;
+
     public Float transparency;   // To hold the <transparency><float>
     public String specularTextureId;
 

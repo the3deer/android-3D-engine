@@ -1305,55 +1305,81 @@ public class ColladaParser {
 // In ColladaParser.java
 // ADD this small helper method.
 
+    // --- PASTE THIS NEW HELPER METHOD INTO ColladaParser.java ---
+
     /**
-     * Parses the content of a property tag (like <diffuse>) to find a <texture> tag
-     * and returns the ID of the texture it references.
+     * Parses a material property tag (like <diffuse>) that can contain either a <color>
+     * or a <texture>. If a <texture> is found, it resolves the texture's image ID. If a
+     * <color> is found, it parses the float array and sets the appropriate field in the EffectData.
      *
-     * @param parser The XML parser, currently at the start of the property tag (e.g., <diffuse>).
-     * @return The texture ID (e.g., "texmap249-image") or null if not found.
-     * @throws Exception
+     * @param parser The XML parser, at the start of the property tag (e.g., <diffuse>).
+     * @param currentEffect The EffectData object to be populated.
+     * @param newparamLinks The map for resolving texture indirections.
+     * @return The final resolved image ID if a texture was found, otherwise null.
+     * @throws Exception If there is a parsing error.
      */
-    // In ColladaParser.java
-// REPLACE the old parseTextureProperty with this intelligent version.
+    private String parseTextureOrColor(XmlPullParser parser, EffectData currentEffect, Map<String, String> newparamLinks) throws Exception {
+        final String propertyName = parser.getName(); // e.g., "diffuse", "specular"
+        String imageId = null;
 
-    // In ColladaParser.java
-// REPLACE the parseTextureProperty method with this corrected version.
-
-    private String parseTextureProperty(XmlPullParser parser, Map<String, String> newparamLinks) throws Exception {
-        String initialTextureId = null;
-        final String propertyName = parser.getName(); // The parent tag, e.g., "diffuse"
-
-        // Find the <texture> tag and get its "texture" attribute
         while (parser.next() != XmlPullParser.END_TAG || !parser.getName().equals(propertyName)) {
-            if (parser.getEventType() == XmlPullParser.START_TAG && "texture".equals(parser.getName())) {
-                initialTextureId = parser.getAttributeValue(null, "texture");
-                // The loop condition will naturally handle moving past the </texture> tag.
-                // No need for a manual skipToEnd here.
+            if (parser.getEventType() != XmlPullParser.START_TAG) continue;
+
+            String tagName = parser.getName();
+
+            if ("texture".equals(tagName)) {
+                // --- TEXTURE LOGIC (similar to your old parseTextureProperty) ---
+                String initialTextureId = parser.getAttributeValue(null, "texture");
+                if (initialTextureId != null) {
+                    // Resolve the full chain of links (sampler -> surface -> image)
+                    String currentId = initialTextureId;
+                    int depth = 0; // Safety break for rare infinite loops
+                    while (newparamLinks.containsKey(currentId) && depth < 5) {
+                        currentId = newparamLinks.get(currentId);
+                        depth++;
+                    }
+                    imageId = currentId; // This is the final image ID
+                }
+                skipTag(parser); // Skip to the end of the <texture> tag
+
+            } else if ("color".equals(tagName)) {
+                // --- COLOR LOGIC (the new part) ---
+                try {
+                    String colorString = parser.nextText();
+                    if (colorString != null) {
+                        String[] parts = colorString.trim().split("\\s+");
+                        if (parts.length >= 3) { // Must have at least R, G, B
+                            float[] color = new float[4];
+                            color[0] = Float.parseFloat(parts[0]);
+                            color[1] = Float.parseFloat(parts[1]);
+                            color[2] = Float.parseFloat(parts[2]);
+                            color[3] = (parts.length > 3) ? Float.parseFloat(parts[3]) : 1.0f; // Default alpha to 1.0
+
+                            // Set the color on the correct property based on the parent tag name
+                            if ("diffuse".equals(propertyName)) {
+                                currentEffect.diffuseColor = color;
+                            } else if ("specular".equals(propertyName)) {
+                                currentEffect.specularColor = color;
+                            } else if ("emission".equals(propertyName)) {
+                                currentEffect.emissionColor = color;
+                            } else if ("ambient".equals(propertyName)) {
+                                currentEffect.ambientColor = color;
+                            }
+                        }
+                    }
+                } catch (NumberFormatException e) {
+                    Log.e(TAG, "Failed to parse color string inside <" + propertyName + ">", e);
+                }
+                // parser.nextText() already moved the cursor past the </color> tag
+            } else {
+                // In case of other unexpected tags inside <diffuse>, etc.
+                skipTag(parser);
             }
         }
-        // At this point, the parser cursor is exactly at the </diffuse> tag, having consumed everything inside it.
-
-        if (initialTextureId == null) {
-            return null; // This property was a solid color, not a texture
-        }
-
-        Log.d(TAG, "Found texture reference: '" + initialTextureId + "'. Resolving final image ID...");
-
-        // --- LINK RESOLUTION LOGIC ---
-        String currentId = initialTextureId;
-        int depth = 0; // Safety break to prevent infinite loops
-        while (newparamLinks.containsKey(currentId) && depth < 5) {
-            currentId = newparamLinks.get(currentId);
-            Log.d(TAG, "Resolving... -> '" + currentId + "'");
-            depth++;
-        }
-
-        // After the loop, 'currentId' is our final image ID
-        Log.i(TAG, "Resolved '" + initialTextureId + "' to final image ID '" + currentId + "'");
-
-        // DO NOT call skipToEnd here. The calling method's loop will handle moving the parser.
-        return currentId;
+        // The parser is now at the END_TAG of the property (e.g., </diffuse>)
+        return imageId;
     }
+
 
     // In ColladaParser.java
 // Modify parseTechnique to accept and pass the map.
@@ -1373,28 +1399,35 @@ public class ColladaParser {
     }
 
 
-    // Modify parseShaderType to accept and pass the map.
+    // In ColladaParser.java, replace the entire parseShaderType method with this one.
     private void parseShaderType(XmlPullParser parser, EffectData currentEffect, String shaderType, Map<String, String> newparamLinks) throws Exception {
         while (parser.next() != XmlPullParser.END_TAG || !parser.getName().equals(shaderType)) {
             if (parser.getEventType() != XmlPullParser.START_TAG) continue;
 
             String propertyName = parser.getName();
             if ("diffuse".equals(propertyName)) {
-                String imageId = parseTextureProperty(parser, newparamLinks);
+                // First, try to see if the diffuse property is defined by a texture.
+                String imageId = parseTextureOrColor(parser, currentEffect, newparamLinks);
                 if (imageId != null) {
                     currentEffect.imageId = imageId; // Set the final image ID
                 }
+                // If parseTextureOrColor found a color instead, currentEffect.diffuseColor is already set.
+
             } else if ("specular".equals(propertyName)) {
-                String textureId = parseTextureProperty(parser, newparamLinks); // Pass the map here
+                // The same logic can be applied for specular or other properties.
+                String textureId = parseTextureOrColor(parser, currentEffect, newparamLinks);
                 if (textureId != null) {
                     currentEffect.specularTextureId = textureId;
                 }
-            } else {
+            } else if ("emission".equals(propertyName) || "ambient".equals(propertyName)) {
+                // Example of handling other color properties if needed in the future.
+                parseTextureOrColor(parser, currentEffect, newparamLinks);
+            }
+            else {
                 skipTag(parser);
             }
         }
     }
-
 
     /**
      * Parses the <library_materials> section. This creates the final Material objects
