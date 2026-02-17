@@ -54,7 +54,7 @@ public class Material {
     public Material() {
     }
 
-    public Material(String id, String nm) {
+    public Material(String id, String name) {
         this.id = id;
         this.name = name;
     }
@@ -81,7 +81,7 @@ public class Material {
         return alphaMode;
     }
 
-    public void setAlhaMode(AlphaMode alphaMode) {
+    public void setAlphaMode(AlphaMode alphaMode) {
         this.alphaMode = alphaMode;
     }
 
@@ -217,7 +217,7 @@ public class Material {
     @Override
     public String toString() {
         return "Material{" +
-                "name='" + name + '\'' +
+                "id='" + id + '\'' +
                 ", ambient=" + Arrays.toString(ambient) +
                 ", diffuse=" + Arrays.toString(diffuse) +
                 ", specular=" + Arrays.toString(specular) +
@@ -231,10 +231,11 @@ public class Material {
     @NonNull
     @Override
     protected Material clone() {
-        final Material ret = new Material();
+        final Material ret = new Material(id, name);
+        ret.setDiffuse(this.getDiffuse());
+        ret.setAlpha(this.getAlpha());
         ret.setColorTexture(this.getColorTexture());
         ret.setEmissiveTexture(this.getEmissiveTexture());
-        ;
         ret.setNormalTexture(this.getNormalTexture());
         return ret;
     }

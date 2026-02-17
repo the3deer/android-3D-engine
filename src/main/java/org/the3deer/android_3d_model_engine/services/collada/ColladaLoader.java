@@ -6,6 +6,7 @@ import android.util.Log;
 
 import java.io.InputStream;
 import java.net.URI;
+import java.nio.IntBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -14,6 +15,7 @@ import java.util.Map;
 import org.the3deer.android_3d_model_engine.animation.Animation;
 import org.the3deer.android_3d_model_engine.model.AnimatedModel;
 
+import org.the3deer.android_3d_model_engine.model.Element;
 import org.the3deer.android_3d_model_engine.model.Material;
 import org.the3deer.android_3d_model_engine.model.Object3DData;
 import org.the3deer.android_3d_model_engine.model.Scene;
@@ -24,6 +26,7 @@ import org.the3deer.android_3d_model_engine.services.collada.entities.Controller
 import org.the3deer.android_3d_model_engine.services.collada.entities.EffectData;
 import org.the3deer.android_3d_model_engine.services.collada.entities.Geometry;
 import org.the3deer.android_3d_model_engine.services.collada.entities.MaterialData;
+import org.the3deer.android_3d_model_engine.services.collada.entities.Mesh;
 import org.the3deer.android_3d_model_engine.services.collada.entities.Node; // Import the new Node class
 import org.the3deer.util.android.ContentUtils;
 import org.the3deer.util.io.IOUtils;
@@ -327,7 +330,6 @@ public class ColladaLoader {
             // Set diffuse color if available
             if (effectData.diffuseColor != null) {
                 material.setDiffuse(effectData.diffuseColor);
-                material.setAlpha(effectData.diffuseColor[3]); // Default alpha from diffuse color
             }
 
             // Override alpha with transparency if it exists
@@ -397,8 +399,8 @@ public class ColladaLoader {
         float[] sourceWeights = controller.getSkin().getWeights().getWeights();
 
         // Geometry index data (4260 indices)
-        int[] vertexIndices = geometry.getVertexJointIndices();
-        int finalVertexCount = vertexIndices.length;
+        final IntBuffer vertexIndices = geometry.getIndices();
+        int finalVertexCount = vertexIndices.capacity();
 
         // --- THIS IS THE UNROLLING LOGIC ---
         // Create final, correctly-sized buffers
@@ -407,7 +409,7 @@ public class ColladaLoader {
 
         for (int i = 0; i < finalVertexCount; i++) {
             // Get the original vertex index (e.g., a number between 0 and 709)
-            int originalVertexIndex = vertexIndices[i];
+            int originalVertexIndex = vertexIndices.get(i);
 
             // For this final vertex, copy the 4 joints and 4 weights from the source data
             for (int j = 0; j < 4; j++) {
@@ -467,11 +469,32 @@ public class ColladaLoader {
         model.setTextureCoordsArrayBuffer(geometry.getTexCoords());
         model.setVertexColorsArrayBuffer(geometry.getColors());
 
-        Material material = materials.get(geometry.getMaterialId());
-        if (material != null) {
-            model.setMaterial(material);
+        // build elements
+        if (geometry.getMeshes().isEmpty()) {
+            Material material = materials.get(geometry.getMaterialId());
+            if (material != null) {
+                model.setMaterial(material);
+            }
+            model.setIndexed(false);
+        } else {
+            Log.d(TAG, "Geometry '" + geometry.getId()
+                    + "' has multiple meshes: "+geometry.getMeshes().size());
+            List<Element> elements = new ArrayList<>();
+            for (Mesh mesh : geometry.getMeshes()) {
+                Element element = new Element();
+                if (!materials.containsKey(mesh.getMaterialId())){
+                Log.w(TAG, "Geometry '" + geometry.getId()
+                        + "' references unknown material '" + mesh.getMaterialId() + "'");
+                    continue;
+                }
+                element.setMaterial(materials.get(mesh.getMaterialId()));
+                element.setIndexBuffer(IOUtils.createIntBuffer(mesh.getIndices()));
+                elements.add(element);
+            }
+            model.setElements(elements);
+            model.setIndexed(true);
         }
-        model.setIndexed(false);
+
         model.setDrawMode(GLES20.GL_TRIANGLES);
 
         // metadata

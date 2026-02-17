@@ -21,7 +21,6 @@ import org.the3deer.android_3d_model_engine.scene.SceneImpl;
 import org.the3deer.android_3d_model_engine.services.LoadListener;
 import org.the3deer.util.android.AndroidUtils;
 import org.the3deer.util.android.ContentUtils;
-import org.the3deer.util.io.IOUtils;
 import org.the3deer.util.math.Quaternion;
 
 import java.io.IOException;
@@ -495,7 +494,7 @@ public final class GltfLoaderLegacy {
             material.setDiffuse(materialModel.getBaseColorFactor());
             material.setAlphaCutoff(materialModel.getAlphaCutoff());
             try {
-                material.setAlhaMode(Material.AlphaMode.valueOf(materialModel.getAlphaMode().name()));
+                material.setAlphaMode(Material.AlphaMode.valueOf(materialModel.getAlphaMode().name()));
             } catch (Exception e) {
                 // ignore
             }
