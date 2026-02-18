@@ -448,6 +448,7 @@ public class ColladaLoader {
                 materials.get(geometry.getMaterialId()), // vertex color/texture
                 skin // is this needed here ?
         );
+        model.setIndexBuffer(geometry.getIndices());
         model.setIndexed(false);
         model.setDrawMode(GLES20.GL_TRIANGLES);
 

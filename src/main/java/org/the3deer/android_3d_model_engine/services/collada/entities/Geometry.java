@@ -114,15 +114,17 @@ public class Geometry {
 
         // 2nd scenario: countdown.dae
         int totalVertices = 0;
+        int totalIndices = 0;
         for (Mesh mesh : meshes) {
             totalVertices += mesh.getVertices().length;
+            totalIndices += mesh.getIndices().length;
         }
 
         this.positions = IOUtils.createFloatBuffer(totalVertices * 3);
         //this.colors = IOUtils.createFloatBuffer(totalVertices * 4);
         //this.texCoords = IOUtils.createFloatBuffer(totalVertices * 2);
         this.normals = IOUtils.createFloatBuffer(totalVertices * 3);
-        this.indices = IOUtils.createIntBuffer(totalVertices);
+        this.indices = IOUtils.createIntBuffer(totalIndices);
 
         int offset = 0;
         for (Mesh mesh : meshes){
@@ -144,7 +146,7 @@ public class Geometry {
             }
 
             // update offset
-            offset += mesh.getVertices().length/3;
+            offset += intIndexes.length;
         }
     }
 }
