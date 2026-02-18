@@ -768,7 +768,189 @@ public class ColladaParser {
         geometry.addMesh(mesh);
 
         Log.d(TAG, "Assembled unrolled geometry '" + mesh.getId() + "' with " + finalVertexCount + " vertices.");
+    }
 
+    /**
+     * Parses a <polylist> primitive.
+     * Crucial for the Iris model because it uses Quads (vcount=4), not Triangles.
+     */
+    private void parsePolylistPrimitive(XmlPullParser parser, Map<String, Source> sources,
+                                        Map<String, List<Input>> verticesLibrary, Geometry geometry) throws Exception {
+
+        final Mesh mesh = new Mesh();
+
+        List<Input> inputs = new ArrayList<>();
+        String materialId = parser.getAttributeValue(null, "material");
+        if (materialId != null) mesh.setMaterialId(materialId);
+
+        // 1. Parse Inputs (Semantics)
+        int primitiveStartDepth = parser.getDepth();
+        while (parser.next() != XmlPullParser.END_TAG || parser.getDepth() > primitiveStartDepth) {
+            if (parser.getEventType() != XmlPullParser.START_TAG) continue;
+
+            if ("input".equals(parser.getName())) {
+                inputs.add(parseInput(parser));
+            } else if ("vcount".equals(parser.getName()) || "p".equals(parser.getName())) {
+                break; // Stop input parsing, we hit data
+            }
+        }
+
+        // Resolve inputs (Vertex, Normal, TexCoord, etc.)
+        Source positionSource = null;
+        Source normalSource = null;
+        Source texCoordSource = null;
+        Source colorSource = null;
+        Source jointSource = null;
+        Source weightSource = null;
+
+        int vertexOffset = -1, normalOffset = -1, texOffset = -1, colorOffset = -1, jointOffset = -1, weightOffset = -1;
+        int stride = 0;
+
+        for (Input input : inputs) {
+            int offset = input.offset;
+            stride = Math.max(stride, offset + 1);
+
+            if ("VERTEX".equals(input.semantic)) {
+                vertexOffset = offset;
+                List<Input> vertexInputs = verticesLibrary.get(input.sourceId);
+                if (vertexInputs != null) {
+                    for (Input vInput : vertexInputs) {
+                        if ("POSITION".equals(vInput.semantic)) {
+                            positionSource = sources.get(vInput.sourceId);
+                        }
+                    }
+                }
+            } else if ("NORMAL".equals(input.semantic)) {
+                normalOffset = offset;
+                normalSource = sources.get(input.sourceId);
+            } else if ("TEXCOORD".equals(input.semantic)) {
+                texOffset = offset;
+                texCoordSource = sources.get(input.sourceId);
+            } else if ("COLOR".equals(input.semantic)) {
+                colorOffset = offset;
+                colorSource = sources.get(input.sourceId);
+            } else if ("JOINT".equals(input.semantic)) {
+                jointOffset = offset;
+                jointSource = sources.get(input.sourceId);
+            } else if ("WEIGHT".equals(input.semantic)) {
+                weightOffset = offset;
+                weightSource = sources.get(input.sourceId);
+            }
+        }
+
+        List<Integer> vCounts = new ArrayList<>();
+        List<Integer> rawIndices = new ArrayList<>();
+
+        // 2. Parse Data Tags (<vcount> and <p>)
+        do {
+            if (parser.getEventType() == XmlPullParser.START_TAG) {
+                if ("vcount".equals(parser.getName())) {
+                    String[] data = parser.nextText().trim().split("\\s+");
+                    for (String s : data) vCounts.add(Integer.parseInt(s));
+                } else if ("p".equals(parser.getName())) {
+                    String[] data = parser.nextText().trim().split("\\s+");
+                    for (String s : data) rawIndices.add(Integer.parseInt(s));
+                }
+            }
+            if (parser.next() == XmlPullParser.END_TAG && "polylist".equals(parser.getName())) {
+                break;
+            }
+        } while (parser.getDepth() >= primitiveStartDepth);
+
+        // 3. Process Indices (Triangulation)
+        List<Float> unrolledPositions = new ArrayList<>();
+        List<Float> unrolledNormals = new ArrayList<>();
+        List<Float> unrolledTexCoords = new ArrayList<>();
+        List<Float> unrolledColors = new ArrayList<>();
+        List<Integer> unrolledJoints = new ArrayList<>();
+        List<Float> unrolledWeights = new ArrayList<>();
+
+        int[] indicesArray = new int[rawIndices.size()];
+        for (int i = 0; i < rawIndices.size(); i++) indicesArray[i] = rawIndices.get(i);
+
+        int currentRawIndex = 0;
+
+        // Iterate over every polygon face defined in vcount
+        for (int i = 0; i < vCounts.size(); i++) {
+            int vertexCount = vCounts.get(i); // e.g., 4 for a Quad
+
+            // TRIANGULATION LOGIC (Triangle Fan)
+            // A Quad (0,1,2,3) becomes Triangle(0,1,2) and Triangle(0,2,3)
+            for (int k = 0; k < vertexCount - 2; k++) {
+                // Vertex 0 (Pivot)
+                addVertex(currentRawIndex, indicesArray, stride, vertexOffset, normalOffset, texOffset, colorOffset, jointOffset, weightOffset,
+                        positionSource, normalSource, texCoordSource, colorSource, jointSource, weightSource,
+                        unrolledPositions, unrolledNormals, unrolledTexCoords, unrolledColors, unrolledJoints, unrolledWeights);
+
+                // Vertex k+1
+                addVertex(currentRawIndex + k + 1, indicesArray, stride, vertexOffset, normalOffset, texOffset, colorOffset, jointOffset, weightOffset,
+                        positionSource, normalSource, texCoordSource, colorSource, jointSource, weightSource,
+                        unrolledPositions, unrolledNormals, unrolledTexCoords, unrolledColors, unrolledJoints, unrolledWeights);
+
+                // Vertex k+2
+                addVertex(currentRawIndex + k + 2, indicesArray, stride, vertexOffset, normalOffset, texOffset, colorOffset, jointOffset, weightOffset,
+                        positionSource, normalSource, texCoordSource, colorSource, jointSource, weightSource,
+                        unrolledPositions, unrolledNormals, unrolledTexCoords, unrolledColors, unrolledJoints, unrolledWeights);
+            }
+
+            // Advance pointer by the number of vertices in this polygon
+            currentRawIndex += vertexCount;
+        }
+
+        // 4. Commit to Geometry
+        mesh.setVertices(floatListToArray(unrolledPositions));
+        mesh.setIndices(indicesArray);
+        if (!unrolledNormals.isEmpty()) mesh.setNormals(floatListToArray(unrolledNormals));
+        if (!unrolledTexCoords.isEmpty())
+            mesh.setTextureCoords(floatListToArray(unrolledTexCoords));
+        if (!unrolledColors.isEmpty()) mesh.setColors(floatListToArray(unrolledColors));
+
+        geometry.addMesh(mesh);
+    }
+
+    // Helper to unroll a single vertex from raw indices
+    private void addVertex(int vertexIndexInPoly, int[] indices, int stride,
+                           int vertexOffset, int normalOffset, int texOffset, int colorOffset, int jointOffset, int weightOffset,
+                           Source posSrc, Source normSrc, Source texSrc, Source colSrc, Source jointSrc, Source weightSrc,
+                           List<Float> outPos, List<Float> outNorm, List<Float> outTex, List<Float> outCol, List<Integer> outJoints, List<Float> outWeights) {
+
+        int baseIndex = vertexIndexInPoly * stride;
+
+        // Position
+        int pIdx = indices[baseIndex + vertexOffset];
+        outPos.add(posSrc.floatData[pIdx * 3]);
+        outPos.add(posSrc.floatData[pIdx * 3 + 1]);
+        outPos.add(posSrc.floatData[pIdx * 3 + 2]);
+
+        // Normal
+        if (normalOffset >= 0 && normSrc != null) {
+            int nIdx = indices[baseIndex + normalOffset];
+            outNorm.add(normSrc.floatData[nIdx * 3]);
+            outNorm.add(normSrc.floatData[nIdx * 3 + 1]);
+            outNorm.add(normSrc.floatData[nIdx * 3 + 2]);
+        }
+        // TexCoord
+        if (texOffset >= 0 && texSrc != null) {
+            int tIdx = indices[baseIndex + texOffset];
+            outTex.add(texSrc.floatData[tIdx * 2]);
+            outTex.add(texSrc.floatData[tIdx * 2 + 1]);
+        }
+        // Color
+        if (colorOffset >= 0 && colSrc != null) {
+            int cIdx = indices[baseIndex + colorOffset];
+            outCol.add(colSrc.floatData[cIdx * 3]);
+            outCol.add(colSrc.floatData[cIdx * 3 + 1]);
+            outCol.add(colSrc.floatData[cIdx * 3 + 2]);
+            if (colSrc.stride >= 4) outCol.add(colSrc.floatData[cIdx * 3 + 3]);
+            else outCol.add(1.0f);
+        }
+        // Joints & Weights (for completeness, though Iris doesn't use them)
+        if (jointOffset >= 0 && jointSrc != null) {
+            outJoints.add(indices[baseIndex + jointOffset]);
+        }
+        if (weightOffset >= 0 && weightSrc != null) {
+            outWeights.add(weightSrc.floatData[indices[baseIndex + weightOffset]]);
+        }
     }
 
     private String cleanId(String rawSourceId) {
