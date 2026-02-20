@@ -2,6 +2,7 @@
 package org.the3deer.android_3d_model_engine.scene;
 
 import android.app.Activity;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -9,7 +10,6 @@ import android.os.SystemClock;
 import android.util.Log;
 import android.widget.Toast;
 
-import org.the3deer.android_3d_model_engine.camera.CameraManager;
 import org.the3deer.android_3d_model_engine.model.Camera;
 import org.the3deer.android_3d_model_engine.model.Object3DData;
 import org.the3deer.android_3d_model_engine.model.Scene;
@@ -23,9 +23,14 @@ import org.the3deer.util.bean.BeanFactory;
 import org.the3deer.util.bean.BeanInit;
 
 import java.net.URI;
+import java.net.URL;
+import java.net.URLEncoder;
+import java.util.Map;
 
 import javax.inject.Inject;
 import javax.inject.Named;
+
+import kotlin.text.Charsets;
 
 /**
  * This component loads the model into the engine
@@ -134,6 +139,62 @@ public class ModelLoader implements LoadListener {
 
             // load model
             Log.i(TAG, "Loading model... " + this.modelUri);
+
+            // if the model is a zip file, we need to extract it and register the entries as content uris
+
+            // if the model is a zip file, we need to extract it and register the entries as content uris
+            if (modelUri.toString().toLowerCase().endsWith(".zip")) {
+                final Map<String, byte[]> zipFiles;
+                try {
+                    zipFiles = ContentUtils.readFiles(new URL(modelUri.toString()));
+                    Uri modelFile = null;
+                    for (Map.Entry<String, byte[]> zipFile : zipFiles.entrySet()) {
+
+                        final String zipFilename = zipFile.getKey();
+                        final int dotIndex = zipFilename.lastIndexOf('.');
+                        final String fileExtension;
+                        if (dotIndex != -1) {
+                            fileExtension = zipFilename.substring(dotIndex);
+                        } else {
+                            fileExtension = "?";
+                        }
+
+                        // register all zip entries
+
+                        String encodedName = URLEncoder.encode(zipFilename, Charsets.UTF_8.name());
+                        final Uri pseudoUri = Uri.parse("android://" + activity.getPackageName() + "/binary/" + encodedName);
+                        ContentUtils.addUri(encodedName, pseudoUri);
+
+                        encodedName = encodedName.replace("+","%20");
+                        final Uri pseudoUri2 = Uri.parse("android://" + activity.getPackageName() + "/binary/" + encodedName);
+                        ContentUtils.addUri(encodedName, pseudoUri2);
+
+                        ContentUtils.addData(pseudoUri, zipFile.getValue());
+                        ContentUtils.addData(pseudoUri2, zipFile.getValue());
+
+                        // detect model
+                        switch (fileExtension.toLowerCase()) {
+                            case ".obj":
+                            case ".stl":
+                            case ".dae":
+                            case ".gltf":
+                            case ".glb":
+                                modelFile = pseudoUri;
+                                modelUri = new URI(pseudoUri.toString());
+                                break;
+                        }
+                    }
+                    if (modelFile == null) {
+                        Log.e(TAG, "Model not found in zip '" + modelUri + "'");
+                        Toast.makeText(activity, "Model not found in zip '" + modelUri + "'", Toast.LENGTH_LONG).show();
+                    } else {
+                        Log.i(TAG, "Model found in zip: " + modelFile);
+                    }
+                } catch (Exception e) {
+                    Log.e(TAG, "Error loading zip file '" + modelUri + "': " + e.getMessage(), e);
+                    Toast.makeText(activity, "Error loading zip file '" + modelUri + "': " + e.getMessage(), Toast.LENGTH_LONG).show();
+                }
+            }
 
             if (modelUri.toString().toLowerCase().endsWith(".obj") || "obj".equalsIgnoreCase(modelType)) {
                 new WavefrontLoaderTask(activity, modelUri, ModelLoader.this).execute();
