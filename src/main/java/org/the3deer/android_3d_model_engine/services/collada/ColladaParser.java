@@ -66,11 +66,17 @@ public class ColladaParser {
         private String semantic;
         private String sourceId;
         private final int offset;
+        private int set;  // For TEXCOORD sets (0, 1, 2, etc.) - defaults to 0
 
         private Input(String semantic, String sourceId, int offset) {
+            this(semantic, sourceId, offset, 0);
+        }
+
+        private Input(String semantic, String sourceId, int offset, int set) {
             this.semantic = semantic;
             this.sourceId = sourceId;
             this.offset = offset;
+            this.set = set;
         }
     }
 
@@ -647,10 +653,15 @@ public class ColladaParser {
                 normalOffset = input.offset;
                 normalSource = sources.get(input.sourceId);
             } else if ("TEXCOORD".equals(input.semantic)) {
-                // FIXME:
-                if (texOffset == -1) {  // handle only first TEXCOORD set for now
+                // Only use the first texture coordinate set (set="0")
+                // Higher sets (set="1", etc.) are ignored for now as they typically contain
+                // lightmaps, normal maps, or other secondary textures that need shader support
+                if (input.set == 0) {
                     texOffset = input.offset;
                     texCoordSource = sources.get(input.sourceId);
+                    Log.d(TAG, "Using TEXCOORD set=0 for texture mapping");
+                } else {
+                    Log.w(TAG, "TEXCOORD set=" + input.set + " found but ignored. Currently only set=0 is supported.");
                 }
             } else if ("COLOR".equals(input.semantic)) {
                 colorOffset = input.offset;
@@ -1406,6 +1417,8 @@ public class ColladaParser {
      * Parses an <input> tag, which defines a data stream.
      * This is a simple, non-looping version that correctly handles self-closing tags.
      * Example: <input semantic="VERTEX" source="#Cube-mesh-vertices" offset="0"/>
+     * Example: <input semantic="TEXCOORD" source="#U3DMesh-UV0" offset="1" set="0"/>
+     * Example: <input semantic="TEXCOORD" source="#U3DMesh-UV1" offset="3" set="1"/>
      *
      * @param parser The XmlPullParser at the START_TAG of an <input>.
      * @return A new Input object with the parsed data.
@@ -1416,8 +1429,13 @@ public class ColladaParser {
         String offsetStr = parser.getAttributeValue(null, "offset");
         int offset = (offsetStr != null) ? Integer.parseInt(offsetStr) : 0;
 
-        Log.d(TAG, "Parsed <input> with semantic: " + semantic + ", source: " + sourceId + ", offset: " + offset);
-        return new Input(semantic, sourceId, offset);
+        // Read the optional 'set' attribute (for TEXCOORD, COLOR, etc.)
+        String setStr = parser.getAttributeValue(null, "set");
+        int set = (setStr != null) ? Integer.parseInt(setStr) : 0;
+
+        Log.d(TAG, "Parsed <input> with semantic: " + semantic + ", source: " + sourceId +
+                   ", offset: " + offset + ", set: " + set);
+        return new Input(semantic, sourceId, offset, set);
     }
 
 
