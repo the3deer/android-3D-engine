@@ -475,6 +475,7 @@ public class ColladaLoader {
         model.setVertexNormalsArrayBuffer(geometry.getNormals());
         model.setTextureCoordsArrayBuffer(geometry.getTexCoords());
         model.setVertexColorsArrayBuffer(geometry.getColors());
+        model.setIndexBuffer(geometry.getIndices());
 
         buildModelElements(geometry, materials, model);
 
@@ -492,8 +493,8 @@ public class ColladaLoader {
             if (geometry.getMaterialId() != null && !materials.containsKey(geometry.getMaterialId())) {
                 Log.w(TAG, "Geometry '" + geometry.getId()
                         + "' references unknown material '" + geometry.getMaterialId() + "'");
-                model.setMaterial(materials.get(geometry.getMaterialId()));
             }
+            model.setMaterial(materials.get(geometry.getMaterialId()));
             model.setIndexed(false);
         } else {
             Log.d(TAG, "Geometry '" + geometry.getId()
