@@ -321,9 +321,9 @@ public class ColladaParser {
 
         // Add the fully populated geometry to our main library
         if (!geometry.getMeshes().isEmpty()) {
+            Log.d(TAG, "Geometry '" + geometryId + "' found. Meshes: " + geometry.getMeshes().size() + ".");
             geometry.assemble();
             geometryLibrary.put(geometryId, geometry);
-            Log.d(TAG, "Finished parsing geometry '" + geometryId + "'. Meshes found: " + geometry.getMeshes().size() + ".");
         } else {
             Log.e(TAG, "Geometry '" + geometryId + "' was parsed but resulted in no vertex data.");
         }
@@ -680,20 +680,31 @@ public class ColladaParser {
             return; // Cannot proceed without positions
         }
 
-        int inputCount = inputs.size();
-        int finalVertexCount = indices.length / inputCount;
+        final int inputCount = inputs.size();
+        final int vertexCountFromIndices = indices.length / inputCount;
+
+        // Parse 'count'
+        final String countAtr = parser.getAttributeValue(null, "count");
+        final int vertexCount = (countAtr != null) ? Integer.parseInt(countAtr) : -1;
+
+        // check
+        if (vertexCountFromIndices != vertexCount) {
+            Log.w(TAG, "WARNING: vertexCountFromIndices <> vertexCount. This may indicate an issue with the input data or how we are interpreting it." +
+                    "vertexCountFromIndices=" + vertexCountFromIndices + ", vertexCount=" + vertexCount);
+        }
 
         // Allocate final "unrolled" buffers
-        float[] finalPositions = new float[finalVertexCount * 3];
-        float[] finalNormals = (normalSource != null) ? new float[finalVertexCount * 3] : null;
-        float[] finalTexCoords = (texCoordSource != null) ? new float[finalVertexCount * 2] : null;
-        int[] vertexJointIndices = new int[finalVertexCount];
+        float[] finalIndices = new float[vertexCountFromIndices];
+        float[] finalPositions = new float[vertexCountFromIndices * 3];
+        float[] finalNormals = (normalSource != null) ? new float[vertexCountFromIndices * 3] : null;
+        float[] finalTexCoords = (texCoordSource != null) ? new float[vertexCountFromIndices * 2] : null;
+        int[] indicesMap = new int[vertexCountFromIndices];
 
         // Final buffer is ALWAYS RGBA (stride 4) to match the legacy loader and renderer expectations
-        float[] finalColors = new float[finalVertexCount * 4];
+        float[] finalColors = new float[vertexCountFromIndices * 4];
 
         // Unroll all vertex attributes into the final buffers
-        for (int i = 0; i < finalVertexCount; i++) {
+        for (int i = 0; i < vertexCountFromIndices; i++) {
             int p_base = i * inputCount;
 
             int positionIndex = indices[p_base + vertexInput.offset];
@@ -701,7 +712,8 @@ public class ColladaParser {
             int texCoordIndex = (texCoordInput != null) ? indices[p_base + texCoordInput.offset] : -1;
             int colorIndex = (colorInput != null) ? indices[p_base + colorInput.offset] : -1;
 
-            vertexJointIndices[i] = i;
+            finalIndices[i] = i;
+            indicesMap[i] = positionIndex;
 
             // Unroll Positions (XYZ)
             finalPositions[i * 3] = positionSource.getFloatData()[positionIndex * 3];
@@ -762,12 +774,13 @@ public class ColladaParser {
         if (colorSource != null) {
             mesh.setColors(finalColors); // Always set the RGBA color buffer
         }
-        mesh.setIndices(vertexJointIndices); // Save the skinning map
+        mesh.setIndices(indices); // Save the skinning map
+        mesh.setIndicesMap(indicesMap); // Save the skinning map
 
         // Add the mesh to the geometry
         geometry.addMesh(mesh);
 
-        Log.d(TAG, "Assembled unrolled geometry '" + mesh.getId() + "' with " + finalVertexCount + " vertices.");
+        Log.d(TAG, "Assembled unrolled geometry '" + mesh.getId() + "' with " + vertexCountFromIndices + " vertices.");
     }
 
     /**

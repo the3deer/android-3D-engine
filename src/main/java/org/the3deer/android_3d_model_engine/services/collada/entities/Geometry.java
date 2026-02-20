@@ -16,10 +16,14 @@ public class Geometry {
     private FloatBuffer texCoords;
     private IntBuffer indices;
     private String materialId;
-    private int[] vertexJointIndices; // This maps an unrolled vertex back to its original vertex index for skinning
-    private FloatBuffer weights;
 
+    // This is the list of meshes that will be merged into this geometry.
+    // In some cases, a <geometry> can contain multiple <mesh> elements,
+    // and we need to merge them together, because skinning is done at the geometry level, not the mesh level.
     private List<Mesh> meshes;
+
+    // This maps an unrolled vertex back to its original vertex index for skinning
+    private int[] indicesMap;
 
     public Geometry(String id) {
         this.id = id;
@@ -74,6 +78,10 @@ public class Geometry {
         return indices;
     }
 
+    public int[] getIndicesMap() {
+        return indicesMap;
+    }
+
     public void addMesh(Mesh mesh) {
         this.meshes.add(mesh);
     }
@@ -103,6 +111,7 @@ public class Geometry {
             }
             if (mesh1.getIndices() != null) {
                 this.indices = IOUtils.createIntBuffer(mesh1.getIndices());
+                this.indicesMap = mesh1.getIndicesMap();
             }
             meshes.clear();
             return;
@@ -125,6 +134,7 @@ public class Geometry {
         //this.texCoords = IOUtils.createFloatBuffer(totalVertices * 2);
         this.normals = IOUtils.createFloatBuffer(totalVertices * 3);
         this.indices = IOUtils.createIntBuffer(totalIndices);
+        this.indicesMap = new int[totalIndices];
 
         int offset = 0;
         for (Mesh mesh : meshes){
@@ -139,7 +149,14 @@ public class Geometry {
                 this.normals.put(mesh.getNormals());
             }
 
-            // update indices
+            // update the indices Map - no need to offset it,
+            // because the map is used to map unrolled vertices back to their original vertex index for skinning
+            final int[] intIndicesMap = mesh.getIndicesMap();
+            for (int i = 0; i < intIndicesMap.length; i++) {
+                this.indicesMap[offset + i] = intIndicesMap[i];
+            }
+
+            // offset unrolled indices
             final int[] intIndexes = mesh.getIndices();
             for (int i = 0; i < intIndexes.length; i++) {
                 intIndexes[i] += offset;
@@ -149,4 +166,5 @@ public class Geometry {
             offset += intIndexes.length;
         }
     }
+
 }

@@ -399,8 +399,8 @@ public class ColladaLoader {
         float[] sourceWeights = controller.getSkin().getWeights().getWeights();
 
         // Geometry index data (4260 indices)
-        final IntBuffer vertexIndices = geometry.getIndices();
-        int finalVertexCount = vertexIndices.capacity();
+        final int[] indicesMap = geometry.getIndicesMap();
+        int finalVertexCount = indicesMap.length;
 
         // --- THIS IS THE UNROLLING LOGIC ---
         // Create final, correctly-sized buffers
@@ -409,7 +409,7 @@ public class ColladaLoader {
 
         for (int i = 0; i < finalVertexCount; i++) {
             // Get the original vertex index (e.g., a number between 0 and 709)
-            int originalVertexIndex = vertexIndices.get(i);
+            int originalVertexIndex = indicesMap[i];
 
             // For this final vertex, copy the 4 joints and 4 weights from the source data
             for (int j = 0; j < 4; j++) {
@@ -448,8 +448,14 @@ public class ColladaLoader {
                 materials.get(geometry.getMaterialId()), // vertex color/texture
                 skin // is this needed here ?
         );
+
+        // indexing
         model.setIndexBuffer(geometry.getIndices());
-        model.setIndexed(false);
+        model.setIndexed(true);
+
+        buildModelElements(geometry, materials, model);
+
+        // draw mode
         model.setDrawMode(GLES20.GL_TRIANGLES);
 
         // metadata
@@ -470,23 +476,34 @@ public class ColladaLoader {
         model.setTextureCoordsArrayBuffer(geometry.getTexCoords());
         model.setVertexColorsArrayBuffer(geometry.getColors());
 
+        buildModelElements(geometry, materials, model);
+
+        model.setDrawMode(GLES20.GL_TRIANGLES);
+
+        // metadata
+        model.setAuthoringTool(this.authoringTool);
+
+        return model;
+    }
+
+    private static void buildModelElements(Geometry geometry, Map<String, Material> materials, Object3DData model) {
         // build elements
         if (geometry.getMeshes().isEmpty()) {
-            Material material = materials.get(geometry.getMaterialId());
-            if (material != null) {
-                model.setMaterial(material);
+            if (geometry.getMaterialId() != null && !materials.containsKey(geometry.getMaterialId())) {
+                Log.w(TAG, "Geometry '" + geometry.getId()
+                        + "' references unknown material '" + geometry.getMaterialId() + "'");
+                model.setMaterial(materials.get(geometry.getMaterialId()));
             }
             model.setIndexed(false);
         } else {
             Log.d(TAG, "Geometry '" + geometry.getId()
-                    + "' has multiple meshes: "+geometry.getMeshes().size());
+                    + "' has multiple meshes: "+ geometry.getMeshes().size());
             List<Element> elements = new ArrayList<>();
             for (Mesh mesh : geometry.getMeshes()) {
                 Element element = new Element();
-                if (!materials.containsKey(mesh.getMaterialId())){
-                Log.w(TAG, "Geometry '" + geometry.getId()
-                        + "' references unknown material '" + mesh.getMaterialId() + "'");
-                    continue;
+                if (mesh.getMaterialId() != null && !materials.containsKey(mesh.getMaterialId())) {
+                    Log.w(TAG, "Geometry '" + geometry.getId()
+                            + "' references unknown material '" + mesh.getMaterialId() + "'");
                 }
                 element.setMaterial(materials.get(mesh.getMaterialId()));
                 element.setIndexBuffer(IOUtils.createIntBuffer(mesh.getIndices()));
@@ -495,12 +512,5 @@ public class ColladaLoader {
             model.setElements(elements);
             model.setIndexed(true);
         }
-
-        model.setDrawMode(GLES20.GL_TRIANGLES);
-
-        // metadata
-        model.setAuthoringTool(this.authoringTool);
-
-        return model;
     }
 }

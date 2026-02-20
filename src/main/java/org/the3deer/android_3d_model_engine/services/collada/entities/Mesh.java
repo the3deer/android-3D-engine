@@ -12,6 +12,9 @@ public class Mesh {
     private float[] textureCoords;
     private float[] colors;
 
+    // original vertex index -> list of unrolled vertex indices
+    private int[] indicesMap; // This maps an unrolled vertex back to its original vertex index for skinning
+
     public String getId() {
         return id;
     }
@@ -46,6 +49,14 @@ public class Mesh {
 
     public void setIndices(int[] vertexJointIndices) {
         this.indices = vertexJointIndices;
+    }
+
+    public int[] getIndicesMap() {
+        return indicesMap;
+    }
+
+    public void setIndicesMap(int[] indicesMap) {
+        this.indicesMap = indicesMap;
     }
 
     public float[] getVertices() {
