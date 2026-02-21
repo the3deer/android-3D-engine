@@ -68,4 +68,6 @@ public interface Scene {
     void setMaterials(ArrayList<Material> materials);
 
     void setAnimations(List<Animation> sceneAnimations);
+
+    void merge(Scene other);
 }

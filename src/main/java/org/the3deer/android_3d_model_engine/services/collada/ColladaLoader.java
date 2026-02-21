@@ -272,7 +272,7 @@ public class ColladaLoader {
             // The rest of the cloning logic remains exactly the same
             Object3DData newInstance = template.clone();
             newInstance.setId(parserNode.getId());
-            newInstance.setMatrix(worldMatrix);
+            //newInstance.setMatrix(worldMatrix);
 
             // Find the corresponding model.Node from the map and set it.
             org.the3deer.android_3d_model_engine.model.Node parentModelNode = nodeMap.get(parserNode);

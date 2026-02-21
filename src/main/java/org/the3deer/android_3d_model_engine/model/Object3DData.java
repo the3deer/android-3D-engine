@@ -890,7 +890,7 @@ public class Object3DData {
                 // or the true animated transform for skeletons.
                 final float[] parentWorldTransform = parentNode.getBindWorldTransform();
 
-                if (true) return parentWorldTransform;
+                //if (true) return parentWorldTransform;
 
                 // Calculate the final world matrix for THIS object by applying its local
                 // transform on top of its parent's world transform.
