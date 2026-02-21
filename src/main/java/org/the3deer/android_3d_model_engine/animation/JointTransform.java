@@ -159,6 +159,8 @@ public class JointTransform {
         this.scale = Math3DUtils.scaleFromMatrix(matrix);
         this.rotation = qRotation.toAnglesF();
         this.location = new Float[]{matrix[12], matrix[13], matrix[14]};
+
+        refresh();
     }
 
     /**

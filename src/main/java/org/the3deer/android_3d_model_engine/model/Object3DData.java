@@ -862,14 +862,16 @@ public class Object3DData {
 
         if (isParentBound && parent != null) {
             return parent.getModelMatrix();
-        } else if (parentNode != null){
+        }
+
+        if (parentNode != null){
             // If this mesh is attached to a node in the scene graph...
             // ...get the node's current, final, animated world transform.
 
             if (parentNode.getAnimatedWorldTransform() != null){
 
                 // FIXME: this needs to be true for the door.dae
-                if (true) return parentNode.getAnimatedWorldTransform();
+                //if (true) return parentNode.getAnimatedWorldTransform();
 
                 // Get the parent's final animated world transform.
                 // This will be an identity matrix for static scenes like the door,

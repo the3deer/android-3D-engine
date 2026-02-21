@@ -419,8 +419,18 @@ public class ColladaLoader {
                 // Destination index for the final buffer
                 int destIndex = i * 4 + j;
 
-                finalJointIndicesAsFloats[destIndex] = (float) sourceJointIndices[sourceIndex];
-                finalWeights[destIndex] = sourceWeights[sourceIndex];
+                // Bounds checks: if the source arrays are shorter than expected, fill with zeros
+                if (sourceIndex < 0 || sourceIndex >= sourceJointIndices.length || sourceIndex >= sourceWeights.length) {
+                    // Defensive fallback: log once per problematic originalVertexIndex
+                    if (i < 5) {
+                        Log.w(TAG, "Skin source index out of range. originalVertexIndex=" + originalVertexIndex + " sourceIndex=" + sourceIndex + " jointsLen=" + sourceJointIndices.length + " weightsLen=" + sourceWeights.length);
+                    }
+                    finalJointIndicesAsFloats[destIndex] = 0f;
+                    finalWeights[destIndex] = 0f;
+                } else {
+                    finalJointIndicesAsFloats[destIndex] = (float) sourceJointIndices[sourceIndex];
+                    finalWeights[destIndex] = sourceWeights[sourceIndex];
+                }
             }
         }
         // --- END OF UNROLLING LOGIC ---

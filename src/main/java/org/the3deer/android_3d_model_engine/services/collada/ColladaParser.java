@@ -1264,7 +1264,8 @@ public class ColladaParser {
                     String colorString = parser.nextText();
                     if (colorString != null) {
                         String[] parts = colorString.trim().split("\\s+");
-                        if (parts.length >= 3) { // Must have at least R, G, B
+                        if (parts.length >= 3) // Must have at least R, G, B
+                        {
                             float[] color = new float[4];
                             color[0] = Float.parseFloat(parts[0]);
                             color[1] = Float.parseFloat(parts[1]);
@@ -1768,25 +1769,31 @@ public class ColladaParser {
             }
         }
 
-        // Find the stride from the output source's accessor
-        for (Map.Entry<String, float[]> entry : sources.entrySet()) {
-            if (entry.getKey().equals(outputSourceId)) {
-                // This is a simplification; a full implementation would parse the <accessor>
-                // For door.dae, the stride is always 1 for single-axis transforms.
-                // For matrix, it would be 16. We will infer it from the target string.
-                if ("matrix".equalsIgnoreCase(targetTransform)) {
+        // Infer the stride from the actual data if possible. This is more robust than
+        // relying on the targetTransform string only (which can be e.g. "transform").
+        if (inputSourceId != null && outputSourceId != null) {
+            float[] times = sources.get(inputSourceId);
+            float[] values = sources.get(outputSourceId);
+            if (times != null && values != null && times.length > 0) {
+                // Compute number of floats per keyframe
+                int computed = values.length / times.length;
+                if (computed > 0) {
+                    stride = computed;
+                }
+            } else {
+                // Fallback: if the targetTransform looks like a matrix or generic transform assume 16
+                if (targetTransform != null && ("matrix".equalsIgnoreCase(targetTransform) || "transform".equalsIgnoreCase(targetTransform))) {
                     stride = 16;
                 } else {
                     stride = 1;
                 }
             }
-        }
 
-
-        if (inputSourceId != null && outputSourceId != null && targetId != null) {
-            float[] times = sources.get(inputSourceId);
-            float[] values = sources.get(outputSourceId);
-            return new ChannelData(targetId, targetTransform, times, values, stride);
+            float[] timesFinal = sources.get(inputSourceId);
+            float[] valuesFinal = sources.get(outputSourceId);
+            if (timesFinal != null && valuesFinal != null && targetId != null) {
+                return new ChannelData(targetId, targetTransform, timesFinal, valuesFinal, stride);
+            }
         }
 
         return null;
@@ -1815,9 +1822,20 @@ public class ColladaParser {
      * Applies a single transformation from a channel to a JointTransform at a specific time index.
      */
     private void applyTransform(JointTransform jointTransform, ChannelData channel, int timeIndex) {
-        float value = channel.values[timeIndex];
+        if (channel == null || channel.targetTransform == null || jointTransform == null) {
+            Log.w(TAG, "Skipping applyTransform due to null channel/target/transform");
+            return;
+        }
 
-        switch (channel.targetTransform.toUpperCase()) {
+        int base = Math.max(0, timeIndex * Math.max(1, channel.stride));
+        float value = 0f;
+        if (channel.values != null && base < channel.values.length) {
+            value = channel.values[base];
+        }
+
+        String target = channel.targetTransform.toUpperCase();
+
+        switch (target) {
             case "ROTATEZ.ANGLE":
             case "ROTATIONZ.ANGLE":
                 jointTransform.addRotation(null, null, value);
@@ -1843,12 +1861,12 @@ public class ColladaParser {
                 jointTransform.addLocation(null, null, value);
                 break;
             case "SCALE":
-                if (channel.stride == 3) {
+                if (channel.stride == 3 && channel.values != null && base + 2 < channel.values.length) {
                     float[] scale = new float[3];
-                    System.arraycopy(channel.values, timeIndex * 3, scale, 0, 3);
+                    System.arraycopy(channel.values, base, scale, 0, 3);
                     jointTransform.setScale(scale);
                 } else {
-                    // Fallback for uniform scale if stride is 1 but target is generic SCALE
+                    // Fallback for uniform scale if stride is 1 or data missing
                     jointTransform.setScale(new float[]{value, value, value});
                 }
                 break;
@@ -1863,11 +1881,15 @@ public class ColladaParser {
                 break;
             case "MATRIX":
             case "TRANSFORM":
-                float[] matrix = new float[16];
-                System.arraycopy(channel.values, timeIndex * 16, matrix, 0, 16);
-                float[] transposed = new float[16];
-                Matrix.transposeM(transposed, 0, matrix, 0);
-                jointTransform.setTransform(transposed); // This will overwrite others, as expected for a matrix.
+                if (channel.values != null && channel.stride >= 16 && base + 16 <= channel.values.length) {
+                    float[] matrix = new float[16];
+                    System.arraycopy(channel.values, base, matrix, 0, 16);
+                    float[] transposed = new float[16];
+                    Matrix.transposeM(transposed, 0, matrix, 0);
+                    jointTransform.setTransform(transposed); // This will overwrite others, as expected for a matrix.
+                } else {
+                    Log.w(TAG, "Matrix animation channel has unexpected stride/length: stride=" + channel.stride + " valuesLength=" + (channel.values!=null?channel.values.length:0));
+                }
                 break;
             default:
                 Log.w(TAG, "Unsupported animation transform target: " + channel.targetTransform);
