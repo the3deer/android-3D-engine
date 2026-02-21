@@ -36,7 +36,7 @@ import java.util.Set;
 public class Object3DData {
 
     public Object3DData(String id, FloatBuffer positions, FloatBuffer normals, FloatBuffer texCoords, FloatBuffer colors, Material material) {
-        this.id=id;
+        this.id = id;
         this.vertexArrayBuffer = positions;
         this.vertexNormalsArrayBuffer = normals;
         this.textureCoordsArrayBuffer = texCoords;
@@ -443,32 +443,48 @@ public class Object3DData {
             }
         }
         // Case 2: The object is drawn using glDrawElements (indexed)
-        else {
-            if (this.elements != null && !this.elements.isEmpty()) {
-                // We only need to process the indices. All elements share the same vertex buffer.
-                // Using a Set to avoid updating dimensions for the same vertex multiple times.
-                Set<Integer> processedIndices = new HashSet<>();
-                for (Element element : getElements()) {
-                    final Buffer indexBuffer = element.getIndexBuffer();
-                    if (indexBuffer != null) {
-                        indexBuffer.position(0);
-                        for (int i = 0; i < indexBuffer.capacity(); i++) {
-                            final int idx = IOUtils.getIntBufferValue(indexBuffer, i);
+        else if (this.elements != null && !this.elements.isEmpty()) {
+            // We only need to process the indices. All elements share the same vertex buffer.
+            // Using a Set to avoid updating dimensions for the same vertex multiple times.
+            Set<Integer> processedIndices = new HashSet<>();
+            for (Element element : getElements()) {
+                final Buffer indexBuffer = element.getIndexBuffer();
+                if (indexBuffer != null) {
+                    indexBuffer.position(0);
+                    for (int i = 0; i < indexBuffer.capacity(); i++) {
+                        final int idx = IOUtils.getIntBufferValue(indexBuffer, i);
 
-                            if (processedIndices.contains(idx)) {
-                                continue; // Already processed this vertex, skip.
-                            }
-
-                            if (idx < 0 || idx >= vertexArrayBuffer.capacity() / 3) {
-                                Log.w("Object3DData", "Wrong index '" + idx + "' while getting dimensions for '" + getId() + "'");
-                                continue;
-                            }
-
-                            dimensions.update(vertexArrayBuffer.get(idx * 3), vertexArrayBuffer.get(idx * 3 + 1), vertexArrayBuffer.get(idx * 3 + 2));
-                            processedIndices.add(idx);
+                        if (processedIndices.contains(idx)) {
+                            continue; // Already processed this vertex, skip.
                         }
+
+                        if (idx < 0 || idx >= vertexArrayBuffer.capacity() / 3) {
+                            Log.w("Object3DData", "Wrong index '" + idx + "' while getting dimensions for '" + getId() + "'");
+                            continue;
+                        }
+
+                        dimensions.update(vertexArrayBuffer.get(idx * 3), vertexArrayBuffer.get(idx * 3 + 1), vertexArrayBuffer.get(idx * 3 + 2));
+                        processedIndices.add(idx);
                     }
                 }
+            }
+        } else if (indexBuffer != null) {
+            // If we have an index buffer but no elements, we can still use it to calculate dimensions
+            indexBuffer.position(0);
+            for (int i = 0; i < indexBuffer.capacity(); i++) {
+                final int idx = IOUtils.getIntBufferValue(indexBuffer, i);
+
+                if (idx < 0 || idx >= vertexArrayBuffer.capacity() / 3) {
+                    Log.w("Object3DData", "Wrong index '" + idx + "' while getting dimensions for '" + getId() + "'");
+                    continue;
+                }
+
+                dimensions.update(vertexArrayBuffer.get(idx * 3), vertexArrayBuffer.get(idx * 3 + 1), vertexArrayBuffer.get(idx * 3 + 2));
+            }
+        } else {
+            // No elements defined, fallback to processing all vertices (similar to non-indexed case)
+            for (int i = 0; i < vertexArrayBuffer.capacity() / 3; i++) {
+                dimensions.update(vertexArrayBuffer.get(i * 3), vertexArrayBuffer.get(i * 3 + 1), vertexArrayBuffer.get(i * 3 + 2));
             }
         }
 
@@ -852,8 +868,8 @@ public class Object3DData {
     public float[] getModelMatrix() {
 
         // bounding box
-        if (id != null && id.contains("_boundingBox_")){
-            if (parentNode != null){
+        if (id != null && id.contains("_boundingBox_")) {
+            if (parentNode != null) {
                 final Node rootNode = parentNode.getRoot();
                 return rootNode.getBindWorldTransform();
 
@@ -864,11 +880,11 @@ public class Object3DData {
             return parent.getModelMatrix();
         }
 
-        if (parentNode != null){
+        if (parentNode != null) {
             // If this mesh is attached to a node in the scene graph...
             // ...get the node's current, final, animated world transform.
 
-            if (parentNode.getAnimatedWorldTransform() != null){
+            if (parentNode.getAnimatedWorldTransform() != null) {
 
                 // FIXME: this needs to be true for the door.dae
                 //if (true) return parentNode.getAnimatedWorldTransform();
@@ -884,8 +900,7 @@ public class Object3DData {
                 Matrix.multiplyMM(finalModelMatrix, 0, parentWorldTransform, 0, this.modelMatrix, 0);
 
                 return finalModelMatrix;
-            }
-            else {
+            } else {
 
                 // Get the parent's final animated world transform.
                 // This will be an identity matrix for static scenes like the door,
@@ -1225,7 +1240,8 @@ public class Object3DData {
 // Print first 30 floats (10 normals)
 // IMPORTANT: Add a null check for finalNormals
             if (vertexNormalsArrayBuffer != null && vertexNormalsArrayBuffer.capacity() >= 30) {
-                StringBuilder norm_sb = new StringBuilder("Normals:   ").append("(").append(vertexNormalsArrayBuffer.capacity()).append(") ");;
+                StringBuilder norm_sb = new StringBuilder("Normals:   ").append("(").append(vertexNormalsArrayBuffer.capacity()).append(") ");
+                ;
                 for (int i = 0; i < 16 && i < vertexNormalsArrayBuffer.capacity(); i++) {
                     norm_sb.append(vertexNormalsArrayBuffer.get(i)).append(" ");
                 }
@@ -1236,7 +1252,8 @@ public class Object3DData {
 
             // Print first 15 indices
             if (indexBuffer != null) {
-                StringBuilder idx_sb = new StringBuilder("Indices:   ").append("(").append(indexBuffer.capacity()).append(") ");;
+                StringBuilder idx_sb = new StringBuilder("Indices:   ").append("(").append(indexBuffer.capacity()).append(") ");
+                ;
                 idx_sb.append("(").append(indexBuffer.getClass().getSimpleName()).append(")");
 
                 for (int i = 0; i < 16 && i < indexBuffer.capacity(); i++) {
@@ -1246,7 +1263,8 @@ public class Object3DData {
             }
 
             if (textureCoordsArrayBuffer != null) {
-                StringBuilder norm_sb = new StringBuilder("Textures:   ").append("(").append(textureCoordsArrayBuffer.capacity()).append(") ");;
+                StringBuilder norm_sb = new StringBuilder("Textures:   ").append("(").append(textureCoordsArrayBuffer.capacity()).append(") ");
+                ;
                 for (int i = 0; i < 16 && i < textureCoordsArrayBuffer.capacity(); i++) {
                     norm_sb.append(textureCoordsArrayBuffer.get(i)).append(" ");
                 }

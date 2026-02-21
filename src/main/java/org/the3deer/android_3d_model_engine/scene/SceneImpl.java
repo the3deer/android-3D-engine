@@ -1001,6 +1001,11 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
         float maxLength = lengthX;
         if (lengthY > maxLength) maxLength = lengthY;
         if (lengthZ > maxLength) maxLength = lengthZ;
+
+        if (maxLength == 0.0f) {
+            Log.w(TAG, "Max length is 0, cannot rescale.");
+            return;
+        }
         Log.v(TAG, "Max length: " + maxLength);
 
         float maxLocation = 0;
