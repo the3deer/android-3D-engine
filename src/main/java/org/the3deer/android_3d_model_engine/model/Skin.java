@@ -261,6 +261,12 @@ public class Skin {
         // Check if we have a list of joints (collada)
         if (jointIndex == -1 && jointNames != null) {
             jointIndex = jointNames.indexOf(jointNode.getId());
+
+            // scope search if not found by id
+            if (jointIndex == -1) {
+                jointIndex = jointNames.indexOf(jointNode.getSid());
+            }
+
             jointNode.setJointIndex(jointIndex);
         }
 

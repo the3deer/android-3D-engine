@@ -191,7 +191,6 @@ public class Node {
 		this.jointIndex = -1;
 		this.id = id;
 		this.name = id;
-		this.sid = id;
 
 		this.localTransform = new Transform();
 		this.bindWorldTransform = new float[16];
@@ -204,6 +203,10 @@ public class Node {
 
 	public String getId() {
 		return id;
+	}
+
+	public void setSid(String sid) {
+		this.sid = sid;
 	}
 
 	public String getName() {

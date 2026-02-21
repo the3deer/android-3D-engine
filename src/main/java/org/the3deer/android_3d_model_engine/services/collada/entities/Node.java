@@ -5,6 +5,8 @@ import java.util.List;
 
 public class Node {
     private String id;
+    // scope identifier - used by collada to reference channels in animations
+    private String sid;
     private String name;
     private float[] transform; // Always a 4x4 matrix
     private Node parent;
@@ -25,6 +27,14 @@ public class Node {
 
     public String getName() {
         return name;
+    }
+
+    public String getSid() {
+        return sid;
+    }
+
+    public void setSid(String sid) {
+        this.sid = sid;
     }
 
     public void setTransform(float[] transform) { this.transform = transform; }

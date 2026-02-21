@@ -65,8 +65,10 @@ public class Animator {
     public void update(List<Node> rootNodes, Animation currentAnimation, boolean bindPoseOnly) {
 
         // check
-        if (rootNodes == null || rootNodes.isEmpty() || currentAnimation == null)
+        if (rootNodes == null || rootNodes.isEmpty() || currentAnimation == null) {
+            Log.e("Animator", "No animation to play");
             return;
+        }
 
         initAnimation(rootNodes, currentAnimation);
         increaseAnimationTime(currentAnimation);
@@ -74,14 +76,6 @@ public class Animator {
         final Map<String, float[]> currentPose = calculateCurrentAnimationPose(currentAnimation);
 
         for (Node rootNode : rootNodes) {
-
-            // debug
-            if (Constants.DEBUG) {
-                if (!log.contains(rootNode.getId())) {
-                    debugNode(rootNode);
-                    log.add(rootNode.getId());
-                }
-            }
 
             applyPoseToJoints(rootNode, currentPose,
                     Math3DUtils.IDENTITY_MATRIX,
@@ -379,6 +373,13 @@ public class Animator {
         }*/
         node.setAnimatedLocalTransform(localAnimatedTransform);
 
+        // debug
+        if (Constants.DEBUG) {
+            if (!log.contains(node.getId())) {
+                debugNode(node);
+                log.add(node.getId());
+            }
+        }
 
         // 3. Multiply the parent's final world transform with this node's local animated transform.
         //finalWorldTransform = new float[16];
@@ -481,7 +482,7 @@ public class Animator {
     }
 
     private void debugNode(Node node) {
-        Log.v("Animator", "DEBUG: Node[" + node.getId() + "]: " + Arrays.toString(node.getAnimatedLocalTransform()));
+        Log.v("Animator", "DEBUG: Node[" + node.getId() + "]: Animated Transform: " + Arrays.toString(node.getAnimatedLocalTransform()));
         for (int i = 0; i < node.getChildren().size(); i++) {
             debugNode(node.getChildren().get(i));
         }

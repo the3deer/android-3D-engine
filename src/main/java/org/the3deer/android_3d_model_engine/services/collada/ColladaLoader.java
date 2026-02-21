@@ -211,6 +211,7 @@ public class ColladaLoader {
         // Assuming your model.Node has a constructor that accepts an ID string.
         org.the3deer.android_3d_model_engine.model.Node modelNode = new org.the3deer.android_3d_model_engine.model.Node(parserNode.getId());
         modelNode.setName(parserNode.getName());
+        modelNode.setSid(parserNode.getSid());
         modelNode.setParent(parentModelNode);
         modelNode.setMatrix(parserNode.getTransform());
 

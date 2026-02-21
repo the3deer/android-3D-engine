@@ -1495,7 +1495,9 @@ public class ColladaParser {
     private Node parseNode(XmlPullParser parser, Node parent) throws Exception {
         String nodeId = parser.getAttributeValue(null, "id");
         String nodeName = parser.getAttributeValue(null, "name");
+        String sid = parser.getAttributeValue(null, "sid");
         Node currentNode = new Node(nodeId, nodeName);
+        currentNode.setSid(sid);
         currentNode.setParent(parent);
 
         // --- NEW LOGIC: PARSE TRANSFORMATIONS ---
