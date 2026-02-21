@@ -22,6 +22,7 @@ import org.the3deer.android_3d_model_engine.model.Light;
 import org.the3deer.android_3d_model_engine.model.Material;
 import org.the3deer.android_3d_model_engine.model.Node;
 import org.the3deer.android_3d_model_engine.model.Object3DData;
+import org.the3deer.android_3d_model_engine.model.Scene;
 import org.the3deer.android_3d_model_engine.model.Skin;
 import org.the3deer.android_3d_model_engine.model.Transform;
 import org.the3deer.android_3d_model_engine.objects.Point;
@@ -781,6 +782,7 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
                 // Create a new node and assign the object to it.
                 Node node = new Node();
                 node.setMesh(obj); // Link the visible object to this node.
+                node.setMatrix(obj.getModelMatrix());
                 obj.setParentNode(node);
                 obj.setParentBound(true);
                 rootNodes.add(node);
@@ -1060,5 +1062,36 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
 
     public void setBlendingForced(boolean forced) {
         isBlendingForced = forced;
+    }
+
+    @Override
+    public void merge(Scene other) {
+        if (other == null) return;
+
+        // merge objects
+        if (other.getObjects() != null) {
+            addObjects(other.getObjects());
+        }
+
+        // merge skeletons
+        if (other.getSkeletons() != null) {
+            for (Skin skin : other.getSkeletons()) {
+                addSkeleton(skin);
+            }
+        }
+
+        // merge root nodes
+        if (other.getRootNodes() != null) {
+            for (Node node : other.getRootNodes()) {
+                addRootNode(node);
+            }
+        }
+
+        // merge animations
+        if (other.getAnimations() != null) {
+            for (Animation animation : other.getAnimations()) {
+                addAnimation(animation);
+            }
+        }
     }
 }
