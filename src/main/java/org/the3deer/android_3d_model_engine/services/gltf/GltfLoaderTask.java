@@ -89,8 +89,7 @@ public class GltfLoaderTask extends LoaderTask {
             // new
             GltfLoader loader = new GltfLoader();
             GltfSceneData sceneData = loader.load(uri, callback);
-            GltfSceneFactory factory = new GltfSceneFactory();
-            List<Scene> scenesNew = factory.createScenes(sceneData);
+            List<Scene> scenesNew = loader.createScenes(sceneData);
             List<Object3DData> loadNew = new ArrayList<>();
             for (Scene scene : scenesNew) {
                 loadNew.addAll(scene.getObjects());
@@ -128,14 +127,8 @@ public class GltfLoaderTask extends LoaderTask {
 
     @NonNull
     private List<Scene> buildNew() throws Exception {
-
         GltfLoader loader = new GltfLoader();
         GltfSceneData sceneData = loader.load(uri, callback);
-
-        GltfSceneFactory factory = new GltfSceneFactory();
-        List<Scene> scenes = factory.createScenes(sceneData);
-
-        return scenes;
+        return loader.createScenes(sceneData);
     }
-
 }
