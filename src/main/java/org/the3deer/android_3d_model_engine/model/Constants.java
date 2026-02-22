@@ -16,7 +16,26 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class Constants {
 
-    public static final boolean DEBUG = false;
+    /**
+     * <p>Debug low level information. Will affect performance, so should be false in production
+     * - show details about KeyFrames
+     * - show details about JointTransforms
+     */
+    public static final boolean DEBUG = true;
+    public static final boolean DEBUG_COMPARE = true;
+    // experimental
+    public static final boolean STRATEGY_LOAD_NEW = true;
+    public static final boolean STRATEGY_BBOX_NEW = false;
+    public static final boolean STRATEGY_QUATERNION_NEW = true;
+    // loader
+    public static final boolean FIX_SCALE = true;
+    public static final boolean FIX_COORDINATE_SYSTEM = true;
+    // animation
+    public static final boolean PREFER_QUATERNION = false;
+    public static final boolean PREFER_QUATERNION_MATRIX = true;
+    // features
+    public static final boolean ANIMATIONS_ENABLED = true;
+
     /**
      * Default unit factor for dimension on any axis. 1cm = 1f
      */
@@ -110,13 +129,6 @@ public class Constants {
     public static AtomicInteger MENU_ITEM_ID = new AtomicInteger(1000);
     public static AtomicInteger MENU_GROUP_ID = new AtomicInteger(100000);
 
-    // animation
-    public static final boolean PREFER_QUATERNION = false;
-    public static final boolean PREFER_QUATERNION_MATRIX = true;
 
-    // experimental
-    public final static boolean STRATEGY_NEW = true;
-    public final static boolean STRATEGY_LOAD_NEW = true;
-    public final static boolean STRATEGY_BBOX_NEW = false;
 
 }

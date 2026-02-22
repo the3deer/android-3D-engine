@@ -422,6 +422,10 @@ public class Node {
 		return localTransform.getTranslation();
 	}
 
+	public float[] getTransform() {
+		return localTransform.getTransform();
+	}
+
 	public Float[] getBindLocalScale() {
 		return localTransform.getScale();
 	}

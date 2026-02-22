@@ -53,8 +53,8 @@ public class GltfAnimationLoader {
                 final FloatBuffer values = (FloatBuffer) sampler.output;
 
                 // Ensure buffers are ready for reading from the start
-                times.rewind();
-                values.rewind();
+                //times.rewind();
+                //values.rewind();
 
                 final Node targetNode = nodes.get(channel.targetNode);
                 final String jointId = targetNode.getId();
@@ -63,7 +63,7 @@ public class GltfAnimationLoader {
                     final float timeStamp = times.get(i);
 
                     // Get or create the KeyFrame for this timestamp
-                    KeyFrame keyFrame = keyframes.computeIfAbsent(timeStamp, k -> new KeyFrame(k, new HashMap<>()));
+                    KeyFrame keyFrame = keyframes.computeIfAbsent(timeStamp, k -> new KeyFrame(k, new TreeMap<>()));
                     Map<String, JointTransform> pose = keyFrame.getPose();
 
                     // Get or create the JointTransform for the target node in this pose
@@ -80,7 +80,7 @@ public class GltfAnimationLoader {
                             values.position(i * 4);
                             values.get(rotation);
                             // Assuming your JointTransform or Quaternion class can handle this
-                            jointTransform.setQuaternion(new Quaternion(rotation[0], rotation[1], rotation[2], rotation[3]));
+                            jointTransform.setQuaternion(new Quaternion(rotation[0], rotation[1], rotation[2], rotation[3]).normalize());
                         } else if ("scale".equals(channel.targetPath)) {
                             float[] scale = new float[3];
                             values.position(i * 3);

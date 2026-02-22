@@ -2,16 +2,23 @@ package org.the3deer.android_3d_model_engine.services;
 
 import android.util.Log;
 
+import org.the3deer.android_3d_model_engine.animation.Animation;
+import org.the3deer.android_3d_model_engine.animation.JointTransform;
 import org.the3deer.android_3d_model_engine.model.AnimatedModel;
 import org.the3deer.android_3d_model_engine.model.Element;
 import org.the3deer.android_3d_model_engine.model.Material;
+import org.the3deer.android_3d_model_engine.model.Node;
 import org.the3deer.android_3d_model_engine.model.Object3DData;
+import org.the3deer.android_3d_model_engine.model.Scene;
+import org.the3deer.android_3d_model_engine.model.Skin;
 
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.nio.ShortBuffer;
+import java.util.List;
+import java.util.Map;
 
 public class ModelComparator {
 
@@ -66,6 +73,10 @@ public class ModelComparator {
             if (legacyAnimated.getSkin() != null && newAnimated.getSkin() != null) {
                 compareGenericBuffer("Joints", legacyAnimated.getSkin().getJointsBuffer(), newAnimated.getSkin().getJointsBuffer());
                 compareGenericBuffer("Weights", legacyAnimated.getSkin().getWeightsBuffer(), newAnimated.getSkin().getWeightsBuffer());
+                // compare inverse bind matrices
+                compareArray("Inverse Bind Matrices", legacyAnimated.getSkin().getInverseBindMatrices(), newAnimated.getSkin().getInverseBindMatrices());
+
+
             } else if (legacyAnimated.getSkin() == null || newAnimated.getSkin() == null) {
                 Log.e("MODEL_COMPARE", "DIFFERENCE: Skin is null. Legacy: " + (legacyAnimated.getSkin() == null) + ", New: " + (newAnimated.getSkin() == null));
             }
@@ -95,6 +106,36 @@ public class ModelComparator {
         }
         if (legacy == null || !legacy.equals(newObj)) {
             Log.e("MODEL_COMPARE", "DIFFERENCE: " + name + ". Legacy: " + legacy + ", New: " + newObj);
+
+            if (legacy instanceof Map && newObj instanceof Map) {
+                Map<?, ?> legacyMap = (Map<?, ?>) legacy;
+                Map<?, ?> newMap = (Map<?, ?>) newObj;
+                for (Object key : legacyMap.keySet()) {
+                    if (!newMap.containsKey(key)) {
+                        Log.e("MODEL_COMPARE", "DIFFERENCE: " + name + " missing key in new: " + key);
+                    } else if (!legacyMap.get(key).equals(newMap.get(key))) {
+                        Log.e("MODEL_COMPARE", "DIFFERENCE: " + name + " value mismatch for key " + key + ". Legacy: "
+                                + legacyMap.get(key) + ", New: " + newMap.get(key));
+                    } else {
+                        Object legacyVal = legacyMap.get(key);
+                        Object newVal = newMap.get(key);
+                        if (legacyVal instanceof Buffer && newVal instanceof Buffer) {
+                            compareGenericBuffer(name + " buffer for key " + key, (Buffer) legacyVal, (Buffer) newVal);
+                        } else if (legacyVal instanceof float[] && newVal instanceof float[]) {
+                            compareArray(name + " array for key " + key, (float[]) legacyVal, (float[]) newVal);
+                        } else if (legacyVal instanceof JointTransform && newVal instanceof JointTransform) {
+                            compareField(name + " JointTransform for key " + key, legacyVal.toString(), newVal.toString());
+                        } else {
+                            Log.d("MODEL_COMPARE", "OK: " + name + " value for key " + key + " is the same.");
+                        }
+                    }
+                }
+                for (Object key : newMap.keySet()) {
+                    if (!legacyMap.containsKey(key)) {
+                        Log.e("MODEL_COMPARE", "DIFFERENCE: " + name + " extra key in new: " + key);
+                    }
+                }
+            }
         } else {
             Log.d("MODEL_COMPARE", "OK: " + name + " is the same.");
         }
@@ -240,6 +281,112 @@ public class ModelComparator {
         } else {
             Log.e("MODEL_COMPARE", "DIFFERENCE: " + name + ". One is null. Legacy: "
                     + (legacyValue != null) + ", New: " + (newValue != null));
+        }
+    }
+
+    public void compareScenes(Scene legacy, Scene neww) {
+        if (legacy == null && neww == null) {
+            Log.d("MODEL_COMPARE", "OK: Scene is null in both.");
+            return;
+        }
+        if (legacy == null || neww == null) {
+            Log.e("MODEL_COMPARE", "DIFFERENCE: Scene is null. Legacy: " + (legacy == null) + ", New: " + (neww == null));
+            return;
+        }
+
+        // compare attributes
+        compareField("Scene ID", legacy.getId(), neww.getId());
+        compareField("Scene Name", legacy.getName(), neww.getName());
+
+        // compare lists
+        compareField("Scene Object Count", legacy.getObjects().size(), neww.getObjects().size());
+
+        // compare nodes
+        if (legacy.getRootNodes() == null && neww.getRootNodes() == null) {
+            Log.d("MODEL_COMPARE", "OK: Scene root nodes are null in both.");
+        } else if (legacy.getRootNodes() == null || neww.getRootNodes() == null) {
+            Log.e("MODEL_COMPARE", "DIFFERENCE: Scene root nodes. One is null. Legacy: " + (legacy.getRootNodes() == null) + ", New: " + (neww.getRootNodes() == null));
+        } else {
+            compareField("Scene Root Node Count", legacy.getRootNodes().size(), neww.getRootNodes().size());
+            // You can add more detailed comparisons for nodes if needed
+
+            // recursively compare root nodes
+            doCompareNodes(legacy.getRootNodes(), neww.getRootNodes());
+
+            for (int i = 0; i < legacy.getRootNodes().size(); i++) {
+                Node nodeOld = legacy.getRootNodes().get(i);
+                Node nodeNew = neww.getRootNodes().get(i);
+                compareField("Root Node [" + i + "] Name", nodeOld.getName(), nodeNew.getName());
+                // You can add more detailed comparisons for nodes if needed
+            }
+        }
+
+        // compare skeletons
+        if (legacy.getSkeletons() == null && neww.getSkeletons() == null) {
+            Log.d("MODEL_COMPARE", "OK: Scene skeletons are null in both.");
+        } else if (legacy.getSkeletons() == null || neww.getSkeletons() == null) {
+            Log.e("MODEL_COMPARE", "DIFFERENCE: Scene skeletons. One is null. Legacy: " + (legacy.getSkeletons() == null) + ", New: " + (neww.getSkeletons() == null));
+        } else {
+            compareField("Scene Skeleton Count", legacy.getSkeletons().size(), neww.getSkeletons().size());
+            // You can add more detailed comparisons for skeletons if needed
+            for (int i = 0; i < legacy.getSkeletons().size(); i++) {
+                Skin skinOld = legacy.getSkeletons().get(i);
+                Skin skinNew = neww.getSkeletons().get(i);
+                compareField("Skeleton Name", skinOld.getName(), skinNew.getName());
+            }
+        }
+
+        // compare animations
+        if (legacy.getAnimations() == null && neww.getAnimations() == null) {
+            Log.d("MODEL_COMPARE", "OK: Scene animations are null in both.");
+        } else if (legacy.getAnimations() == null || neww.getAnimations() == null) {
+            Log.e("MODEL_COMPARE", "DIFFERENCE: Scene animations. One is null. Legacy: " + (legacy.getAnimations() == null) + ", New: " + (neww.getAnimations() == null));
+        } else {
+            compareField("Scene Animation Count", legacy.getAnimations().size(), neww.getAnimations().size());
+            // You can add more detailed comparisons for animations if needed
+             for (int i = 0; i < legacy.getAnimations().size(); i++) {
+                Animation animOld = legacy.getAnimations().get(i);
+                Animation animNew = neww.getAnimations().get(i);
+                compareField("Animation Name", animOld.getName(), animNew.getName());
+                compareField("Animation Length", animOld.getLength(), animNew.getLength());
+
+                // compare keyframes
+                if (animOld.getKeyFrames() == null && animNew.getKeyFrames() == null) {
+                    Log.d("MODEL_COMPARE", "OK: Animation keyframes are null in both.");
+                } else if (animOld.getKeyFrames() == null || animNew.getKeyFrames() == null) {
+                    Log.e("MODEL_COMPARE", "DIFFERENCE: Animation keyframes. One is null. Legacy: " + (animOld.getKeyFrames() == null) + ", New: " + (animNew.getKeyFrames() == null));
+                } else if (animOld.getKeyFrames().length != animNew.getKeyFrames().length) {
+                    Log.e("MODEL_COMPARE", "DIFFERENCE: Animation keyframe count. Legacy: " + animOld.getKeyFrames().length + ", New: " + animNew.getKeyFrames().length);
+                } else {
+                    for(int k=0; k<animOld.getKeyFrames().length; k++){
+                        compareField("Animation Keyframe ["+k+"] Time", animOld.getKeyFrames()[k].getTime(), animNew.getKeyFrames()[k].getTime());
+                        // You can add more detailed comparisons for keyframe data if needed
+                        compareField("Animation Transforms", animOld.getKeyFrames()[k].getPose(), animNew.getKeyFrames()[k].getPose());
+                    }
+                }
+             }
+        }
+    }
+
+    private void doCompareNodes(List<Node> rootNodes, List<Node> rootNodes1) {
+        for (int i = 0; i < rootNodes.size() && i < rootNodes1.size(); i++) {
+            Node nodeOld = rootNodes.get(i);
+            Node nodeNew = rootNodes1.get(i);
+            compareField("Node [" + i + "] Name", nodeOld.getName(), nodeNew.getName());
+            compareField("Node [" + i + "] Joint Index", nodeOld.getJointIndex(), nodeNew.getJointIndex());
+            // You can add more detailed comparisons for nodes if needed
+
+            // compare transform
+            if (nodeOld.getTransform() == null && nodeNew.getTransform() == null) {
+                Log.d("MODEL_COMPARE", "OK: Node [" + i + "] Transform is null in both.");
+            } else if (nodeOld.getTransform() == null || nodeNew.getTransform() == null) {
+                Log.e("MODEL_COMPARE", "DIFFERENCE: Node [" + i + "] Transform. One is null. Legacy: " + (nodeOld.getTransform() == null) + ", New: " + (nodeNew.getTransform() == null));
+            } else {
+                compareArray("Node [" + i + "] Transform", nodeOld.getTransform(), nodeNew.getTransform());
+            }
+
+            // recursively compare child nodes
+            doCompareNodes(nodeOld.getChildren(), nodeNew.getChildren());
         }
     }
 }

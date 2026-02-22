@@ -116,7 +116,7 @@ public class Quaternion {
      * @return the corresponding quaternion rotation
      */
     public static Quaternion fromMatrix(float[] matrix) {
-        if (Constants.STRATEGY_NEW) {
+        if (Constants.STRATEGY_QUATERNION_NEW) {
             return fromRotationMatrix(matrix);
         } else {
             return fromMatrix1(matrix);
@@ -125,7 +125,7 @@ public class Quaternion {
 
     // FIXME
     private float[] toRotationMatrix(float[] matrix) {
-        if (Constants.STRATEGY_NEW) {
+        if (Constants.STRATEGY_QUATERNION_NEW) {
             //return toRotationMatrixWikipedia(matrix);
             return toRotationMatrixPy(matrix);
             //return toRotationMatrix2(matrix);
@@ -701,7 +701,7 @@ public class Quaternion {
         if (angles == null) {
             angles = new float[3];
         }
-        if (Constants.STRATEGY_NEW) {
+        if (Constants.STRATEGY_QUATERNION_NEW) {
             if (getDefaultAngle(angles) != null) {
                 //Log.v("Quaternion", "getDefaultAngle: "+ Arrays.toString(angles)+" => "+getDefaultAngle(angles));
                 return angles;
@@ -1104,5 +1104,14 @@ public class Quaternion {
         return new Quaternion(-this.x, -this.y, -this.z, this.w);
     }
 
-
+    @Override
+    public boolean equals(@Nullable Object obj) {
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+        Quaternion that = (Quaternion) obj;
+        return Float.compare(that.x, x) == 0 &&
+                Float.compare(that.y, y) == 0 &&
+                Float.compare(that.z, z) == 0 &&
+                Float.compare(that.w, w) == 0;
+    }
 }

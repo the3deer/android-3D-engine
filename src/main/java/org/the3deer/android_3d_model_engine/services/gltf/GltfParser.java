@@ -1,5 +1,7 @@
 package org.the3deer.android_3d_model_engine.services.gltf;
 
+import android.util.Log;
+
 import org.the3deer.android_3d_model_engine.services.gltf.dto.GltfAnimationDto;
 import org.the3deer.android_3d_model_engine.services.gltf.dto.GltfChannelDto;
 import org.the3deer.android_3d_model_engine.services.gltf.dto.GltfDto;
@@ -10,6 +12,7 @@ import org.the3deer.android_3d_model_engine.services.gltf.dto.GltfPrimitiveDto;
 import org.the3deer.android_3d_model_engine.services.gltf.dto.GltfSamplerDto;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -22,6 +25,7 @@ import de.javagl.jgltf.model.MeshModel;
 import de.javagl.jgltf.model.MeshPrimitiveModel;
 import de.javagl.jgltf.model.NodeModel;
 import de.javagl.jgltf.model.SceneModel;
+import de.javagl.jgltf.model.SkinModel;
 import de.javagl.jgltf.model.io.GltfAsset;
 import de.javagl.jgltf.model.v1.MaterialModelV1;
 import de.javagl.jgltf.model.v2.MaterialModelV2;
@@ -37,16 +41,13 @@ public class GltfParser {
         this.gltfModel = gltfModel;
     }
 
-    // Also, update the main parse() method to call the new method
     public GltfDto parse(){
-        // The main orchestration method
         parseMeshes();
         parseMaterials();
         parseNodes();
         parseSkins();
         parseScenes();
         parseAnimations();
-
         return dto;
     }
 
@@ -62,10 +63,8 @@ public class GltfParser {
             for (MeshPrimitiveModel primitiveModel : meshModel.getMeshPrimitiveModels()) {
                 GltfPrimitiveDto primitiveDto = new GltfPrimitiveDto();
 
-                // --- Geometry Data ---
                 primitiveDto.indices = GltfUtil.createIndicesBuffer(primitiveModel.getIndices());
 
-                // Get attributes from the map
                 AccessorModel posAccessor = primitiveModel.getAttributes().get("POSITION");
                 if (posAccessor != null) {
                     primitiveDto.positions = GltfUtil.createFloatBuffer(posAccessor);
@@ -81,19 +80,16 @@ public class GltfParser {
                     primitiveDto.tangents = GltfUtil.createFloatBuffer(tangentAccessor);
                 }
 
-                // --- Texture Coordinates (The Correct Way) ---
                 AccessorModel texCoordsAccessor = primitiveModel.getAttributes().get("TEXCOORD_0");
                 if (texCoordsAccessor != null) {
                     primitiveDto.texCoords = GltfUtil.createFloatBuffer(texCoordsAccessor);
                 }
 
-                // --- Vertex Colors ---
                 AccessorModel colorsAccessor = primitiveModel.getAttributes().get("COLOR_0");
                 if (colorsAccessor != null){
                     primitiveDto.colors = GltfUtil.createColorsBuffer(colorsAccessor);
                 }
 
-                // --- Skinning Data (The Correct Way) ---
                 AccessorModel jointsAccessor = primitiveModel.getAttributes().get("JOINTS_0");
                 if (jointsAccessor != null) {
                     primitiveDto.jointIds = GltfUtil.createJointsBuffer(jointsAccessor);
@@ -106,7 +102,6 @@ public class GltfParser {
                     primitiveDto.weightsComponents = weightsAccessor.getElementType().getNumComponents();
                 }
 
-                // --- Material ---
                 if (primitiveModel.getMaterialModel() != null) {
                     primitiveDto.materialIndex = gltfModel.getMaterialModels().indexOf(primitiveModel.getMaterialModel());
                 }
@@ -137,7 +132,6 @@ public class GltfParser {
                 }
             } else if (materialModel instanceof MaterialModelV1){
                 MaterialModelV1 materialModelV1 = (MaterialModelV1) materialModel;
-                // TODO:
             }
 
             dto.materials.add(materialDto);
@@ -153,12 +147,10 @@ public class GltfParser {
             GltfNodeDto nodeDto = new GltfNodeDto();
             nodeDto.name = nodeModel.getName();
 
-            // Get the node's local transform matrix
             float[] transform = new float[16];
             nodeModel.computeLocalTransform(transform);
             nodeDto.matrix = transform;
 
-            // Get indices of child nodes
             if (nodeModel.getChildren() != null) {
                 nodeDto.children = new ArrayList<>();
                 for (NodeModel childNode : nodeModel.getChildren()) {
@@ -166,17 +158,14 @@ public class GltfParser {
                 }
             }
 
-            // Get index of the mesh this node uses
             if (nodeModel.getMeshModel() != null) {
                 nodeDto.meshIndex = gltfModel.getMeshModels().indexOf(nodeModel.getMeshModel());
             }
 
-            // Get index of the skin this node uses
             if (nodeModel.getSkinModel() != null) {
                 nodeDto.skinIndex = gltfModel.getSkinModels().indexOf(nodeModel.getSkinModel());
             }
 
-            // Get index of the camera this node contains
             if (nodeModel.getCameraModel() != null) {
                 nodeDto.cameraIndex = gltfModel.getCameraModels().indexOf(nodeModel.getCameraModel());
             }
@@ -197,7 +186,6 @@ public class GltfParser {
             org.the3deer.android_3d_model_engine.services.gltf.dto.GltfSceneDto sceneDto = new org.the3deer.android_3d_model_engine.services.gltf.dto.GltfSceneDto();
             sceneDto.name = sceneModel.getName();
 
-            // Get the indices of the root nodes for this scene
             List<NodeModel> rootNodeModels = sceneModel.getNodeModels();
             if (rootNodeModels != null) {
                 sceneDto.nodes = new ArrayList<>();
@@ -208,8 +196,6 @@ public class GltfParser {
             dto.scenes.add(sceneDto);
         }
     }
-
-    // Replace the entire parseAnimations method with this corrected version
 
     private void parseAnimations() {
         List<AnimationModel> animationModels = gltfModel.getAnimationModels();
@@ -223,34 +209,26 @@ public class GltfParser {
             GltfAnimationDto animDto = new GltfAnimationDto();
             animDto.name = animModel.getName();
 
-            // This map will help us avoid duplicating samplers
-            // Key: The original Sampler object. Value: The index in our new DTO list.
             Map<AnimationModel.Sampler, Integer> samplerMap = new HashMap<>();
             animDto.samplers = new ArrayList<>();
             animDto.channels = new ArrayList<>();
 
-            // 1. Iterate through CHANNELS (this is the correct approach)
             for (AnimationModel.Channel channel : animModel.getChannels()) {
 
-                // 2. Get the sampler for THIS channel
                 AnimationModel.Sampler sampler = channel.getSampler();
 
-                // 3. Check if we have already parsed this sampler
                 Integer samplerIndex = samplerMap.get(sampler);
                 if (samplerIndex == null) {
-                    // If not, parse it now and add it to our lists
                     GltfSamplerDto samplerDto = new GltfSamplerDto();
                     samplerDto.interpolation = sampler.getInterpolation();
                     samplerDto.input = GltfUtil.createFloatBuffer(sampler.getInput());
                     samplerDto.output = GltfUtil.createFloatBuffer(sampler.getOutput());
 
-                    // Add to the DTO's sampler list and record its new index
                     animDto.samplers.add(samplerDto);
                     samplerIndex = animDto.samplers.size() - 1;
                     samplerMap.put(sampler, samplerIndex);
                 }
 
-                // 4. Now, parse the channel and point it to the correct sampler index
                 GltfChannelDto channelDto = new GltfChannelDto();
                 channelDto.sampler = samplerIndex;
                 channelDto.targetNode = gltfModel.getNodeModels().indexOf(channel.getNodeModel());
@@ -262,10 +240,82 @@ public class GltfParser {
         }
     }
 
+    private NodeModel findLowestCommonAncestor(List<NodeModel> nodeModels) {
+        if (nodeModels == null || nodeModels.isEmpty()) {
+            return null;
+        }
+        if (nodeModels.size() == 1) {
+            return nodeModels.get(0);
+        }
+        List<NodeModel> pathToRoot = getPathToRoot(nodeModels.get(0));
+        if (pathToRoot == null) return null;
 
+        int lowestAncestorIndex = pathToRoot.size() - 1;
 
-    private void parseSkins(){
-        // TODO: Loop through gltfModel.getSkinModels(), create GltfSkinDto,
-        // and add them to dto.skins
+        for (int i = 1; i < nodeModels.size(); i++) {
+            List<NodeModel> otherPathToRoot = getPathToRoot(nodeModels.get(i));
+            if (otherPathToRoot == null) continue;
+
+            int searchIndex = lowestAncestorIndex;
+            if (otherPathToRoot.size() - 1 < lowestAncestorIndex){
+                searchIndex = otherPathToRoot.size() - 1;
+            }
+
+            while(searchIndex > 0 && pathToRoot.get(searchIndex) != otherPathToRoot.get(searchIndex)){
+                searchIndex--;
+            }
+            lowestAncestorIndex = searchIndex;
+        }
+        return pathToRoot.get(lowestAncestorIndex);
+    }
+
+    private List<NodeModel> getPathToRoot(NodeModel node) {
+        if (node == null) return null;
+        List<NodeModel> path = new ArrayList<>();
+        path.add(node);
+        NodeModel parent = node.getParent();
+        while (parent != null) {
+            path.add(parent);
+            parent = parent.getParent();
+        }
+        Collections.reverse(path);
+        return path;
+    }
+
+    private void parseSkins() {
+        List<SkinModel> skinModels = gltfModel.getSkinModels();
+        if (skinModels == null || skinModels.isEmpty()) {
+            dto.skins = java.util.Collections.emptyList();
+            return;
+        }
+
+        dto.skins = new ArrayList<>(skinModels.size());
+        for (SkinModel skinModel : skinModels) {
+            org.the3deer.android_3d_model_engine.services.gltf.dto.GltfSkinDto skinDto = new org.the3deer.android_3d_model_engine.services.gltf.dto.GltfSkinDto();
+            skinDto.name = skinModel.getName();
+
+            NodeModel skeletonNodeModel = skinModel.getSkeleton();
+            if (skeletonNodeModel == null) {
+                Log.v("GltfParser", "skin.skeleton not defined. Computing skeleton root node...");
+                skeletonNodeModel = findLowestCommonAncestor(skinModel.getJoints());
+            }
+
+            if (skeletonNodeModel != null) {
+                skinDto.skeletonRootNodeIndex = gltfModel.getNodeModels().indexOf(skeletonNodeModel);
+            }
+
+            if (skinModel.getJoints() != null) {
+                skinDto.jointNodeIndices = new ArrayList<>();
+                for (NodeModel jointNode : skinModel.getJoints()) {
+                    skinDto.jointNodeIndices.add(gltfModel.getNodeModels().indexOf(jointNode));
+                }
+            }
+
+            if (skinModel.getInverseBindMatrices() != null) {
+                skinDto.inverseBindMatrices = GltfUtil.createFloatBuffer(skinModel.getInverseBindMatrices());
+            }
+
+            dto.skins.add(skinDto);
+        }
     }
 }

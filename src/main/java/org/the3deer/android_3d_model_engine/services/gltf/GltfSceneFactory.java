@@ -10,6 +10,7 @@ import org.the3deer.android_3d_model_engine.model.Camera;
 import org.the3deer.android_3d_model_engine.model.Node;
 import org.the3deer.android_3d_model_engine.model.Object3DData;
 import org.the3deer.android_3d_model_engine.model.Scene;
+import org.the3deer.android_3d_model_engine.model.Skin;
 import org.the3deer.android_3d_model_engine.scene.SceneImpl;
 import org.the3deer.android_3d_model_engine.services.gltf.dto.GltfSceneData;
 import org.the3deer.android_3d_model_engine.services.gltf.dto.GltfSceneDto;
@@ -59,6 +60,13 @@ public class GltfSceneFactory {
                 // Traverse the node hierarchy and collect all drawable meshes
                 List<Object3DData> sceneObjects = collectMeshes(rootNodes);
                 scene.setObjects(sceneObjects);
+
+                // --- register skins ---
+                if (sceneData.skins != null && !sceneData.skins.isEmpty()) {
+                    for (Skin skin : sceneData.skins) {
+                        scene.addSkeleton(skin);
+                    }
+                }
 
                 // --- START ANIMATION LINKING ---
                 if (sceneData.animations != null && !sceneData.animations.isEmpty()) {

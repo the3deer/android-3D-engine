@@ -1,17 +1,18 @@
 package org.the3deer.android_3d_model_engine.model;
 
 import android.opengl.Matrix;
+import android.util.Log;
 
 import org.the3deer.util.math.Math3DUtils;
 
 import java.nio.Buffer;
-import java.nio.FloatBuffer;
-import java.nio.IntBuffer;
+import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class Skin {
 
-
+    private String name;
 
     private Node sceneRoot;
     private Node rootJoint;
@@ -34,11 +35,14 @@ public class Skin {
     private boolean doInverseBindTranspose;
     private float[] inverseBindMatrices_transposed;
 
+    private boolean disabled;
 
     public Skin() {
     }
 
-    public Skin(List<Node> nodes, List<Node> bones, Node sceneRoot, Node rootJoint) {
+    // gltf - legacy
+    public Skin(String name, List<Node> nodes, List<Node> bones, Node sceneRoot, Node rootJoint) {
+        this.name = name;
         this.nodes = nodes;
         this.bones = bones;
         this.sceneRoot = sceneRoot;
@@ -51,7 +55,24 @@ public class Skin {
         }
     }
 
+    // gltf - new
+    public Skin(String name, float[] bindShapeMatrix, Buffer jointIds, Buffer weights, float[] inverseBindMatrices, int[] joints) {
+        this.name = name;
+        this.bindShapeMatrix = bindShapeMatrix;
+        this.jointsBuffer = jointIds;
+        this.weightsBuffer = weights;
+        this.inverseBindMatrices = inverseBindMatrices;
+
+        // init skinning matrix
+        this.jointMatrices = new float[joints.length][16];  // 16 is the size of the matrix
+        for (int i = 0; i < this.jointMatrices.length; i++) {
+            Matrix.setIdentityM(this.jointMatrices[i], 0);
+        }
+    }
+
+    // collada - new
     public Skin(float[] bindShapeMatrix, Buffer jointIds, Buffer weights, float[] inverseBindMatrices, List<String> jointNames) {
+        this.name = name;
         this.bindShapeMatrix = bindShapeMatrix;
         this.jointsBuffer = jointIds;
         this.weightsBuffer = weights;
@@ -72,6 +93,19 @@ public class Skin {
 
     public List<Node> getBones() {
         return bones;
+    }
+
+    public List<String> getJointNames() {
+        return jointNames;
+    }
+
+    public void setJointNames(List<String> jointNames) {
+        this.jointNames = jointNames;
+    }
+
+    public void setJointNames(String[] jointNames) {
+        this.jointNames = Arrays.asList(jointNames);
+
     }
 
     public Skin(int jointCount, Node sceneRoot) {
@@ -171,6 +205,7 @@ public class Skin {
         this.doInverseBindTranspose = flag;
     }
 
+    // collada - legacy
     public Node find(String geometryId) {
         if (nodes != null) {
             for (int i = 0; i < nodes.size(); i++) {
@@ -187,6 +222,10 @@ public class Skin {
 
     public void setRootJoint(Node rootJoint) {
         this.rootJoint = rootJoint;
+    }
+
+    public void setSkeleton(Node node) {
+        this.rootJoint = node;
     }
 
     /**
@@ -237,6 +276,12 @@ public class Skin {
      * It efficiently starts the recursive update from the root of the joint hierarchy.
      */
     public void updateSkinMatrices() {
+
+        // SAFETY CHECK: Ensure skinning is enabled before doing any work.
+        if (disabled) {
+            return; // If skinning is not enabled, skip the update.
+        }
+
         // 1. Get the root of the JOINT hierarchy (e.g., torso_joint_1).
         final Node root = getRootJoint();
 
@@ -244,7 +289,18 @@ public class Skin {
         if (root == null || getJointMatrices() == null) {
             return;
         }
-        recursiveSkinMatrixUpdate(root);
+
+        AtomicInteger counter = new AtomicInteger(0);
+        recursiveSkinMatrixUpdate(root, counter);
+
+        if (counter.get() == 0){
+            // This means we didn't find any joints with valid indices during the traversal.
+            // This could indicate a problem with the joint indexing or data loading.
+            // We can log a warning here for debugging purposes.
+            Log.w("Skin", "Warning: No joints with valid indices were found during skin matrix update. Check joint indexing and data loading.");
+            // Disable skinning to prevent further updates.
+            disabled = true;
+        }
     }
 
     /**
@@ -252,7 +308,7 @@ public class Skin {
      *
      * @param jointNode The current joint node in the traversal.
      */
-    private void recursiveSkinMatrixUpdate(Node jointNode) {
+    private void recursiveSkinMatrixUpdate(Node jointNode, AtomicInteger outCounter) {
 
         // --- 1. Process the current joint ---
 
@@ -270,8 +326,12 @@ public class Skin {
             jointNode.setJointIndex(jointIndex);
         }
 
+        if (jointIndex != -1 && outCounter != null) {
+            outCounter.incrementAndGet();
+        }
+
         // Only do calculations for nodes that are actual, indexed joints.
-        if (jointIndex != -1) {
+        if (jointIndex != -1 && jointNode.getAnimatedWorldTransform() != null) {
 
             // Get the final world transform (calculated in Phase 2).
             final float[] finalAnimatedWorldTransform = jointNode.getAnimatedWorldTransform();
@@ -324,7 +384,12 @@ public class Skin {
         // --- 2. Recurse for all children of this joint ---
         if (jointNode.getChildren() == null) return;
         for (Node childJoint : jointNode.getChildren()) {
-            recursiveSkinMatrixUpdate(childJoint);
+            recursiveSkinMatrixUpdate(childJoint, outCounter);
         }
+    }
+
+
+    public String getName() {
+        return this.name;
     }
 }

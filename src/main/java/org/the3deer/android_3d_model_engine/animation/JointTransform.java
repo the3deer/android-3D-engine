@@ -2,6 +2,8 @@ package org.the3deer.android_3d_model_engine.animation;
 
 import android.opengl.Matrix;
 
+import androidx.annotation.Nullable;
+
 import org.the3deer.android_3d_model_engine.model.Constants;
 import org.the3deer.android_3d_model_engine.model.Node;
 import org.the3deer.util.math.Math3DUtils;
@@ -17,7 +19,6 @@ import java.util.Arrays;
  * position vector and a quaternion (rotation) so that these values can be
  * easily interpolated, a functionality that this class also provides.
  * This position and rotation are relative to the parent bone!
- *
  * <b>type</b>
  * <p>The transform is either composite (location, scale, euler rotation) or
  * absolute (matrix)</p>
@@ -95,7 +96,7 @@ public class JointTransform {
         return new JointTransform(new Float[3], new Float[3], new Float[3]);
     }
 
-    // ui - gltf legacy
+    // gltf - new parser
     public JointTransform(float[] matrix) {
         this.matrix = matrix;
 
@@ -151,6 +152,7 @@ public class JointTransform {
      *
      * @param matrix
      */
+    // collada - new
     public void setTransform(float[] matrix) {
         this.matrix = matrix;
         this.qRotation = Quaternion.fromMatrix(matrix);
@@ -490,7 +492,7 @@ public class JointTransform {
             return new JointTransform(scale, rotation, location);
         } else {
 
-            // FIXME: this is incomplete
+            // FIXME: is this incomplete?
             /*final Quaternion qRotation = new Quaternion(0, 0, 0, 1);
             Quaternion.interpolate(qRotation, rotationAX.qRotation, rotationBX.qRotation, rotationProgressionX);
             return new JointTransform(scale, qRotation, location);*/
@@ -685,4 +687,18 @@ public class JointTransform {
         updateMatrix();
         return this;
     }*/
+
+    @Override
+    public boolean equals(@Nullable Object obj) {
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+
+        JointTransform that = (JointTransform) obj;
+
+        if (!Arrays.equals(matrix, that.matrix)) return false;
+        if (!Arrays.equals(scale, that.scale)) return false;
+        if (!Arrays.equals(rotation, that.rotation)) return false;
+        if (!Arrays.equals(location, that.location)) return false;
+        return qRotation != null ? qRotation.equals(that.qRotation) : that.qRotation == null;
+    }
 }

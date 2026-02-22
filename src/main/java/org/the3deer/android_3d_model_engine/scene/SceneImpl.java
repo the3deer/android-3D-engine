@@ -242,7 +242,12 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
         this.name = name;
     }
 
-    /*public Scene(Activity main, Camera camera) {
+    @Override
+    public String getId() {
+        return this.name;
+    }
+
+/*public Scene(Activity main, Camera camera) {
         this(main, camera, null, -1);
     }
 
@@ -803,10 +808,14 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
         Matrix.setIdentityM(this.worldMatrix, 0);
 
         // fix coordinate system
-        fixCoordinateSystem();
+        if (Constants.FIX_COORDINATE_SYSTEM){
+            fixCoordinateSystem();
+        }
 
         // rescale objects so they all fit in the viewport
-        rescale(list, Constants.DEFAULT_MODEL_SIZE, new float[3]);
+        if (Constants.FIX_SCALE) {
+            rescale(list, Constants.DEFAULT_MODEL_SIZE, new float[3]);
+        }
 
         // 1. UPDATE THE STATIC SCENE GRAPH
         // This sets the base pose for everything, including skeletons.

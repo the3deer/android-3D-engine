@@ -70,4 +70,6 @@ public interface Scene {
     void setAnimations(List<Animation> sceneAnimations);
 
     void merge(Scene other);
+
+    String getId();
 }

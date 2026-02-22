@@ -48,6 +48,11 @@ public class KeyFrame {
 		return timeStamp;
 	}
 
+
+	public float getTime() {
+		return timeStamp;
+	}
+
 	/**
 	 * @return The desired bone-space transforms of all the joints at this
 	 *         keyframe, of the animation, indexed by the name of the joint that
@@ -68,4 +73,5 @@ public class KeyFrame {
 				", pose=" + sorted +
 				'}';
 	}
+
 }

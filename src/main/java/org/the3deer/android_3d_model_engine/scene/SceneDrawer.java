@@ -7,6 +7,7 @@ import org.the3deer.android_3d_model_engine.R;
 import org.the3deer.android_3d_model_engine.animation.Animator;
 import org.the3deer.android_3d_model_engine.camera.CameraManager;
 import org.the3deer.android_3d_model_engine.model.Camera;
+import org.the3deer.android_3d_model_engine.model.Constants;
 import org.the3deer.android_3d_model_engine.model.Dimensions;
 import org.the3deer.android_3d_model_engine.model.Light;
 import org.the3deer.android_3d_model_engine.model.Object3DData;
@@ -113,32 +114,36 @@ public class SceneDrawer implements Drawer, EventListener {
         List<Object3DData> objects = scene.getObjects();
         if (objects == null || objects.isEmpty()) return;
 
-        // 1. ANIMATION PHASE: UPDATE ALL NODE TRANSFORMS
-        // This single call should handle both node-based and skinned animations.
-        // It will update the local transforms of all nodes affected by the animation.
-        if (scene.getCurrentAnimation() != null) {
-            animator.update(scene.getRootNodes(), scene.getCurrentAnimation(), false);
-        }
+        if (Constants.ANIMATIONS_ENABLED) {
 
 
-        // 2. FINAL WORLD TRANSFORM CALCULATION (including Z_UP)
-        // This is the step that makes Z_UP work. It bakes the animation and the static
-        // hierarchy together into a final world transform for every node.
-        if (scene.getRootNodes() != null && !scene.getRootNodes().isEmpty()) {
-            for (int i = 0; i < scene.getRootNodes().size(); i++) {
-                // This method should now recursively calculate the *animated* world transform
-                scene.getRootNodes().get(i).updateAnimatedWorldTransform(scene.getWorldMatrix());
+            // 1. ANIMATION PHASE: UPDATE ALL NODE TRANSFORMS
+            // This single call should handle both node-based and skinned animations.
+            // It will update the local transforms of all nodes affected by the animation.
+            if (scene.getCurrentAnimation() != null) {
+                animator.update(scene.getRootNodes(), scene.getCurrentAnimation(), false);
             }
-        }
 
-        // 3. SKINNING PHASE: UPDATE ALL SKELETON MATRICES
-        // Now that all nodes have their final world transforms, we can compute the skinning matrices.
-        if (scene.getSkeletons() != null && !scene.getSkeletons().isEmpty()) {
-            for (int i = 0; i < scene.getSkeletons().size(); i++) {
-                Skin skin = scene.getSkeletons().get(i);
-                // This method now loops through the skeleton's joints and calculates the final skinning matrix
-                // using the now-correct animatedWorldTransform of each joint node.
-                skin.updateSkinMatrices();
+
+            // 2. FINAL WORLD TRANSFORM CALCULATION (including Z_UP)
+            // This is the step that makes Z_UP work. It bakes the animation and the static
+            // hierarchy together into a final world transform for every node.
+            if (scene.getRootNodes() != null && !scene.getRootNodes().isEmpty()) {
+                for (int i = 0; i < scene.getRootNodes().size(); i++) {
+                    // This method should now recursively calculate the *animated* world transform
+                    scene.getRootNodes().get(i).updateAnimatedWorldTransform(scene.getWorldMatrix());
+                }
+            }
+
+            // 3. SKINNING PHASE: UPDATE ALL SKELETON MATRICES
+            // Now that all nodes have their final world transforms, we can compute the skinning matrices.
+            if (scene.getSkeletons() != null && !scene.getSkeletons().isEmpty()) {
+                for (int i = 0; i < scene.getSkeletons().size(); i++) {
+                    Skin skin = scene.getSkeletons().get(i);
+                    // This method now loops through the skeleton's joints and calculates the final skinning matrix
+                    // using the now-correct animatedWorldTransform of each joint node.
+                    skin.updateSkinMatrices();
+                }
             }
         }
 

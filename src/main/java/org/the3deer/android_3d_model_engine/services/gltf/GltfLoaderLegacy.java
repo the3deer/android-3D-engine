@@ -89,11 +89,12 @@ public final class GltfLoaderLegacy {
     }
 
     @NonNull
-    public List<Object3DData> load(URI uri, LoadListener callback) {
+    public List<Scene> load(URI uri, LoadListener callback) {
 
         callback.onProgress("Loading file...");
 
         final List<Object3DData> ret = new ArrayList<>();
+        final List<Scene> ret2 = new ArrayList<>();
         // final List<MeshData> allMeshes = new ArrayList<>();
 
         try (InputStream is = ContentUtils.getInputStream(uri)) {
@@ -130,6 +131,9 @@ public final class GltfLoaderLegacy {
 
             // --- 4. load scenes
             final List<Scene> scenes = loadSceneModel(callback, gltfModel, nodeList, meshesListMap);
+            if (scenes != null) {
+                ret2.addAll(scenes);
+            }
 
             callback.onProgress("Loading skeletons...");
             final List<Skin> skins = loadSkeletons(gltfModel, nodeList);
@@ -140,7 +144,7 @@ public final class GltfLoaderLegacy {
         } catch (Exception ex) {
             Log.e(TAG, "Problem loading model", ex);
         }
-        return ret;
+        return ret2;
     }
 
     private List<Scene> loadSceneModel(LoadListener callback, GltfModel gltfModel,
@@ -667,7 +671,7 @@ public final class GltfLoaderLegacy {
                 return null;
             }
 
-            Skin skin = new Skin(nodeDataList, Collections.emptyList(), headNode, null);
+            Skin skin = new Skin("default", nodeDataList, Collections.emptyList(), headNode, null);
 
             // register skeleton
             headNode.getScene().getSkeletons().add(skin);
@@ -681,6 +685,7 @@ public final class GltfLoaderLegacy {
             // --- 3. Process skin data: assign inverse bind matrices and create bone list ---
             final SkinModel skinModel = skinModels.get(s); // Assuming one skin for now
 
+            final String name = skinModel.getName();
             final List<NodeModel> jointNodeModels = skinModel.getJoints();
             final Node[] boneDataList = new Node[jointNodeModels.size()];
             for (int i = 0; i < jointNodeModels.size(); i++) {
@@ -733,7 +738,7 @@ public final class GltfLoaderLegacy {
             Log.v(TAG, "Final skeleton root found by climbing hierarchy to the top: '" + rootJoint.getName() + "'");
 
 // This headNode is now the true root of the scene graph for this skeleton.
-            final Skin skin = new Skin(nodeDataList, Arrays.asList(boneDataList), headNode, rootJoint)
+            final Skin skin = new Skin(name, nodeDataList, Arrays.asList(boneDataList), headNode, rootJoint)
                     .setBindShapeMatrix(skinModel.getBindShapeMatrix(null));
 
             // link skeleton to nodes / meshes

@@ -121,7 +121,7 @@ public class ModelController implements EventManager, GLTouchHandler {
 /*            if (gui.onEvent(event)) {
                 return true;
             }*/
-            if (collisionController.onEvent(event)) {
+            if (collisionController != null && collisionController.onEvent(event)) {
                 return true;
             }
             if (guiSystem.onEvent(event)) {

@@ -51,8 +51,7 @@ public class ModelLoader implements LoadListener {
     @Inject
     private SceneManager sceneManager;
 
-    // variables
-    private final Handler handler;
+    //private Handler handler;
     /**
      * Sets whether the Demo Objects should be loaded
      */
@@ -75,8 +74,7 @@ public class ModelLoader implements LoadListener {
 
     public ModelLoader() {
 
-        // Android UI thread
-        this.handler = new Handler(Looper.getMainLooper());
+
     }
 
     @BeanFactory.OnBeanUpdate
@@ -97,10 +95,10 @@ public class ModelLoader implements LoadListener {
     public void loadFromBundle(Bundle extras) {
 
         // check
-        if (handler == null) {
+/*        if (handler == null) {
             Log.e(TAG, "Handler is null");
             return;
-        }
+        }*/
 
         // Try to get input parameters
         if (extras == null) {
@@ -135,7 +133,7 @@ public class ModelLoader implements LoadListener {
         }
 
 
-        handler.post(() -> {
+        // handler.post(() -> {
 
             // load model
             Log.i(TAG, "Loading model... " + this.modelUri);
@@ -210,14 +208,18 @@ public class ModelLoader implements LoadListener {
             } else if (modelUri.toString().toLowerCase().endsWith(".fbx")){
                 //new FBXLoaderTask(activity, modelUri, this).execute();
             }
-        });
+        // });
     }
 
     @Override
     public void onStart() {
 
         // mark start time
-        startTime = SystemClock.uptimeMillis();
+        this.startTime = SystemClock.uptimeMillis();
+
+        // Android UI thread
+        //this.handler = new Handler(Looper.getMainLooper());
+        //Looper.prepare();
 
         // provide context to allow reading resources
         ContentUtils.setThreadActivity(activity);
@@ -231,9 +233,11 @@ public class ModelLoader implements LoadListener {
     @Override
     public void onLoadError(Exception ex) {
         Log.e(TAG, ex.getMessage(), ex);
-        Toast.makeText(activity, "There was a problem building the model: " + ex.getMessage(),
-                Toast.LENGTH_LONG).show();
-        ContentUtils.setThreadActivity(null);
+        activity.runOnUiThread(() -> {
+            Toast.makeText(activity, "There was a problem building the model: " + ex.getMessage(),
+                    Toast.LENGTH_LONG).show();
+            ContentUtils.setThreadActivity(null);
+        });
     }
 
     @Override
