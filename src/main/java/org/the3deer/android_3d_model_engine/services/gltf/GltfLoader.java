@@ -3,6 +3,8 @@ package org.the3deer.android_3d_model_engine.services.gltf;
 import android.util.Log;
 
 import org.the3deer.android_3d_model_engine.animation.Animation;
+import org.the3deer.android_3d_model_engine.animation.JointTransform;
+import org.the3deer.android_3d_model_engine.animation.KeyFrame;
 import org.the3deer.android_3d_model_engine.model.AnimatedModel;
 import org.the3deer.android_3d_model_engine.model.Material;
 import org.the3deer.android_3d_model_engine.model.Node;
@@ -11,11 +13,14 @@ import org.the3deer.android_3d_model_engine.model.Skin;
 import org.the3deer.android_3d_model_engine.model.Texture;
 import org.the3deer.android_3d_model_engine.model.Transform;
 import org.the3deer.android_3d_model_engine.services.LoadListener;
+import org.the3deer.android_3d_model_engine.services.gltf.dto.GltfAnimationDto;
+import org.the3deer.android_3d_model_engine.services.gltf.dto.GltfChannelDto;
 import org.the3deer.android_3d_model_engine.services.gltf.dto.GltfDto;
 import org.the3deer.android_3d_model_engine.services.gltf.dto.GltfMaterialDto;
 import org.the3deer.android_3d_model_engine.services.gltf.dto.GltfMeshDto;
 import org.the3deer.android_3d_model_engine.services.gltf.dto.GltfNodeDto;
 import org.the3deer.android_3d_model_engine.services.gltf.dto.GltfPrimitiveDto;
+import org.the3deer.android_3d_model_engine.services.gltf.dto.GltfSamplerDto;
 import org.the3deer.android_3d_model_engine.services.gltf.dto.GltfSceneData;
 import org.the3deer.android_3d_model_engine.services.gltf.dto.GltfSkinDto;
 import org.the3deer.util.android.ContentUtils;
@@ -23,12 +28,14 @@ import org.the3deer.util.math.Quaternion;
 
 import java.io.InputStream;
 import java.net.URI;
+import java.nio.BufferUnderflowException;
 import java.nio.FloatBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 import de.javagl.jgltf.model.GltfModel;
 import de.javagl.jgltf.model.GltfModels;
@@ -75,8 +82,7 @@ public class GltfLoader {
             List<Node> nodes = buildNodesFromDto(dto, meshes, skins);
             linkSkinsToSkeletons(dto, skins, nodes);
 
-            GltfAnimationLoader animationLoader = new GltfAnimationLoader(dto, nodes);
-            List<Animation> animations = animationLoader.load();
+            List<Animation> animations = loadAnimations(dto, nodes);
 
             return new GltfSceneData(dto, nodes, meshes, materials, skins, animations);
         }
@@ -271,6 +277,75 @@ public class GltfLoader {
             skins.add(skin);
         }
         return skins;
+    }
+
+    public List<Animation> loadAnimations(GltfDto dto, List<Node> nodes) {
+        if (dto.animations == null || dto.animations.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        final List<Animation> animations = new ArrayList<>();
+        for (GltfAnimationDto animDto : dto.animations) {
+
+            if (animDto.channels == null || animDto.channels.isEmpty()) {
+                continue;
+            }
+
+            final TreeMap<Float, KeyFrame> keyframes = new TreeMap<>();
+
+            for (GltfChannelDto channel : animDto.channels) {
+                final GltfSamplerDto sampler = animDto.samplers.get(channel.sampler);
+                final FloatBuffer times = (FloatBuffer) sampler.input;
+                final FloatBuffer values = (FloatBuffer) sampler.output;
+
+                // Ensure buffers are ready for reading from the start
+                //times.rewind();
+                //values.rewind();
+
+                final Node targetNode = nodes.get(channel.targetNode);
+                final String jointId = targetNode.getId();
+
+                for (int i = 0; i < times.capacity(); i++) {
+                    final float timeStamp = times.get(i);
+
+                    // Get or create the KeyFrame for this timestamp
+                    KeyFrame keyFrame = keyframes.computeIfAbsent(timeStamp, k -> new KeyFrame(k, new TreeMap<>()));
+                    Map<String, JointTransform> pose = keyFrame.getPose();
+
+                    // Get or create the JointTransform for the target node in this pose
+                    JointTransform jointTransform = pose.computeIfAbsent(jointId, k -> new JointTransform());
+
+                    try {
+                        if ("translation".equals(channel.targetPath)) {
+                            float[] translation = new float[3];
+                            values.position(i * 3);
+                            values.get(translation);
+                            jointTransform.setLocation(translation);
+                        } else if ("rotation".equals(channel.targetPath)) {
+                            float[] rotation = new float[4];
+                            values.position(i * 4);
+                            values.get(rotation);
+                            // Assuming your JointTransform or Quaternion class can handle this
+                            jointTransform.setQuaternion(new Quaternion(rotation[0], rotation[1], rotation[2], rotation[3]).normalize());
+                        } else if ("scale".equals(channel.targetPath)) {
+                            float[] scale = new float[3];
+                            values.position(i * 3);
+                            values.get(scale);
+                            jointTransform.setScale(scale);
+                        }
+                    } catch (BufferUnderflowException e){
+                        // This can happen if animation data is corrupt, ignore this keyframe for this channel
+                    }
+                }
+            }
+
+            if (!keyframes.isEmpty()) {
+                final String animationName = animDto.name != null ? animDto.name : "Animation-" + System.identityHashCode(animDto);
+                final Animation animation = new Animation(animationName, keyframes.lastKey(), keyframes.values().toArray(new KeyFrame[0]));
+                animations.add(animation);
+            }
+        }
+        return animations;
     }
 
 }
