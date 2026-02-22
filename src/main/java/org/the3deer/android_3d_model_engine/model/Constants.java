@@ -21,8 +21,8 @@ public class Constants {
      * - show details about KeyFrames
      * - show details about JointTransforms
      */
-    public static final boolean DEBUG = true;
-    public static final boolean DEBUG_COMPARE = true;
+    public static final boolean DEBUG = false;
+    public static final boolean DEBUG_COMPARE = false;
     // experimental
     public static final boolean STRATEGY_LOAD_NEW = true;
     public static final boolean STRATEGY_BBOX_NEW = false;
@@ -31,7 +31,7 @@ public class Constants {
     public static final boolean FIX_SCALE = true;
     public static final boolean FIX_COORDINATE_SYSTEM = true;
     // animation
-    public static final boolean PREFER_QUATERNION = false;
+    public static final boolean PREFER_QUATERNION = true;
     public static final boolean PREFER_QUATERNION_MATRIX = true;
     // features
     public static final boolean ANIMATIONS_ENABLED = true;

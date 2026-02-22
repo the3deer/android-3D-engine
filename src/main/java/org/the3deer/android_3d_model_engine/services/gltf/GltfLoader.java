@@ -170,17 +170,22 @@ public class GltfLoader {
             }
 
             if (nodeDto.meshIndex != null) {
-                Object3DData mesh = meshes.get(nodeDto.meshIndex);
-                node.setMesh(mesh);
-                mesh.setParentNode(node);
+                // FIX: Instead of reusing the mesh, clone it to create a unique instance.
+                // This is crucial for models like the chess set where multiple nodes use the same mesh.
+                Object3DData meshTemplate = meshes.get(nodeDto.meshIndex);
+                Object3DData meshInstance = meshTemplate.clone();
+                meshInstance.setId(meshTemplate.getId() + "_" + node.getName());
 
-                if (nodeDto.skinIndex != null && mesh instanceof AnimatedModel) {
+                node.setMesh(meshInstance);
+                meshInstance.setParentNode(node);
+
+                if (nodeDto.skinIndex != null && meshInstance instanceof AnimatedModel) {
 
                     if (nodeDto.skinIndex >= skins.size()) {
                         Log.w(TAG, "Node " + i + " references skin index " + nodeDto.skinIndex +
                                 " but only " + skins.size() + " skins were loaded. Skipping skin assignment.");
                     } else {
-                        ((AnimatedModel) mesh).setSkin(skins.get(nodeDto.skinIndex));
+                        ((AnimatedModel) meshInstance).setSkin(skins.get(nodeDto.skinIndex));
                     }
                 }
             }
@@ -286,7 +291,7 @@ public class GltfLoader {
         return skins;
     }
 
-    public List<Animation> loadAnimations(GltfDto dto, List<Node> nodes) {
+    private List<Animation> loadAnimations(GltfDto dto, List<Node> nodes) {
         if (dto.animations == null || dto.animations.isEmpty()) {
             return Collections.emptyList();
         }
@@ -333,7 +338,7 @@ public class GltfLoader {
                             values.position(i * 4);
                             values.get(rotation);
                             // Assuming your JointTransform or Quaternion class can handle this
-                            jointTransform.setQuaternion(new Quaternion(rotation[0], rotation[1], rotation[2], rotation[3]).normalize());
+                            jointTransform.setQuaternion(new Quaternion(rotation[0], rotation[1], rotation[2], rotation[3]));
                         } else if ("scale".equals(channel.targetPath)) {
                             float[] scale = new float[3];
                             values.position(i * 3);
@@ -468,67 +473,35 @@ public class GltfLoader {
         return finalScenes;
     }
 
-    /**
-     * Recursively traverses a list of nodes and their children to collect
-     * all associated drawable meshes (Object3DData).
-     *
-     * @param rootNodes The starting nodes of the hierarchy.
-     * @return A flat list of all meshes found in the hierarchy.
-     */
-    private List<Object3DData> collectMeshes(List<Node> rootNodes) {
-        List<Object3DData> collectedMeshes = new ArrayList<>();
-        if (rootNodes == null) {
-            return collectedMeshes;
-        }
-
+    // Helper to recursively collect all meshes from a list of root nodes
+    private List<Object3DData> collectMeshes(List<Node> nodes) {
+        List<Object3DData> collected = new ArrayList<>();
         Stack<Node> stack = new Stack<>();
-        stack.addAll(rootNodes);
-
+        stack.addAll(nodes);
         while (!stack.isEmpty()) {
-            Node currentNode = stack.pop();
-
-            if (currentNode.getMesh() != null) {
-                collectedMeshes.add(currentNode.getMesh());
+            Node node = stack.pop();
+            if (node.getMesh() != null) {
+                collected.add(node.getMesh());
             }
-
-            if (currentNode.getChildren() != null) {
-                for (Node childNode : currentNode.getChildren()) {
-                    stack.push(childNode);
-                }
+            if (node.getChildren() != null) {
+                stack.addAll(node.getChildren());
             }
         }
-        return collectedMeshes;
+        return collected;
     }
 
-    // In GltfSceneFactory.java, after collectMeshes()
-
-    /**
-     * Recursively traverses a list of nodes and their children to collect
-     * all nodes in the hierarchy.
-     *
-     * @param rootNodes The starting nodes of the hierarchy.
-     * @return A flat list of all nodes found in the hierarchy.
-     */
-    private List<Node> collectNodes(List<Node> rootNodes) {
-        List<Node> collectedNodes = new ArrayList<>();
-        if (rootNodes == null) {
-            return collectedNodes;
-        }
-
+    // Helper to recursively collect all nodes from a list of root nodes
+    private List<Node> collectNodes(List<Node> nodes) {
+        List<Node> collected = new ArrayList<>();
         Stack<Node> stack = new Stack<>();
-        stack.addAll(rootNodes);
-
+        stack.addAll(nodes);
         while (!stack.isEmpty()) {
-            Node currentNode = stack.pop();
-            collectedNodes.add(currentNode);
-
-            if (currentNode.getChildren() != null) {
-                for (Node childNode : currentNode.getChildren()) {
-                    stack.push(childNode);
-                }
+            Node node = stack.pop();
+            collected.add(node);
+            if (node.getChildren() != null) {
+                stack.addAll(node.getChildren());
             }
         }
-        return collectedNodes;
+        return collected;
     }
-
 }

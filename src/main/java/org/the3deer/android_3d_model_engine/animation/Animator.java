@@ -221,7 +221,8 @@ public class Animator {
                         if (keyFrameNextScaleZ == null && candidate.getScale()[2] != null)
                             keyFrameNextScaleZ = keyFrames[k];
                     }
-                    if (candidate.getRotation() != null) {
+
+                    if (!Constants.PREFER_QUATERNION && candidate.getRotation() != null) {
                         if (keyFrameNextRotationX == null && candidate.getRotation()[0] != null)
                             keyFrameNextRotationX = keyFrames[k];
                         if (keyFrameNextRotationY == null && candidate.getRotation()[1] != null)

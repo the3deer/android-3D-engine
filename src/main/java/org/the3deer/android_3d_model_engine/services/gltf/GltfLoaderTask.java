@@ -42,7 +42,7 @@ public class GltfLoaderTask extends LoaderTask {
                 // legacy
                 List<Scene> scenesLegacy = new GltfLoaderLegacy().load(uri, callback);
                 if (scenes.size() != scenesLegacy.size()) {
-                    Log.e("MODEL_COMPARE", "Returned different number of scenes, legacy " + scenesLegacy.size() + " vs new " + scenes.size());
+                    Log.e("DEBUG_COMPARE", "Returned different number of scenes, legacy " + scenesLegacy.size() + " vs new " + scenes.size());
                 } else {
                     for (int i = 0; i < scenesLegacy.size(); i++) {
                         ModelComparator modelComparator = new ModelComparator();
@@ -56,14 +56,14 @@ public class GltfLoaderTask extends LoaderTask {
                     loadLegacy.addAll(scene.getObjects());
                 }
                 if (loadLegacy.size() != loadNew.size()){
-                    Log.e("MODEL_COMPARE", "Returned different number of models, legacy "+loadLegacy.size()+" vs new "+loadNew.size());
+                    Log.e("DEBUG_COMPARE", "Returned different number of models, legacy "+loadLegacy.size()+" vs new "+loadNew.size());
                 }
 
                 for (int i = 0; i < loadLegacy.size() && i < loadNew.size(); i++) {
                     ModelComparator.compareModels(loadLegacy.get(i), loadNew.get(i));
-                    Log.v("MODEL_COMPARE", "--legacy--");
+                    Log.v("DEBUG_COMPARE", "--legacy--");
                     loadLegacy.get(i).debug();
-                    Log.v("MODEL_COMPARE", "--new--");
+                    Log.v("DEBUG_COMPARE", "--new--");
                     loadNew.get(i).debug();
                 }
             }
@@ -96,7 +96,7 @@ public class GltfLoaderTask extends LoaderTask {
             }
 
             if (scenesNew.size() != load.size()) {
-                Log.e("MODEL_COMPARE", "Returned different number of scenes, legacy " + load.size() + " vs new " + scenesNew.size());
+                Log.e("DEBUG_COMPARE", "Returned different number of scenes, legacy " + load.size() + " vs new " + scenesNew.size());
             } else {
                 for (int i = 0; i < load.size(); i++) {
                     ModelComparator modelComparator = new ModelComparator();
@@ -105,15 +105,15 @@ public class GltfLoaderTask extends LoaderTask {
             }
 
             if (loadLegacy.size() != loadNew.size()){
-                Log.e("MODEL_COMPARE", "Returned different number of models, legacy "+loadLegacy.size()+" vs new "+loadNew.size());
+                Log.e("DEBUG_COMPARE", "Returned different number of models, legacy "+loadLegacy.size()+" vs new "+loadNew.size());
             }
 
             ModelComparator modelComparator = new ModelComparator();
             for (int i = 0; i < loadLegacy.size() && i < loadNew.size(); i++) {
                 modelComparator.compareModels(loadLegacy.get(i), loadNew.get(i));
-                Log.v("MODEL_COMPARE", "--legacy--");
+                Log.v("DEBUG_COMPARE", "--legacy--");
                 loadLegacy.get(i).debug();
-                Log.v("MODEL_COMPARE", "--new--");
+                Log.v("DEBUG_COMPARE", "--new--");
                 loadNew.get(i).debug();
             }
             return loadLegacy;

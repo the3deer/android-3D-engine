@@ -213,7 +213,7 @@ public class ModelEngine {
         // controllers
         //beanFactory.add("20.controller.animationController", AnimationController.class);
         beanFactory.add("30.controller.cameraController", CameraController.class);
-        beanFactory.add("30.controller.collisionController", CollisionController.class);
+        //beanFactory.add("30.controller.collisionController", CollisionController.class);
 
         // drawers
         beanFactory.add("40.drawer0.SkyBoxDrawer", SkyBoxDrawer.class);

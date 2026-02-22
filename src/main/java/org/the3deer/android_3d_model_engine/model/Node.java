@@ -61,10 +61,12 @@ public class Node {
 	// camera
 	private Camera camera;
 
+	// scene
 	public Node() {
 		this(new Transform());
 	}
 
+	// gltf - new
 	public Node(int index) {
 		this.id = String.valueOf(index); // The ID is the index.
 		this.localTransform = new Transform();
@@ -187,6 +189,7 @@ public class Node {
 	 *
 	 * @param id id of the visual scene
 	 */
+	// collada - legacy
 	public Node(String id) {
 		this.jointIndex = -1;
 		this.id = id;
@@ -409,14 +412,6 @@ public class Node {
 		return wrapperArray;
 	}
 
-	@Override
-	public String toString() {
-		return "Node{" +
-				"id='" + getId() + '\'' +
-				", name='" + getName() + '\'' +
-				", index=" + getJointIndex() +
-				'}';
-	}
 
 	public Float[] getBindLocalTranslation() {
 		return localTransform.getTranslation();
@@ -462,5 +457,14 @@ public class Node {
 	@Deprecated
 	public void setId(String id) {
 		this.id = id;
+	}
+
+	@Override
+	public String toString() {
+		return "Node{" +
+				"id='" + getId() + '\'' +
+				", name='" + getName() + '\'' +
+				", index=" + getJointIndex() +
+				'}';
 	}
 }

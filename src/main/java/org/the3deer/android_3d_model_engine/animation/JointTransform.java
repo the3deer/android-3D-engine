@@ -482,7 +482,7 @@ public class JointTransform {
         interpolateVector(location, locationAY.location, locationBY.location, locationProgressionY);
         interpolateVector(location, locationAZ.location, locationBZ.location, locationProgressionZ);
 
-        if (rotationAX.isComposite() && rotationBX.isComposite()
+        if (!Constants.PREFER_QUATERNION && rotationAX.isComposite() && rotationBX.isComposite()
                 && rotationAY.isComposite() && rotationBY.isComposite()
                 && rotationAZ.isComposite() && rotationBZ.isComposite()) {
             final Float[] rotation = new Float[3];
@@ -549,7 +549,7 @@ public class JointTransform {
 
         interpolateVector(tempRotation, frameA.rotation, frameB.rotation, progression);
 
-        if (frameA.isComposite() && frameB.isComposite()) {
+        if (!Constants.PREFER_QUATERNION && frameA.isComposite() && frameB.isComposite()) {
             interpolateVector(tempRotation, frameA.rotation, frameB.rotation, progression);
             if (tempRotation[2] != null)
                 Matrix.rotateM(ret, 0, tempRotation[2], 0, 0, 1);
@@ -642,6 +642,9 @@ public class JointTransform {
                     Matrix.rotateM(transform, 0, rotation[1], 0, 1, 0);
                 if (this.rotation[0] != null)
                     Matrix.rotateM(transform, 0, rotation[0], 1, 0, 0);
+            } else if (this.qRotation != null) {
+                System.arraycopy(transform, 0, tempMatrix, 0, 16);
+                Matrix.multiplyMM(transform, 0, tempMatrix, 0, this.qRotation.getMatrix(), 0);
             }
         } else {
             if (this.qRotation != null) {

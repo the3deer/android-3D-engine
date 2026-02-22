@@ -848,7 +848,7 @@ public final class GltfLoaderLegacy {
                         } else if ("rotation".equals(animChannel.getPath())) {
                             float[] transform = new float[4];
                             transformData.get(transform, 0, 4); // 4 components for quaternion
-                            jointTransform.setRotation(new Quaternion(transform[0], transform[1], transform[2], transform[3]).normalize().toAnglesF(null));
+                            jointTransform.setRotation(new Quaternion(transform[0], transform[1], transform[2], transform[3]).toAnglesF(null));
                             jointTransform.setQuaternion(new Quaternion(transform[0], transform[1], transform[2], transform[3]));
                         } else if ("scale".equals(animChannel.getPath())) {
                             float[] transform = new float[3];
