@@ -1,5 +1,6 @@
 package org.the3deer.android_3d_model_engine.services.gltf;
 
+import android.graphics.Bitmap;
 import android.util.Log;
 
 import org.the3deer.android_3d_model_engine.animation.Animation;
@@ -27,12 +28,14 @@ import org.the3deer.android_3d_model_engine.services.gltf.dto.GltfSamplerDto;
 import org.the3deer.android_3d_model_engine.services.gltf.dto.GltfSceneData;
 import org.the3deer.android_3d_model_engine.services.gltf.dto.GltfSceneDto;
 import org.the3deer.android_3d_model_engine.services.gltf.dto.GltfSkinDto;
+import org.the3deer.util.android.AndroidUtils;
 import org.the3deer.util.android.ContentUtils;
 import org.the3deer.util.math.Quaternion;
 
 import java.io.InputStream;
 import java.net.URI;
 import java.nio.BufferUnderflowException;
+import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -46,6 +49,7 @@ import java.util.TreeMap;
 
 import de.javagl.jgltf.model.GltfModel;
 import de.javagl.jgltf.model.GltfModels;
+import de.javagl.jgltf.model.io.Buffers;
 import de.javagl.jgltf.model.io.GltfAsset;
 import de.javagl.jgltf.model.io.GltfAssetReader;
 import de.javagl.jgltf.model.io.GltfReferenceResolver;
@@ -121,12 +125,61 @@ public class GltfLoader {
         List<Material> materials = new ArrayList<>(dto.materials.size());
         for (int i = 0; i < dto.materials.size(); i++) {
             GltfMaterialDto materialDto = dto.materials.get(i);
-            Material material = new Material();
-            material.setName(materialDto.name);
-            material.setDiffuse(materialDto.baseColorFactor);
+            Material material = new Material(materialDto.name, materialDto.name);
 
-            if (materialDto.imageData != null) {
-                material.setColorTexture(new Texture().setBuffer(materialDto.imageData));
+            // Base color and alpha
+            material.setDiffuse(materialDto.baseColorFactor);
+            material.setAlphaCutoff(materialDto.alphaCutoff);
+            try {
+                if (materialDto.alphaMode != null) {
+                    material.setAlphaMode(Material.AlphaMode.valueOf(materialDto.alphaMode));
+                }
+            } catch (Exception e) {
+                Log.w(TAG, "Failed to set alpha mode: " + materialDto.alphaMode);
+            }
+
+            // Base color texture
+            if (materialDto.baseColorTexture != null) {
+                try {
+                    Bitmap bitmap = AndroidUtils.decodeBitmap(Buffers.createByteBufferInputStream(materialDto.baseColorTexture));
+                    material.setColorTexture(new Texture(materialDto.name+"_color", bitmap));
+                } catch (Exception e) {
+                    Log.e(TAG, "Failed to decode base color texture for material: " + materialDto.name, e);
+                }
+            }
+
+            // Normal map
+            if (materialDto.normalTexture != null) {
+                try {
+                    Bitmap bitmap = AndroidUtils.decodeBitmap(Buffers.createByteBufferInputStream(materialDto.normalTexture));
+                    material.setNormalTexture(new Texture(materialDto.name+"_normal", bitmap));
+                } catch (Exception e) {
+                    Log.e(TAG, "Failed to decode normal texture for material: " + materialDto.name, e);
+                }
+            }
+
+            // Emissive map and factor
+            material.setEmissiveFactor(materialDto.emissiveFactor);
+            if (materialDto.emissiveTexture != null) {
+                try {
+                    Bitmap bitmap = AndroidUtils.decodeBitmap(Buffers.createByteBufferInputStream(materialDto.emissiveTexture));
+                    material.setEmissiveTexture(new Texture(materialDto.name+"_emissive", bitmap));
+                } catch (Exception e) {
+                    Log.e(TAG, "Failed to decode emissive texture for material: " + materialDto.name, e);
+                }
+            }
+
+            // KHR_materials_volume properties
+            material.setThicknessFactor(materialDto.thicknessFactor);
+            material.setAttenuationDistance(materialDto.attenuationDistance);
+            material.setAttenuationColor(materialDto.attenuationColor);
+            if (materialDto.thicknessTexture != null) {
+                try {
+                    Bitmap bitmap = AndroidUtils.decodeBitmap(Buffers.createByteBufferInputStream(materialDto.thicknessTexture));
+                    material.setTransmissionTexture(new Texture(materialDto.name+"_thickness", bitmap));
+                } catch (Exception e) {
+                    Log.e(TAG, "Failed to decode thickness texture for material: " + materialDto.name, e);
+                }
             }
 
             materials.add(material);
@@ -310,21 +363,15 @@ public class GltfLoader {
                 final FloatBuffer times = (FloatBuffer) sampler.input;
                 final FloatBuffer values = (FloatBuffer) sampler.output;
 
-                // Ensure buffers are ready for reading from the start
-                //times.rewind();
-                //values.rewind();
-
                 final Node targetNode = nodes.get(channel.targetNode);
                 final String jointId = targetNode.getId();
 
                 for (int i = 0; i < times.capacity(); i++) {
                     final float timeStamp = times.get(i);
 
-                    // Get or create the KeyFrame for this timestamp
                     KeyFrame keyFrame = keyframes.computeIfAbsent(timeStamp, k -> new KeyFrame(k, new TreeMap<>()));
                     Map<String, JointTransform> pose = keyFrame.getPose();
 
-                    // Get or create the JointTransform for the target node in this pose
                     JointTransform jointTransform = pose.computeIfAbsent(jointId, k -> new JointTransform());
 
                     try {
@@ -337,8 +384,7 @@ public class GltfLoader {
                             float[] rotation = new float[4];
                             values.position(i * 4);
                             values.get(rotation);
-                            // Assuming your JointTransform or Quaternion class can handle this
-                            jointTransform.setQuaternion(new Quaternion(rotation[0], rotation[1], rotation[2], rotation[3]));
+                            jointTransform.setQuaternion(new Quaternion(rotation[0], rotation[1], rotation[2], rotation[3]).normalize());
                         } else if ("scale".equals(channel.targetPath)) {
                             float[] scale = new float[3];
                             values.position(i * 3);
@@ -360,26 +406,17 @@ public class GltfLoader {
         return animations;
     }
 
-    /**
-     * Assembles a list of renderable Scene objects from the raw data loaded from a glTF file.
-     *
-     * @param sceneData The raw data container from the GltfLoader.
-     * @return A list of fully assembled scenes.
-     */
     public List<Scene> createScenes(GltfSceneData sceneData) {
         List<Scene> finalScenes = new ArrayList<>();
         final var dto = sceneData.dto;
         final var allNodes = sceneData.nodes;
-        final var allMeshes = sceneData.meshes;
 
-        // CASE 1: The glTF file defines scenes.
         if (dto.scenes != null && !dto.scenes.isEmpty()) {
             Log.i(TAG, "Found " + dto.scenes.size() + " scene(s) defined in the file.");
             for (GltfSceneDto sceneDto : dto.scenes) {
                 Scene scene = new SceneImpl();
                 scene.setName(sceneDto.name);
 
-                // Add the root nodes for THIS specific scene
                 List<Node> rootNodes = new ArrayList<>();
                 if (sceneDto.nodes != null) {
                     for (Integer nodeIndex : sceneDto.nodes) {
@@ -389,45 +426,37 @@ public class GltfLoader {
                     }
                 }
                 scene.setRootNodes(rootNodes);
-                scene.setCamera(new Camera()); // Give each scene a default camera
+                scene.setCamera(new Camera());
 
-                // Traverse the node hierarchy and collect all drawable meshes
                 List<Object3DData> sceneObjects = collectMeshes(rootNodes);
                 scene.setObjects(sceneObjects);
 
-                // --- register skins ---
                 if (sceneData.skins != null && !sceneData.skins.isEmpty()) {
                     for (Skin skin : sceneData.skins) {
                         scene.addSkeleton(skin);
                     }
                 }
 
-                // --- START ANIMATION LINKING ---
                 if (sceneData.animations != null && !sceneData.animations.isEmpty()) {
 
-                    // Collect all nodes that are part of this scene's hierarchy
                     List<Node> sceneNodes = collectNodes(rootNodes);
 
-                    // Create a Set of scene node IDs for quick lookups
                     Set<String> sceneNodeIds = new HashSet<>();
                     for (Node node : sceneNodes) {
                         sceneNodeIds.add(node.getId());
                     }
 
-                    // Filter animations to only include those that target nodes within this scene
                     List<Animation> sceneAnimations = new ArrayList<>();
                     for (Animation anim : sceneData.animations) {
-                        // Check if this animation affects any node in our current scene
                         boolean belongsToScene = false;
                         if (anim.getKeyFrames() != null && anim.getKeyFrames().length > 0) {
-                            // We only need to check the first keyframe's pose
                             Map<String, JointTransform> firstPose = anim.getKeyFrames()[0].getPose();
                             if (firstPose != null) {
                                 for (String jointId : firstPose.keySet()) {
                                     if (sceneNodeIds.contains(jointId)) {
                                         belongsToScene = true;
                                         Log.d(TAG, "Found animation belonging to the scene.");
-                                        break; // Found a match, no need to check further for this animation
+                                        break; 
                                     }
                                 }
                             }
@@ -442,20 +471,17 @@ public class GltfLoader {
                         scene.setAnimations(sceneAnimations);
                     }
                 }
-                // --- END ANIMATION LINKING ---
 
                 finalScenes.add(scene);
 
                 scene.onLoadComplete();
             }
         }
-        // CASE 2: No scenes are defined. Create a default scene with all root nodes.
         else {
             Log.w(TAG, "Gltf file has no scenes defined. Creating a default scene.");
             Scene defaultScene = new SceneImpl();
             defaultScene.setName("Default Scene");
 
-            // Find all nodes that are not children of any other node.
             List<Node> rootNodes = new ArrayList<>();
             for(Node node : allNodes){
                 if(node.getParent() == null){
@@ -473,7 +499,6 @@ public class GltfLoader {
         return finalScenes;
     }
 
-    // Helper to recursively collect all meshes from a list of root nodes
     private List<Object3DData> collectMeshes(List<Node> nodes) {
         List<Object3DData> collected = new ArrayList<>();
         Stack<Node> stack = new Stack<>();
@@ -490,7 +515,6 @@ public class GltfLoader {
         return collected;
     }
 
-    // Helper to recursively collect all nodes from a list of root nodes
     private List<Node> collectNodes(List<Node> nodes) {
         List<Node> collected = new ArrayList<>();
         Stack<Node> stack = new Stack<>();

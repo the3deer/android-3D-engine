@@ -26,11 +26,14 @@ import de.javagl.jgltf.model.MeshPrimitiveModel;
 import de.javagl.jgltf.model.NodeModel;
 import de.javagl.jgltf.model.SceneModel;
 import de.javagl.jgltf.model.SkinModel;
+import de.javagl.jgltf.model.TextureModel;
 import de.javagl.jgltf.model.io.GltfAsset;
 import de.javagl.jgltf.model.v1.MaterialModelV1;
 import de.javagl.jgltf.model.v2.MaterialModelV2;
 
 public class GltfParser {
+
+    private static final String TAG = "GltfParser";
 
     private final GltfModel gltfModel;
     private final GltfAsset gltfAsset;
@@ -122,16 +125,69 @@ public class GltfParser {
 
             GltfMaterialDto materialDto = new GltfMaterialDto();
             materialDto.name = materialModel.getName();
+
             if (materialModel instanceof MaterialModelV2) {
-
                 MaterialModelV2 materialModelV2 = (MaterialModelV2) materialModel;
-                materialDto.baseColorFactor = materialModelV2.getBaseColorFactor();
 
+                // Base color and texture
+                materialDto.baseColorFactor = materialModelV2.getBaseColorFactor();
                 if (materialModelV2.getBaseColorTexture() != null && materialModelV2.getBaseColorTexture().getImageModel() != null) {
-                    materialDto.imageData = materialModelV2.getBaseColorTexture().getImageModel().getImageData();
+                    materialDto.baseColorTexture = materialModelV2.getBaseColorTexture().getImageModel().getImageData();
                 }
+
+                // Alpha settings
+                materialDto.alphaCutoff = materialModelV2.getAlphaCutoff();
+                if (materialModelV2.getAlphaMode() != null) {
+                    materialDto.alphaMode = materialModelV2.getAlphaMode().name();
+                }
+
+                // Normal map
+                if (materialModelV2.getNormalTexture() != null && materialModelV2.getNormalTexture().getImageModel() != null) {
+                    materialDto.normalTexture = materialModelV2.getNormalTexture().getImageModel().getImageData();
+                }
+
+                // Emissive map and factor
+                materialDto.emissiveFactor = materialModelV2.getEmissiveFactor();
+                if (materialModelV2.getEmissiveTexture() != null && materialModelV2.getEmissiveTexture().getImageModel() != null) {
+                    materialDto.emissiveTexture = materialModelV2.getEmissiveTexture().getImageModel().getImageData();
+                }
+
+                // KHR_materials_volume extension
+                try {
+                    final Map<String, Object> extensions = materialModelV2.getExtensions();
+                    if (extensions != null) {
+                        final Map<String, Object> volumeExtension = (Map<String, Object>) extensions.get("KHR_materials_volume");
+                        if (volumeExtension != null) {
+                            final Map<String, Object> thicknessTextureMap = (Map<String, Object>) volumeExtension.get("thicknessTexture");
+                            if (thicknessTextureMap != null) {
+                                final Integer texIndex = (Integer) thicknessTextureMap.get("index");
+                                final TextureModel textureModel = gltfModel.getTextureModels().get(texIndex);
+                                materialDto.thicknessTexture = textureModel.getImageModel().getImageData();
+                            }
+
+                            Double thicknessFactor = (Double) volumeExtension.get("thicknessFactor");
+                            if (thicknessFactor != null) materialDto.thicknessFactor = thicknessFactor.floatValue();
+
+                            Double attenuationDistance = (Double) volumeExtension.get("attenuationDistance");
+                            if (attenuationDistance != null) materialDto.attenuationDistance = attenuationDistance.floatValue();
+
+                            List<Double> attenuationColorList = (List<Double>) volumeExtension.get("attenuationColor");
+                            if (attenuationColorList != null && attenuationColorList.size() >= 3) {
+                                materialDto.attenuationColor = new float[]{
+                                        attenuationColorList.get(0).floatValue(),
+                                        attenuationColorList.get(1).floatValue(),
+                                        attenuationColorList.get(2).floatValue()
+                                };
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    Log.e(TAG, "Failed to parse KHR_materials_volume extension: " + e.getMessage(), e);
+                }
+
             } else if (materialModel instanceof MaterialModelV1){
                 MaterialModelV1 materialModelV1 = (MaterialModelV1) materialModel;
+                // Legacy v1 material handling would go here if needed
             }
 
             dto.materials.add(materialDto);

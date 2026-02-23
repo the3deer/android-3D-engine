@@ -8,6 +8,8 @@ import java.util.Map;
 
 public class Texture {
 
+    private String name;
+
     private String file;
 
     private int id = -1;
@@ -21,6 +23,19 @@ public class Texture {
     private Map<String, Object> extensions;
 
     public Texture() {
+    }
+
+    public Texture(String file) {
+        this.file = file;
+    }
+
+    public Texture(String s, Bitmap bitmap) {
+        this.name = s;
+        this.bitmap = bitmap;
+    }
+
+    public String getName() {
+        return name;
     }
 
     public int getId() {
