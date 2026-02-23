@@ -107,7 +107,6 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
     private boolean autoUseProgram = true;
 
 
-
     private boolean texturesEnabled = true;
     private boolean lightingEnabled = true;
     private boolean animationEnabled = true;
@@ -116,6 +115,11 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
     private List<Texture> textures = new ArrayList<>();
 
     private final Set<String> logset = new HashSet<>();
+
+    // --- NEW: Add handles for alpha uniforms ---
+    private int uAlphaModeHandle;
+    private int uAlphaCutoffHandle;
+    // ----------------------------------------
 
     @Override
     public int getId() {
@@ -137,8 +141,7 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
      * @return the compiled Shader
      */
     static ShaderImpl getInstance(String id, String vertexShaderCode, String fragmentShaderCode) {
-        final ShaderImpl shader = new ShaderImpl(id, vertexShaderCode, fragmentShaderCode);
-        return shader;
+        return new ShaderImpl(id, vertexShaderCode, fragmentShaderCode);
     }
 
     private static boolean testShaderFeature(Set<String> outputFeatures, String shaderCode, String feature) {
@@ -190,10 +193,16 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
         int fragmentShader = GLUtil.loadShader(GLES20.GL_FRAGMENT_SHADER, fragmentShaderCode);
 
         // compile program
-        Log.d(TAG, "Compiled Shader " + id );
+        Log.d(TAG, "Compiled Shader " + id);
         mProgram = GLUtil.createAndLinkProgram(vertexShader, fragmentShader, features.toArray(new String[0]));
-
         Log.d(TAG, "Linked Shader " + id + " with program " + mProgram);
+
+        // --- NEW: Get uniform handles after linking ---
+        if (supportBlending) {
+            uAlphaModeHandle = GLES20.glGetUniformLocation(mProgram, "u_AlphaMode");
+            uAlphaCutoffHandle = GLES20.glGetUniformLocation(mProgram, "u_AlphaCutoff");
+        }
+        // -------------------------------------------
     }
 
     @Override
@@ -232,7 +241,7 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
 
         // reset textures so they can be reloaded in opengl thread
         Log.i(TAG, "Deleting textures... Total: " + textures.size());
-        for (Texture texture : textures){
+        for (Texture texture : textures) {
             if (texture.getId() != -1) {
                 GLES20.glDeleteTextures(1, new int[]{texture.getId()}, 0);
                 texture.setId(-1);
@@ -249,11 +258,12 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
             useProgram();
         }
 
+
         setUniformMatrix4(vMatrix, "u_VMatrix");
         setUniformMatrix4(pMatrix, "u_PMatrix");
 
         // reset texture counter
-        textureCounter=0;
+        textureCounter = 0;
 
         // mvp matrix for position + lighting + animation
         if (supportsMMatrix) {
@@ -274,17 +284,15 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
         int mNormalMapHandle = -1;
         if (supportsNormalTexture) {
             boolean toggle = obj.getVertexNormalsArrayBuffer() != null
-                    & obj.getTangentBuffer() != null &&
-                    obj.getMaterial().getNormalTexture() != null;
+                    && obj.getTangentBuffer() != null &&
+                    obj.getMaterial() != null && obj.getMaterial().getNormalTexture() != null;
 
+            setFeatureFlag("u_NormalTextured", toggle);
             if (toggle) {
                 loadTexture(obj.getMaterial().getNormalTexture());
                 setTexture(obj.getMaterial().getNormalTexture(), "u_NormalTexture", 1);
-                setFeatureFlag("u_NormalTextured", true);
                 mNormalMapHandle = setVBO("a_Tangent", obj.getTangentBuffer(), COORDS_PER_VERTEX, GLES20.GL_FLOAT);
             }
-
-            setFeatureFlag("u_NormalTextured", toggle);
         }
 
         // pass in color or colors array
@@ -306,18 +314,28 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
         // pass in color mask - i.e. stereoscopic
         setUniform4(colorMask != null ? colorMask : NO_COLOR_MASK, "vColorMask");
 
-        // alpha settings
-        if (supportBlending) {
-            setUniform1(obj.getMaterial().getAlphaCutoff(), "u_AlphaCutoff");
-            setUniformInt(obj.getMaterial().getAlphaMode().ordinal(), "u_AlphaMode");
+        // --- NEW: BLENDING LOGIC ---
+        Material material = obj.getMaterial();
+        if (supportBlending && material != null && material.getAlphaMode() != Material.AlphaMode.OPAQUE) {
+            //GLES20.glEnable(GLES20.GL_BLEND);
+            //GLES20.glBlendFunc(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA);
+            GLES20.glUniform1i(uAlphaModeHandle, material.getAlphaMode().ordinal());
+            GLES20.glUniform1f(uAlphaCutoffHandle, material.getAlphaCutoff());
+        } else {
+            //GLES20.glDisable(GLES20.GL_BLEND);
+            if (supportBlending) {
+                GLES20.glUniform1i(uAlphaModeHandle, Material.AlphaMode.OPAQUE.ordinal());
+                GLES20.glUniform1f(uAlphaCutoffHandle, 0.5f); // Default cutoff
+            }
         }
+        // -------------------------
 
         // pass in texture UV buffer
         int mTextureHandle = -1;
         if (supportsTextures) {
             setFeatureFlag("u_Textured", false);
 
-            if (obj.getTextureCoordsArrayBuffer() != null){
+            if (obj.getTextureCoordsArrayBuffer() != null) {
                 mTextureHandle = setVBO("a_TexCoordinate", obj.getTextureCoordsArrayBuffer(), TEXTURE_COORDS_PER_VERTEX, GLES20.GL_FLOAT);
 
                 if (obj.getMaterial().getColorTexture() != null) {
@@ -353,7 +371,6 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
         // pass in joint transformation for animated model
         int in_weightsHandle = -1;
         int in_jointIndicesHandle = -1;
-
 
 
         if (supportsAnimation) {
@@ -438,6 +455,24 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
 
         }
 
+        // Simple drawing without elements
+        /*if (drawSize > 0) {
+            GLES20.glDrawArrays(drawMode, 0, drawSize);
+        } else if (obj.getIndexBuffer() != null) {
+            if (obj.getIndexBuffer() instanceof IntBuffer && !drawUsingInt) {
+                ShortBuffer shortBuffer = IOUtils.toShortBuffer((IntBuffer) obj.getIndexBuffer());
+                GLES20.glDrawElements(drawMode, shortBuffer.capacity(), GLES20.GL_UNSIGNED_SHORT, shortBuffer);
+            } else {
+                if (obj.getIndexBuffer() instanceof IntBuffer) {
+                    GLES20.glDrawElements(drawMode, obj.getIndexBuffer().capacity(), GLES20.GL_UNSIGNED_INT, obj.getIndexBuffer());
+                } else if (obj.getIndexBuffer() instanceof ShortBuffer) {
+                    GLES20.glDrawElements(drawMode, obj.getIndexBuffer().capacity(), GLES20.GL_UNSIGNED_SHORT, obj.getIndexBuffer());
+                } else {
+                    GLES20.glDrawElements(drawMode, obj.getIndexBuffer().capacity(), GLES20.GL_UNSIGNED_BYTE, obj.getIndexBuffer());
+                }
+            }
+        }*/
+
         // Disable vertex handlers
         disableVBO(mPositionHandle);
         disableVBO(mColorHandle);
@@ -454,7 +489,8 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
         if (texture == null || texture.hasId()) return;
 
         // check
-        if (texture.getData() == null && texture.getBitmap() == null && texture.getBuffer() == null) return;
+        if (texture.getData() == null && texture.getBitmap() == null && texture.getBuffer() == null)
+            return;
 
         // load
         final int textureId;
@@ -492,14 +528,14 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
         }
 
         // FIXME: type should be a preset
-        if (glType == -1){
-            if (buffer instanceof FloatBuffer){
+        if (glType == -1) {
+            if (buffer instanceof FloatBuffer) {
                 glType = GLES20.GL_FLOAT;
-            } else if (buffer instanceof IntBuffer){
+            } else if (buffer instanceof IntBuffer) {
                 glType = GLES20.GL_UNSIGNED_INT;
-            } else if (buffer instanceof ShortBuffer){
+            } else if (buffer instanceof ShortBuffer) {
                 glType = GLES20.GL_UNSIGNED_SHORT;
-            } else if (buffer instanceof ByteBuffer){
+            } else if (buffer instanceof ByteBuffer) {
                 glType = GLES20.GL_UNSIGNED_BYTE;
             }
 
@@ -585,7 +621,7 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
         if (handle != -1) {
             GLES20.glDisableVertexAttribArray(handle);
             if (checkGlError) {
-            GLUtil.checkGlError("glDisableVertexAttribArray");
+                GLUtil.checkGlError("glDisableVertexAttribArray");
             }
         }
     }
@@ -1077,8 +1113,8 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
         //setPreferencesFromResource(R.xml.preferences, rootKey);
         // add submenu
         PreferenceCategory category = new PreferenceCategory(context);
-        category.setKey(this.getClass().getName()+"_"+getName());
-        category.setTitle(this.getClass().getSimpleName()+" - "+getName());
+        category.setKey(this.getClass().getName() + "_" + getName());
+        category.setTitle(this.getClass().getSimpleName() + " - " + getName());
         category.setLayoutResource(R.layout.preference_category);
         screen.addPreference(category);
         //category.setInitialExpandedChildrenCount(0);
@@ -1148,8 +1184,6 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
                 return true;
             });
         }
-
-
 
 
     }

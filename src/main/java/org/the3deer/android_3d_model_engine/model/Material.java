@@ -234,9 +234,13 @@ public class Material {
         final Material ret = new Material(id, name);
         ret.setDiffuse(this.getDiffuse());
         ret.setAlpha(this.getAlpha());
+        ret.setAlphaMode(this.getAlphaMode());
+        ret.setAlphaCutoff(this.getAlphaCutoff());
         ret.setColorTexture(this.getColorTexture());
         ret.setEmissiveTexture(this.getEmissiveTexture());
         ret.setNormalTexture(this.getNormalTexture());
+        ret.setShininess(this.getShininess());
+        ret.setSpecular(this.getSpecular());
         return ret;
     }
 }
