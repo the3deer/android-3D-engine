@@ -537,8 +537,9 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
                 glType = GLES20.GL_UNSIGNED_SHORT;
             } else if (buffer instanceof ByteBuffer) {
                 glType = GLES20.GL_UNSIGNED_BYTE;
+            } else {
+                throw new IllegalArgumentException("Unsupported buffer type: " + buffer.getClass());
             }
-
         }
 
         buffer.position(0);

@@ -101,7 +101,7 @@ public class GltfParser {
 
                 AccessorModel weightsAccessor = primitiveModel.getAttributes().get("WEIGHTS_0");
                 if (weightsAccessor != null) {
-                    primitiveDto.weights = GltfUtil.createFloatBuffer(weightsAccessor);
+                    primitiveDto.weights = GltfUtil.createNormalizedWeightsBuffer(weightsAccessor);
                     primitiveDto.weightsComponents = weightsAccessor.getElementType().getNumComponents();
                 }
 
@@ -114,7 +114,6 @@ public class GltfParser {
             dto.meshes.add(meshDto);
         }
     }
-
 
     private void parseMaterials() {
 

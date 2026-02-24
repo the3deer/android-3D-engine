@@ -76,6 +76,8 @@ public final class GltfUtil {
         switch (glComponentType) {
             case 5121: // GL_UNSIGNED_BYTE
                 return byteBuffer;
+            case 5126: // GL_FLOAT
+                return byteBuffer.asFloatBuffer();
             case 5123: // GL_UNSIGNED_SHORT
                 return byteBuffer.asShortBuffer();
             default:
@@ -104,6 +106,27 @@ public final class GltfUtil {
             default:
                 Log.e("GltfUtil", "Invalid component type for colors: " + glComponentType);
                 throw new IllegalArgumentException("Invalid component type for colors: " + glComponentType);
+        }
+    }
+
+    public static Buffer createNormalizedWeightsBuffer(AccessorModel accessor) {
+        if (accessor == null) {
+            return null;
+        }
+        AccessorData accessorData = accessor.getAccessorData();
+        ByteBuffer byteBuffer = accessorData.createByteBuffer();
+
+        final int glComponentType = accessorData.getGlComponentType();
+        switch (glComponentType) {
+            case 5121: // GL_UNSIGNED_BYTE
+                return byteBuffer;
+            case 5123: // GL_UNSIGNED_SHORT
+                return byteBuffer.asShortBuffer();
+            case 5126: // FLOAT
+                return byteBuffer.asFloatBuffer();
+            default:
+                Log.e("GltfUtil", "Invalid component type for weights: " + glComponentType);
+                throw new IllegalArgumentException("Invalid component type for weights: " + glComponentType);
         }
     }
 }
