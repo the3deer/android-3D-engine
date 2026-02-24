@@ -452,7 +452,7 @@ public final class GltfLoaderLegacy {
         }
 
         // build 3d model
-        model.setVertexArrayBuffer(vertexBuffer);
+        model.setVertexBuffer(vertexBuffer);
         model.setVertexNormalsArrayBuffer(normalBuffer);
         model.setTangentBuffer(tangentBuffer);
         model.setVertexColorsArrayBuffer(colorBuffer);

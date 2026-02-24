@@ -23,7 +23,7 @@ public class Quad extends Widget {
         // build
         build(vertexBuffer, dimensions);
         // setup
-        setVertexArrayBuffer(vertexBuffer);
+        setVertexBuffer(vertexBuffer);
 
         setDrawMode(GLES20.GL_TRIANGLE_STRIP);
     }

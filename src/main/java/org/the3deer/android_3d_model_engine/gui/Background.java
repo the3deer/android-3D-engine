@@ -28,7 +28,7 @@ public class Background extends Widget {
         // vertex buffer
         int size = 12;
         final FloatBuffer vertexBuffer = IOUtils.createNativeByteBuffer(size * 3 * 4).asFloatBuffer();
-        setVertexArrayBuffer(vertexBuffer);
+        setVertexBuffer(vertexBuffer);
 
         // color buffer
         final FloatBuffer colorsBuffer = IOUtils.createNativeByteBuffer(size * 4 * 4).asFloatBuffer();
@@ -122,7 +122,7 @@ public class Background extends Widget {
         vertexArrayBuffer.put(idx++, max[0] + EFFECT_3D).put(idx++, min[1] - EFFECT_3D).put(idx++, minZ);
         vertexArrayBuffer.put(idx++, max[0] + EFFECT_3D).put(idx++, max[1] - EFFECT_3D).put(idx++, minZ);
 
-        setVertexArrayBuffer(vertexArrayBuffer);
+        setVertexBuffer(vertexArrayBuffer);
 
         this.setDimensions(parent.getDimensions());
 

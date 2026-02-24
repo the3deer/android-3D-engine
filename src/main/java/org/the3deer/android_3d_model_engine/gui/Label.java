@@ -47,7 +47,7 @@ public class Label extends Widget {
 
     @Override
     public void init() {
-        setVertexArrayBuffer(IOUtils.createFloatBuffer(columns * rows * 12 * 3));
+        setVertexBuffer(IOUtils.createFloatBuffer(columns * rows * 12 * 3));
         setVertexColorsArrayBuffer(IOUtils.createFloatBuffer(columns * rows * 12 * 4));
 
         IOUtils.fill(vertexArrayBuffer, 0, vertexArrayBuffer.capacity(), new float[]{0,0, GUIConstants.UI_TEXT_Z_HIDDEN});
@@ -69,8 +69,8 @@ public class Label extends Widget {
         float[] data = fontFactory.getSymbol(symbol);
 
         Log.v("Label","About to paint symbol");
-        int idx = Glyph.build(getVertexArrayBuffer(), 0, getVertexColorsArrayBuffer(), 0, 0, data, getColor());
-        IOUtils.fill(getVertexArrayBuffer(), idx, getVertexArrayBuffer().capacity(), 0);
+        int idx = Glyph.build(getVertexBuffer(), 0, getVertexColorsArrayBuffer(), 0, 0, data, getColor());
+        IOUtils.fill(getVertexBuffer(), idx, getVertexBuffer().capacity(), 0);
         IOUtils.fill(getVertexColorsArrayBuffer(), idx/3*4, getVertexColorsArrayBuffer().capacity(), 0);
 
         this.currentText = symbol;
@@ -81,7 +81,7 @@ public class Label extends Widget {
 
         final String[] lines = text.split("\\r?\\n");
 
-        final FloatBuffer vertexBuffer = getVertexArrayBuffer();
+        final FloatBuffer vertexBuffer = getVertexBuffer();
         final Buffer colorBuffer = getVertexColorsArrayBuffer();
 
         int idx = 0;

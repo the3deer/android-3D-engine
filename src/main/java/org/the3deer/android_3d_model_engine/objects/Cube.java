@@ -334,6 +334,6 @@ public final class Cube {
         IntBuffer drawBuffer = IOUtils.createIntBuffer(cubeIndices.length).put(cubeIndices);
         FloatBuffer vertexBuffer = IOUtils.createFloatBuffer(cubeVertices.length ).put(cubeVertices);
         return new Object3DData(vertexBuffer,drawBuffer).setDrawMode(GLES20.GL_TRIANGLES).setId("cubeV2")
-                .setIndexBuffer(drawBuffer).setVertexArrayBuffer(vertexBuffer);
+                .setIndexBuffer(drawBuffer).setVertexBuffer(vertexBuffer);
     }
 }

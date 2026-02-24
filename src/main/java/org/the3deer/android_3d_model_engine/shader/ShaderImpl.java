@@ -271,7 +271,7 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
         }
 
         // pass in vertex buffer
-        int mPositionHandle = setVBO("a_Position", obj.getVertexArrayBuffer(), COORDS_PER_VERTEX, GLES20.GL_FLOAT);
+        int mPositionHandle = setVBO("a_Position", obj.getVertexBuffer(), COORDS_PER_VERTEX, GLES20.GL_FLOAT);
 
         // pass in normals buffer for lighting
         int mNormalHandle = -1;
@@ -378,7 +378,7 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
                     && ((AnimatedModel) obj).getSkin() != null
                     && ((AnimatedModel) obj).getSkin().getWeightsBuffer() != null
                     && ((AnimatedModel) obj).getSkin().getJointsBuffer() != null;
-            boolean toggle = this.animationEnabled && animationOK;
+            boolean toggle = this.animationEnabled && animationOK && Constants.ANIMATIONS_ENABLED;
             if (toggle) {
                 in_weightsHandle = setVBO("in_weights", ((AnimatedModel) obj).getSkin().getWeightsBuffer(), ((AnimatedModel) obj).getWeightsComponents(), -1);
                 in_jointIndicesHandle = setVBO("in_jointIndices", ((AnimatedModel) obj).getSkin().getJointsBuffer(), ((AnimatedModel) obj).getJointComponents(), -1);
@@ -767,9 +767,9 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
         final FloatBuffer vertexBuffer;
         if (obj.isDrawUsingArrays()) {
             drawOrderBuffer = null;
-            vertexBuffer = obj.getVertexArrayBuffer();
+            vertexBuffer = obj.getVertexBuffer();
         } else {
-            vertexBuffer = obj.getVertexArrayBuffer();
+            vertexBuffer = obj.getVertexBuffer();
             drawOrderBuffer = obj.getIndexBuffer();
 
             if (!drawUsingInt && drawOrderBuffer instanceof IntBuffer) {

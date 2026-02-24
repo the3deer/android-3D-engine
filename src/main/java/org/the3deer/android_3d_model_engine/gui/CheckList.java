@@ -103,7 +103,7 @@ public class CheckList extends Widget {
         this.rows = this.items.size();
         this.totalGlyphs = count;
         final int total = totalGlyphs + items.size() + 1; // reserve 1 for border
-        setVertexArrayBuffer(IOUtils.createFloatBuffer(total * GLYPH_BYTES * 3));
+        setVertexBuffer(IOUtils.createFloatBuffer(total * GLYPH_BYTES * 3));
         setVertexColorsArrayBuffer(IOUtils.createFloatBuffer(total * GLYPH_BYTES * 4));
         build();
     }
@@ -141,14 +141,14 @@ public class CheckList extends Widget {
         float offsetX = GLYPH_SIZE * cols - GLYPH_SIZE;
         float offsetY = (rows * GLYPH_SIZE) - ((idx + 1) * GLYPH_SIZE);
 
-        getVertexArrayBuffer().position(mark);
+        getVertexBuffer().position(mark);
         getVertexColorsArrayBuffer().position(mark2);
         if (states.get(idx)) {
-            Glyph.build(getVertexArrayBuffer(), mark, getVertexColorsArrayBuffer(), Glyph.CHECKBOX_ON, Constants.COLOR_WHITE, offsetX, offsetY, 0);
+            Glyph.build(getVertexBuffer(), mark, getVertexColorsArrayBuffer(), Glyph.CHECKBOX_ON, Constants.COLOR_WHITE, offsetX, offsetY, 0);
         } else {
-            Glyph.build(getVertexArrayBuffer(), mark, getVertexColorsArrayBuffer(), Glyph.CHECKBOX_OFF, Constants.COLOR_WHITE, offsetX, offsetY, 0);
+            Glyph.build(getVertexBuffer(), mark, getVertexColorsArrayBuffer(), Glyph.CHECKBOX_OFF, Constants.COLOR_WHITE, offsetX, offsetY, 0);
         }
-        setVertexArrayBuffer(getVertexArrayBuffer());
+        setVertexBuffer(getVertexBuffer());
     }
 
     /*@Override
@@ -193,7 +193,7 @@ public class CheckList extends Widget {
     private void build() {
         try {
             // allocate buffers
-            final FloatBuffer vertexBuffer = getVertexArrayBuffer();
+            final FloatBuffer vertexBuffer = getVertexBuffer();
             final Buffer colorBuffer = getVertexColorsArrayBuffer();
 
             vertexBuffer.position(0);
@@ -262,7 +262,7 @@ public class CheckList extends Widget {
             IOUtils.fill(vertexBuffer, vertexBuffer.position(), GLYPH_SIZE, 0);
             IOUtils.fill(colorBuffer, colorBuffer.position(), GLYPH_SIZE, 0);
 
-            setVertexArrayBuffer(vertexBuffer);
+            setVertexBuffer(vertexBuffer);
             setVertexColorsArrayBuffer(colorBuffer);
         } catch (Exception e) {
             Log.e("CheckList", e.getMessage(), e);

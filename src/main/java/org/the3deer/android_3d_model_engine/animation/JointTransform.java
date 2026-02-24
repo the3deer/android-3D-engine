@@ -677,7 +677,7 @@ public class JointTransform {
     public void setQuaternion(Quaternion quaternion) {
         this.qRotation = quaternion;
         if (quaternion != null) {
-            this.rotation = quaternion.toAnglesF(this.rotation);
+            this.rotation = quaternion.normalize().toAnglesF(this.rotation);
         }
         refresh();
     }

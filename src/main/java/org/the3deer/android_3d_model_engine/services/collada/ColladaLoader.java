@@ -6,7 +6,6 @@ import android.util.Log;
 
 import java.io.InputStream;
 import java.net.URI;
-import java.nio.IntBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -482,7 +481,7 @@ public class ColladaLoader {
     private Object3DData buildStaticModel(Geometry geometry, Map<String, Material> materials) {
         Object3DData model = new Object3DData();
         model.setId(geometry.getId());
-        model.setVertexArrayBuffer(geometry.getPositions());
+        model.setVertexBuffer(geometry.getPositions());
         model.setVertexNormalsArrayBuffer(geometry.getNormals());
         model.setTextureCoordsArrayBuffer(geometry.getTexCoords());
         model.setVertexColorsArrayBuffer(geometry.getColors());

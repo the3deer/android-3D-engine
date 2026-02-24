@@ -62,7 +62,7 @@ public class Octree {
         final Octree ret = new Octree(object.getBoundingBox());
         if (object.getIndexBuffer() == null) {
             // vertex array contains vertex in sequence
-            final FloatBuffer buffer = object.getVertexArrayBuffer().asReadOnlyBuffer();
+            final FloatBuffer buffer = object.getVertexBuffer().asReadOnlyBuffer();
             final List<float[]> triangles = new ArrayList<>(buffer.capacity() / 3 * 4);
             //final float[] modelMatrix = object.getModelMatrix();
             //final float[] modelMatrix = Math3DUtils.IDENTITY_MATRIX;
@@ -81,7 +81,7 @@ public class Octree {
         } else {
             // faces are built
             final Buffer drawOrder = object.getIndexBuffer();
-            final FloatBuffer buffer = object.getVertexArrayBuffer().asReadOnlyBuffer();
+            final FloatBuffer buffer = object.getVertexBuffer().asReadOnlyBuffer();
             final List<float[]> triangles = new ArrayList<>(drawOrder.capacity() / 3 * 4);
             //final float[] modelMatrix = object.getModelMatrix();
             //final float[] modelMatrix = Math3DUtils.IDENTITY_MATRIX;

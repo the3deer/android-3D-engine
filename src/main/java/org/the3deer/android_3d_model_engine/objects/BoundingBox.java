@@ -45,7 +45,7 @@ public final class BoundingBox {
         vertices.put(box.getMax()[0]).put(box.getMin()[1]).put(box.getMax()[2]);
         //@formatter:on
         vertices.flip();
-        boundingBox.setVertexArrayBuffer(vertices);
+        boundingBox.setVertexBuffer(vertices);
 
         // --- ROBUST SKINNING --- //
         // Bind all 8 vertices of the bounding box to the root joint of the skeleton.

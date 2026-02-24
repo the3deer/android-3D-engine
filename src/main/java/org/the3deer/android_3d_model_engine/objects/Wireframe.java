@@ -86,7 +86,7 @@ public class Wireframe {
 
             } else {
 
-                final FloatBuffer vertexBuffer = ret.getVertexArrayBuffer();
+                final FloatBuffer vertexBuffer = ret.getVertexBuffer();
                 Log.i("Wireframe", "Building wireframe... Total vertices: " + vertexBuffer.capacity()/3);
 
                 final IntBuffer newBuffer = IOUtils.createIntBuffer(vertexBuffer.capacity()/3 * 2);

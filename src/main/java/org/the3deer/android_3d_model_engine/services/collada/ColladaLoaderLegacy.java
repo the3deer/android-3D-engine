@@ -120,7 +120,7 @@ public final class ColladaLoaderLegacy {
                     data3D.setAuthoringTool(authoring_tool);
                     data3D.setMeshData(meshData);
                     data3D.setId(meshData.getId());
-                    data3D.setVertexArrayBuffer(meshData.getVertexBuffer());
+                    data3D.setVertexBuffer(meshData.getVertexBuffer());
                     data3D.setVertexNormalsArrayBuffer(meshData.getNormalsBuffer());
                     data3D.setVertexColorsArrayBuffer(meshData.getColorsBuffer());
                     data3D.setElements(meshData.getElements());

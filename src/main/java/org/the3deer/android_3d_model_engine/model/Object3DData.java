@@ -979,15 +979,15 @@ public class Object3DData {
         return vertexArrayBuffer;
     }
 
-    public FloatBuffer getVertexArrayBuffer() {
+    public FloatBuffer getVertexBuffer() {
         return vertexArrayBuffer;
     }
 
     public Object3DData setVertices(FloatBuffer vertexArray) {
-        return setVertexArrayBuffer(vertexArray);
+        return setVertexBuffer(vertexArray);
     }
 
-    public Object3DData setVertexArrayBuffer(FloatBuffer vertexArrayBuffer) {
+    public Object3DData setVertexBuffer(FloatBuffer vertexArrayBuffer) {
         this.vertexArrayBuffer = vertexArrayBuffer;
         updateDimensions();
         return this;
@@ -1127,7 +1127,7 @@ public class Object3DData {
         ret.orientation = this.orientation;
 
         //ret.setCurrentDimensions(this.getCurrentDimensions());
-        ret.setVertexArrayBuffer(this.getVertexArrayBuffer());
+        ret.setVertexBuffer(this.getVertexBuffer());
         ret.setIndexBuffer(this.getIndexBuffer());
         ret.setVertexNormalsArrayBuffer(this.getVertexNormalsArrayBuffer());
         ret.setVertexColorsArrayBuffer(this.getVertexColorsArrayBuffer());
@@ -1174,7 +1174,7 @@ public class Object3DData {
             Log.v("Object3DData", "Generating normals... " + getId());
 
             // init normal buffer
-            vertexNormalsArrayBuffer = IOUtils.createFloatBuffer(getVertexArrayBuffer().capacity());
+            vertexNormalsArrayBuffer = IOUtils.createFloatBuffer(getVertexBuffer().capacity());
 
             for (int i = 0; i < vertexArrayBuffer.capacity() - 9; i += 9) {
 

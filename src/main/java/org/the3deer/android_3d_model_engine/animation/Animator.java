@@ -519,9 +519,6 @@ public class Animator {
         if (node.getAnimatedLocalTransform() != null) {
             Log.v("Animator", "DEBUG: Node[" + node.getId() + "]: Animated Transform: " + Arrays.toString(node.getAnimatedLocalTransform()));
         }
-        for (int i = 0; i < node.getChildren().size(); i++) {
-            debugNode(node.getChildren().get(i));
-        }
     }
 }
 

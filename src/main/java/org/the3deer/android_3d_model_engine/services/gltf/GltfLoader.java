@@ -35,7 +35,6 @@ import org.the3deer.util.math.Quaternion;
 import java.io.InputStream;
 import java.net.URI;
 import java.nio.BufferUnderflowException;
-import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -271,7 +270,7 @@ public class GltfLoader {
 
                 AnimatedModel model = new AnimatedModel();
                 model.setId(meshDto.name != null ? meshDto.name + "_" + i : "mesh_" + i);
-                model.setVertexArrayBuffer((FloatBuffer) primitiveDto.positions);
+                model.setVertexBuffer((FloatBuffer) primitiveDto.positions);
                 model.setVertexNormalsArrayBuffer((FloatBuffer) primitiveDto.normals);
                 model.setTangentBuffer(primitiveDto.tangents);
                 model.setTextureCoordsArrayBuffer((FloatBuffer) primitiveDto.texCoords);
@@ -322,6 +321,13 @@ public class GltfLoader {
             skinDto.inverseBindMatrices.rewind();
             float[] ibmArray = new float[skinDto.inverseBindMatrices.capacity()];
             ((FloatBuffer) skinDto.inverseBindMatrices).get(ibmArray);
+
+            // Convert the inverse bind matrix buffer to a flat, transposed array
+            /*float[] ibmArrayTransposed = new float[ibmArray.length];
+            int matrixCount = ibmArray.length / 16;
+            for (int m = 0; m < matrixCount; m++) {
+                Matrix.transposeM(ibmArrayTransposed, m * 16, ibmArray, m * 16);
+            }*/
 
             int[] joints = new int[skinDto.jointNodeIndices.size()];
             for (int j = 0; j < skinDto.jointNodeIndices.size(); j++) {

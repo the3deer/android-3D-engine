@@ -212,7 +212,7 @@ public class Widget extends Object3DData implements EventListener {
 
     public Widget(Object3DData source) {
         this.source = source;
-        setVertexArrayBuffer(source.getVertexArrayBuffer());
+        setVertexBuffer(source.getVertexBuffer());
         setDrawMode(source.getDrawMode());
         setVertexColorsArrayBuffer(source.getVertexColorsArrayBuffer());
     }

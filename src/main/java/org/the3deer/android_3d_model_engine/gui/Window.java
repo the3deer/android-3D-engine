@@ -61,7 +61,7 @@ public class Window extends Widget {
             // window
             final int voffset = build(vertexBuffer, 0, colorBuffer);
 
-            setVertexArrayBuffer(vertexBuffer);
+            setVertexBuffer(vertexBuffer);
             setVertexColorsArrayBuffer(colorBuffer);
 
             IOUtils.fill(vertexBuffer, voffset, vertexBuffer.capacity(), 0);
@@ -139,7 +139,7 @@ public class Window extends Widget {
 
         int idx = 0;
 
-        final FloatBuffer vertexBuffer = getVertexArrayBuffer();
+        final FloatBuffer vertexBuffer = getVertexBuffer();
         final Buffer colorBuffer = getVertexColorsArrayBuffer();
 
         final Dimensions currentDimensions = content.getCurrentDimensions();

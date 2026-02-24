@@ -36,7 +36,7 @@ public final class Text extends Widget {
 
     @Override
     public void init() {
-        setVertexArrayBuffer(IOUtils.createFloatBuffer(columns * rows * 12 * 3));
+        setVertexBuffer(IOUtils.createFloatBuffer(columns * rows * 12 * 3));
         setVertexColorsArrayBuffer(IOUtils.createFloatBuffer(columns * rows * 12 * 4));
 
         // dimensions after because there isn't any vertex yet
@@ -58,7 +58,7 @@ public final class Text extends Widget {
 
         final String[] lines = text.split("\\r?\\n");
 
-        final FloatBuffer vertexBuffer = getVertexArrayBuffer();
+        final FloatBuffer vertexBuffer = getVertexBuffer();
         final Buffer colorBuffer = getVertexColorsArrayBuffer();
 
         int idx = 0;
@@ -92,7 +92,7 @@ public final class Text extends Widget {
 
         final String[] lines = text.split("\\r?\\n");
 
-        final FloatBuffer vertexBuffer = getVertexArrayBuffer();
+        final FloatBuffer vertexBuffer = getVertexBuffer();
         final Buffer colorBuffer = getVertexColorsArrayBuffer();
 
         int idx = 0;

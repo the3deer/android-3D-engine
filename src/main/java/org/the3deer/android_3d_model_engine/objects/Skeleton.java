@@ -17,7 +17,7 @@ public final class Skeleton {
 
         // reserve buffers
         AnimatedModel animSkeleton = animatedModel.clone();
-        animSkeleton.setVertexArrayBuffer(IOUtils.createFloatBuffer(animSkeleton.getJointCount() * 9));   // 4 floats (i,j,k,l) x 3 vertex = 12 floats / joint
+        animSkeleton.setVertexBuffer(IOUtils.createFloatBuffer(animSkeleton.getJointCount() * 9));   // 4 floats (i,j,k,l) x 3 vertex = 12 floats / joint
         animSkeleton.setVertexNormalsArrayBuffer(IOUtils.createFloatBuffer(animSkeleton.getJointCount() * 9));
         // reserve color buffer (ie. to draw "JOINT" types of a different color from others)
         FloatBuffer colorBuffer = IOUtils.createFloatBuffer(animSkeleton.getJointCount() * 12);  // 4 floats (rgba) x 3 vertex = 12 floats / joint
@@ -87,9 +87,9 @@ public final class Skeleton {
         animatedModel.getVertexNormalsArrayBuffer().put(normal);
 
         // parent point
-        animatedModel.getVertexArrayBuffer().put(parentPoint[0]);
-        animatedModel.getVertexArrayBuffer().put(parentPoint[1]);
-        animatedModel.getVertexArrayBuffer().put(parentPoint[2]);
+        animatedModel.getVertexBuffer().put(parentPoint[0]);
+        animatedModel.getVertexBuffer().put(parentPoint[1]);
+        animatedModel.getVertexBuffer().put(parentPoint[2]);
         ((FloatBuffer)animatedModel.getJointIds()).put(Math.max(parentJoinIndex, 0));
         ((FloatBuffer)animatedModel.getJointIds()).put(0);
         ((FloatBuffer)animatedModel.getJointIds()).put(0);
@@ -100,12 +100,12 @@ public final class Skeleton {
         ((FloatBuffer)animatedModel.getVertexWeights()).put(0);
 
         // child point(s)
-        animatedModel.getVertexArrayBuffer().put(point1[0]);
-        animatedModel.getVertexArrayBuffer().put(point1[1]);
-        animatedModel.getVertexArrayBuffer().put(point1[2]);
-        animatedModel.getVertexArrayBuffer().put(point2[0]);
-        animatedModel.getVertexArrayBuffer().put(point2[1]);
-        animatedModel.getVertexArrayBuffer().put(point2[2]);
+        animatedModel.getVertexBuffer().put(point1[0]);
+        animatedModel.getVertexBuffer().put(point1[1]);
+        animatedModel.getVertexBuffer().put(point1[2]);
+        animatedModel.getVertexBuffer().put(point2[0]);
+        animatedModel.getVertexBuffer().put(point2[1]);
+        animatedModel.getVertexBuffer().put(point2[2]);
         for (int i = 0; i < 2; i++) {
             ((FloatBuffer)animatedModel.getJointIds()).put(Math.max(node.getJointIndex(), 0));
             ((FloatBuffer)animatedModel.getJointIds()).put(0);

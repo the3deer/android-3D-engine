@@ -14,7 +14,7 @@ public class Rescaler {
         float topPt = -Float.MAX_VALUE, bottomPt = Float.MAX_VALUE; // on y-axis
         float farPt = Float.MAX_VALUE, nearPt = -Float.MAX_VALUE; // on z-axis
 
-        FloatBuffer vertexBuffer = object3DData.getVertexArrayBuffer();
+        FloatBuffer vertexBuffer = object3DData.getVertexBuffer();
         if (vertexBuffer == null) {
             Log.v("Rescaler", "Scaling for '" + object3DData.getId() + "' I found that there is no vertex data");
             return;
@@ -83,7 +83,7 @@ public class Rescaler {
                 vertexBuffer.put(i + 2, z);
             }
 
-            object3DData.setVertexArrayBuffer(vertexBuffer);
+            object3DData.setVertexBuffer(vertexBuffer);
         }
 
         Log.d("Rescaler",

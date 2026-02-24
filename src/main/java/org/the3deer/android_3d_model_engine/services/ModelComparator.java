@@ -37,7 +37,7 @@ public class ModelComparator {
         compareField("isIndexed", legacyModel.isIndexed(), newModel.isIndexed());
 
         // Compare buffers by content
-        compareFloatBuffer("Vertex Array", legacyModel.getVertexArrayBuffer(), newModel.getVertexArrayBuffer());
+        compareFloatBuffer("Vertex Array", legacyModel.getVertexBuffer(), newModel.getVertexBuffer());
         compareFloatBuffer("Normals Array", legacyModel.getVertexNormalsArrayBuffer(), newModel.getVertexNormalsArrayBuffer());
         compareGenericBuffer("Colors Array", legacyModel.getVertexColorsArrayBuffer(), newModel.getVertexColorsArrayBuffer());
         compareFloatBuffer("Texture Array", legacyModel.getTextureCoordsArrayBuffer(), newModel.getTextureCoordsArrayBuffer());
@@ -326,8 +326,9 @@ public class ModelComparator {
             Log.d("DEBUG_COMPARE", "OK: Scene skeletons are null in both.");
         } else if (legacy.getSkeletons() == null || neww.getSkeletons() == null) {
             Log.e("DEBUG_COMPARE", "DIFFERENCE: Scene skeletons. One is null. Legacy: " + (legacy.getSkeletons() == null) + ", New: " + (neww.getSkeletons() == null));
+        } else if (legacy.getSkeletons().size() != neww.getSkeletons().size()) {
+            Log.e("DEBUG_COMPARE", "DIFFERENCE: Scene skeleton count. Legacy: " + legacy.getSkeletons().size() + ", New: " + neww.getSkeletons().size());
         } else {
-            compareField("Scene Skeleton Count", legacy.getSkeletons().size(), neww.getSkeletons().size());
             // You can add more detailed comparisons for skeletons if needed
             for (int i = 0; i < legacy.getSkeletons().size(); i++) {
                 Skin skinOld = legacy.getSkeletons().get(i);
