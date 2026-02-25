@@ -1,6 +1,7 @@
 package org.the3deer.android_3d_model_engine.services.gltf;
 
 import android.graphics.Bitmap;
+import android.opengl.GLES20;
 import android.util.Log;
 
 import org.the3deer.android_3d_model_engine.animation.Animation;
@@ -86,20 +87,20 @@ public class GltfLoader {
             }
 
             List<Material> materials = buildMaterialsFromDto(dto);
-            Map<Integer, GltfPrimitiveDto> meshToPrimitiveMap = new HashMap<>();
-            List<Object3DData> meshes = buildMeshesFromDto(dto, materials, meshToPrimitiveMap);
+            Map<Integer, List<GltfPrimitiveDto>> meshToPrimitiveMap = new HashMap<>();
+            Map<Integer, List<Object3DData>> meshes = buildMeshesFromDto(dto, materials, meshToPrimitiveMap);
             List<Skin> skins = buildSkinsFromDto(dto, skinToNodeMap, meshToPrimitiveMap);
             List<Node> nodes = buildNodesFromDto(dto, meshes, skins);
             linkSkinsToSkeletons(dto, skins, nodes);
 
             List<Animation> animations = loadAnimations(dto, nodes);
 
-            return new GltfSceneData(dto, nodes, meshes, materials, skins, animations);
+            return new GltfSceneData(dto, nodes, null, materials, skins, animations);
         }
     }
 
     private void linkSkinsToSkeletons(GltfDto dto, List<Skin> skins, List<Node> nodes) {
-        for (int i=0; i<skins.size(); i++){
+        for (int i=0; i<dto.skins.size(); i++){
             GltfSkinDto skinDto = dto.skins.get(i);
             Skin skin = skins.get(i);
             if (skinDto.skeletonRootNodeIndex != null) {
@@ -187,7 +188,7 @@ public class GltfLoader {
         return materials;
     }
 
-    private List<Node> buildNodesFromDto(GltfDto dto, List<Object3DData> meshes, List<Skin> skins) {
+    private List<Node> buildNodesFromDto(GltfDto dto, Map<Integer,List<Object3DData>> meshes, List<Skin> skins) {
         if (dto.nodes == null || dto.nodes.isEmpty()) {
             return Collections.emptyList();
         }
@@ -221,14 +222,24 @@ public class GltfLoader {
                 }
             }
 
-            if (nodeDto.meshIndex != null) {
-                // FIX: Instead of reusing the mesh, clone it to create a unique instance.
-                // This is crucial for models like the chess set where multiple nodes use the same mesh.
-                Object3DData meshTemplate = meshes.get(nodeDto.meshIndex);
+            if (nodeDto.meshIndex == null) {
+                continue;
+            }
+
+            // FIX: Instead of reusing the mesh, clone it to create a unique instance.
+            // This is crucial for models like the chess set where multiple nodes use the same mesh.
+            List<Object3DData> meshTemplates = meshes.get(nodeDto.meshIndex);
+            if (meshTemplates == null || meshTemplates.isEmpty()) {
+                Log.w(TAG, "Node " + i + " references mesh index " + nodeDto.meshIndex +
+                        " but no meshes were loaded for this index. Skipping mesh assignment.");
+                continue;
+            }
+
+            for (Object3DData meshTemplate : meshTemplates) {
                 Object3DData meshInstance = meshTemplate.clone();
                 meshInstance.setId(meshTemplate.getId() + "_" + node.getName());
 
-                node.setMesh(meshInstance);
+                node.addMesh(meshInstance);
                 meshInstance.setParentNode(node);
 
                 if (nodeDto.skinIndex != null && meshInstance instanceof AnimatedModel) {
@@ -254,19 +265,21 @@ public class GltfLoader {
         return wrapperArray;
     }
 
-    private List<Object3DData> buildMeshesFromDto(GltfDto dto, List<Material> materials,
-                                                  Map<Integer, GltfPrimitiveDto> meshToPrimitiveMap) {
+    private Map<Integer,List<Object3DData>> buildMeshesFromDto(GltfDto dto, List<Material> materials,
+                                                  Map<Integer, List<GltfPrimitiveDto>> meshToPrimitiveMap) {
         if (dto.meshes == null || dto.meshes.isEmpty()) {
-            return Collections.emptyList();
+            return Collections.emptyMap();
         }
 
-        List<Object3DData> allPrimitives = new ArrayList<>();
+        final Map<Integer,List<Object3DData>> ret = new TreeMap<>();
+
         for (int i = 0; i < dto.meshes.size(); i++) {
             GltfMeshDto meshDto = dto.meshes.get(i);
             if (meshDto.primitives == null) continue;
+            if (meshDto.primitives.isEmpty()) continue;
 
-            if (!meshDto.primitives.isEmpty()){
-                GltfPrimitiveDto primitiveDto = meshDto.primitives.get(0);
+            final List<Object3DData> allMeshes = new ArrayList<>(meshDto.primitives.size());
+            for (GltfPrimitiveDto primitiveDto : meshDto.primitives) {
 
                 AnimatedModel model = new AnimatedModel();
                 model.setId(meshDto.name != null ? meshDto.name + "_" + i : "mesh_" + i);
@@ -277,23 +290,24 @@ public class GltfLoader {
                 model.setVertexColorsArrayBuffer(primitiveDto.colors);
                 model.setIndexBuffer(primitiveDto.indices);
                 model.setDrawUsingArrays(primitiveDto.indices == null);
-                model.setDrawMode(android.opengl.GLES20.GL_TRIANGLES);
+                model.setDrawMode(GLES20.GL_TRIANGLES);
 
                 if (primitiveDto.materialIndex != null) {
                     model.setMaterial(materials.get(primitiveDto.materialIndex));
                 }
 
-                allPrimitives.add(model);
-
-                meshToPrimitiveMap.put(i, primitiveDto);
+                allMeshes.add(model);
             }
+
+            meshToPrimitiveMap.put(i, meshDto.primitives);
+            ret.put(i, allMeshes);
         }
-        return allPrimitives;
+        return ret;
     }
 
 
     private List<Skin> buildSkinsFromDto(GltfDto dto, Map<Integer, GltfNodeDto> skinToNodeMap,
-                                         Map<Integer, GltfPrimitiveDto> meshToPrimitiveMap) {
+                                         Map<Integer, List<GltfPrimitiveDto>> meshToPrimitiveMap) {
         if (dto.skins == null || dto.skins.isEmpty()) {
             return Collections.emptyList();
         }
@@ -309,45 +323,62 @@ public class GltfLoader {
                 continue;
             }
 
-            GltfPrimitiveDto primitiveDto = meshToPrimitiveMap.get(skinnedNodeDto.meshIndex);
-            if (primitiveDto == null) {
+            List<GltfPrimitiveDto> primitivesList = meshToPrimitiveMap.get(skinnedNodeDto.meshIndex);
+            if (primitivesList == null || primitivesList.isEmpty()) {
                 Log.w(TAG, "Could not find mesh primitive for skin " + i + ". Skipping.");
-                skins.add(new Skin()); 
+                skins.add(new Skin());
                 continue;
             }
 
-            if (skinDto.inverseBindMatrices == null) continue;
+            for (GltfPrimitiveDto primitiveDto : primitivesList) {
+                if (primitiveDto.jointIds != null && primitiveDto.weights != null) {
+                    // Found a primitive with skinning data, use it for this skin
+                    Skin skin = createSkinFromDto(skinDto, primitiveDto);
+                    skins.add(skin);
+                }
+            }
+         }
+        return skins;
+    }
 
+    private Skin createSkinFromDto(GltfSkinDto skinDto, GltfPrimitiveDto primitiveDto) {
+
+        float[] ibmArray = null;
+        if (skinDto.inverseBindMatrices != null) {
             skinDto.inverseBindMatrices.rewind();
-            float[] ibmArray = new float[skinDto.inverseBindMatrices.capacity()];
-            ((FloatBuffer) skinDto.inverseBindMatrices).get(ibmArray);
+            ibmArray = new float[skinDto.inverseBindMatrices.capacity()];
+            try {
+                ((FloatBuffer) skinDto.inverseBindMatrices).get(ibmArray);
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to read inverse bind matrix for skin " + skinDto.name, e);
+                return new Skin();
+            }
+        }
 
-            // Convert the inverse bind matrix buffer to a flat, transposed array
+        // Convert the inverse bind matrix buffer to a flat, transposed array
             /*float[] ibmArrayTransposed = new float[ibmArray.length];
             int matrixCount = ibmArray.length / 16;
             for (int m = 0; m < matrixCount; m++) {
                 Matrix.transposeM(ibmArrayTransposed, m * 16, ibmArray, m * 16);
             }*/
 
-            int[] joints = new int[skinDto.jointNodeIndices.size()];
-            for (int j = 0; j < skinDto.jointNodeIndices.size(); j++) {
-                joints[j] = skinDto.jointNodeIndices.get(j);
-            }
-
-            Skin skin = new Skin(
-                    skinDto.name,
-                    null, 
-                    primitiveDto.jointIds,
-                    primitiveDto.weights,
-                    ibmArray,
-                    joints
-            );
-            skin.setJointComponents(primitiveDto.jointIdsComponents);
-            skin.setWeightsComponents(primitiveDto.weightsComponents);
-
-            skins.add(skin);
+        int[] joints = new int[skinDto.jointNodeIndices.size()];
+        for (int j = 0; j < skinDto.jointNodeIndices.size(); j++) {
+            joints[j] = skinDto.jointNodeIndices.get(j);
         }
-        return skins;
+
+        Skin skin = new Skin(
+                skinDto.name,
+                null,
+                primitiveDto.jointIds,
+                primitiveDto.weights,
+                ibmArray,
+                joints
+        );
+        skin.setJointComponents(primitiveDto.jointIdsComponents);
+        skin.setWeightsComponents(primitiveDto.weightsComponents);
+
+        return skin;
     }
 
     private List<Animation> loadAnimations(GltfDto dto, List<Node> nodes) {
@@ -511,8 +542,8 @@ public class GltfLoader {
         stack.addAll(nodes);
         while (!stack.isEmpty()) {
             Node node = stack.pop();
-            if (node.getMesh() != null) {
-                collected.add(node.getMesh());
+            if (node.getMeshes() != null) {
+                collected.addAll(node.getMeshes());
             }
             if (node.getChildren() != null) {
                 stack.addAll(node.getChildren());

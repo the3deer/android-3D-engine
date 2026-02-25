@@ -1,6 +1,7 @@
 package org.the3deer.android_3d_model_engine.model;
 
 import android.opengl.Matrix;
+import android.util.Log;
 
 import org.the3deer.util.math.Math3DUtils;
 import org.the3deer.util.math.Quaternion;
@@ -30,6 +31,7 @@ public class Node {
 	// private Mesh mesh; // This is a REFERENCE to an object in the Scene's mesh library.
 	private String meshId;
 
+	// FIXME: is this used?
 	private int skinIndex = -1;
 
 	private Map<String,String> materials;
@@ -164,25 +166,20 @@ public class Node {
 		this.skin = skin;
 	}
 
-	public List<String> getMeshesId() {
-		if (meshId != null) {
-			return Collections.singletonList(meshId);
-		} else {
-			return Collections.emptyList();
-		}
-	}
-
-	public void setMeshId(String meshId) {
-		this.meshId = meshId;
-	}
-
+	// scene - on load complete - mesh assignment
 	public void setMesh(Object3DData mesh) {
 		this.meshes = new ArrayList<>(Collections.singletonList(mesh));
 	}
 
-	public Object3DData getMesh(){
-		if (this.meshes == null || this.meshes.isEmpty()) return null;
-		return this.meshes.get(0);
+	public void addMesh(Object3DData mesh) {
+		if (mesh == null){
+			Log.e("Node", "Cannot add null mesh to node "+getId());
+			return;
+		}
+		if (this.meshes == null){
+			this.meshes = new ArrayList<>();
+		}
+		this.meshes.add(mesh);
 	}
 
 	/**
@@ -228,10 +225,6 @@ public class Node {
 
 	public int getJointIndex() {
 		return jointIndex;
-	}
-
-	public int getSkinIndex() {
-		return skinIndex;
 	}
 
 	public void setSkinIndex(int skinIndex) {
