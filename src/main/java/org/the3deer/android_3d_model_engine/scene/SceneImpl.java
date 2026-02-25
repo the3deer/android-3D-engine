@@ -795,17 +795,17 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
             setRootNodes(rootNodes);
         }
 
+        // prepare world matrix
+        Matrix.setIdentityM(this.worldMatrix, 0);
+
         // 1. UPDATE THE STATIC SCENE GRAPH
         // This sets the base pose for everything, including skeletons.
         if (getRootNodes() != null && !getRootNodes().isEmpty()) {
             for (int i = 0; i < getRootNodes().size(); i++) {
                 // This method should recursively update all children
-                getRootNodes().get(i).updateBindWorldTransform(getWorldMatrix());
+                getRootNodes().get(i).updateBindWorldTransform(this.worldMatrix);
             }
         }
-
-        // prepare world matrix
-        Matrix.setIdentityM(this.worldMatrix, 0);
 
         // fix coordinate system
         if (Constants.FIX_COORDINATE_SYSTEM){
@@ -822,7 +822,7 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
         if (getRootNodes() != null && !getRootNodes().isEmpty()) {
             for (int i = 0; i < getRootNodes().size(); i++) {
                 // This method should recursively update all children
-                getRootNodes().get(i).updateBindWorldTransform(getWorldMatrix());
+                getRootNodes().get(i).updateBindWorldTransform(this.worldMatrix);
             }
         }
     }
@@ -950,7 +950,7 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
         Log.v(TAG, "Model[0] current dimension: " + currentDimensions);
 
         final float[] corner01 = currentDimensions.getCornerLeftTopNearVector();
-        ;
+
         final float[] corner02 = currentDimensions.getCornerRightBottomFar();
         final float[] center01 = currentDimensions.getCenter();
 

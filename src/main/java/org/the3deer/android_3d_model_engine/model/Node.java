@@ -61,7 +61,7 @@ public class Node {
 	// camera
 	private Camera camera;
 
-	// scene
+	// scene - default node
 	public Node() {
 		this(new Transform());
 	}
@@ -74,7 +74,8 @@ public class Node {
 		Matrix.setIdentityM(this.bindWorldTransform,0);
 	}
 
-	public Node(Transform localTransform) {
+	// gltf - legacy
+	private Node(Transform localTransform) {
 		this.id = "-2";
 		this.localTransform = localTransform;
 		this.bindWorldTransform = new float[16];
@@ -91,7 +92,7 @@ public class Node {
 		return new Node(new Transform(floatArrayToFloatWrapperArray(scale), quaternion, floatArrayToFloatWrapperArray(translation)));
 	}
 
-	// collada legacy
+	// collada - legacy
 	public Node(String id, String name, String sid,
 				float[] bindLocalMatrix, Float[] bindLocalScale, Float[] bindLocalRotation, Float[] bindLocalTranslation,
 				final float[] localTransform, final float[] bindWorldTransform,
@@ -247,21 +248,24 @@ public class Node {
 		return Math3DUtils.isIdentity(this.animatedLocalTransform);
 	}
 
-
-
+	// scene - node hierarchy - bind pose update
 	public void updateBindWorldTransform(float[] parentWorldTransform) {
 
-		// 0. get inverse bind matrix
-		float[] matrix = Math3DUtils.IDENTITY_MATRIX;
 		if (skinIndex != -1 && skin != null && skin.getInverseBindMatrices() != null){
-			matrix = new float[16];
+
+			// 0. get inverse bind matrix
+			final float[] matrix = new float[16];
 			Matrix.setIdentityM(matrix,0);
 			Matrix.multiplyMM(matrix, 0, this.getLocalTransform().getTransform(), 0, skin.getInverseBindMatrices(), skinIndex * 16);
-		}
+			Matrix.multiplyMM(this.bindWorldTransform, 0, parentWorldTransform, 0, matrix, 0);
+		} else {
 
-		// 1. Calculate this node's final world transform
-		// worldTransform = parentWorldTransform * this.bindTransform (local matrix)
-		Matrix.multiplyMM(this.bindWorldTransform, 0, parentWorldTransform, 0, matrix, 0);
+			// 1. Calculate this node's final world transform
+			// worldTransform = parentWorldTransform * this.bindTransform (local matrix)
+			//Matrix.multiplyMM(this.bindWorldTransform, 0, this.localTransform.getTransform(), 0, parentWorldTransform, 0);
+			Matrix.multiplyMM(this.bindWorldTransform, 0, parentWorldTransform, 0, this.localTransform.getTransform(), 0);
+			//Matrix.multiplyMM(this.bindWorldTransform, 0, parentWorldTransform, 0, matrix, 0);
+		}
 
 		// 2. Recursively update all children
 		for (Node child : getChildren()) {
