@@ -84,6 +84,10 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
      */
     private List<Object3DData> objects = new ArrayList<>();
     /**
+     * List of cameras
+     */
+    private List<Camera> cameras;
+    /**
      * List of Animations
      */
     private List<Animation> animations;
@@ -91,12 +95,10 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
      * Current animation
      */
     private Animation currentAnimation;
-
     /**
      * Point of view camera
      */
-    @Inject
-    private Camera camera = new Camera(Constants.DEFAULT_CAMERA_POSITION);
+    private Camera camera;
     /**
      * Blender uses different coordinate system.
      * This is a patch to turn camera and SkyBox 90 degree on X axis
@@ -216,9 +218,14 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
     @Inject
     private EventManager eventManager;
 
-    private boolean enabled;
+    private boolean enabled = true;
 
     public SceneImpl() {
+
+        // default camera setting
+         camera = new Camera("default", Constants.DEFAULT_CAMERA_POSITION);
+         cameras = new ArrayList<>();
+         cameras.add(camera);
     }
 
     @Override
@@ -262,6 +269,10 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
         lightBulb.setColor(Constants.COLOR_WHITE);
     }*/
 
+    @Override
+    public void setCameras(List<Camera> cameras) {
+        this.cameras = cameras;
+    }
 
     /**
      * Blender:  object created in blender are oriented towards the z-axis (up-vector)
@@ -1068,6 +1079,11 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
     @Override
     public void setCamera(Camera camera) {
         this.camera = camera;
+    }
+
+    @Override
+    public List<Camera> getCameras() {
+        return this.cameras;
     }
 
     public void setBlendingEnabled(boolean enabled) {

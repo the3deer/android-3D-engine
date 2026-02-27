@@ -20,8 +20,23 @@ public final class PerspectiveProjection implements Projection {
     // projection matrix
     private final float[] matrix = new float[16];
 
+    private float yfov = 60.0f;
+    private float aspectRatio = 1.0f;
+    private float znear = Constants.near;
+    private float zfar = Constants.far;
+
+    private boolean custom = false;
+
     public PerspectiveProjection(){
         Matrix.setIdentityM(matrix, 0);
+    }
+
+    public PerspectiveProjection(float yfov, float aspectRatio, float znear, float zfar) {
+        this.yfov = (float) Math.toDegrees(yfov);
+        this.aspectRatio = aspectRatio;
+        this.znear = znear;
+        this.zfar = zfar;
+        this.custom = true;
     }
 
     @BeanInit
@@ -32,11 +47,15 @@ public final class PerspectiveProjection implements Projection {
     @Override
     public void refresh(){
 
-        if (screen == null) return;
+        if (screen == null && !custom) return;
 
-        Matrix.frustumM(matrix, 0,
-                -screen.getRatio(), screen.getRatio(),
-                -1f, 1f, Constants.near, Constants.far);
+        if (custom) {
+            Matrix.perspectiveM(matrix, 0, yfov, aspectRatio, znear, zfar);
+        } else {
+            Matrix.frustumM(matrix, 0,
+                    -screen.getRatio(), screen.getRatio(),
+                    -1f, 1f, Constants.near, Constants.far);
+        }
     }
 
     @Override

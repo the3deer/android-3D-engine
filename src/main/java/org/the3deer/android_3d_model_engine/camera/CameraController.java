@@ -1,12 +1,15 @@
 package org.the3deer.android_3d_model_engine.camera;
 
 
+import android.util.Log;
+
 import org.the3deer.android_3d_model_engine.controller.TouchEvent;
 import org.the3deer.android_3d_model_engine.model.Camera;
 import org.the3deer.android_3d_model_engine.model.Constants;
 import org.the3deer.android_3d_model_engine.model.Projection;
 import org.the3deer.android_3d_model_engine.model.Scene;
 import org.the3deer.android_3d_model_engine.model.Screen;
+import org.the3deer.android_3d_model_engine.scene.SceneManager;
 import org.the3deer.android_3d_model_engine.toolbar.MenuAdapter;
 import org.the3deer.util.bean.BeanFactory;
 import org.the3deer.util.bean.BeanInit;
@@ -29,11 +32,9 @@ public final class CameraController implements Camera.Controller, EventListener 
     @Inject
     private BeanFactory beanFactory;
     @Inject
-    private Scene scene;
-    @Inject
     private Screen screen;
     @Inject
-    private CameraManager cameraManager;
+    private SceneManager sceneManager;
     @Inject
     private CameraHandler cameraHandler;
 
@@ -51,12 +52,16 @@ public final class CameraController implements Camera.Controller, EventListener 
     @Override
     public boolean onEvent(EventObject event) {
 
-        if (scene == null){
+        if (sceneManager == null || sceneManager.getCurrentScene() == null
+                || !sceneManager.getCurrentScene().isEnabled()) {
             return false;
         }
 
-        final Camera activeCamera = cameraManager.getActiveCamera();
-        if (activeCamera == null) return false;
+        final Camera activeCamera = sceneManager.getCurrentScene().getCamera();
+        if (activeCamera == null) {
+            Log.w("CameraController", "No active camera found in the current scene.");
+            return false;
+        }
 
         if (event instanceof TouchEvent) {
             //Log.v("CameraController","event: "+event);
@@ -76,7 +81,7 @@ public final class CameraController implements Camera.Controller, EventListener 
                     break;
                 case PINCH:
                     final float zoomFactor = ((TouchEvent) event).getZoom();
-                    cameraHandler.zoom((float) (-zoomFactor/4 * Constants.near * Math.log(scene.getCamera().getDistance())));
+                    cameraHandler.zoom((float) (-zoomFactor/4 * Constants.near * Math.log(activeCamera.getDistance())));
                     break;
                 case SPREAD:
                     // TODO:

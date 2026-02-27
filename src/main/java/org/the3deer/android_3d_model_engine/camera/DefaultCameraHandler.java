@@ -5,6 +5,7 @@ import android.util.Log;
 
 import org.the3deer.android_3d_model_engine.model.Camera;
 import org.the3deer.android_3d_model_engine.model.Projection;
+import org.the3deer.android_3d_model_engine.scene.SceneManager;
 import org.the3deer.util.bean.BeanInit;
 import org.the3deer.util.math.Math3DUtils;
 
@@ -14,7 +15,7 @@ import javax.inject.Named;
 public class DefaultCameraHandler implements CameraController.CameraHandler {
 
     @Inject
-    private Camera camera;
+    private SceneManager sceneManager;
 
     @Inject
     @Named("perspectiveProjection")
@@ -27,13 +28,33 @@ public class DefaultCameraHandler implements CameraController.CameraHandler {
 
     @BeanInit
     public void setUp() {
+        if (sceneManager == null) {
+            Log.w("DefaultCameraHandler", "sceneManager is null");
+            return;
+        }
+        /*if (sceneManager.getCurrentScene() == null){
+            Log.w("DefaultCameraHandler", "currentScene is null");
+            return;
+        }
+        final Camera camera = sceneManager.getCurrentScene().getCamera();
+        if (camera == null){
+            Log.w("DefaultCameraHandler", "camera is null");
+            return;
+        }
         this.savePos = camera.getPos().clone();
         this.saveView = new float[]{0,0,0,0};
-        this.saveUp = camera.getUp().clone();
+        this.saveUp = camera.getUp().clone();*/
     }
 
     @Override
     public void enable(){
+
+        final Camera camera = sceneManager.getCurrentScene().getCamera();
+        if (camera == null){
+            Log.w("DefaultCameraHandler", "camera is null");
+            return;
+        }
+
         camera.setController(this);
         camera.setProjection(projection);
         camera.setChanged(true);
@@ -43,8 +64,15 @@ public class DefaultCameraHandler implements CameraController.CameraHandler {
     }
 
     private void save(){
-        System.arraycopy(camera.getPos(), 0, this.savePos, 0, camera.getPos().length);
-        System.arraycopy(camera.getUp(), 0, this.saveUp, 0, camera.getUp().length);
+
+        final Camera camera = sceneManager.getCurrentScene().getCamera();
+        if (camera == null){
+            Log.w("DefaultCameraHandler", "camera is null");
+            return;
+        }
+
+        /*System.arraycopy(camera.getPos(), 0, this.savePos, 0, camera.getPos().length);
+        System.arraycopy(camera.getUp(), 0, this.saveUp, 0, camera.getUp().length);*/
     }
 
     @Override
@@ -53,6 +81,13 @@ public class DefaultCameraHandler implements CameraController.CameraHandler {
     }
 
     private void translateCameraImpl(float dX, float dY) {
+
+        final Camera camera = sceneManager.getCurrentScene().getCamera();
+        if (camera == null){
+            Log.w("DefaultCameraHandler", "camera is null");
+            return;
+        }
+
         float vlen;
 
         // Translating the camera requires a directional vector to rotate
@@ -175,6 +210,13 @@ public class DefaultCameraHandler implements CameraController.CameraHandler {
     }
 
     public  synchronized void zoom(float direction) {
+
+        final Camera camera = sceneManager.getCurrentScene().getCamera();
+        if (camera == null){
+            Log.w("DefaultCameraHandler", "camera is null");
+            return;
+        }
+
         //if (true) return;
         // Moving the camera requires a little more then adding 1 to the z or
         // subracting 1.
@@ -215,6 +257,13 @@ public class DefaultCameraHandler implements CameraController.CameraHandler {
             Log.w("DefaultCamera", "NaN");
             return;
         }
+
+        final Camera camera = sceneManager.getCurrentScene().getCamera();
+        if (camera == null){
+            Log.w("DefaultCameraHandler", "camera is null");
+            return;
+        }
+
         float xLook = camera.getxView() - camera.getPos()[0];
         float yLook = camera.getyView() - camera.getPos()[1];
         float zLook = camera.getView()[2] - camera.getPos()[2];

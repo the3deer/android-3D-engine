@@ -9,4 +9,5 @@ public class GltfDto {
     public List<GltfAnimationDto> animations;
     public List<GltfSceneDto> scenes;
     public List<GltfMaterialDto> materials;
+    public List<GltfCameraDto> cameras;
 }

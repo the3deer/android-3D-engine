@@ -152,7 +152,7 @@ public class ShadowsRenderer {
     private float mShadowMapRatio = 1;
 
     // point of view light
-    private Camera camera = new Camera(Constants.DEFAULT_CAMERA_POSITION);
+    private Camera camera = new Camera("default", Constants.DEFAULT_CAMERA_POSITION);
 
     final Object3DData plane = Plane2.build();
 

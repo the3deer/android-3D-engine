@@ -16,9 +16,12 @@ import org.the3deer.android_3d_model_engine.model.Scene;
 import org.the3deer.android_3d_model_engine.model.Skin;
 import org.the3deer.android_3d_model_engine.model.Texture;
 import org.the3deer.android_3d_model_engine.model.Transform;
+import org.the3deer.android_3d_model_engine.model.impl.OrthographicProjection;
+import org.the3deer.android_3d_model_engine.model.impl.PerspectiveProjection;
 import org.the3deer.android_3d_model_engine.scene.SceneImpl;
 import org.the3deer.android_3d_model_engine.services.LoadListener;
 import org.the3deer.android_3d_model_engine.services.gltf.dto.GltfAnimationDto;
+import org.the3deer.android_3d_model_engine.services.gltf.dto.GltfCameraDto;
 import org.the3deer.android_3d_model_engine.services.gltf.dto.GltfChannelDto;
 import org.the3deer.android_3d_model_engine.services.gltf.dto.GltfDto;
 import org.the3deer.android_3d_model_engine.services.gltf.dto.GltfMaterialDto;
@@ -86,16 +89,25 @@ public class GltfLoader {
                 }
             }
 
+            // basic
             List<Material> materials = buildMaterialsFromDto(dto);
             Map<Integer, List<GltfPrimitiveDto>> meshToPrimitiveMap = new HashMap<>();
             Map<Integer, List<Object3DData>> meshes = buildMeshesFromDto(dto, materials, meshToPrimitiveMap);
+            List<Camera> cameras = buildCamerasFromDto(dto);
+
+            // skinning
             List<Skin> skins = buildSkinsFromDto(dto, skinToNodeMap, meshToPrimitiveMap);
-            List<Node> nodes = buildNodesFromDto(dto, meshes, skins);
+            List<Node> nodes = buildNodesFromDto(dto, meshes, skins, cameras);
             linkSkinsToSkeletons(dto, skins, nodes);
 
             List<Animation> animations = loadAnimations(dto, nodes);
 
-            return new GltfSceneData(dto, nodes, null, materials, skins, animations);
+            List<Object3DData> allMeshes = new ArrayList<>();
+            for (List<Object3DData> meshList : meshes.values()) {
+                allMeshes.addAll(meshList);
+            }
+
+            return new GltfSceneData(dto, nodes, allMeshes, materials, skins, animations, cameras);
         }
     }
 
@@ -188,7 +200,40 @@ public class GltfLoader {
         return materials;
     }
 
-    private List<Node> buildNodesFromDto(GltfDto dto, Map<Integer,List<Object3DData>> meshes, List<Skin> skins) {
+    private List<Camera> buildCamerasFromDto(GltfDto dto) {
+        if (dto.cameras == null || dto.cameras.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<Camera> cameras = new ArrayList<>(dto.cameras.size());
+        for (GltfCameraDto cameraDto : dto.cameras) {
+            String cameraName = cameraDto.name;
+            if (cameraName == null){
+                cameraName = "Camera " + dto.cameras.indexOf(cameraDto);
+            }
+
+            Camera camera = new Camera(cameraName);
+            if ("perspective".equals(cameraDto.type)) {
+                camera.setProjection(new PerspectiveProjection(
+                        cameraDto.yfov != null ? cameraDto.yfov : (float) Math.toRadians(60.0),
+                        cameraDto.aspectRatio != null ? cameraDto.aspectRatio : 1.0f,
+                        cameraDto.znear != null ? cameraDto.znear : 0.1f,
+                        cameraDto.zfar != null ? cameraDto.zfar : 1000.0f
+                ));
+            } else if ("orthographic".equals(cameraDto.type)) {
+                camera.setProjection(new OrthographicProjection(
+                        cameraDto.xmag != null ? cameraDto.xmag : 1.0f,
+                        cameraDto.ymag != null ? cameraDto.ymag : 1.0f,
+                        cameraDto.znear != null ? cameraDto.znear : 0.1f,
+                        cameraDto.zfar != null ? cameraDto.zfar : 1000.0f
+                ));
+            }
+            cameras.add(camera);
+        }
+        return cameras;
+    }
+
+    private List<Node> buildNodesFromDto(GltfDto dto, Map<Integer,List<Object3DData>> meshes, List<Skin> skins, List<Camera> cameras) {
         if (dto.nodes == null || dto.nodes.isEmpty()) {
             return Collections.emptyList();
         }
@@ -220,6 +265,12 @@ public class GltfLoader {
                     node.addChild(childNode);
                     childNode.setParent(node);
                 }
+            }
+
+            if (nodeDto.cameraIndex != null && nodeDto.cameraIndex < cameras.size()) {
+                Camera camera = cameras.get(nodeDto.cameraIndex);
+                node.setCamera(camera);
+                camera.setNode(node);
             }
 
             if (nodeDto.meshIndex == null) {
@@ -463,7 +514,16 @@ public class GltfLoader {
                     }
                 }
                 scene.setRootNodes(rootNodes);
-                scene.setCamera(new Camera());
+
+                // camera configuration
+                scene.setCameras(sceneData.cameras);
+                // set default camera from the gltf model
+                Camera defaultCamera = findFirstCamera(rootNodes);
+                if (defaultCamera != null) {
+                    scene.setCamera(defaultCamera);
+                } else {
+                    Log.i(TAG, "No camera found in the scene. Using default camera.");
+                }
 
                 List<Object3DData> sceneObjects = collectMeshes(rootNodes);
                 scene.setObjects(sceneObjects);
@@ -528,12 +588,26 @@ public class GltfLoader {
             defaultScene.setRootNodes(rootNodes);
             List<Object3DData> sceneObjects = collectMeshes(rootNodes);
             defaultScene.setObjects(sceneObjects);
-            defaultScene.setCamera(new Camera());
             finalScenes.add(defaultScene);
 
             defaultScene.onLoadComplete();
         }
         return finalScenes;
+    }
+
+    private Camera findFirstCamera(List<Node> nodes) {
+        Stack<Node> stack = new Stack<>();
+        stack.addAll(nodes);
+        while (!stack.isEmpty()) {
+            Node node = stack.pop();
+            if (node.getCamera() != null) {
+                return node.getCamera();
+            }
+            if (node.getChildren() != null) {
+                stack.addAll(node.getChildren());
+            }
+        }
+        return null;
     }
 
     private List<Object3DData> collectMeshes(List<Node> nodes) {

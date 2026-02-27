@@ -10,10 +10,7 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 
 import org.the3deer.android_3d_model_engine.camera.CameraController;
-import org.the3deer.android_3d_model_engine.camera.CameraManager;
-import org.the3deer.android_3d_model_engine.camera.CameraPreferences;
 import org.the3deer.android_3d_model_engine.camera.DefaultCameraHandler;
-import org.the3deer.android_3d_model_engine.collision.CollisionController;
 import org.the3deer.android_3d_model_engine.controller.TouchController;
 import org.the3deer.android_3d_model_engine.drawer.BoundingBoxDrawer;
 import org.the3deer.android_3d_model_engine.drawer.LightBulbDrawer;
@@ -188,8 +185,6 @@ public class ModelEngine {
         beanFactory.add("10.screen", new Screen(640, 480));
         beanFactory.add("10.modelLoader", ModelLoader.class);
         beanFactory.add("10.cameraHandler", DefaultCameraHandler.class);
-        beanFactory.add("10.cameraManager", CameraManager.class);
-        beanFactory.add("10.cameraPreferences", CameraPreferences.class);
         //beanFactory.add("10.settings", PreferenceFragment.class);
 
         beanFactory.add("10.shaderPreferences", ShaderPreferences.class);
@@ -202,7 +197,7 @@ public class ModelEngine {
         //beanFactory.add("20.scene_0.scene", SceneImpl.class);
         beanFactory.add("20.scene.sceneManager", SceneManager.class);
         beanFactory.add("20.scene.projection", PerspectiveProjection.class);
-        beanFactory.add("20.scene.camera", new Camera(Constants.DEFAULT_CAMERA_POSITION));
+        beanFactory.add("20.scene.camera", new Camera("default", Constants.DEFAULT_CAMERA_POSITION));
         //beanFactory.add("20.scene.light", new Light(Constants.DEFAULT_LIGHT_LOCATION));
         beanFactory.add("20.scene.light", new Light(new float[]{50f, 100f, 50f}));
 
@@ -236,7 +231,7 @@ public class ModelEngine {
 
         // visualization
         beanFactory.add("80.gui.projection", OrthographicProjection.class);
-        beanFactory.add("80.gui.camera", Camera.class);
+        beanFactory.add("80.gui.camera", new Camera("gui"));
 
         final GUISystem guiSystem = new GUISystem();
         guiSystem.setEnabled(true);

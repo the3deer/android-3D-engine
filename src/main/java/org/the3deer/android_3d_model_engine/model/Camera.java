@@ -76,7 +76,7 @@ public class Camera {
         }
     }
 
-    private final String name = "Camera_"+System.identityHashCode(this);
+    private final String name;
 
     private final BoundingBox centerBox = new BoundingBox("scene", -Constants.ROOM_CENTER_SIZE, Constants.ROOM_CENTER_SIZE,
             -Constants.ROOM_CENTER_SIZE, Constants.ROOM_CENTER_SIZE, -Constants.ROOM_CENTER_SIZE, Constants.ROOM_CENTER_SIZE);
@@ -125,15 +125,17 @@ public class Camera {
     // scene graph
     private Node node;
 
-    public Camera() {
+    public Camera(String name) {
+        this.name = name;
     }
 
-    public Camera(float[] location) {
+    public Camera(String name, float[] location) {
         // Initialize variables...
-        this(location[0], location[1], location[2], 0, 0, 0, 0, 1, 0);
+        this(name, location[0], location[1], location[2], 0, 0, 0, 0, 1, 0);
     }
 
-    public Camera(Camera cam2) {
+    public Camera(String name, Camera cam2) {
+        this.name = name;
         this.screen = cam2.screen;
         this.pos = cam2.pos;
         this.view = cam2.view;
@@ -142,9 +144,10 @@ public class Camera {
         this.projection = cam2.projection;
     }
 
-    public Camera(float xPos, float yPos, float zPos, float xView, float yView, float zView, float xUp, float yUp,
+    public Camera(String name, float xPos, float yPos, float zPos, float xView, float yView, float zView, float xUp, float yUp,
                   float zUp) {
 
+        this.name = name;
         // Here we set the camera to the values sent in to us. This is mostly
         // used to set up a
         // default position.
@@ -309,7 +312,7 @@ public class Camera {
 
         // lazy init
         if (stereoCam == null) {
-            stereoCam = new Camera[]{new Camera(), new Camera()};
+            stereoCam = new Camera[]{new Camera("left"), new Camera("right")};
         }
 
         // look vector

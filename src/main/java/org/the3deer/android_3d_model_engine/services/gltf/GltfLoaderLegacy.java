@@ -242,7 +242,7 @@ public final class GltfLoaderLegacy {
         for (CameraModel cameraModel : gltfModel.getCameraModels()) {
             float[] floats = cameraModel.computeProjectionMatrix(null, 1.0f);
             // TODO: load parameters
-            final Camera camera = new Camera();
+            final Camera camera = new Camera(cameraModel.getName());
             cameraList.add(camera);
 
             callback.onLoad(camera);

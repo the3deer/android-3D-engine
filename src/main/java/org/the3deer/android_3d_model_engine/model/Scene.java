@@ -64,7 +64,6 @@ public interface Scene {
 
     public float[] getWorldMatrix();
 
-
     void setMaterials(ArrayList<Material> materials);
 
     void setAnimations(List<Animation> sceneAnimations);
@@ -72,4 +71,8 @@ public interface Scene {
     void merge(Scene other);
 
     String getId();
+
+    void setCameras(List<Camera> cameras);
+
+    List<Camera> getCameras();
 }

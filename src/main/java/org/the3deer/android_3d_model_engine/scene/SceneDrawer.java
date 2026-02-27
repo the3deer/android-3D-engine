@@ -5,7 +5,6 @@ import android.util.Log;
 
 import org.the3deer.android_3d_model_engine.R;
 import org.the3deer.android_3d_model_engine.animation.Animator;
-import org.the3deer.android_3d_model_engine.camera.CameraManager;
 import org.the3deer.android_3d_model_engine.model.Camera;
 import org.the3deer.android_3d_model_engine.model.Constants;
 import org.the3deer.android_3d_model_engine.model.Dimensions;
@@ -36,11 +35,11 @@ public class SceneDrawer implements Drawer, EventListener {
     @Inject
     private SceneManager sceneManager;
     @Inject
-    private CameraManager cameraManager;
-    @Inject
     private Light light;
     @Inject
     private Projection projection;
+    @Inject
+    private Camera defaultCamera;
 
     /**
      * Animator
@@ -93,21 +92,29 @@ public class SceneDrawer implements Drawer, EventListener {
 
         if (!enabled) return;
 
-        if (shaderFactory == null) return;
+        if (sceneManager == null) return;
 
-        if (sceneManager == null || cameraManager == null) return;
+        if (shaderFactory == null) return;
 
         final Scene scene = sceneManager.getCurrentScene();
         if (scene == null || scene.getObjects() == null) return;
 
+        // camera selection logic:
+        // 1) use config camera if provided (when stereo rendering, for example)
         Camera camera = config != null ? config.camera : null;
-        if (camera == null) camera = cameraManager.getActiveCamera();
-
-        if (camera == null) {
-            // Fallback if no camera is active for some reason
-            Log.e(TAG, "No active camera found!");
-            return;
-
+        //if (camera == null) camera = cameraManager.getActiveCamera();
+        if (camera == null){
+            // 2) else use scene camera if set
+            camera = scene.getCamera();
+            if (camera == null){
+                // 3) else use default engine camera
+                camera = defaultCamera;
+                if (camera == null) {
+                    // No-op if no camera is active for some reason
+                    Log.e(TAG, "No active camera found!");
+                    return;
+                }
+            }
         }
 
         // 0. GET OBJECTS

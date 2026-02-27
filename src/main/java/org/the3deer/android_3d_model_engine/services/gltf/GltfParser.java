@@ -3,6 +3,7 @@ package org.the3deer.android_3d_model_engine.services.gltf;
 import android.util.Log;
 
 import org.the3deer.android_3d_model_engine.services.gltf.dto.GltfAnimationDto;
+import org.the3deer.android_3d_model_engine.services.gltf.dto.GltfCameraDto;
 import org.the3deer.android_3d_model_engine.services.gltf.dto.GltfChannelDto;
 import org.the3deer.android_3d_model_engine.services.gltf.dto.GltfDto;
 import org.the3deer.android_3d_model_engine.services.gltf.dto.GltfMaterialDto;
@@ -19,6 +20,9 @@ import java.util.Map;
 
 import de.javagl.jgltf.model.AccessorModel;
 import de.javagl.jgltf.model.AnimationModel;
+import de.javagl.jgltf.model.CameraModel;
+import de.javagl.jgltf.model.CameraOrthographicModel;
+import de.javagl.jgltf.model.CameraPerspectiveModel;
 import de.javagl.jgltf.model.GltfModel;
 import de.javagl.jgltf.model.MaterialModel;
 import de.javagl.jgltf.model.MeshModel;
@@ -47,6 +51,7 @@ public class GltfParser {
     public GltfDto parse(){
         parseMeshes();
         parseMaterials();
+        parseCameras();
         parseNodes();
         parseSkins();
         parseScenes();
@@ -190,6 +195,37 @@ public class GltfParser {
             }
 
             dto.materials.add(materialDto);
+        }
+    }
+
+    private void parseCameras() {
+        List<CameraModel> cameraModels = gltfModel.getCameraModels();
+        if (cameraModels == null) return;
+        
+        dto.cameras = new ArrayList<>(cameraModels.size());
+        for (CameraModel cameraModel : cameraModels) {
+            GltfCameraDto cameraDto = new GltfCameraDto();
+            cameraDto.name = cameraModel.getName();
+            
+            CameraPerspectiveModel perspective = cameraModel.getCameraPerspectiveModel();
+            if (perspective != null) {
+                cameraDto.type = "perspective";
+                cameraDto.aspectRatio = perspective.getAspectRatio();
+                cameraDto.yfov = perspective.getYfov();
+                cameraDto.zfar = perspective.getZfar();
+                cameraDto.znear = perspective.getZnear();
+            }
+            
+            CameraOrthographicModel orthographic = cameraModel.getCameraOrthographicModel();
+            if (orthographic != null) {
+                cameraDto.type = "orthographic";
+                cameraDto.xmag = orthographic.getXmag();
+                cameraDto.ymag = orthographic.getYmag();
+                cameraDto.zfar = orthographic.getZfar();
+                cameraDto.znear = orthographic.getZnear();
+            }
+            
+            dto.cameras.add(cameraDto);
         }
     }
 
