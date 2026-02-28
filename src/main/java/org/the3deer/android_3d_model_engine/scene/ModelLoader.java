@@ -15,6 +15,7 @@ import org.the3deer.android_3d_model_engine.model.Object3DData;
 import org.the3deer.android_3d_model_engine.model.Scene;
 import org.the3deer.android_3d_model_engine.services.LoadListener;
 import org.the3deer.android_3d_model_engine.services.collada.ColladaLoaderTask;
+import org.the3deer.android_3d_model_engine.services.fbx.FbxLoaderTask;
 import org.the3deer.android_3d_model_engine.services.gltf.GltfLoaderTask;
 import org.the3deer.android_3d_model_engine.services.stl.STLLoaderTask;
 import org.the3deer.android_3d_model_engine.services.wavefront.WavefrontLoaderTask;
@@ -206,7 +207,7 @@ public class ModelLoader implements LoadListener {
                 Log.i(TAG, "Loading GLTF object from: " + modelUri);
                 new GltfLoaderTask(activity, modelUri, ModelLoader.this).execute();
             } else if (modelUri.toString().toLowerCase().endsWith(".fbx")){
-                //new FBXLoaderTask(activity, modelUri, this).execute();
+                new FbxLoaderTask(activity, modelUri, ModelLoader.this).execute();
             }
         // });
     }

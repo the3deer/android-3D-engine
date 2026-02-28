@@ -40,11 +40,15 @@ public class SceneManager implements PreferenceAdapter {
     private Light light;
     @Inject
     private Projection projection;
-    @Inject
+
     private List<Scene> scenes;
 
     // variables
     private Scene delegate;
+
+    public SceneManager() {
+        this.scenes = new ArrayList<>();
+    }
 
     @BeanInit
     public void setUp(){
@@ -72,9 +76,9 @@ public class SceneManager implements PreferenceAdapter {
     }
 
     public void addScene(Scene scene) {
-        String id = "20.scene." + scenes.size() + scene.getName();
-        Log.d(TAG, "Adding scene to SceneManager: "+id);
-        beanFactory.addOrReplace(id, scene);
+        //String id = "20.scene." + scenes.size() + scene.getName();
+        Log.d(TAG, "Adding scene to SceneManager: "+scene.getName());
+        //beanFactory.addOrReplace(id, scene);
 
         // initialize default scene
         if (delegate == null){

@@ -258,9 +258,9 @@ public class Object3DData {
         updateDimensions();
     }
 
-    public Object3DData(FloatBuffer vertexArrayBuffer, Buffer drawOrder) {
-        this.vertexArrayBuffer = vertexArrayBuffer;
-        this.indexBuffer = drawOrder;
+    public Object3DData(FloatBuffer verticesBuffer, Buffer indicesBuffer) {
+        this.vertexArrayBuffer = verticesBuffer;
+        this.indexBuffer = indicesBuffer;
         this.setDrawUsingArrays(false);
         updateDimensions();
     }
@@ -993,17 +993,33 @@ public class Object3DData {
         return this;
     }
 
-    public FloatBuffer getVertexNormalsArrayBuffer() {
+    public FloatBuffer getNormalsBuffer() {
         return vertexNormalsArrayBuffer;
+    }
+
+    /**
+     * @deprecated use instead {@link #getNormalsBuffer()}
+     */
+    @Deprecated
+    public FloatBuffer getVertexNormalsArrayBuffer() {
+        return getNormalsBuffer();
     }
 
     public FloatBuffer getTangentBuffer() {
         return tangentBuffer;
     }
 
-    public Object3DData setVertexNormalsArrayBuffer(FloatBuffer vertexNormalsArrayBuffer) {
-        this.vertexNormalsArrayBuffer = vertexNormalsArrayBuffer;
+    public Object3DData setNormalsBuffer(FloatBuffer normals){
+        this.vertexNormalsArrayBuffer = normals;
         return this;
+    }
+
+    /**
+     * @deprecated use instead {@link #setNormalsBuffer(FloatBuffer)} ()}
+     */
+    @Deprecated
+    public Object3DData setVertexNormalsArrayBuffer(FloatBuffer vertexNormalsArrayBuffer) {
+        return setNormalsBuffer(vertexNormalsArrayBuffer);
     }
 
     public Object3DData setTangentBuffer(FloatBuffer buffer) {
@@ -1033,11 +1049,16 @@ public class Object3DData {
         return vertexColorsArrayBuffer;
     }
 
-    public Object3DData setVertexColorsArrayBuffer(Buffer colorsBuffer) {
+    public Object3DData setColorsBuffer(Buffer colorsBuffer){
         if (colorsBuffer != null && colorsBuffer.capacity() % 4 != 0)
             throw new IllegalArgumentException("Color buffer not multiple of 4 floats");
         this.vertexColorsArrayBuffer = colorsBuffer;
         return this;
+    }
+
+    @Deprecated
+    public Object3DData setVertexColorsArrayBuffer(Buffer colorsBuffer) {
+        return setColorsBuffer(colorsBuffer);
     }
 
     protected void updateDimensions() {
