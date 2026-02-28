@@ -479,13 +479,6 @@ public class GltfLoader {
 
             if (nodeDto.skinIndex != null) {
 
-                // check if mesh dtos are avaible
-                if (node.meshes == null || node.meshes.isEmpty()) {
-                    Log.w(TAG, "Node " + i + " references skin index " + nodeDto.skinIndex +
-                            " but no meshes are loaded. Skipping skin assignment for this node.");
-                    continue;
-                }
-
                 // check if meshes are assigned to this node, if not skip skin assignment for this node
                 if (node.getMeshes() == null || node.getMeshes().isEmpty() || meshInstancesMap == null || meshInstancesMap.isEmpty()) {
                     Log.w(TAG, "Node " + i + " references skin index " + nodeDto.skinIndex +
@@ -501,22 +494,12 @@ public class GltfLoader {
                 }
 
                 // get the corresponding skin for this skin index
-                final Skin skin = skins.get(nodeDto.skinIndex);
-                if (skin == null) {
+                final Skin skinTemplate = skins.get(nodeDto.skinIndex);
+                if (skinTemplate == null) {
                     Log.e(TAG, "Node " + i + " references skin index " + nodeDto.skinIndex +
                             " but no skin was found for this index. Skipping skin assignment for this node.");
                     continue;
-                } /*else {
-                    // assign joint index to nodes
-                    final String[] jointNames = new String[skin.getJoints().length];
-                    for (int j = 0; j < skin.getJoints().length.size(); j++) {
-                        Integer nodeIndex = skinDto.jointNodeIndices.get(j);
-                        Node jointNode = nodes.get(nodeIndex);
-                        jointNames[j] = jointNode.getName();
-                        jointNode.setJointIndex(j);
-                    }
-                    skin.setJointNames(jointNames);
-                }*/
+                }
 
                 // get mesh instances for this node
                 final List<Object3DData> meshInstances = meshInstancesMap.get(i);
@@ -528,60 +511,54 @@ public class GltfLoader {
                     continue;
                 }
 
+                // get mesh primitive
+                GltfMeshDto meshDto = dto.meshes.get(nodeDto.meshIndex);
+                if (meshDto.primitives == null || meshDto.primitives.isEmpty()) {
+                    Log.w(TAG, "Mesh index " + nodeDto.meshIndex + " has no primitives defined. Skipping skin assignment for meshes of this node.");
+                    continue;
+                }
+
                 // check coherence between gltf meshes and mesh instances for this node
-                if (meshInstances.size() != node.meshes.size()) {
-                    Log.e(TAG, "Node " + i + " references skin index " + nodeDto.skinIndex +
-                            " but the number of mesh instances (" + meshInstances.size() + ") does not match the expected number based on the mesh index (" + node.meshes.size() + "). This may indicate a mismatch between nodes and meshes in the DTO.");
+                if (meshInstances.size() != meshDto.primitives.size()) {
+                    Log.e(TAG, "Node " + i + " ("+node.getName()+") references skin index " + nodeDto.skinIndex +
+                            " but the number of mesh instances (" + meshInstances.size() + ") does not match the expected number of primitives based on the mesh index (" + meshDto.primitives.size() + "). This may indicate a mismatch between nodes and meshes in the DTO.");
                     continue;
                 }
 
                 final List<Skin> cloneSkins = new ArrayList<>();
 
                 // loop over all mesh instances of this node and assign the skin to each mesh instance
-                for (int m = 0; m < dto.meshes.size(); m++) {
+                for (int m = 0; m < meshDto.primitives.size(); m++) {
 
-                    // get mesh primitive
-                    GltfMeshDto meshDto = dto.meshes.get(nodeDto.meshIndex);
-                    if (meshDto.primitives == null || meshDto.primitives.isEmpty()) {
-                        Log.w(TAG, "Mesh index " + nodeDto.meshIndex + " has no primitives defined. Skipping skin assignment for meshes of this node.");
-                        continue;
-                    }
-
-                    // check if mesh instance index is within bounds of mesh primitives for this node
-                    if (m >= meshInstances.size()) {
-                        Log.e(TAG, "Mesh index " + nodeDto.meshIndex + " has more primitives than mesh instances assigned to node " + i + ". Skipping skin assignment for remaining primitives of this node.");
+                    // get primitive for this mesh instance
+                    final GltfPrimitiveDto primitiveDto = meshDto.primitives.get(m);
+                    if (primitiveDto == null) {
+                        Log.w(TAG, "Primitive index " + m + " for mesh index " + nodeDto.meshIndex + " is null. Skipping skin assignment for this mesh instance.");
                         continue;
                     }
 
                     // get the corresponding mesh instance for this primitive
-                    for (int k = 0; k<meshInstances.size() ; k++) {
-                        final Object3DData object3DData = meshInstances.get(k);
-                        if (object3DData instanceof AnimatedModel) {
+                    final Object3DData object3DData = meshInstances.get(m);
+                    if (object3DData instanceof AnimatedModel) {
 
-                            // clone skin
-                            final Skin clone = skin.clone();
+                        // clone skin
+                        final Skin clone = skinTemplate.clone();
 
-                            // get primitive for this mesh instance
-                            final GltfPrimitiveDto primitiveDto = meshDto.primitives.get(k);
-                            if (primitiveDto == null) {
-                                Log.w(TAG, "Primitive index " + k + " for mesh index " + nodeDto.meshIndex + " is null. Skipping skin assignment for this mesh instance.");
-                                continue;
-                            }
+                        // link buffers
+                        clone.setWeightsBuffer(primitiveDto.weights);
+                        clone.setJointsBuffer(primitiveDto.jointIds);
+                        clone.setJointComponents(primitiveDto.jointIdsComponents);
+                        clone.setWeightsComponents(primitiveDto.weightsComponents);
 
-                            // link buffers
-                            clone.setWeightsBuffer(primitiveDto.weights);
-                            clone.setJointsBuffer(primitiveDto.jointIds);
+                        // assign skin to mesh instance
+                        ((AnimatedModel) object3DData).setSkin(clone);
 
-                            // assign skin to mesh instance
-                            ((AnimatedModel) object3DData).setSkin(clone);
+                        // register skin
+                        cloneSkins.add(clone);
 
-                            // register skin
-                            cloneSkins.add(clone);
-
-                        } else {
-                            Log.w(TAG, "Mesh instance for node " + i + " and mesh index " + nodeDto.meshIndex +
-                                    " is not an AnimatedModel. Skipping skin assignment for this mesh instance.");
-                        }
+                    } else {
+                        Log.w(TAG, "Mesh instance for node " + i + " and mesh index " + nodeDto.meshIndex +
+                                " is not an AnimatedModel. Skipping skin assignment for this mesh instance.");
                     }
                 }
 
