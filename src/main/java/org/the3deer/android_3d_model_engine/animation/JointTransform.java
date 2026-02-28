@@ -634,7 +634,7 @@ public class JointTransform {
                 Matrix.scaleM(transform, 0, 1, 1, scale[2]);
         }
 
-        if (isComposite()) {
+        if (!Constants.PREFER_QUATERNION && isComposite()) {
             if (this.rotation != null) {
                 if (this.rotation[2] != null)
                     Matrix.rotateM(transform, 0, rotation[2], 0, 0, 1);
@@ -647,6 +647,7 @@ public class JointTransform {
                 Matrix.multiplyMM(transform, 0, tempMatrix, 0, this.qRotation.getMatrix(), 0);
             }
         } else {
+
             if (this.qRotation != null) {
                 System.arraycopy(transform, 0, tempMatrix, 0, 16);
                 Matrix.multiplyMM(transform, 0, tempMatrix, 0, this.qRotation.getMatrix(), 0);

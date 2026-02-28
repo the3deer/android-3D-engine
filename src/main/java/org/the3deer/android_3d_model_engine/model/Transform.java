@@ -116,12 +116,16 @@ public final class Transform {
 
         // 4. Apply Translation
         if (translation != null) {
-            Matrix.translateM(tempTransform, 0, translation[0], translation[1], translation[2]);
+            if (translation[0] != null) Matrix.translateM(tempTransform, 0, translation[0], 0, 0);
+            if (translation[1] != null) Matrix.translateM(tempTransform, 0, 0, translation[1], 0);
+            if (translation[2] != null) Matrix.translateM(tempTransform, 0, 0, 0, translation[2]);
         }
 
         // 2. Apply Scale
         if (scale != null) {
-            Matrix.scaleM(tempTransform, 0, scale[0], scale[1], scale[2]);
+            if (scale[0] != null) Matrix.scaleM(tempTransform, 0, scale[0], 1, 1);
+            if (scale[1] != null) Matrix.scaleM(tempTransform, 0, 1, scale[1], 1);
+            if (scale[2] != null) Matrix.scaleM(tempTransform, 0, 1, 1, scale[2]);
         }
 
         // 3. Apply Rotation
@@ -131,7 +135,7 @@ public final class Transform {
             Matrix.rotateM(tempTransform, 0, rotation[0], 1, 0, 0);
         }
         // 3. Apply Rotation from the quaternion
-        // We get the rotation matrix from the quaternion and multiply it with our current transform
+            // We get the rotation matrix from the quaternion and multiply it with our current transform
         //float[] rotationMatrix = this.quaternion.toMatrix();
         //Matrix.multiplyMM(tempTransform, 0, tempTransform, 0, rotationMatrix, 0);
 
