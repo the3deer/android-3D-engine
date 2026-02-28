@@ -3,6 +3,8 @@ package org.the3deer.android_3d_model_engine.model;
 import android.opengl.Matrix;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
+
 import org.the3deer.util.math.Math3DUtils;
 
 import java.nio.Buffer;
@@ -22,6 +24,7 @@ public class Skin {
 
     private List<Node> nodes;
     private List<Node> bones;
+    private int[] joints;
     private List<String> jointNames;
 
     private int jointComponents = Constants.MAX_VERTEX_WEIGHTS;
@@ -37,7 +40,8 @@ public class Skin {
 
     private boolean disabled;
 
-    public Skin() {
+    public Skin(String name) {
+        this.name = name;
     }
 
     // gltf - legacy
@@ -56,12 +60,10 @@ public class Skin {
     }
 
     // gltf - new
-    public Skin(String name, float[] bindShapeMatrix, Buffer jointIds, Buffer weights, float[] inverseBindMatrices, int[] joints) {
+    public Skin(String name, float[] inverseBindMatrices, int[] joints) {
         this.name = name;
-        this.bindShapeMatrix = bindShapeMatrix;
-        this.jointsBuffer = jointIds;
-        this.weightsBuffer = weights;
         this.inverseBindMatrices = inverseBindMatrices;
+        this.joints = joints;
 
         // init skinning matrix
         this.jointMatrices = new float[joints.length][16];  // 16 is the size of the matrix
@@ -87,8 +89,8 @@ public class Skin {
     }
 
 
-    public List<Node> getJoints() {
-        return nodes;
+    public int[] getJoints() {
+        return joints;
     }
 
     public List<Node> getBones() {
@@ -108,15 +110,9 @@ public class Skin {
 
     }
 
+    // collada - legacy
     public Skin(int jointCount, Node sceneRoot) {
         this.jointCount = jointCount;
-        this.sceneRoot = sceneRoot;
-        this.rootJoint = sceneRoot;
-    }
-
-    public Skin(int jointCount, int boneCount, Node sceneRoot) {
-        this.jointCount = jointCount;
-        this.boneCount = boneCount;
         this.sceneRoot = sceneRoot;
         this.rootJoint = sceneRoot;
     }
@@ -222,10 +218,6 @@ public class Skin {
 
     public void setRootJoint(Node rootJoint) {
         this.rootJoint = rootJoint;
-    }
-
-    public void setSkeleton(Node node) {
-        this.rootJoint = node;
     }
 
     /**
@@ -391,5 +383,22 @@ public class Skin {
 
     public String getName() {
         return this.name;
+    }
+
+    @NonNull
+    @Override
+    public Skin clone() {
+        final Skin clone = new Skin(this.name + "_"+ System.identityHashCode(this));
+
+        // basic
+        clone.rootJoint = this.rootJoint;
+        clone.inverseBindMatrices = this.inverseBindMatrices;
+        clone.joints = joints;
+        clone.jointNames = this.jointNames;
+
+        // generated
+        clone.jointMatrices = new float[this.jointMatrices.length][16];
+
+        return clone;
     }
 }

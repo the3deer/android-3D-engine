@@ -19,6 +19,7 @@ import org.the3deer.android_3d_model_engine.model.Constants;
 import org.the3deer.android_3d_model_engine.model.Element;
 import org.the3deer.android_3d_model_engine.model.Material;
 import org.the3deer.android_3d_model_engine.model.Object3DData;
+import org.the3deer.android_3d_model_engine.model.Skin;
 import org.the3deer.android_3d_model_engine.model.Texture;
 import org.the3deer.android_3d_model_engine.preferences.PreferenceAdapter;
 import org.the3deer.util.android.GLUtil;
@@ -374,16 +375,19 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
 
 
         if (supportsAnimation) {
-            final boolean animationOK = obj instanceof AnimatedModel
-                    && ((AnimatedModel) obj).getSkin() != null
-                    && ((AnimatedModel) obj).getSkin().getWeightsBuffer() != null
-                    && ((AnimatedModel) obj).getSkin().getJointsBuffer() != null;
-            boolean toggle = this.animationEnabled && animationOK && Constants.ANIMATIONS_ENABLED;
-            if (toggle) {
-                in_weightsHandle = setVBO("in_weights", ((AnimatedModel) obj).getSkin().getWeightsBuffer(), ((AnimatedModel) obj).getWeightsComponents(), -1);
-                in_jointIndicesHandle = setVBO("in_jointIndices", ((AnimatedModel) obj).getSkin().getJointsBuffer(), ((AnimatedModel) obj).getJointComponents(), -1);
-                setUniformMatrix4(((AnimatedModel) obj).getSkin().getBindShapeMatrix(), "u_BindShapeMatrix");
-                setJointTransforms((AnimatedModel) obj);
+            boolean toggle = false;
+            if (obj instanceof AnimatedModel && this.animationEnabled && Constants.ANIMATIONS_ENABLED) {
+                final Skin skin = ((AnimatedModel) obj).getSkin();
+                toggle = ((AnimatedModel) obj).getSkin() != null
+                        && ((AnimatedModel) obj).getSkin().getWeightsBuffer() != null
+                        && ((AnimatedModel) obj).getSkin().getJointsBuffer() != null
+                        && ((AnimatedModel) obj).getSkin().getJointTransforms() != null;
+                if (toggle) {
+                    in_weightsHandle = setVBO("in_weights", skin.getWeightsBuffer(), skin.getWeightsComponents(), -1);
+                    in_jointIndicesHandle = setVBO("in_jointIndices", skin.getJointsBuffer(), skin.getJointComponents(), -1);
+                    setUniformMatrix4(((AnimatedModel) obj).getSkin().getBindShapeMatrix(), "u_BindShapeMatrix");
+                    setJointTransforms((AnimatedModel) obj);
+                }
             }
 
             //Log.v(TAG, "u_Animated: " + toggle + " ("+obj.getId()+")");

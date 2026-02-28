@@ -76,8 +76,8 @@ public class Node {
 		Matrix.setIdentityM(this.bindWorldTransform,0);
 	}
 
-	// gltf - legacy
-	private Node(Transform localTransform) {
+	// gltf
+	public Node(Transform localTransform) {
 		this.id = "-2";
 		this.localTransform = localTransform;
 		this.bindWorldTransform = new float[16];

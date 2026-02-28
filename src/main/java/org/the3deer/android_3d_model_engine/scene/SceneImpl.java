@@ -757,7 +757,11 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
 
     public synchronized void onLoadComplete() {
 
-        Log.i(TAG, "onLoadComplete: " + getName() + ", Objects: " + objects.size());
+        if (objects == null || objects.isEmpty()){
+            Log.w(TAG, "No objects were loaded");
+        } else {
+            Log.i(TAG, "onLoadComplete: " + getName() + ", Objects: " + objects.size());
+        }
 
 
         // get complete list of objects loaded

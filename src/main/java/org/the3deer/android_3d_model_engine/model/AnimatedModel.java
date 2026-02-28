@@ -29,7 +29,9 @@ public class AnimatedModel extends Object3DData {
     private Buffer jointIds;
     private Buffer vertexWeigths;
 
+    @Deprecated
     private int jointComponents = Constants.MAX_VERTEX_WEIGHTS;
+    @Deprecated
     private int weightsComponents = Constants.MAX_VERTEX_WEIGHTS;
 
     public AnimatedModel() {

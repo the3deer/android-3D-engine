@@ -32,8 +32,8 @@ public class Quaternion {
     private float x, y, z, w;
     private boolean normalized;
 
-    public Quaternion(float[] matrix) {
-        this.matrix = matrix;
+    public Quaternion(float[] rotation) {
+        this(rotation[0], rotation[1], rotation[2], rotation[3]);
     }
 
     public Quaternion() {
@@ -839,6 +839,10 @@ public class Quaternion {
         angles[0] = (float) Math.toDegrees(angles[0]);
         angles[1] = (float) Math.toDegrees(angles[1]);
         angles[2] = (float) Math.toDegrees(angles[2]);
+
+        for(int i=0; i<3; i++) {
+            if (Math.abs(angles[i]) < 0.0001) angles[i] = 0.0f;
+        }
 
         return angles;
     }

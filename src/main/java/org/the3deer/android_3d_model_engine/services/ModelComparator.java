@@ -71,8 +71,8 @@ public class ModelComparator {
             AnimatedModel legacyAnimated = (AnimatedModel) legacyModel;
             AnimatedModel newAnimated = (AnimatedModel) newModel;
             if (legacyAnimated.getSkin() != null && newAnimated.getSkin() != null) {
-                compareGenericBuffer("Joints", legacyAnimated.getSkin().getJointsBuffer(), newAnimated.getSkin().getJointsBuffer());
-                compareGenericBuffer("Weights", legacyAnimated.getSkin().getWeightsBuffer(), newAnimated.getSkin().getWeightsBuffer());
+                compareGenericBuffer("Joints", legacyAnimated.getJointIds(), newAnimated.getSkin().getJointsBuffer());
+                compareGenericBuffer("Weights", legacyAnimated.getVertexWeights(), newAnimated.getSkin().getWeightsBuffer());
                 // compare inverse bind matrices
                 compareArray("Inverse Bind Matrices", legacyAnimated.getSkin().getInverseBindMatrices(), newAnimated.getSkin().getInverseBindMatrices());
 

@@ -238,9 +238,11 @@ public class GltfParser {
             GltfNodeDto nodeDto = new GltfNodeDto();
             nodeDto.name = nodeModel.getName();
 
-            float[] transform = new float[16];
-            nodeModel.computeLocalTransform(transform);
-            nodeDto.matrix = transform;
+            // transform
+            nodeDto.translation = nodeModel.getTranslation();
+            nodeDto.rotation = nodeModel.getRotation();
+            nodeDto.scale = nodeModel.getScale();
+            nodeDto.matrix = nodeModel.getMatrix();
 
             if (nodeModel.getChildren() != null) {
                 nodeDto.children = new ArrayList<>();
