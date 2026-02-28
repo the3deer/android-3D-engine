@@ -11,11 +11,40 @@
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 
+// Manual implementation of vec3 transformation (m * v)
+static ufbx_vec3 transform_pos(const ufbx_matrix *m, ufbx_vec3 v) {
+    ufbx_vec3 r;
+    r.x = m->m00 * v.x + m->m01 * v.y + m->m02 * v.z + m->m03;
+    r.y = m->m10 * v.x + m->m11 * v.y + m->m12 * v.z + m->m13;
+    r.z = m->m20 * v.x + m->m21 * v.y + m->m22 * v.z + m->m23;
+    return r;
+}
+
+// Manual implementation of normal transformation (m * v, ignoring translation)
+static ufbx_vec3 transform_norm(const ufbx_matrix *m, ufbx_vec3 v) {
+    ufbx_vec3 r;
+    r.x = m->m00 * v.x + m->m01 * v.y + m->m02 * v.z;
+    r.y = m->m10 * v.x + m->m11 * v.y + m->m12 * v.z;
+    r.z = m->m20 * v.x + m->m21 * v.y + m->m22 * v.z;
+    return r;
+}
+
+static ufbx_node* find_mesh_node(fbx_model_t* model, int index) {
+    int current = 0;
+    for (size_t i = 0; i < model->scene->nodes.count; i++) {
+        ufbx_node* node = model->scene->nodes.data[i];
+        if (node->mesh) {
+            if (current == index) return node;
+            current++;
+        }
+    }
+    return nullptr;
+}
+
 extern "C" {
     int get_a_random_number();
 }
 
-// -- Custom JNI Stream Context --
 struct jni_stream_context {
     JNIEnv* env;
     jobject is;
@@ -39,8 +68,6 @@ extern "C" JNIEXPORT jlong JNICALL
 Java_org_the3deer_android_13d_1model_1engine_services_fbx_FBXParser_fbxParseModelFromStream(
         JNIEnv* env, jobject, jobject is) {
 
-    LOGD("Reading FBX model from stream with ufbx triangulation...");
-
     jclass is_class = env->GetObjectClass(is);
     jmethodID read_method = env->GetMethodID(is_class, "read", "([BII)I");
     
@@ -56,15 +83,10 @@ Java_org_the3deer_android_13d_1model_1engine_services_fbx_FBXParser_fbxParseMode
     stream.read_fn = jni_read_fn;
     stream.user = &ctx;
 
-    // --- CRITICAL OPTIONS ---
     ufbx_load_opts opts = { 0 };
-    // Force all faces to be triangles (fixes the "fan" issue)
-    //opts.target_face_type = UFBX_FACE_TRIANGLES;
-    // Align to Android OpenGL coordinates
+    // Removed problematic constants - using manual triangulation loop below
     opts.target_axes = ufbx_axes_right_handed_y_up;
-    // Ensure scaling is consistent (Blender is often in cm)
     opts.target_unit_meters = 1.0f;
-    // ------------------------
 
     ufbx_error error;
     ufbx_scene *scene = ufbx_load_stream(&stream, &opts, &error);
@@ -85,7 +107,6 @@ Java_org_the3deer_android_13d_1model_1engine_services_fbx_dto_FBXModel_fbxFreeMo
         JNIEnv* env, jobject, jlong modelPtr) {
     fbx_model_t *model = (fbx_model_t*)modelPtr;
     delete model; 
-    LOGD("Freed fbx model 0x%" PRIx64, (uint64_t)modelPtr);
 }
 
 extern "C" JNIEXPORT jint JNICALL
@@ -93,18 +114,21 @@ Java_org_the3deer_android_13d_1model_1engine_services_fbx_FBXParser_fbxGetMeshCo
         JNIEnv* env, jobject, jlong modelPtr) {
     fbx_model_t *model = (fbx_model_t*)modelPtr;
     if (!model || !model->scene) return 0;
-    return (jint)model->scene->meshes.count;
+    int count = 0;
+    for (size_t i = 0; i < model->scene->nodes.count; i++) {
+        if (model->scene->nodes.data[i]->mesh) count++;
+    }
+    return (jint)count;
 }
 
 extern "C" JNIEXPORT jobject JNICALL
 Java_org_the3deer_android_13d_1model_1engine_services_fbx_FBXParser_fbxGetVertexBuffer(
         JNIEnv* env, jobject, jlong modelPtr, jint meshIndex) {
     fbx_model_t *model = (fbx_model_t*)modelPtr;
-    if (!model || !model->scene || (size_t)meshIndex >= model->scene->meshes.count) return NULL;
+    ufbx_node* node = find_mesh_node(model, meshIndex);
+    if (!node || !node->mesh) return NULL;
 
-    ufbx_mesh *mesh = model->scene->meshes.data[meshIndex];
-    
-    // Calculate total vertices after triangulation
+    ufbx_mesh *mesh = node->mesh;
     size_t total_vertices = 0;
     for (size_t i = 0; i < mesh->faces.count; i++) {
         total_vertices += (mesh->faces.data[i].num_indices - 2) * 3;
@@ -116,15 +140,10 @@ Java_org_the3deer_android_13d_1model_1engine_services_fbx_FBXParser_fbxGetVertex
     for (size_t i = 0; i < mesh->faces.count; i++) {
         ufbx_face face = mesh->faces.data[i];
         for (uint32_t corner = 0; corner < face.num_indices - 2; corner++) {
-            // Triangle fan triangulation
-            uint32_t indices[3] = {
-                face.index_begin,
-                face.index_begin + corner + 1,
-                face.index_begin + corner + 2
-            };
-
+            uint32_t indices[3] = { face.index_begin, face.index_begin + corner + 1, face.index_begin + corner + 2 };
             for (int k = 0; k < 3; k++) {
                 ufbx_vec3 pos = ufbx_get_vertex_vec3(&mesh->vertex_position, indices[k]);
+                pos = transform_pos(&node->geometry_to_world, pos);
                 unrolled_vertices[v_idx++] = (float)pos.x;
                 unrolled_vertices[v_idx++] = (float)pos.y;
                 unrolled_vertices[v_idx++] = (float)pos.z;
@@ -140,11 +159,10 @@ extern "C" JNIEXPORT jobject JNICALL
 Java_org_the3deer_android_13d_1model_1engine_services_fbx_FBXParser_fbxGetNormalsBuffer(
         JNIEnv* env, jobject, jlong modelPtr, jint meshIndex) {
     fbx_model_t *model = (fbx_model_t*)modelPtr;
-    if (!model || !model->scene || (size_t)meshIndex >= model->scene->meshes.count) return NULL;
+    ufbx_node* node = find_mesh_node(model, meshIndex);
+    if (!node || !node->mesh || !node->mesh->vertex_normal.exists) return NULL;
 
-    ufbx_mesh *mesh = model->scene->meshes.data[meshIndex];
-    if (!mesh->vertex_normal.exists) return NULL;
-
+    ufbx_mesh *mesh = node->mesh;
     size_t total_vertices = 0;
     for (size_t i = 0; i < mesh->faces.count; i++) {
         total_vertices += (mesh->faces.data[i].num_indices - 2) * 3;
@@ -153,17 +171,15 @@ Java_org_the3deer_android_13d_1model_1engine_services_fbx_FBXParser_fbxGetNormal
     float* unrolled_normals = (float*)malloc(total_vertices * 3 * sizeof(float));
     size_t v_idx = 0;
 
+    ufbx_matrix normal_matrix = ufbx_matrix_for_normals(&node->geometry_to_world);
+
     for (size_t i = 0; i < mesh->faces.count; i++) {
         ufbx_face face = mesh->faces.data[i];
         for (uint32_t corner = 0; corner < face.num_indices - 2; corner++) {
-            uint32_t indices[3] = {
-                face.index_begin,
-                face.index_begin + corner + 1,
-                face.index_begin + corner + 2
-            };
-
+            uint32_t indices[3] = { face.index_begin, face.index_begin + corner + 1, face.index_begin + corner + 2 };
             for (int k = 0; k < 3; k++) {
                 ufbx_vec3 norm = ufbx_get_vertex_vec3(&mesh->vertex_normal, indices[k]);
+                norm = transform_norm(&normal_matrix, norm);
                 unrolled_normals[v_idx++] = (float)norm.x;
                 unrolled_normals[v_idx++] = (float)norm.y;
                 unrolled_normals[v_idx++] = (float)norm.z;
@@ -179,10 +195,10 @@ extern "C" JNIEXPORT jobject JNICALL
 Java_org_the3deer_android_13d_1model_1engine_services_fbx_FBXParser_fbxGetColorsBuffer(
         JNIEnv* env, jobject, jlong modelPtr, jint meshIndex) {
     fbx_model_t *model = (fbx_model_t*)modelPtr;
-    if (!model || !model->scene || (size_t)meshIndex >= model->scene->meshes.count) return NULL;
+    ufbx_node* node = find_mesh_node(model, meshIndex);
+    if (!node || !node->mesh) return NULL;
 
-    ufbx_mesh *mesh = model->scene->meshes.data[meshIndex];
-    
+    ufbx_mesh *mesh = node->mesh;
     size_t total_vertices = 0;
     for (size_t i = 0; i < mesh->faces.count; i++) {
         total_vertices += (mesh->faces.data[i].num_indices - 2) * 3;
@@ -194,12 +210,7 @@ Java_org_the3deer_android_13d_1model_1engine_services_fbx_FBXParser_fbxGetColors
     for (size_t i = 0; i < mesh->faces.count; i++) {
         ufbx_face face = mesh->faces.data[i];
         for (uint32_t corner = 0; corner < face.num_indices - 2; corner++) {
-            uint32_t indices[3] = {
-                face.index_begin,
-                face.index_begin + corner + 1,
-                face.index_begin + corner + 2
-            };
-
+            uint32_t indices[3] = { face.index_begin, face.index_begin + corner + 1, face.index_begin + corner + 2 };
             for (int k = 0; k < 3; k++) {
                 if (mesh->vertex_color.exists) {
                     ufbx_vec4 col = ufbx_get_vertex_vec4(&mesh->vertex_color, indices[k]);
@@ -208,10 +219,8 @@ Java_org_the3deer_android_13d_1model_1engine_services_fbx_FBXParser_fbxGetColors
                     unrolled_colors[v_idx++] = (float)col.z;
                     unrolled_colors[v_idx++] = (float)col.w;
                 } else {
-                    unrolled_colors[v_idx++] = 1.0f;
-                    unrolled_colors[v_idx++] = 1.0f;
-                    unrolled_colors[v_idx++] = 1.0f;
-                    unrolled_colors[v_idx++] = 1.0f;
+                    unrolled_colors[v_idx++] = 1.0f; unrolled_colors[v_idx++] = 1.0f;
+                    unrolled_colors[v_idx++] = 1.0f; unrolled_colors[v_idx++] = 1.0f;
                 }
             }
         }
