@@ -1,7 +1,5 @@
 package org.the3deer.android_3d_model_engine.services.fbx;
 
-import android.util.Log;
-
 import org.the3deer.android_3d_model_engine.services.fbx.dto.FBXMesh;
 import org.the3deer.android_3d_model_engine.services.fbx.dto.FBXModel;
 
@@ -60,6 +58,7 @@ public class FBXParser {
             mesh.setIndicesBuffer(fbxGetIndexBuffer(handler, i));
             mesh.setNormalsBuffer(fbxGetNormalsBuffer(handler, i));
             mesh.setColorsBuffer(fbxGetColorsBuffer(handler, i));
+            //mesh.setTextCoordsBuffer(fbxGetTexCoordsBuffer(handler, i));
             
             meshes.add(mesh);
         }

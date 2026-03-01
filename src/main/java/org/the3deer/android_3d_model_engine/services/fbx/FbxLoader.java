@@ -5,6 +5,7 @@ import android.util.Log;
 
 import org.the3deer.android_3d_model_engine.model.Object3DData;
 import org.the3deer.android_3d_model_engine.services.LoadListener;
+import org.the3deer.android_3d_model_engine.services.fbx.dto.FBXMesh;
 import org.the3deer.android_3d_model_engine.services.fbx.dto.FBXModel;
 import org.the3deer.util.android.ContentUtils;
 
@@ -41,15 +42,18 @@ public class FbxLoader {
             Log.i(TAG, "FBX Loaded. Mesh Count: " + meshCount);
 
             for (int i = 0; i < meshCount; i++) {
+                final FBXMesh fbxMesh = model.getMesh(i);
                 
                 // Vertex Buffer (float is 4 bytes)
-                ByteBuffer vbb = (ByteBuffer)model.getMesh(i).getVerticesBuffer();
+                ByteBuffer vbb = (ByteBuffer)fbxMesh.getVerticesBuffer();
+                if (vbb == null) continue;
+
                 vbb.order(ByteOrder.nativeOrder());
                 final FloatBuffer vertexBuffer = vbb.asFloatBuffer();
                 
                 // Normal Buffer
                 FloatBuffer normalsBuffer = null;
-                ByteBuffer nbb = (ByteBuffer)model.getMesh(i).getNormalsBuffer();
+                ByteBuffer nbb = (ByteBuffer)fbxMesh.getNormalsBuffer();
                 if (nbb != null) {
                     nbb.order(ByteOrder.nativeOrder());
                     normalsBuffer = nbb.asFloatBuffer();
@@ -57,18 +61,28 @@ public class FbxLoader {
 
                 // Color Buffer
                 FloatBuffer colorsBuffer = null;
-                ByteBuffer cbb = (ByteBuffer)model.getMesh(i).getColorsBuffer();
+                ByteBuffer cbb = (ByteBuffer)fbxMesh.getColorsBuffer();
                 if (cbb != null) {
                     cbb.order(ByteOrder.nativeOrder());
                     colorsBuffer = cbb.asFloatBuffer();
+                }
+
+                // Texture Buffer (UVs)
+                FloatBuffer texCoordsBuffer = null;
+                ByteBuffer tbb = (ByteBuffer)fbxMesh.getTextCoordsBuffer();
+                if (tbb != null) {
+                    tbb.order(ByteOrder.nativeOrder());
+                    texCoordsBuffer = tbb.asFloatBuffer();
                 }
 
                 // IMPORTANT: We use the constructor WITHOUT indicesBuffer
                 // because our vertices are already "unrolled" in triangle order by ufbx.
                 // Using an index buffer from FBX with unrolled vertices causes the "explosion".
                 final Object3DData mesh = new Object3DData(vertexBuffer);
+                mesh.setId("fbx_mesh_" + i);
                 mesh.setNormalsBuffer(normalsBuffer);
                 mesh.setColorsBuffer(colorsBuffer);
+                mesh.setTextureCoordsArrayBuffer(texCoordsBuffer);
                 mesh.setDrawMode(GLES20.GL_TRIANGLES);
                 mesh.setIndexed(false);
                 
