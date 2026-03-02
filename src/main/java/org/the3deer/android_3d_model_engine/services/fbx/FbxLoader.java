@@ -77,18 +77,23 @@ public class FbxLoader {
                     texCoordsBuffer = tbb.asFloatBuffer();
                 }
 
-                // Texture Path
-                final String texturePath = fbxMesh.getTexturePath();
+                // Texture Path & Embedded Data
                 Material material = null;
-                if (texturePath != null && !texturePath.isEmpty()) {
-                    Log.i(TAG, "Texture Path: " + texturePath);
+                final String texturePath = fbxMesh.getTexturePath();
+                final byte[] textureEmbeddedData = fbxMesh.getTextureEmbeddedData();
+
+                if (textureEmbeddedData != null) {
+                    Log.i(TAG, "Embedded Texture found for mesh: " + i);
+                    material = new Material();
+                    material.setColorTexture(new Texture().setData(textureEmbeddedData));
+                } else if (texturePath != null && !texturePath.isEmpty()) {
+                    Log.i(TAG, "External Texture Path: " + texturePath);
                     material = new Material();
                     material.setColorTexture(new Texture().setFile(texturePath));
                 }
 
                 // IMPORTANT: We use the constructor WITHOUT indicesBuffer
                 // because our vertices are already "unrolled" in triangle order by ufbx.
-                // Using an index buffer from FBX with unrolled vertices causes the "explosion".
                 final Object3DData mesh = new Object3DData(vertexBuffer);
                 mesh.setId("fbx_mesh_" + i);
                 mesh.setNormalsBuffer(normalsBuffer);
@@ -98,7 +103,9 @@ public class FbxLoader {
                 mesh.setIndexed(false);
 
                 // material
-                mesh.setMaterial(material);
+                if (material != null) {
+                    mesh.setMaterial(material);
+                }
                 
                 ret.add(mesh);
             }

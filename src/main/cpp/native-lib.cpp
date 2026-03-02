@@ -225,7 +225,7 @@ Java_org_the3deer_android_13d_1model_1engine_services_fbx_FBXParser_fbxGetColors
     float* unrolled_colors = (float*)malloc(total_vertices * 4 * sizeof(float));
     size_t v_idx = 0;
 
-    for (size_t i = 0; i < mesh->faces.count; i++) {
+    for (size_t i = 0; i < mesh->vertex_color.exists ? mesh->faces.count : 0; i++) {
         ufbx_face face = mesh->faces.data[i];
         for (uint32_t corner = 0; corner < face.num_indices - 2; corner++) {
             uint32_t indices[3] = { face.index_begin, face.index_begin + corner + 1, face.index_begin + corner + 2 };
@@ -243,6 +243,12 @@ Java_org_the3deer_android_13d_1model_1engine_services_fbx_FBXParser_fbxGetColors
             }
         }
     }
+    // Handle the case where there is no color data
+    if (v_idx == 0) {
+        for (size_t i = 0; i < total_vertices * 4; i++) {
+             unrolled_colors[i] = 1.0f;
+        }
+    }
 
     model->allocated_buffers.push_back(unrolled_colors);
     return env->NewDirectByteBuffer(unrolled_colors, (jlong)(total_vertices * 4 * sizeof(float)));
@@ -250,7 +256,7 @@ Java_org_the3deer_android_13d_1model_1engine_services_fbx_FBXParser_fbxGetColors
 
 extern "C" JNIEXPORT jobject JNICALL
 Java_org_the3deer_android_13d_1model_1engine_services_fbx_FBXParser_fbxGetTexCoordsBuffer(
-        JNIEnv* env, jobject, jlong modelPtr, jint meshIndex) {
+        JNIEnv* env, jobject, jlong modelPtr, jint meshIndex, jboolean flipY) {
     fbx_model_t *model = (fbx_model_t*)modelPtr;
     ufbx_node* node = find_mesh_node(model, meshIndex);
     if (!node || !node->mesh || !node->mesh->vertex_uv.exists) return NULL;
@@ -271,7 +277,7 @@ Java_org_the3deer_android_13d_1model_1engine_services_fbx_FBXParser_fbxGetTexCoo
             for (int k = 0; k < 3; k++) {
                 ufbx_vec2 uv = ufbx_get_vertex_vec2(&mesh->vertex_uv, indices[k]);
                 unrolled_uvs[v_idx++] = (float)uv.x;
-                unrolled_uvs[v_idx++] = 1-(float)uv.y;
+                unrolled_uvs[v_idx++] = flipY ? 1.0f - (float)uv.y : (float)uv.y;
             }
         }
     }
@@ -332,6 +338,23 @@ Java_org_the3deer_android_13d_1model_1engine_services_fbx_FBXParser_fbxGetTextur
     ufbx_material *mat = node->materials.data[0];
     if (mat->fbx.diffuse_color.texture) {
         return env->NewStringUTF(mat->fbx.diffuse_color.texture->relative_filename.data);
+    }
+    return NULL;
+}
+
+extern "C" JNIEXPORT jbyteArray JNICALL
+Java_org_the3deer_android_13d_1model_1engine_services_fbx_FBXParser_fbxGetTextureEmbeddedData(
+        JNIEnv* env, jobject, jlong modelPtr, jint meshIndex) {
+    fbx_model_t *model = (fbx_model_t*)modelPtr;
+    ufbx_node* node = find_mesh_node(model, meshIndex);
+    if (!node || node->materials.count == 0) return NULL;
+
+    ufbx_material *mat = node->materials.data[0];
+    if (mat->fbx.diffuse_color.texture && mat->fbx.diffuse_color.texture->content.size > 0) {
+        ufbx_blob blob = mat->fbx.diffuse_color.texture->content;
+        jbyteArray result = env->NewByteArray(blob.size);
+        env->SetByteArrayRegion(result, 0, blob.size, (const jbyte*)blob.data);
+        return result;
     }
     return NULL;
 }

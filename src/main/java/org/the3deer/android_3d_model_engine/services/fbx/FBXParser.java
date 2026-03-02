@@ -1,5 +1,7 @@
 package org.the3deer.android_3d_model_engine.services.fbx;
 
+import android.util.Log;
+
 import org.the3deer.android_3d_model_engine.services.fbx.dto.FBXMesh;
 import org.the3deer.android_3d_model_engine.services.fbx.dto.FBXModel;
 
@@ -23,10 +25,11 @@ public class FBXParser {
     public native Buffer fbxGetVertexBuffer(long modelPtr, int meshIndex);
     public native Buffer fbxGetNormalsBuffer(long modelPtr, int meshIndex);
     public native Buffer fbxGetColorsBuffer(long modelPtr, int meshIndex);
-    public native Buffer fbxGetTexCoordsBuffer(long modelPtr, int meshIndex);
+    public native Buffer fbxGetTexCoordsBuffer(long modelPtr, int meshIndex, boolean flipY);
     public native Buffer fbxGetTangentsBuffer(long modelPtr, int meshIndex);
     public native Buffer fbxGetIndexBuffer(long modelPtr, int meshIndex);
     public native String fbxGetTexturePath(long modelPtr, int meshIndex);
+    public native byte[] fbxGetTextureEmbeddedData(long modelPtr, int meshIndex);
 
     // FBX Application Interface
     public FBXModel parseModel(String filePath){
@@ -59,8 +62,10 @@ public class FBXParser {
             mesh.setIndicesBuffer(fbxGetIndexBuffer(handler, i));
             mesh.setNormalsBuffer(fbxGetNormalsBuffer(handler, i));
             mesh.setColorsBuffer(fbxGetColorsBuffer(handler, i));
-            mesh.setTexCoordsBuffer(fbxGetTexCoordsBuffer(handler, i));
+            // Default to flipY = true as it's the common case for your app
+            mesh.setTexCoordsBuffer(fbxGetTexCoordsBuffer(handler, i, true));
             mesh.setTexturePath(fbxGetTexturePath(handler, i));
+            mesh.setTextureEmbeddedData(fbxGetTextureEmbeddedData(handler, i));
             
             meshes.add(mesh);
         }

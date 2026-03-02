@@ -13,6 +13,7 @@ public class FBXMesh {
     private Buffer colorsBuffer;
     private Buffer texCoordsBuffer;
     private String texturePath;
+    private byte[] textureEmbeddedData;
 
     public void setVerticesBuffer(Buffer verticesBuffer) {
         this.verticesBuffer = verticesBuffer;
@@ -60,5 +61,13 @@ public class FBXMesh {
 
     public void setTexturePath(String texturePath) {
         this.texturePath = texturePath;
+    }
+
+    public byte[] getTextureEmbeddedData() {
+        return textureEmbeddedData;
+    }
+
+    public void setTextureEmbeddedData(byte[] textureEmbeddedData) {
+        this.textureEmbeddedData = textureEmbeddedData;
     }
 }

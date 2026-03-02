@@ -182,6 +182,7 @@ public class ModelLoader implements LoadListener {
                             case ".dae":
                             case ".gltf":
                             case ".glb":
+                            case ".fbx":
                                 modelFile = pseudoUri;
                                 modelUri = new URI(pseudoUri.toString());
                                 break;
