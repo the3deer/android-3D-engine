@@ -72,11 +72,6 @@ public class PreferenceFragment extends PreferenceFragmentCompat {
     @Override
     public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
 
-        if (false){
-            setPreferencesFromResource(R.xml.test_prefs, rootKey);
-            Log.d(TAG, "Loaded test_prefs.xml");
-            return;
-        }
         // check
         init();
 

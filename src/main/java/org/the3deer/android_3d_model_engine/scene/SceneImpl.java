@@ -27,11 +27,14 @@ import org.the3deer.android_3d_model_engine.model.Skin;
 import org.the3deer.android_3d_model_engine.model.Transform;
 import org.the3deer.android_3d_model_engine.objects.Point;
 import org.the3deer.android_3d_model_engine.view.RenderListener;
+import org.the3deer.util.android.ContentUtils;
 import org.the3deer.util.event.EventListener;
 import org.the3deer.util.event.EventManager;
+import org.the3deer.util.io.IOUtils;
 import org.the3deer.util.math.Math3DUtils;
 import org.the3deer.util.math.Quaternion;
 
+import java.io.InputStream;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -223,9 +226,9 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
     public SceneImpl() {
 
         // default camera setting
-         camera = new Camera("default", Constants.DEFAULT_CAMERA_POSITION);
-         cameras = new ArrayList<>();
-         cameras.add(camera);
+        camera = new Camera("default", Constants.DEFAULT_CAMERA_POSITION);
+        cameras = new ArrayList<>();
+        cameras.add(camera);
     }
 
     @Override
@@ -283,7 +286,7 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
         for (int i = 0; i < objects.size(); i++) {
             final Object3DData objData = objects.get(i);
             if (objData.getAuthoringTool() != null && objData.getAuthoringTool().toLowerCase().contains("blender")) {
-                Matrix.rotateM(this.worldMatrix, 0, -90, 1,0, 0);
+                Matrix.rotateM(this.worldMatrix, 0, -90, 1, 0, 0);
                 Log.d(TAG, "Fixed coordinate system to -90 degrees on y axis. worldMatrix: " + Arrays.toString(this.worldMatrix));
                 break;
                 /*Quaternion quaternion = Quaternion.getQuaternion(new float[]{1, 0, 0}, (float) (-Math.PI / 2f));
@@ -334,7 +337,7 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
         this.animations = animations;
 
         // default animation
-        if (animations != null && !animations.isEmpty()){
+        if (animations != null && !animations.isEmpty()) {
             setCurrentAnimation(animations.get(0));
         }
     }
@@ -757,7 +760,7 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
 
     public synchronized void onLoadComplete() {
 
-        if (objects == null || objects.isEmpty()){
+        if (objects == null || objects.isEmpty()) {
             Log.w(TAG, "No objects were loaded");
         } else {
             Log.i(TAG, "onLoadComplete: " + getName() + ", Objects: " + objects.size());
@@ -766,6 +769,12 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
 
         // get complete list of objects loaded
         final List<Object3DData> objs = getObjects();
+
+        for (int i = 0; i < objs.size(); i++) {
+            for (int m = 0; m < objs.size(); m++) {
+                loadTextureDatas(objs.get(m).getMaterial());
+            }
+        }
 
         // show object errors
         List<String> allErrors = new ArrayList<>();
@@ -823,7 +832,7 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
         }
 
         // fix coordinate system
-        if (Constants.FIX_COORDINATE_SYSTEM){
+        if (Constants.FIX_COORDINATE_SYSTEM) {
             fixCoordinateSystem();
         }
 
@@ -839,6 +848,22 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
                 // This method should recursively update all children
                 getRootNodes().get(i).updateBindWorldTransform(this.worldMatrix);
             }
+        }
+    }
+
+    private void loadTextureDatas(Material mat) {
+        if (mat == null) return;
+        if (mat.getColorTexture() != null && mat.getColorTexture().getFile() != null) {
+            String textureFile = mat.getColorTexture().getFile();
+            Log.i(TAG, "Loading texture file: " + textureFile);
+            try (InputStream stream = ContentUtils.getInputStream(textureFile)) {
+                mat.getColorTexture().setData(IOUtils.read(stream));
+                Log.i(TAG, "Texture successfully loaded: " + textureFile);
+            } catch (Exception ex) {
+                Log.e(TAG, "Error loading texture file '" + textureFile + "': " + ex.getMessage(), ex);
+                makeToastText("Error loading texture file '" + textureFile + "': " + ex.getMessage(), Toast.LENGTH_LONG);
+            }
+
         }
     }
 
@@ -993,7 +1018,7 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
             }
 
 
-            Log.v(TAG, "Model["+i+"] '" + obj.getId() + "' dimension: " + obj.getDimensions());
+            Log.v(TAG, "Model[" + i + "] '" + obj.getId() + "' dimension: " + obj.getDimensions());
             Log.v(TAG, "Model[" + i + "] '" + obj.getId() + "' current dimension: " + original.toString());
             final float[] corner1 = original.getCornerLeftTopNearVector();
             final float[] corner2 = original.getCornerRightBottomFar();

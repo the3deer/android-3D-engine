@@ -26,6 +26,7 @@ public class FBXParser {
     public native Buffer fbxGetTexCoordsBuffer(long modelPtr, int meshIndex);
     public native Buffer fbxGetTangentsBuffer(long modelPtr, int meshIndex);
     public native Buffer fbxGetIndexBuffer(long modelPtr, int meshIndex);
+    public native String fbxGetTexturePath(long modelPtr, int meshIndex);
 
     // FBX Application Interface
     public FBXModel parseModel(String filePath){
@@ -58,7 +59,8 @@ public class FBXParser {
             mesh.setIndicesBuffer(fbxGetIndexBuffer(handler, i));
             mesh.setNormalsBuffer(fbxGetNormalsBuffer(handler, i));
             mesh.setColorsBuffer(fbxGetColorsBuffer(handler, i));
-            //mesh.setTextCoordsBuffer(fbxGetTexCoordsBuffer(handler, i));
+            mesh.setTexCoordsBuffer(fbxGetTexCoordsBuffer(handler, i));
+            mesh.setTexturePath(fbxGetTexturePath(handler, i));
             
             meshes.add(mesh);
         }

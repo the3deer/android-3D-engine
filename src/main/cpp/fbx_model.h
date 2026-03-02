@@ -4,10 +4,17 @@
 #include "ufbx.h"
 #include <vector>
 
-// Using C++ to manage the list of allocated buffers
+struct fbx_primitive_t {
+    ufbx_node* node;
+    int material_index;
+};
+
 struct fbx_model_t {
     ufbx_scene *scene;
+    std::vector<fbx_primitive_t> primitives;
     std::vector<void*> allocated_buffers;
+
+    fbx_model_t() : scene(nullptr) {}
 
     ~fbx_model_t() {
         if (scene) ufbx_free_scene(scene);

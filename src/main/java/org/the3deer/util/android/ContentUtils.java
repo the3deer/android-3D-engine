@@ -32,6 +32,7 @@ import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -96,9 +97,11 @@ public class ContentUtils {
     private static void provideAssets(Activity activity, String directory) {
         try {
             final String[] files = activity.getAssets().list(directory);
+
             if (files.length > 0) {
                 for (String document : files) {
                     final String[] files2 = activity.getAssets().list(directory + "/" + document);
+                    if (files2 == null) continue;
                     if (files2.length == 0) {
                         //documentsProvided.put(document, Uri.parse("android://"+activity().getPackageName()+"/assets/models/" + document));
                         final Uri assetUri = Uri.parse("android://" + activity.getPackageName() + "/assets/" + directory + "/" + document);
@@ -129,7 +132,7 @@ public class ContentUtils {
      * @param name the file name
      * @return the linked Uri
      */
-    public static Uri getUri(String name) {
+    public static Uri  getUri(String name) {
 
         // default try
         Uri uri = documentsProvided.get(name);
@@ -156,9 +159,17 @@ public class ContentUtils {
      * @throws IOException if there is an error opening stream
      */
     public static InputStream getInputStream(String path) throws IOException {
+
+        // normalize path
+        path = path.replace('\\','/');
+
+        // get registered uri
         Uri uri = getUri(path);
         if (uri == null) {
             uri = getUri("models/"+path);
+        }
+        if (uri == null){
+            uri = getUri("models/"+path.replace(' ', '+'));
         }
         if (uri == null && currentDir != null) {
             uri = Uri.parse("file://" + new File(currentDir, path).getAbsolutePath());

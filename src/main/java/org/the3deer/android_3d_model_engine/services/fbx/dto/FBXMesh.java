@@ -11,7 +11,8 @@ public class FBXMesh {
     private Buffer normalsBuffer;
     private Buffer indicesBuffer;
     private Buffer colorsBuffer;
-    private Buffer textCoordsBuffer;
+    private Buffer texCoordsBuffer;
+    private String texturePath;
 
     public void setVerticesBuffer(Buffer verticesBuffer) {
         this.verticesBuffer = verticesBuffer;
@@ -45,11 +46,19 @@ public class FBXMesh {
         return colorsBuffer;
     }
 
-    public void setTextCoordsBuffer(Buffer buffer) {
-        this.textCoordsBuffer = buffer;
+    public Buffer getTexCoordsBuffer() {
+        return texCoordsBuffer;
     }
 
-    public Buffer getTextCoordsBuffer() {
-        return textCoordsBuffer;
+    public void setTexCoordsBuffer(Buffer texCoordsBuffer) {
+        this.texCoordsBuffer = texCoordsBuffer;
+    }
+
+    public String getTexturePath() {
+        return texturePath;
+    }
+
+    public void setTexturePath(String texturePath) {
+        this.texturePath = texturePath;
     }
 }

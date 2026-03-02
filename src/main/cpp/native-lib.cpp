@@ -41,10 +41,6 @@ static ufbx_node* find_mesh_node(fbx_model_t* model, int index) {
     return nullptr;
 }
 
-extern "C" {
-    int get_a_random_number();
-}
-
 struct jni_stream_context {
     JNIEnv* env;
     jobject is;
@@ -62,6 +58,29 @@ static size_t jni_read_fn(void* user, void* data, size_t size) {
         return (size_t)bytes_read;
     }
     return (bytes_read == -1) ? 0 : 0;
+}
+
+extern "C" JNIEXPORT jlong JNICALL
+Java_org_the3deer_android_13d_1model_1engine_services_fbx_FBXParser_fbxParseModel(
+        JNIEnv* env, jobject, jstring filePath) {
+    const char *nativeFilePath = env->GetStringUTFChars(filePath, 0);
+
+    ufbx_load_opts opts = { 0 };
+    opts.target_axes = ufbx_axes_right_handed_y_up;
+    opts.target_unit_meters = 1.0f;
+
+    ufbx_error error;
+    ufbx_scene *scene = ufbx_load_file(nativeFilePath, &opts, &error);
+    env->ReleaseStringUTFChars(filePath, nativeFilePath);
+
+    if (!scene) {
+        LOGE("Failed to load file: %s", error.description.data);
+        return 0;
+    }
+
+    fbx_model_t *model = new fbx_model_t();
+    model->scene = scene;
+    return (jlong)model;
 }
 
 extern "C" JNIEXPORT jlong JNICALL
@@ -84,7 +103,6 @@ Java_org_the3deer_android_13d_1model_1engine_services_fbx_FBXParser_fbxParseMode
     stream.user = &ctx;
 
     ufbx_load_opts opts = { 0 };
-    // Removed problematic constants - using manual triangulation loop below
     opts.target_axes = ufbx_axes_right_handed_y_up;
     opts.target_unit_meters = 1.0f;
 
@@ -231,8 +249,90 @@ Java_org_the3deer_android_13d_1model_1engine_services_fbx_FBXParser_fbxGetColors
 }
 
 extern "C" JNIEXPORT jobject JNICALL
+Java_org_the3deer_android_13d_1model_1engine_services_fbx_FBXParser_fbxGetTexCoordsBuffer(
+        JNIEnv* env, jobject, jlong modelPtr, jint meshIndex) {
+    fbx_model_t *model = (fbx_model_t*)modelPtr;
+    ufbx_node* node = find_mesh_node(model, meshIndex);
+    if (!node || !node->mesh || !node->mesh->vertex_uv.exists) return NULL;
+
+    ufbx_mesh *mesh = node->mesh;
+    size_t total_vertices = 0;
+    for (size_t i = 0; i < mesh->faces.count; i++) {
+        total_vertices += (mesh->faces.data[i].num_indices - 2) * 3;
+    }
+
+    float* unrolled_uvs = (float*)malloc(total_vertices * 2 * sizeof(float));
+    size_t v_idx = 0;
+
+    for (size_t i = 0; i < mesh->faces.count; i++) {
+        ufbx_face face = mesh->faces.data[i];
+        for (uint32_t corner = 0; corner < face.num_indices - 2; corner++) {
+            uint32_t indices[3] = { face.index_begin, face.index_begin + corner + 1, face.index_begin + corner + 2 };
+            for (int k = 0; k < 3; k++) {
+                ufbx_vec2 uv = ufbx_get_vertex_vec2(&mesh->vertex_uv, indices[k]);
+                unrolled_uvs[v_idx++] = (float)uv.x;
+                unrolled_uvs[v_idx++] = 1-(float)uv.y;
+            }
+        }
+    }
+
+    model->allocated_buffers.push_back(unrolled_uvs);
+    return env->NewDirectByteBuffer(unrolled_uvs, (jlong)(total_vertices * 2 * sizeof(float)));
+}
+
+extern "C" JNIEXPORT jobject JNICALL
+Java_org_the3deer_android_13d_1model_1engine_services_fbx_FBXParser_fbxGetTangentsBuffer(
+        JNIEnv* env, jobject, jlong modelPtr, jint meshIndex) {
+    fbx_model_t *model = (fbx_model_t*)modelPtr;
+    ufbx_node* node = find_mesh_node(model, meshIndex);
+    if (!node || !node->mesh || !node->mesh->vertex_tangent.exists) return NULL;
+
+    ufbx_mesh *mesh = node->mesh;
+    size_t total_vertices = 0;
+    for (size_t i = 0; i < mesh->faces.count; i++) {
+        total_vertices += (mesh->faces.data[i].num_indices - 2) * 3;
+    }
+
+    float* unrolled_tangents = (float*)malloc(total_vertices * 3 * sizeof(float));
+    size_t v_idx = 0;
+
+    ufbx_matrix normal_matrix = ufbx_matrix_for_normals(&node->geometry_to_world);
+
+    for (size_t i = 0; i < mesh->faces.count; i++) {
+        ufbx_face face = mesh->faces.data[i];
+        for (uint32_t corner = 0; corner < face.num_indices - 2; corner++) {
+            uint32_t indices[3] = { face.index_begin, face.index_begin + corner + 1, face.index_begin + corner + 2 };
+            for (int k = 0; k < 3; k++) {
+                ufbx_vec3 tang = ufbx_get_vertex_vec3(&mesh->vertex_tangent, indices[k]);
+                tang = transform_norm(&normal_matrix, tang);
+                unrolled_tangents[v_idx++] = (float)tang.x;
+                unrolled_tangents[v_idx++] = (float)tang.y;
+                unrolled_tangents[v_idx++] = (float)tang.z;
+            }
+        }
+    }
+
+    model->allocated_buffers.push_back(unrolled_tangents);
+    return env->NewDirectByteBuffer(unrolled_tangents, (jlong)(total_vertices * 3 * sizeof(float)));
+}
+
+extern "C" JNIEXPORT jobject JNICALL
 Java_org_the3deer_android_13d_1model_1engine_services_fbx_FBXParser_fbxGetIndexBuffer(
         JNIEnv* env, jobject, jlong modelPtr, jint meshIndex) {
+    return NULL;
+}
+
+extern "C" JNIEXPORT jstring JNICALL
+Java_org_the3deer_android_13d_1model_1engine_services_fbx_FBXParser_fbxGetTexturePath(
+        JNIEnv* env, jobject, jlong modelPtr, jint meshIndex) {
+    fbx_model_t *model = (fbx_model_t*)modelPtr;
+    ufbx_node* node = find_mesh_node(model, meshIndex);
+    if (!node || node->materials.count == 0) return NULL;
+
+    ufbx_material *mat = node->materials.data[0];
+    if (mat->fbx.diffuse_color.texture) {
+        return env->NewStringUTF(mat->fbx.diffuse_color.texture->relative_filename.data);
+    }
     return NULL;
 }
 

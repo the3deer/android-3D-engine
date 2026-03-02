@@ -126,6 +126,10 @@ public class ModelLoader implements LoadListener {
                 }
             } catch (Exception ex) {
                 Log.e(TAG, "Error parsing activity parameters: " + ex.getMessage(), ex);
+                activity.runOnUiThread(() -> {
+                    Toast.makeText(activity, "There was a problem building the model: " + ex.getMessage(),
+                            Toast.LENGTH_LONG).show();
+                });
             }
         }
 

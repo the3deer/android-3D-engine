@@ -33,6 +33,8 @@ public final class FbxLoaderTask extends LoaderTask {
     @Override
     protected List<Object3DData> build() throws Exception {
         try {
+            callback.onStart();
+
             final List<Object3DData> load = loader.load(uri, callback);
 
             final Scene sceneDefault = new SceneImpl();
