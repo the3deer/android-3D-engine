@@ -12,6 +12,8 @@ import java.util.List;
 
 public class FBXParser {
 
+    private static final String TAG = FBXParser.class.getSimpleName();
+
     static {
         System.loadLibrary("the3deer_engine");
     }
@@ -22,14 +24,15 @@ public class FBXParser {
     public native int fbxGetVersion(long modelPtr);
     public native int fbxGetMeshCount(long modelPtr);
     public native Object fbxGetModelAttribute(long modelPtr, String name);
-    public native Buffer fbxGetVertexBuffer(long modelPtr, int meshIndex);
-    public native Buffer fbxGetNormalsBuffer(long modelPtr, int meshIndex);
-    public native Buffer fbxGetColorsBuffer(long modelPtr, int meshIndex);
-    public native Buffer fbxGetTexCoordsBuffer(long modelPtr, int meshIndex, boolean flipY);
-    public native Buffer fbxGetTangentsBuffer(long modelPtr, int meshIndex);
-    public native Buffer fbxGetIndexBuffer(long modelPtr, int meshIndex);
-    public native String fbxGetTexturePath(long modelPtr, int meshIndex);
-    public native byte[] fbxGetTextureEmbeddedData(long modelPtr, int meshIndex);
+    public native Buffer fbxGetVertexBuffer(long modelPtr, int primitiveIndex);
+    public native Buffer fbxGetNormalsBuffer(long modelPtr, int primitiveIndex);
+    public native Buffer fbxGetColorsBuffer(long modelPtr, int primitiveIndex);
+    public native Buffer fbxGetTexCoordsBuffer(long modelPtr, int primitiveIndex, boolean flipY);
+    public native Buffer fbxGetTangentsBuffer(long modelPtr, int primitiveIndex);
+    public native Buffer fbxGetIndexBuffer(long modelPtr, int primitiveIndex);
+    public native String fbxGetTexturePath(long modelPtr, int primitiveIndex);
+    public native byte[] fbxGetTextureEmbeddedData(long modelPtr, int primitiveIndex);
+    public native float[] fbxGetMaterialColor(long modelPtr, int primitiveIndex);
 
     // FBX Application Interface
     public FBXModel parseModel(String filePath){

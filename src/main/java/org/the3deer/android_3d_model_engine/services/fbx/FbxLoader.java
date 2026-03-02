@@ -80,7 +80,7 @@ public class FbxLoader {
                 // Texture Path & Embedded Data
                 Material material = null;
                 final String texturePath = fbxMesh.getTexturePath();
-                final byte[] textureEmbeddedData = fbxMesh.getTextureEmbeddedData();
+                final byte[] textureEmbeddedData = parser.fbxGetTextureEmbeddedData(model.getNativeHandler(), i);
 
                 if (textureEmbeddedData != null) {
                     Log.i(TAG, "Embedded Texture found for mesh: " + i);
@@ -90,6 +90,16 @@ public class FbxLoader {
                     Log.i(TAG, "External Texture Path: " + texturePath);
                     material = new Material();
                     material.setColorTexture(new Texture().setFile(texturePath));
+                }
+
+                // Fallback to Material Color if no texture
+                if (material == null) {
+                    float[] diffuseColor = parser.fbxGetMaterialColor(model.getNativeHandler(), i);
+                    if (diffuseColor != null) {
+                        material = new Material();
+                        material.setDiffuse(diffuseColor);
+                        material.setAlpha(diffuseColor[3]);
+                    }
                 }
 
                 // IMPORTANT: We use the constructor WITHOUT indicesBuffer

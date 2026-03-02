@@ -214,7 +214,7 @@ Java_org_the3deer_android_13d_1model_1engine_services_fbx_FBXParser_fbxGetColors
         JNIEnv* env, jobject, jlong modelPtr, jint meshIndex) {
     fbx_model_t *model = (fbx_model_t*)modelPtr;
     ufbx_node* node = find_mesh_node(model, meshIndex);
-    if (!node || !node->mesh) return NULL;
+    if (!node || !node->mesh || !node->mesh->vertex_color.exists) return NULL;
 
     ufbx_mesh *mesh = node->mesh;
     size_t total_vertices = 0;
@@ -225,28 +225,17 @@ Java_org_the3deer_android_13d_1model_1engine_services_fbx_FBXParser_fbxGetColors
     float* unrolled_colors = (float*)malloc(total_vertices * 4 * sizeof(float));
     size_t v_idx = 0;
 
-    for (size_t i = 0; i < mesh->vertex_color.exists ? mesh->faces.count : 0; i++) {
+    for (size_t i = 0; i < mesh->faces.count; i++) {
         ufbx_face face = mesh->faces.data[i];
         for (uint32_t corner = 0; corner < face.num_indices - 2; corner++) {
             uint32_t indices[3] = { face.index_begin, face.index_begin + corner + 1, face.index_begin + corner + 2 };
             for (int k = 0; k < 3; k++) {
-                if (mesh->vertex_color.exists) {
-                    ufbx_vec4 col = ufbx_get_vertex_vec4(&mesh->vertex_color, indices[k]);
-                    unrolled_colors[v_idx++] = (float)col.x;
-                    unrolled_colors[v_idx++] = (float)col.y;
-                    unrolled_colors[v_idx++] = (float)col.z;
-                    unrolled_colors[v_idx++] = (float)col.w;
-                } else {
-                    unrolled_colors[v_idx++] = 1.0f; unrolled_colors[v_idx++] = 1.0f;
-                    unrolled_colors[v_idx++] = 1.0f; unrolled_colors[v_idx++] = 1.0f;
-                }
+                ufbx_vec4 col = ufbx_get_vertex_vec4(&mesh->vertex_color, indices[k]);
+                unrolled_colors[v_idx++] = (float)col.x;
+                unrolled_colors[v_idx++] = (float)col.y;
+                unrolled_colors[v_idx++] = (float)col.z;
+                unrolled_colors[v_idx++] = (float)col.w;
             }
-        }
-    }
-    // Handle the case where there is no color data
-    if (v_idx == 0) {
-        for (size_t i = 0; i < total_vertices * 4; i++) {
-             unrolled_colors[i] = 1.0f;
         }
     }
 
@@ -357,6 +346,33 @@ Java_org_the3deer_android_13d_1model_1engine_services_fbx_FBXParser_fbxGetTextur
         return result;
     }
     return NULL;
+}
+
+extern "C" JNIEXPORT jfloatArray JNICALL
+Java_org_the3deer_android_13d_1model_1engine_services_fbx_FBXParser_fbxGetMaterialColor(
+        JNIEnv* env, jobject, jlong modelPtr, jint meshIndex) {
+    fbx_model_t *model = (fbx_model_t*)modelPtr;
+    ufbx_node* node = find_mesh_node(model, meshIndex);
+    if (!node || node->materials.count == 0) return NULL;
+
+    ufbx_material *mat = node->materials.data[0];
+
+    // Default color (Diffuse)
+    ufbx_vec3 col = mat->fbx.diffuse_color.value_vec3;
+    float alpha = mat->fbx.transparency_color.value_real;
+
+    // Fallback to PBR base color if diffuse is black
+    if (col.x == 0 && col.y == 0 && col.z == 0) {
+        if (mat->pbr.base_color.has_value) {
+            col = mat->pbr.base_color.value_vec3;
+            alpha = mat->pbr.transmission_color.value_real;
+        }
+    }
+
+    jfloatArray result = env->NewFloatArray(4);
+    float color[4] = {(float)col.x, (float)col.y, (float)col.z, (float)alpha};
+    env->SetFloatArrayRegion(result, 0, 4, color);
+    return result;
 }
 
 extern "C" JNIEXPORT jobject JNICALL
