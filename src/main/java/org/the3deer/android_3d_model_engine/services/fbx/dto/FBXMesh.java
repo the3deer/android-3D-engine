@@ -12,7 +12,10 @@ public class FBXMesh {
     private Buffer indicesBuffer;
     private Buffer colorsBuffer;
     private Buffer texCoordsBuffer;
+    private Buffer tangentsBuffer;
+    
     private String texturePath;
+    private String normalTexturePath;
     private byte[] textureEmbeddedData;
 
     public void setVerticesBuffer(Buffer verticesBuffer) {
@@ -55,12 +58,28 @@ public class FBXMesh {
         this.texCoordsBuffer = texCoordsBuffer;
     }
 
+    public Buffer getTangentsBuffer() {
+        return tangentsBuffer;
+    }
+
+    public void setTangentsBuffer(Buffer tangentsBuffer) {
+        this.tangentsBuffer = tangentsBuffer;
+    }
+
     public String getTexturePath() {
         return texturePath;
     }
 
     public void setTexturePath(String texturePath) {
         this.texturePath = texturePath;
+    }
+
+    public String getNormalTexturePath() {
+        return normalTexturePath;
+    }
+
+    public void setNormalTexturePath(String normalTexturePath) {
+        this.normalTexturePath = normalTexturePath;
     }
 
     public byte[] getTextureEmbeddedData() {

@@ -370,7 +370,7 @@ Java_org_the3deer_android_13d_1model_1engine_services_fbx_FBXParser_fbxGetMateri
     }
 
     jfloatArray result = env->NewFloatArray(4);
-    float color[4] = {(float)col.x, (float)col.y, (float)col.z, (float)alpha};
+    float color[4] = {(float)col.x, (float)col.y, (float)col.z, (float)1};
     env->SetFloatArrayRegion(result, 0, 4, color);
     return result;
 }
