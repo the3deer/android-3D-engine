@@ -36,7 +36,7 @@ varying vec3 v_Normal;
 // normalMap
 uniform bool u_NormalTextured;
 uniform sampler2D u_NormalTexture;
-varying vec3 v_Tangent;
+varying vec4 v_Tangent;
 
 // emissiveMap
 uniform bool u_EmissiveTextured;
@@ -47,150 +47,91 @@ uniform vec3 u_EmissiveFactor;
 uniform bool u_TransmissionTextured;
 uniform sampler2D u_TransmissionTexture;
 uniform float u_TransmissionFactor;
-//uniform vec3 u_EmissiveFactor;
 
 void main(){
 
-    // colours
-    vec4 color;
-    if (u_Coloured){
-        color = v_Color;
-    } else {
-        color = vColor;
-    }
+    // colors initialization
+    vec4 baseColor = u_Coloured ? v_Color : vColor;
+    vec4 texColor = u_Textured ? texture2D(u_Texture, v_TexCoordinate) : vec4(1.0);
 
-    // textures
-    vec4 tex = vec4(1.0, 1.0, 1.0, 1.0);
-    if (u_Textured){
-        if (u_TextureTransformed){
-            mat3 translation = mat3(1, 0, 0, 0, 1, 0, u_TextureOffset.x, u_TextureOffset.y, 1);
-            mat3 rotation = mat3(
+    // Texture transformation (if enabled)
+    if (u_Textured && u_TextureTransformed){
+        mat3 translation = mat3(1, 0, 0, 0, 1, 0, u_TextureOffset.x, u_TextureOffset.y, 1);
+        mat3 rotation = mat3(
             cos(u_TextureRotation), -sin(u_TextureRotation), 0,
             sin(u_TextureRotation), cos(u_TextureRotation), 0,
             0, 0, 1
-            );
-            mat3 scale = mat3(u_TextureScale.x, 0, 0, 0, u_TextureScale.y, 0, 0, 0, 1);
-            mat3 matrix = translation * rotation * scale;
-            vec2 uvTransformed = (matrix * vec3(v_TexCoordinate.xy, 1)).xy;
-            tex = texture2D(u_Texture, uvTransformed);
-        } else {
-            tex = texture2D(u_Texture, v_TexCoordinate);
-        }
+        );
+        mat3 scale = mat3(u_TextureScale.x, 0, 0, 0, u_TextureScale.y, 0, 0, 0, 1);
+        mat3 matrix = translation * rotation * scale;
+        vec2 uvTransformed = (matrix * vec3(v_TexCoordinate.xy, 1)).xy;
+        texColor = texture2D(u_Texture, uvTransformed);
     }
 
-    // emissive texture
-    vec4 emissive = vec4(0.0, 0.0, 0.0, 0.0);
-    if (u_EmissiveTextured){
-        vec4 emtex = texture2D(u_EmissiveTexture, v_TexCoordinate);
-        emissive = emtex * vec4(u_EmissiveFactor, 1.0);
+    // Combine base, texture, and mask
+    vec4 finalColor = baseColor * texColor * vColorMask;
+
+    // Alpha mode handling (Early discard for Mask mode)
+    if (u_AlphaMode == 1 && finalColor.a < u_AlphaCutoff) {
+        discard;
     }
 
-    // light
+    // Light initialization
     float diffuse = 0.25;
     float specular = 0.0;
-    vec3 refractedColor = vec3(0.0, 0.0, 0.0);
+    vec3 N = normalize(v_Normal);
+
     if (u_Lighted) {
-
-        // Transform the vertex into eye space.
-        // vec3 modelVertex = vec3(u_MMatrix * vec4(v_Position,1.0));
-        vec3 modelVertex = v_Position;
-
-        // Transform the normal's orientation into eye space.
-        // Note that we need to remove the translation part by setting w=0
-        //vec3 modelNormal = normalize(vec3(u_MMatrix * vec4(v_Normal,0.0)));
-        vec3 modelNormal = normalize(v_Normal);
-
-        // normal map
+        // Normal mapping logic
         if (u_NormalTextured){
+            // Sample normal map [0, 1] and convert to [-1, 1]
+            vec3 normalSample = texture2D(u_NormalTexture, v_TexCoordinate).rgb * 2.0 - 1.0;
 
-            /// Sample the normal map
-            vec3 normalMap = texture2D(u_NormalTexture, v_TexCoordinate).rgb;
+            // Re-orthogonalize tangent (Gram-Schmidt process)
+            vec3 T = normalize(v_Tangent.xyz - dot(v_Tangent.xyz, N) * N);
+            // Construct bitangent respecting handedness (w)
+            vec3 B = cross(N, T) * v_Tangent.w;
 
-            // Convert the normal map from [0, 1] to [-1, 1]
-            normalMap = normalize(normalMap * 2.0 - 1.0);
-
-            // Calculate the bitangent using the cross product of the normal and tangent
-            vec3 bitangent = cross(modelNormal, v_Tangent);
-
-            // Construct the TBN matrix
-            mat3 TBN = mat3(
-            normalize(v_Tangent),
-            normalize(bitangent),
-            normalize(modelNormal)
-            );
-
-            // Transform the normal map to world space
-            modelNormal = TBN * normalMap;
+            // Construct TBN matrix and transform sample to world space
+            mat3 TBN = mat3(T, B, N);
+            N = normalize(TBN * normalSample);
         }
 
-        // refraction
-        if (u_TransmissionTextured){
+        // Blinn-Phong lighting
+        vec3 lightVec = u_LightPos - v_Position;
+        float dist = length(lightVec);
+        lightVec = normalize(lightVec);
 
-            // Calculate view direction
-            vec3 viewDir = normalize(u_cameraPos - v_Position);
+        float diff = max(dot(lightVec, N), 0.0);
 
-            // Calculate refracted direction
-            vec3 refractedDir = refract(viewDir, modelNormal, u_TransmissionFactor);
+        // Attenuation
+        float attenuation = 1.0 / (1.0 + 0.025 * dist);
+        diffuse = diff * attenuation;
 
-            // Sample the thickness map
-            float thickness = texture2D(u_TransmissionTexture, v_TexCoordinate).r;
-
-            // Calculate refracted color based on thickness and thickness factor
-            //vec3 refractedColor = texture2D(albedoMap, refractedDir.xy).rgb * (1.0 - thicknessFactor * thickness);
-
-            //color = refractedColor;
-
-            // Output the refracted color
-
-        }
-
-        // Get a lighting direction vector from the light to the vertex.
-        vec3 lightVector = normalize(u_LightPos - modelVertex);
-
-        // Calculate the dot product of the light vector and vertex normal.
-        // If the normal and light vector are pointing in the same direction then it will get max illumination.
-        // float diffuse = max(dot(lightVector, modelNormal),0.0); // debug: lights only on camera in front of face
-        float diff = max(dot(lightVector, modelNormal), 0.0);
-
-        // Attenuate the light based on distance.
-        float dist = distance(u_LightPos, modelVertex);
-        dist = 1.0 / (1.0 + dist * 0.025);
-        diffuse = diff * dist;
-
-        // specular light
-        vec3 viewDir = normalize(u_cameraPos - modelVertex);
-        vec3 reflectDir = reflect(-lightVector, modelNormal);
-        specular = pow(max(dot(reflectDir, viewDir), 0.0), 32.0);
-        specular = specular * dist;
+        // Specular (Blinn-Phong)
+        vec3 viewDir = normalize(u_cameraPos - v_Position);
+        vec3 halfDir = normalize(lightVec + viewDir);
+        specular = pow(max(dot(N, halfDir), 0.0), 32.0) * attenuation;
     }
 
-    // ambient light
-    float ambient = 0.60;
+    // Ambient light
+    float ambient = 0.40;
+    float totalLight = min((diffuse + specular + ambient), 1.0);
 
-    // light
-    float light = min((diffuse + specular + ambient), 1.0);
+    // Combine lighting with color
+    finalColor.rgb = finalColor.rgb * totalLight;
 
-    // calculate final color
-    gl_FragColor = color * tex * vColorMask * light + emissive;
+    // Apply Emissive texture (if enabled)
+    if (u_EmissiveTextured){
+        vec4 emissiveTex = texture2D(u_EmissiveTexture, v_TexCoordinate);
+        finalColor.rgb += emissiveTex.rgb * u_EmissiveFactor;
+    }
 
+    // Set output color
+    gl_FragColor = finalColor;
 
-    // alpha mode
-    if (u_Textured){
-        if (u_AlphaMode == 0) { // opaque
-            gl_FragColor[3] = 1.0;
-        } else if (u_AlphaMode == 1) { // mask
-
-            gl_FragColor[3] = tex[3];
-            if (tex.a < u_AlphaCutoff){
-                discard;
-            }
-        } else { // blend
-            gl_FragColor[3] = tex[3];
-        }
-        if (gl_FragColor[3] < 0.5){
-            //gl_FragColor[1] = 1.0;
-        }
-    } else {
-        gl_FragColor[3] = color[3] * vColorMask[3];
+    // Force opaque if mode is 0
+    if (u_AlphaMode == 0) {
+        gl_FragColor.a = 1.0;
     }
 }

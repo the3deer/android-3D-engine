@@ -1,7 +1,6 @@
 precision highp float;
 
 const int MAX_JOINTS = 60;
-//const int MAX_WEIGHTS = 3;
 
 // MVP matrices
 uniform mat4 u_MMatrix;
@@ -28,15 +27,10 @@ attribute vec3 a_Normal;
 varying vec3 v_Normal;
 uniform mat4 u_NormalMatrix;
 
-// normalMap
+// normalMap (GLTF Tangents are vec4)
 uniform bool u_NormalTextured;
-//uniform sampler2D u_NormalTexture;
-attribute vec3 a_Tangent;
-varying vec3 v_Tangent;
-
-// emissiveMap
-//uniform bool u_EmissiveTextured;
-//uniform sampler2D u_EmissiveTexture;
+attribute vec4 a_Tangent;
+varying vec4 v_Tangent;
 
 // animation
 uniform bool u_Animated;
@@ -47,41 +41,34 @@ uniform mat4 jointTransforms[MAX_JOINTS];
 
 void main(){
 
-    vec4 animatedPos = vec4(a_Position,1.0);
-    vec3 animatedNormal = a_Normal; // *** START WITH THE ORIGINAL NORMAL ***
+    vec4 animatedPos = vec4(a_Position, 1.0);
+    vec3 animatedNormal = a_Normal;
+    vec3 animatedTangent = a_Tangent.xyz;
 
     if (u_Animated) {
-        // --- Calculate animated position (your existing code is fine) ---
+        // Calculate animated position
         vec4 bindPos = u_BindShapeMatrix * vec4(a_Position, 1.0);
-        vec4 posePosition = jointTransforms[int(in_jointIndices[0])] * bindPos;
-        animatedPos = posePosition * in_weights[0];
-        posePosition = jointTransforms[int(in_jointIndices[1])] * bindPos;
-        animatedPos += posePosition * in_weights[1];
-        posePosition = jointTransforms[int(in_jointIndices[2])] * bindPos;
-        animatedPos += posePosition * in_weights[2];
-        posePosition = jointTransforms[int(in_jointIndices[3])] * bindPos;
-        animatedPos += posePosition * in_weights[3];
 
-        // --- Calculate animated normal ---
-        // We only want the rotation, so we cast the mat4 to a mat3
-        mat3 skinning_mat = mat3(jointTransforms[int(in_jointIndices[0])]);
-        vec3 poseNormal = skinning_mat * a_Normal;
-        animatedNormal = poseNormal * in_weights[0];
+        animatedPos = (jointTransforms[int(in_jointIndices[0])] * bindPos) * in_weights[0];
+        animatedPos += (jointTransforms[int(in_jointIndices[1])] * bindPos) * in_weights[1];
+        animatedPos += (jointTransforms[int(in_jointIndices[2])] * bindPos) * in_weights[2];
+        animatedPos += (jointTransforms[int(in_jointIndices[3])] * bindPos) * in_weights[3];
 
-        skinning_mat = mat3(jointTransforms[int(in_jointIndices[1])]);
-        poseNormal = skinning_mat * a_Normal;
-        animatedNormal += poseNormal * in_weights[1];
+        // Calculate animated normal and tangent (rotation only)
+        mat3 skinMat0 = mat3(jointTransforms[int(in_jointIndices[0])]);
+        mat3 skinMat1 = mat3(jointTransforms[int(in_jointIndices[1])]);
+        mat3 skinMat2 = mat3(jointTransforms[int(in_jointIndices[2])]);
+        mat3 skinMat3 = mat3(jointTransforms[int(in_jointIndices[3])]);
 
-        skinning_mat = mat3(jointTransforms[int(in_jointIndices[2])]);
-        poseNormal = skinning_mat * a_Normal;
-        animatedNormal += poseNormal * in_weights[2];
+        animatedNormal = (skinMat0 * a_Normal) * in_weights[0];
+        animatedNormal += (skinMat1 * a_Normal) * in_weights[1];
+        animatedNormal += (skinMat2 * a_Normal) * in_weights[2];
+        animatedNormal += (skinMat3 * a_Normal) * in_weights[3];
 
-        skinning_mat = mat3(jointTransforms[int(in_jointIndices[3])]);
-        poseNormal = skinning_mat * a_Normal;
-        animatedNormal += poseNormal * in_weights[3];
-
-        // It is VERY important to re-normalize the final normal vector
-        animatedNormal = normalize(animatedNormal);
+        animatedTangent = (skinMat0 * a_Tangent.xyz) * in_weights[0];
+        animatedTangent += (skinMat1 * a_Tangent.xyz) * in_weights[1];
+        animatedTangent += (skinMat2 * a_Tangent.xyz) * in_weights[2];
+        animatedTangent += (skinMat3 * a_Tangent.xyz) * in_weights[3];
     }
 
     // calculate MVP matrix
@@ -90,7 +77,7 @@ void main(){
 
     // calculate rendered position
     gl_Position = u_MVPMatrix * animatedPos;
-    v_Position = vec3(u_MMatrix * animatedPos); // Pass world position to fragment shader
+    v_Position = vec3(u_MMatrix * animatedPos);
 
     // colour
     if (u_Coloured){
@@ -102,18 +89,12 @@ void main(){
         v_TexCoordinate = a_TexCoordinate;
     }
 
-    // normal
+    // normal and tangent to world space
     if (u_Lighted){
-        // Use the transformed normal. It also needs to be transformed by the model matrix
-        // to get it into world space for lighting calculations.
-        //mat3 u_NormalMatrix = mat3(transpose(inverse(u_MMatrix)));
         v_Normal = mat3(u_NormalMatrix) * animatedNormal;
     }
 
-    // texture normal
     if (u_NormalTextured) {
-        // NOTE: If you use normal mapping on an animated model, the tangent
-        // (a_Tangent) must ALSO be transformed using the same skinning logic!
-        v_Tangent = a_Tangent; // This will be incorrect for animated models.
+        v_Tangent = vec4(mat3(u_NormalMatrix) * animatedTangent, a_Tangent.w);
     }
 }

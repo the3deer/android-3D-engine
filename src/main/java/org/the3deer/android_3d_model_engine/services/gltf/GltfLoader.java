@@ -376,10 +376,10 @@ public class GltfLoader {
                 AnimatedModel model = new AnimatedModel();
                 model.setId(meshDto.name != null ? meshDto.name + "_" + i : "mesh_" + i);
                 model.setVertexBuffer((FloatBuffer) primitiveDto.positions);
-                model.setVertexNormalsArrayBuffer((FloatBuffer) primitiveDto.normals);
+                model.setNormalsBuffer((FloatBuffer) primitiveDto.normals);
                 model.setTangentBuffer(primitiveDto.tangents);
                 model.setTextureCoordsArrayBuffer((FloatBuffer) primitiveDto.texCoords);
-                model.setVertexColorsArrayBuffer(primitiveDto.colors);
+                model.setColorsBuffer(primitiveDto.colors);
                 model.setIndexBuffer(primitiveDto.indices);
                 model.setDrawUsingArrays(primitiveDto.indices == null);
                 model.setDrawMode(GLES20.GL_TRIANGLES);
