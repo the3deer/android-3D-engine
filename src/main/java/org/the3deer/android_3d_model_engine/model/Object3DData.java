@@ -365,7 +365,13 @@ public class Object3DData {
     }
 
     public Material getMaterial() {
+
+        // material bound to node
+        if (parentNode != null && parentNode.getMaterial() != null) return parentNode.getMaterial();
+
+        // material bound to object
         if (material == null) material = new Material("default", "default");
+
         return material;
     }
 

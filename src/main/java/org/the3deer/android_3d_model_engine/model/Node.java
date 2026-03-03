@@ -34,7 +34,7 @@ public class Node {
 	// FIXME: is this used?
 	private int skinIndex = -1;
 
-	private Map<String,String> materials;
+	private Map<String,String> materialsMap;
 
 	// local transform
 	private Transform localTransform;
@@ -54,6 +54,8 @@ public class Node {
 	private int jointIndex = -1;
 
 	private Node parent;
+	private Material material;
+	//private List<Mesh> meshes = new ArrayList<>();
 	public final List<Node> children = new ArrayList<>();
 	public List<Object3DData> meshes;
 	private Skin skin;
@@ -98,7 +100,7 @@ public class Node {
 	public Node(String id, String name, String sid,
 				float[] bindLocalMatrix, Float[] bindLocalScale, Float[] bindLocalRotation, Float[] bindLocalTranslation,
 				final float[] localTransform, final float[] bindWorldTransform,
-				String geometryId, Map<String, String> materials) {
+				String geometryId, Map<String, String> materialsMap) {
 		this.id = id;
 		this.name = name;
 		this.sid = sid;
@@ -111,7 +113,7 @@ public class Node {
 		}
 
 		this.meshId = geometryId;
-		this.materials = materials;
+		this.materialsMap = materialsMap;
 
 		this.bindWorldTransform = bindWorldTransform;
 	}
@@ -123,7 +125,13 @@ public class Node {
 		return this;
 	}
 
+	public Material getMaterial() {
+		return material;
+	}
 
+	public void setMaterial(Material material) {
+		this.material = material;
+	}
 
 	public void setMatrix(float[] matrix) {
 		this.localTransform = new Transform(matrix);
@@ -199,7 +207,7 @@ public class Node {
 
 		// extra data
 		this.meshId = id;
-		this.materials = null;
+		this.materialsMap = null;
     }
 
 	public String getId() {
@@ -381,11 +389,11 @@ public class Node {
 	}
 
 	public boolean containsMaterial(String materialId){
-		return materials.containsKey(materialId);
+		return materialsMap.containsKey(materialId);
 	}
 
 	public String getMaterial(String materialId){
-		return materials.get(materialId);
+		return materialsMap.get(materialId);
 	}
 
 	public float[] getBindWorldTransform() {

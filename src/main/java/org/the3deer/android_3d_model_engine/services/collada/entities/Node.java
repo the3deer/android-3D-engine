@@ -12,6 +12,7 @@ public class Node {
     private Node parent;
     private List<Node> children = new ArrayList<>();
     private String instanceGeometryId; // The ID of the geometry this node instances e.g. "Cube_000-mesh"
+    private String bindMaterialId; // The ID of the geometry this node instances e.g. "Cube_000-mesh"
     private String instanceControllerId; // The ID of the controller this node instances
     private String skinId;
 
@@ -45,6 +46,14 @@ public class Node {
     public List<Node> getChildren() { return children; }
     public void setInstanceGeometryId(String id) { this.instanceGeometryId = id; }
     public String getInstanceGeometryId() { return instanceGeometryId; }
+
+    public String getBindMaterialId() {
+        return bindMaterialId;
+    }
+
+    public void setBindMaterialId(String bindMaterialId) {
+        this.bindMaterialId = bindMaterialId;
+    }
 
     public String getInstanceControllerId() {
         return instanceControllerId;

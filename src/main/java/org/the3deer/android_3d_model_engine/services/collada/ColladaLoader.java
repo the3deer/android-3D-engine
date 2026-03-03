@@ -99,7 +99,7 @@ public class ColladaLoader {
             Map<Node, org.the3deer.android_3d_model_engine.model.Node> nodeMap = new HashMap<>();
 
             // First, build the hierarchy of the engine's Node objects for animation.
-            List<org.the3deer.android_3d_model_engine.model.Node> rootModelNodes = buildNodeHierarchy(parser.getRootNodes(), nodeMap);
+            List<org.the3deer.android_3d_model_engine.model.Node> rootModelNodes = buildNodeHierarchy(parser.getRootNodes(), nodeMap, materials);
 
             // LINK THE SKINS TO THE SKELETONS
             Log.i(TAG, "Linking skins to skeleton nodes...");
@@ -174,7 +174,8 @@ public class ColladaLoader {
      * @param nodeMap
      * @return A list of the root nodes of the final model hierarchy.
      */
-    private List<org.the3deer.android_3d_model_engine.model.Node> buildNodeHierarchy(List<Node> rootParserNodes, Map<Node, org.the3deer.android_3d_model_engine.model.Node> nodeMap) {
+    private List<org.the3deer.android_3d_model_engine.model.Node> buildNodeHierarchy(List<Node> rootParserNodes, Map<Node, org.the3deer.android_3d_model_engine.model.Node> nodeMap
+    , Map<String, Material> materials) {
         if (rootParserNodes == null || rootParserNodes.isEmpty()) {
             return new ArrayList<>();
         }
@@ -185,7 +186,7 @@ public class ColladaLoader {
 
         for (Node rootParserNode : rootParserNodes) {
             // Root nodes have a null parent.
-            rootModelNodes.add(buildModelNode(rootParserNode, null, nodeMap));
+            rootModelNodes.add(buildModelNode(rootParserNode, null, nodeMap, materials));
         }
 
         return rootModelNodes;
@@ -200,7 +201,8 @@ public class ColladaLoader {
      */
     private org.the3deer.android_3d_model_engine.model.Node buildModelNode(Node parserNode,
                                                                            org.the3deer.android_3d_model_engine.model.Node parentModelNode,
-                                                                           Map<Node, org.the3deer.android_3d_model_engine.model.Node> nodeMap){
+                                                                           Map<Node, org.the3deer.android_3d_model_engine.model.Node> nodeMap,
+                                                                           Map<String, Material> materials){
     // If we've already created this node, return the cached version.
         if (nodeMap.containsKey(parserNode)) {
             return nodeMap.get(parserNode);
@@ -214,12 +216,22 @@ public class ColladaLoader {
         modelNode.setParent(parentModelNode);
         modelNode.setMatrix(parserNode.getTransform());
 
+        // bindings
+        if (parserNode.getBindMaterialId() != null) {
+            if (materials == null || !materials.containsKey(parserNode.getBindMaterialId())) {
+                Log.w(TAG, "Node '" + parserNode.getId() + "' references unknown material '" + parserNode.getBindMaterialId() + "'");
+            } else {
+                final Material material = materials.get(parserNode.getBindMaterialId());
+                modelNode.setMaterial(material);
+            }
+        }
+
         // Cache the new node *before* recursing to handle circular dependencies.
         nodeMap.put(parserNode, modelNode);
 
         // Recursively build all children and add them to the new model node.
         for (Node childParserNode : parserNode.getChildren()) {
-            org.the3deer.android_3d_model_engine.model.Node childModelNode = buildModelNode(childParserNode, modelNode, nodeMap);
+            org.the3deer.android_3d_model_engine.model.Node childModelNode = buildModelNode(childParserNode, modelNode, nodeMap, materials);
             modelNode.addChild(childModelNode);
         }
 

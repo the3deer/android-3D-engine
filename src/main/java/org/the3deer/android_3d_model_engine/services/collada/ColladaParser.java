@@ -1505,7 +1505,8 @@ public class ColladaParser {
         float[] finalMatrix = new float[16];
         Matrix.setIdentityM(finalMatrix, 0); // Start with an identity matrix
 
-        while (parser.next() != XmlPullParser.END_TAG || !parser.getName().equals("node")) {
+        int startDepth = parser.getDepth();
+        while (parser.next() != XmlPullParser.END_TAG || parser.getDepth() > startDepth) {
             if (parser.getEventType() != XmlPullParser.START_TAG) continue;
 
             String tagName = parser.getName();
@@ -1565,39 +1566,31 @@ public class ColladaParser {
                     }
 
                     if ("instance_controller".equals(tagName)) {
-
                         Log.d(TAG, "Found <instance_controller> for node '" + currentNode.getId() + "' with url: " + url);
                         currentNode.setInstanceControllerId(cleanId(url));
+                    } else {
+                        Log.d(TAG, "Found <instance_geometry> for node '" + currentNode.getId() + "' with url: " + url);
+                        currentNode.setInstanceGeometryId(cleanId(url));
+                    }
 
-                        String skinRootId = null; // Variable to hold the skeleton root ID
+                    // Traverse children to find <skeleton> or <instance_material>
+                    while (parser.next() != XmlPullParser.END_TAG || !parser.getName().equals(tagName)) {
+                        if (parser.getEventType() != XmlPullParser.START_TAG) continue;
 
-                        // Look inside <instance_controller> for the <skin> tag
-                        while (parser.next() != XmlPullParser.END_TAG || !parser.getName().equals("instance_controller")) {
-                            if (parser.getEventType() == XmlPullParser.START_TAG && "skeleton".equals(parser.getName())) {
-                                // The content of the <skin> tag is the ID of the skeleton's root joint
-                                skinRootId = parser.nextText(); // Get the ID (e.g., "#Torso")
-                                Log.d(TAG, "Found <skeleton> tag with root ID: " + skinRootId);
-                                // We don't break here because we still need to reach the end of the instance_controller tag
+                        String innerTagName = parser.getName();
+                        if ("skeleton".equals(innerTagName)) {
+                            // Skeleton root ID for skinned meshes
+                            String skinRootId = parser.nextText();
+                            Log.d(TAG, "Found <skeleton> tag with root ID: " + skinRootId);
+                            currentNode.setSkinId(cleanId(skinRootId));
+                        } else if ("instance_material".equals(innerTagName)) {
+                            // Material binding
+                            String target = parser.getAttributeValue(null, "target");
+                            if (target != null) {
+                                Log.d(TAG, "Found <instance_material> with target: " + target);
+                                currentNode.setBindMaterialId(cleanId(target));
                             }
                         }
-
-                        // Pass the newly found skin root ID to the Node DTO
-                        if (skinRootId != null) {
-                            currentNode.setSkinId(cleanId(skinRootId));
-                        } else {
-                            Log.w(TAG, "Incomplete <instance_controller> for node '" + currentNode.getId() + "'. Missing <skin> tag inside.");
-                        }
-
-                        // The while loop above already consumed the tag, so we are done.
-
-                    } else { // This is an "instance_geometry"
-                        Log.d(TAG, "Found <instance_geometry> for node '" + currentNode.getId() + "' with url: " + url);
-
-                        // This is a static, non-skinned mesh. Just set the geometry ID.
-                        currentNode.setInstanceGeometryId(cleanId(url));
-
-                        // We still need to skip the rest of the tag (e.g., <bind_material>)
-                        skipToEnd(parser, tagName);
                     }
                     break;
                 }
@@ -1608,7 +1601,7 @@ public class ColladaParser {
                 }
                 default:
                     // Skip other tags like <instance_light>
-                    skipToEnd(parser, tagName);
+                    skipTag(parser);
                     break;
             }
         }
