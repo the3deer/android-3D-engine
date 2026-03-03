@@ -49,6 +49,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 import java.util.TreeMap;
+import java.util.TreeSet;
 
 import de.javagl.jgltf.model.GltfModel;
 import de.javagl.jgltf.model.GltfModels;
@@ -204,7 +205,7 @@ public class GltfLoader {
 
     private List<Camera> buildCamerasFromDto(GltfDto dto) {
         if (dto.cameras == null || dto.cameras.isEmpty()) {
-            return Collections.emptyList();
+            return null;
         }
 
         List<Camera> cameras = new ArrayList<>(dto.cameras.size());
@@ -243,15 +244,15 @@ public class GltfLoader {
 
         List<Node> nodes = new ArrayList<>(dto.nodes.size());
         for (int i = 0; i < dto.nodes.size(); i++) {
-            Node node = new Node(i);
+            final GltfNodeDto nodeDto = dto.nodes.get(i);
+            final Node node = new Node(i);
+            node.setName(nodeDto.name != null ? nodeDto.name : "Node " + i);
             nodes.add(node);
         }
 
         for (int i = 0; i < dto.nodes.size(); i++) {
             GltfNodeDto nodeDto = dto.nodes.get(i);
             Node node = nodes.get(i);
-
-            node.setName(nodeDto.name != null ? nodeDto.name : "Node_" + i);
 
             if (nodeDto.scale != null || nodeDto.translation != null || nodeDto.rotation != null) {
                 node.setLocalTransform(new Transform(floatArrayToFloatWrapperArray(nodeDto.scale),
@@ -270,7 +271,7 @@ public class GltfLoader {
                 }
             }
 
-            if (nodeDto.cameraIndex != null && nodeDto.cameraIndex < cameras.size()) {
+            if (nodeDto.cameraIndex != null && cameras != null && nodeDto.cameraIndex < cameras.size()) {
                 Camera camera = cameras.get(nodeDto.cameraIndex);
                 node.setCamera(camera);
                 camera.setNode(node);
@@ -386,6 +387,12 @@ public class GltfLoader {
 
                 if (primitiveDto.materialIndex != null) {
                     model.setMaterial(materials.get(primitiveDto.materialIndex));
+                }
+
+                // If no normals were provided, generate them (facet normals for low-poly models)
+                if (primitiveDto.normals == null && primitiveDto.positions != null) {
+                    Log.i(TAG, "Generating normals for primitive of mesh: " + model.getId());
+                    model.initNormals();
                 }
 
                 allMeshes.add(model);
@@ -519,54 +526,33 @@ public class GltfLoader {
                 }
 
                 // check coherence between gltf meshes and mesh instances for this node
-                if (meshInstances.size() != meshDto.primitives.size()) {
-                    Log.e(TAG, "Node " + i + " ("+node.getName()+") references skin index " + nodeDto.skinIndex +
-                            " but the number of mesh instances (" + meshInstances.size() + ") does not match the expected number of primitives based on the mesh index (" + meshDto.primitives.size() + "). This may indicate a mismatch between nodes and meshes in the DTO.");
+                if (meshInstances.size() != meshDto.primitives.size()){
+                    Log.e(TAG, "Mesh instance count mismatch for node " + i + ". Expected " + meshDto.primitives.size() + " but found " + meshInstances.size() + ". Skipping skin assignment.");
                     continue;
                 }
 
-                final List<Skin> cloneSkins = new ArrayList<>();
+                final List<Skin> nodeSkins = new ArrayList<>();
+                for (int j = 0; j < meshInstances.size(); j++) {
+                    final Object3DData meshInstance = meshInstances.get(j);
+                    final GltfPrimitiveDto primitiveDto = meshDto.primitives.get(j);
 
-                // loop over all mesh instances of this node and assign the skin to each mesh instance
-                for (int m = 0; m < meshDto.primitives.size(); m++) {
+                    // clone skin for each mesh instance
+                    final Skin skin = skinTemplate.clone();
 
-                    // get primitive for this mesh instance
-                    final GltfPrimitiveDto primitiveDto = meshDto.primitives.get(m);
-                    if (primitiveDto == null) {
-                        Log.w(TAG, "Primitive index " + m + " for mesh index " + nodeDto.meshIndex + " is null. Skipping skin assignment for this mesh instance.");
-                        continue;
+                    // link joint/weight buffers (unrolled in the parser)
+                    skin.setJoints(primitiveDto.jointIds);
+                    skin.setWeights(primitiveDto.weights);
+
+                    // assign skin to mesh
+                    if (meshInstance instanceof AnimatedModel){
+                        ((AnimatedModel) meshInstance).setSkin(skin);
                     }
 
-                    // get the corresponding mesh instance for this primitive
-                    final Object3DData object3DData = meshInstances.get(m);
-                    if (object3DData instanceof AnimatedModel) {
-
-                        // clone skin
-                        final Skin clone = skinTemplate.clone();
-
-                        // link buffers
-                        clone.setWeightsBuffer(primitiveDto.weights);
-                        clone.setJointsBuffer(primitiveDto.jointIds);
-                        clone.setJointComponents(primitiveDto.jointIdsComponents);
-                        clone.setWeightsComponents(primitiveDto.weightsComponents);
-
-                        // assign skin to mesh instance
-                        ((AnimatedModel) object3DData).setSkin(clone);
-
-                        // register skin
-                        cloneSkins.add(clone);
-
-                    } else {
-                        Log.w(TAG, "Mesh instance for node " + i + " and mesh index " + nodeDto.meshIndex +
-                                " is not an AnimatedModel. Skipping skin assignment for this mesh instance.");
-                    }
+                    nodeSkins.add(skin);
                 }
-
-                // register skin list
-                ret.put(i, cloneSkins);
+                ret.put(i, nodeSkins);
             }
         }
-
         return ret;
     }
 
@@ -575,59 +561,84 @@ public class GltfLoader {
             return Collections.emptyList();
         }
 
+        Log.i(TAG, "Loading animations... Total: " + dto.animations.size());
         final List<Animation> animations = new ArrayList<>();
         for (GltfAnimationDto animDto : dto.animations) {
+            final List<KeyFrame> keyframes = new ArrayList<>();
 
-            if (animDto.channels == null || animDto.channels.isEmpty()) {
+            // check samplers
+            if (animDto.samplers == null || animDto.samplers.isEmpty()){
+                Log.w(TAG, "Animation " + animDto.name + " has no samplers.");
                 continue;
             }
 
-            final TreeMap<Float, KeyFrame> keyframes = new TreeMap<>();
-
+            // 1. Identify all unique timestamps across all channels
+            final TreeSet<Float> timestamps = new TreeSet<>();
             for (GltfChannelDto channel : animDto.channels) {
-                final GltfSamplerDto sampler = animDto.samplers.get(channel.sampler);
-                final FloatBuffer times = (FloatBuffer) sampler.input;
-                final FloatBuffer values = (FloatBuffer) sampler.output;
-
-                final Node targetNode = nodes.get(channel.targetNode);
-                final String jointId = targetNode.getId();
-
-                for (int i = 0; i < times.capacity(); i++) {
-                    final float timeStamp = times.get(i);
-
-                    KeyFrame keyFrame = keyframes.computeIfAbsent(timeStamp, k -> new KeyFrame(k, new TreeMap<>()));
-                    Map<String, JointTransform> pose = keyFrame.getPose();
-
-                    JointTransform jointTransform = pose.computeIfAbsent(jointId, k -> new JointTransform());
-
-                    try {
-                        if ("translation".equals(channel.targetPath)) {
-                            float[] translation = new float[3];
-                            values.position(i * 3);
-                            values.get(translation);
-                            jointTransform.setLocation(translation);
-                        } else if ("rotation".equals(channel.targetPath)) {
-                            float[] rotation = new float[4];
-                            values.position(i * 4);
-                            values.get(rotation);
-                            jointTransform.setQuaternion(new Quaternion(rotation[0], rotation[1], rotation[2], rotation[3]));
-                        } else if ("scale".equals(channel.targetPath)) {
-                            float[] scale = new float[3];
-                            values.position(i * 3);
-                            values.get(scale);
-                            jointTransform.setScale(scale);
-                        }
-                    } catch (BufferUnderflowException e) {
-                        // This can happen if animation data is corrupt, ignore this keyframe for this channel
+                GltfSamplerDto sampler = animDto.samplers.get(channel.samplerIndex);
+                if (sampler.input != null) {
+                    sampler.input.rewind();
+                    while (sampler.input.hasRemaining()) {
+                        timestamps.add(sampler.input.get());
                     }
                 }
             }
 
-            if (!keyframes.isEmpty()) {
-                final String animationName = animDto.name != null ? animDto.name : "Animation-" + System.identityHashCode(animDto);
-                final Animation animation = new Animation(animationName, keyframes.lastKey(), keyframes.values().toArray(new KeyFrame[0]));
-                animations.add(animation);
+            // 2. Create pose for each timestamp
+            for (float time : timestamps) {
+                keyframes.add(new KeyFrame(time, new HashMap<>()));
             }
+
+            // 3. Fill pose with channel data
+            for (GltfChannelDto channel : animDto.channels) {
+                GltfSamplerDto sampler = animDto.samplers.get(channel.samplerIndex);
+                Node node = nodes.get(channel.targetNodeIndex);
+
+                sampler.input.rewind();
+                sampler.output.rewind();
+
+                for (KeyFrame keyFrame : keyframes) {
+                    float time = keyFrame.getTime();
+
+                    // Find value for this time or interpolate
+                    // For now, let's assume gltf keyframes align with our timestamps (common)
+                    // or just take the first matching or closest one.
+                    float[] value = null;
+                    sampler.input.rewind();
+                    int index = -1;
+                    float minDiff = Float.MAX_VALUE;
+                    for (int i = 0; sampler.input.hasRemaining(); i++){
+                        float t = sampler.input.get();
+                        float diff = Math.abs(t - time);
+                        if (diff < 0.001f){
+                            index = i;
+                            break;
+                        }
+                    }
+
+                    if (index != -1){
+                        int stride = 0;
+                        if ("translation".equals(channel.targetPath) || "scale".equals(channel.targetPath)) stride = 3;
+                        else if ("rotation".equals(channel.targetPath)) stride = 4;
+
+                        if (stride > 0){
+                            value = new float[stride];
+                            sampler.output.position(index * stride);
+                            sampler.output.get(value);
+                        }
+                    }
+
+                    if (value != null){
+                        JointTransform jt = keyFrame.getTransforms().computeIfAbsent(node.getId(), k -> new JointTransform());
+                        if ("translation".equals(channel.targetPath)) jt.setLocation(value);
+                        else if ("rotation".equals(channel.targetPath)) jt.setRotation(new Quaternion(value));
+                        else if ("scale".equals(channel.targetPath)) jt.setScale(value);
+                    }
+                }
+            }
+
+            float duration = timestamps.isEmpty() ? 0 : timestamps.last();
+            animations.add(new Animation(animDto.name, duration, keyframes.toArray(new KeyFrame[0])));
         }
         return animations;
     }

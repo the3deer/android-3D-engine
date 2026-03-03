@@ -323,8 +323,8 @@ public class GltfParser {
                 }
 
                 GltfChannelDto channelDto = new GltfChannelDto();
-                channelDto.sampler = samplerIndex;
-                channelDto.targetNode = gltfModel.getNodeModels().indexOf(channel.getNodeModel());
+                channelDto.samplerIndex = samplerIndex;
+                channelDto.targetNodeIndex = gltfModel.getNodeModels().indexOf(channel.getNodeModel());
                 channelDto.targetPath = channel.getPath();
                 animDto.channels.add(channelDto);
             }

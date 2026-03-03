@@ -177,16 +177,26 @@ public class Skin {
         return jointsBuffer;
     }
 
+    @Deprecated
     public void setJointsBuffer(Buffer jointsBuffer) {
-        this.jointsBuffer = jointsBuffer;
+        setJoints(jointsBuffer);
+    }
+
+    public void setJoints(Buffer joints) {
+        this.jointsBuffer = joints;
     }
 
     public Buffer getWeightsBuffer() {
         return weightsBuffer;
     }
 
+    @Deprecated
     public void setWeightsBuffer(Buffer weightsBuffer) {
-        this.weightsBuffer = weightsBuffer;
+        setWeights(weightsBuffer);
+    }
+
+    public void setWeights(Buffer weights) {
+        this.weightsBuffer = weights;
     }
 
     public float[] getInverseBindMatrices() {

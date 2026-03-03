@@ -195,7 +195,7 @@ public class Node {
 	 *
 	 * @param id id of the visual scene
 	 */
-	// collada - legacy
+	// collada + legacy
 	public Node(String id) {
 		this.jointIndex = -1;
 		this.id = id;

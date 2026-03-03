@@ -59,7 +59,7 @@ public class KeyFrame {
 	 *         they correspond to. This basically represents the "pose" at this
 	 *         keyframe.
 	 */
-	protected Map<String, JointTransform> getTransforms() {
+    public Map<String, JointTransform> getTransforms() {
 		return pose;
 	}
 

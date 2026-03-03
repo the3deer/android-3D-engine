@@ -675,12 +675,18 @@ public class JointTransform {
 
 
     // gltf - legacy
-    public void setQuaternion(Quaternion quaternion) {
+    public void setRotation(Quaternion quaternion) {
         this.qRotation = quaternion;
         if (quaternion != null) {
             this.rotation = quaternion.normalize().toAnglesF(this.rotation);
         }
         refresh();
+    }
+
+
+    @Deprecated
+    public void setQuaternion(Quaternion quaternion) {
+        setRotation(quaternion);
     }
 
     /*public JointTransform setRotation(Float[] angles) {
