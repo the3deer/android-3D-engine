@@ -6,6 +6,7 @@ import org.the3deer.android_3d_model_engine.model.Camera;
 import org.the3deer.android_3d_model_engine.model.Light;
 import org.the3deer.android_3d_model_engine.model.Scene;
 import org.the3deer.android_3d_model_engine.renderer.Drawer;
+import org.the3deer.android_3d_model_engine.scene.SceneManager;
 import org.the3deer.android_3d_model_engine.shader.ShaderFactory;
 import org.the3deer.util.bean.BeanInit;
 
@@ -24,7 +25,7 @@ public class ShadowDrawer implements Drawer {
     @Inject
     private Activity activity;
     @Inject
-    private Scene scene;
+    private SceneManager sceneManager;
     /*@Inject
     private Camera camera;*/
     @Inject
@@ -76,9 +77,20 @@ public class ShadowDrawer implements Drawer {
         if (!enabled) return;
 
         // assert
+        if (sceneManager == null) return;
 
-        if (scene == null || scene.getCamera() == null || light == null || shadowsRenderer == null) return;
-        final Camera camera = config != null && config.camera != null? config.camera : scene.getCamera();
+        // current scene
+        final Scene scene = sceneManager.getCurrentScene();
+
+        // check
+        if (scene == null) return;
+
+        // check
+        final Camera sceneCamera = scene.getCamera();
+        if (sceneCamera == null || light == null || shadowsRenderer == null) return;
+
+        // get camera (it will be different in stereoscopic mode)
+        final Camera camera = config != null && config.camera != null? config.camera : sceneCamera;
 
         // check
         if (scene.getObjects().isEmpty()) return;
