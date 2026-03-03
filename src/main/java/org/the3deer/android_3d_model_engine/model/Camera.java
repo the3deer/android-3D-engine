@@ -108,16 +108,16 @@ public class Camera {
     private float[] orientationMatrix = new float[16];
     private Quaternion orientation = new Quaternion();
 
-    @Inject
-    private Screen screen;
+    //@Inject
+    //private Screen screen;
 
     //@Inject
     private Controller controller;
 
     private boolean changed = false;
 
-    private Dimensions dimensions2D = new Dimensions();
-    private Dimensions dimensions3D = new Dimensions();
+    //private Dimensions dimensions2D = new Dimensions();
+    //private Dimensions dimensions3D = new Dimensions();
 
     // stereoscopic handlers
     private Camera[] stereoCam;
@@ -125,10 +125,12 @@ public class Camera {
     // scene graph
     private Node node;
 
+    // gltf + legacy
     public Camera(String name) {
         this.name = name;
     }
 
+    // default camera - shadow
     public Camera(String name, float[] location) {
         // Initialize variables...
         this(name, location[0], location[1], location[2], 0, 0, 0, 0, 1, 0);
@@ -136,7 +138,7 @@ public class Camera {
 
     public Camera(String name, Camera cam2) {
         this.name = name;
-        this.screen = cam2.screen;
+        //this.screen = cam2.screen;
         this.pos = cam2.pos;
         this.view = cam2.view;
         this.up = cam2.up;
@@ -217,15 +219,15 @@ public class Camera {
     protected void refresh() {
 
         // check
-        if (screen == null) return;
+        //if (screen == null) return;
 
         //Log.v("Camera", "location: "+ Arrays.toString(this.pos));
 
         // setup view matrix
-        Matrix.setLookAtM(viewMatrix, 0,
+        /*Matrix.setLookAtM(viewMatrix, 0,
                 getxPos(), getyPos(), getzPos(),
                 getxView(), getyView(), getzView(),
-                getxUp(), getyUp(), getzUp());
+                getxUp(), getyUp(), getzUp());*/
 
 
         // update orientation
@@ -236,8 +238,8 @@ public class Camera {
         this.orientation.setMatrix(orientationMatrix);
 
         // dimensions
-        this.dimensions2D.set(-Constants.UNIT * screen.getRatio(), Constants.UNIT * screen.getRatio(), Constants.UNIT, -Constants.UNIT, 1, 0);
-        this.dimensions3D.set(0, screen.getWidth(), screen.getHeight(), 0, Constants.near, -Constants.far);
+        //this.dimensions2D.set(-Constants.UNIT * screen.getRatio(), Constants.UNIT * screen.getRatio(), Constants.UNIT, -Constants.UNIT, 1, 0);
+        //this.dimensions3D.set(0, screen.getWidth(), screen.getHeight(), 0, Constants.near, -Constants.far);
 
         // projection
         if (this.projection != null) {
@@ -348,14 +350,14 @@ public class Camera {
 
         // update left
         final Camera left = stereoCam[0];
-        left.screen = this.screen;
+        //left.screen = this.screen;
         left.projection = this.projection;
         left.set(xPosLeft, yPosLeft, zPosLeft, xViewLeft, yViewLeft, zViewLeft, getxUp(), getyUp(), getzUp());
         //left.refresh();
 
         // update right
         final Camera right = stereoCam[1];
-        right.screen = this.screen;
+        //right.screen = this.screen;
         right.projection = this.projection;
         right.set(xPosRight, yPosRight, zPosRight, xViewRight, yViewRight, zViewRight, getxUp(), getyUp(), getzUp());
         //right.refresh();
@@ -520,6 +522,7 @@ public class Camera {
     public float[] getViewMatrix() {
         // If this camera is attached to a node in the scene graph...
         if (this.node != null) {
+            //Log.d("Camera", "getViewMatrix: attached to a node");
             // Get the node's current world-space transformation matrix
             float[] nodeTransform = this.node.getAnimatedWorldTransform();
             if (nodeTransform == null){
@@ -538,7 +541,6 @@ public class Camera {
             // FIXME: camera node view matrix
             //return controller.getViewMatrix();
         } else {
-
             Matrix.setLookAtM(this.viewMatrix, 0, getxPos(), getyPos(), getzPos(),
                     getxView(), getyView(), getzView(), getxUp(), getyUp(), getzUp());
         }
@@ -556,9 +558,9 @@ public class Camera {
 
     // from gui
 
-    public Dimensions getDimensions2D() {
+    /*public Dimensions getDimensions2D() {
         return dimensions2D;
-    }
+    }*/
 
     @NonNull
     @Override

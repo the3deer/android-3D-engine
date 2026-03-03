@@ -7,6 +7,7 @@ import androidx.annotation.NonNull;
 import org.the3deer.android_3d_model_engine.event.SelectedObjectEvent;
 import org.the3deer.android_3d_model_engine.model.Camera;
 import org.the3deer.android_3d_model_engine.model.Constants;
+import org.the3deer.android_3d_model_engine.model.Dimensions;
 import org.the3deer.android_3d_model_engine.model.Object3DData;
 import org.the3deer.android_3d_model_engine.model.Scene;
 import org.the3deer.android_3d_model_engine.model.Screen;
@@ -61,12 +62,8 @@ public class GUIDefault extends Widget implements EventListener, BeanManaged {
         setRender(false);
 
         //this.camera = BeanFactory.getInstance().find(Camera.class, "gui");
-        if (camera != null) {
-            Log.v("GUIDefault", "Dimensions: " + camera.getDimensions2D());
-            setDimensions(camera.getDimensions2D());
-        } else {
-            Log.e("GUIDefault", "No camera");
-        }
+        Dimensions dimensions = calculateScreenDimensions();
+        setDimensions(dimensions);
 
         //this.scene = BeanFactory.getInstance().find(SceneLoader.class);
         //camera.addListener(this);
@@ -103,6 +100,17 @@ public class GUIDefault extends Widget implements EventListener, BeanManaged {
         } catch (Exception e) {
             Log.e("GUIDefault", e.getMessage(), e);
             throw new RuntimeException(e);
+        }
+    }
+
+    @NonNull
+    private Dimensions calculateScreenDimensions() {
+
+        // check
+        if (screen == null){
+            return new Dimensions(-Constants.UNIT * Constants.SCREEN_DEFAULT_RATIO, Constants.UNIT * Constants.SCREEN_DEFAULT_RATIO, Constants.UNIT, -Constants.UNIT, 1, 0);
+        } else {
+            return new Dimensions(-Constants.UNIT * screen.getRatio(), Constants.UNIT * screen.getRatio(), Constants.UNIT, -Constants.UNIT, 1, 0);
         }
     }
 
@@ -152,7 +160,7 @@ public class GUIDefault extends Widget implements EventListener, BeanManaged {
         if (event instanceof GLEvent) {
             final GLEvent rev = (GLEvent) event;
             if (rev.getCode() == GLEvent.Code.SURFACE_CHANGED) {
-                setDimensions(camera.getDimensions2D());
+                setDimensions(calculateScreenDimensions());
                 refresh();
                 Log.v(TAG, "onEvent. SURFACE_CHANGED. Refreshed...");
             }
@@ -165,7 +173,7 @@ public class GUIDefault extends Widget implements EventListener, BeanManaged {
                 //Log.v(TAG, "FPS: "+fpsEvent.getFps());
             }
         } else if (event instanceof Camera.CameraUpdatedEvent){
-            setDimensions(camera.getDimensions2D());
+            setDimensions(calculateScreenDimensions());
             refresh();
             //Log.v("GUIDefault", "onEvent. CameraUpdatedEvent. Refreshed...");
         } else if (event instanceof SelectedObjectEvent) {

@@ -53,6 +53,10 @@ public class Constants {
      */
     public static final float far = DEFAULT_MODEL_SIZE * 100f;
     /**
+     * Default ratio in case no screen is provided (this should not happen)
+     */
+    public static final float SCREEN_DEFAULT_RATIO = 16f/9f;
+    /**
      * Stereoscopic camera: eye separation is about 6.4cm = 6.4f
      */
     public static float EYE_DISTANCE = 6.4f;

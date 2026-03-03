@@ -75,4 +75,6 @@ public interface Scene {
     void setCameras(List<Camera> cameras);
 
     List<Camera> getCameras();
+
+    void setDefaultCamera(Camera defaultCamera);
 }

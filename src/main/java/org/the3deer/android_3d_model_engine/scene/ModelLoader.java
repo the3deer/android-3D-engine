@@ -51,6 +51,8 @@ public class ModelLoader implements LoadListener {
     private Activity activity;
     @Inject
     private SceneManager sceneManager;
+    @Inject
+    private Camera defaultCamera;
 
     //private Handler handler;
     /**
@@ -249,6 +251,11 @@ public class ModelLoader implements LoadListener {
     @Override
     public void onLoad(Scene scene) {
         //if (this.sceneManager == null) return;
+
+        // configure default camera
+        Log.d("ModelLoader", "Setting default camera:" + defaultCamera.getName() + " for scene: " + scene.getName());
+        scene.setDefaultCamera(defaultCamera);
+
         this.sceneManager.addScene(scene);
     }
 

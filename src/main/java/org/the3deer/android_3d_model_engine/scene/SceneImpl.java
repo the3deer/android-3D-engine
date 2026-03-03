@@ -38,12 +38,11 @@ import java.io.InputStream;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.EventObject;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import javax.inject.Inject;
 
 /**
  * This class loads a 3D scene as an example of what can be done with the app
@@ -58,7 +57,6 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
     /**
      * Parent component
      */
-    @Inject
     protected Activity parent;
     /**
      * Model uri
@@ -68,11 +66,6 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
      * 0 = obj, 1 = stl, 2 = dae
      */
     private int type;
-    /**
-     * Light
-     */
-    @Inject
-    private Light light;
 
     /**
      * List of root hierarchies
@@ -98,6 +91,10 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
      * Current animation
      */
     private Animation currentAnimation;
+    /**
+     * Default engine camera
+     */
+    private Camera defaultCamera;
     /**
      * Point of view camera
      */
@@ -218,17 +215,11 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
     // This matrix will hold the global scale for the entire scene.
     private final float[] worldMatrix = Math3DUtils.IDENTITY_MATRIX.clone();
 
-    @Inject
     private EventManager eventManager;
 
     private boolean enabled = true;
 
     public SceneImpl() {
-
-        // default camera setting
-        camera = new Camera("default", Constants.DEFAULT_CAMERA_POSITION);
-        cameras = new ArrayList<>();
-        cameras.add(camera);
     }
 
     @Override
@@ -273,8 +264,41 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
     }*/
 
     @Override
+    public void setDefaultCamera(Camera defaultCamera) {
+
+        // check
+        if (defaultCamera == null) throw new IllegalArgumentException("defaultCamera can't be null");
+
+        // add default camera if not
+        if (this.defaultCamera != null && cameras.contains(this.defaultCamera)) {
+            cameras.remove(defaultCamera);
+        }
+
+        this.defaultCamera = defaultCamera;
+
+        // add default camera if not
+        if (this.cameras != null && !this.cameras.contains(defaultCamera)) {
+            this.cameras.add(0, defaultCamera);
+        }
+    }
+
+    @Override
     public void setCameras(List<Camera> cameras) {
-        this.cameras = cameras;
+
+        // check - ensure we have a camera available
+        if (cameras != null && !cameras.isEmpty()) {
+
+            // update camera
+            this.cameras = cameras;
+
+            // add default camera if not
+            if (this.defaultCamera != null && !this.cameras.contains(defaultCamera)) {
+                this.cameras.add(0, defaultCamera);
+            }
+
+        } else {
+            Log.w(TAG, "setCameras with null or empty argument");
+        }
     }
 
     /**
@@ -344,6 +368,9 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
 
     @Override
     public final Camera getCamera() {
+        if (camera == null){
+            return defaultCamera;
+        }
         return camera;
     }
 
@@ -1107,11 +1134,19 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
 
     @Override
     public void setCamera(Camera camera) {
+
+        // check
+        if (camera == null) throw new IllegalArgumentException("active camera cannot be null");
+
+        // update
         this.camera = camera;
     }
 
     @Override
     public List<Camera> getCameras() {
+        if (this.cameras == null){
+            return Collections.singletonList(defaultCamera);
+        }
         return this.cameras;
     }
 

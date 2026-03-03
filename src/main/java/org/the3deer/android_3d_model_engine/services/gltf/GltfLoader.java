@@ -655,13 +655,14 @@ public class GltfLoader {
 
                 // camera configuration
                 scene.setCameras(sceneData.cameras);
+
                 // set default camera from the gltf model
-                Camera defaultCamera = findFirstCamera(rootNodes);
+                /*Camera defaultCamera = findFirstCamera(rootNodes);
                 if (defaultCamera != null) {
                     scene.setCamera(defaultCamera);
                 } else {
                     Log.i(TAG, "No camera found in the scene. Using default camera.");
-                }
+                }*/
 
                 List<Object3DData> sceneObjects = collectMeshes(rootNodes);
                 scene.setObjects(sceneObjects);
