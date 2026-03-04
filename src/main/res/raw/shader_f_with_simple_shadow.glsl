@@ -36,12 +36,17 @@ varying vec3 v_Normal;
 // normalMap
 uniform bool u_NormalTextured;
 uniform sampler2D u_NormalTexture;
-varying vec3 v_Tangent;
+varying vec4 v_Tangent;
 
 // emissiveMap
 uniform bool u_EmissiveTextured;
 uniform sampler2D u_EmissiveTexture;
 uniform vec3 u_EmissiveFactor;
+
+// volume
+uniform bool u_TransmissionTextured;
+uniform sampler2D u_TransmissionTexture;
+uniform float u_TransmissionFactor;
 
 // shadow
 uniform sampler2D uShadowTexture;
@@ -76,116 +81,129 @@ float shadowSimple()
     return float(distanceFromLight > (shadowMapPosition.z - bias));
 }
 
-void main(){
+// Simple shadow mapping with PCF (Percentage Closer Filtering)
+float shadowPCF()
+{
+    vec4 shadowMapPosition = vShadowCoord / vShadowCoord.w;
+    shadowMapPosition = (shadowMapPosition + 1.0) / 2.0;
 
-    // colours
-    vec4 color;
-    if (u_Coloured){
-        color = v_Color;
-    } else {
-        color = vColor;
+    // Fixed bias to reduce shadow acne
+    float bias = 0.005;
+    float shadow = 0.0;
+
+    // 3x3 PCF Kernel
+    // The texel size depends on the shadow map resolution.
+    // Assuming a standard 1024x1024 or similar, 1.0/1024.0 is a good start.
+    float texelSize = 1.0 / 1024.0;
+
+    for (int x = -1; x <= 1; x++) {
+        for (int y = -1; y <= 1; y++) {
+            vec2 offset = vec2(float(x), float(y)) * texelSize;
+            vec4 packedZValue = texture2D(uShadowTexture, shadowMapPosition.st + offset);
+            float distanceFromLight = unpack(packedZValue);
+            if (distanceFromLight > (shadowMapPosition.z - bias)) {
+                shadow += 1.0;
+            }
+        }
     }
 
-    // textures
-    vec4 tex = vec4(1.0, 1.0, 1.0, 1.0);
-    if (u_Textured){
-        if (u_TextureTransformed){
-            mat3 translation = mat3(1, 0, 0, 0, 1, 0, u_TextureOffset.x, u_TextureOffset.y, 1);
-            mat3 rotation = mat3(
+    return shadow / 9.0;
+}
+
+void main(){
+
+    // colors initialization
+    vec4 baseColor = u_Coloured ? v_Color : vColor;
+    vec4 texColor = u_Textured ? texture2D(u_Texture, v_TexCoordinate) : vec4(1.0);
+
+    // Texture transformation (if enabled)
+    if (u_Textured && u_TextureTransformed){
+        mat3 translation = mat3(1, 0, 0, 0, 1, 0, u_TextureOffset.x, u_TextureOffset.y, 1);
+        mat3 rotation = mat3(
             cos(u_TextureRotation), -sin(u_TextureRotation), 0,
             sin(u_TextureRotation), cos(u_TextureRotation), 0,
             0, 0, 1
-            );
-            mat3 scale = mat3(u_TextureScale.x, 0, 0, 0, u_TextureScale.y, 0, 0, 0, 1);
-            mat3 matrix = translation * rotation * scale;
-            vec2 uvTransformed = (matrix * vec3(v_TexCoordinate.xy, 1)).xy;
-            tex = texture2D(u_Texture, uvTransformed);
-        } else {
-            tex = texture2D(u_Texture, v_TexCoordinate);
-        }
+        );
+        mat3 scale = mat3(u_TextureScale.x, 0, 0, 0, u_TextureScale.y, 0, 0, 0, 1);
+        mat3 matrix = translation * rotation * scale;
+        vec2 uvTransformed = (matrix * vec3(v_TexCoordinate.xy, 1)).xy;
+        texColor = texture2D(u_Texture, uvTransformed);
     }
 
-    // emissive texture
-    vec4 emissive = vec4(0.0, 0.0, 0.0, 0.0);
-    if (u_EmissiveTextured){
-        vec4 emtex = texture2D(u_EmissiveTexture, v_TexCoordinate);
-        emissive = emtex * vec4(u_EmissiveFactor, 1.0);
+    // Combine base, texture, and mask
+    vec4 finalColor = baseColor * texColor * vColorMask;
+
+    // Alpha mode handling (Early discard for Mask mode)
+    if (u_AlphaMode == 1 && finalColor.a < u_AlphaCutoff) {
+        discard;
     }
 
-    // light
-    float diffuse = 1.0;
+    // Light initialization
+    float diffuse = 0.25;
     float specular = 0.0;
-    float shadow = 1.0;
+    vec3 N = normalize(v_Normal);
+    float shadowFactor = 1.0;
+
     if (u_Lighted) {
-
-        // Transform the vertex into eye space.
-        // vec3 modelVertex = vec3(u_MMatrix * vec4(v_Position,1.0));
-        vec3 modelVertex = v_Position;
-
-        // Transform the normal's orientation into eye space.
-        // Note that we need to remove the translation part by setting w=0
-        //vec3 modelNormal = normalize(vec3(u_MMatrix * vec4(v_Normal,0.0)));
-        vec3 modelNormal = normalize(v_Normal);
-
-        // normal map
+        // Normal mapping logic
         if (u_NormalTextured){
+            // Sample normal map [0, 1] and convert to [-1, 1]
+            vec3 normalSample = texture2D(u_NormalTexture, v_TexCoordinate).rgb * 2.0 - 1.0;
 
-            /// Sample the normal map
-            vec3 normalMap = texture2D(u_NormalTexture, v_TexCoordinate).rgb;
+            // Re-orthogonalize tangent (Gram-Schmidt process)
+            vec3 T = normalize(v_Tangent.xyz - dot(v_Tangent.xyz, N) * N);
+            // Construct bitangent respecting handedness (w)
+            vec3 B = cross(N, T) * v_Tangent.w;
 
-            // Convert the normal map from [0, 1] to [-1, 1]
-            normalMap = normalize(normalMap * 2.0 - 1.0);
-
-            // Calculate the bitangent using the cross product of the normal and tangent
-            vec3 bitangent = cross(modelNormal, v_Tangent);
-
-            // Construct the TBN matrix
-            mat3 TBN = mat3(
-            normalize(v_Tangent),
-            normalize(bitangent),
-            normalize(modelNormal)
-            );
-
-            // Transform the normal map to world space
-            modelNormal = TBN * normalMap;
+            // Construct TBN matrix and transform sample to world space
+            mat3 TBN = mat3(T, B, N);
+            N = normalize(TBN * normalSample);
         }
 
-        // Get a lighting direction vector from the light to the vertex.
-        vec3 lightVector = normalize(u_LightPos - modelVertex);
+        // Blinn-Phong lighting
+        vec3 lightVec = u_LightPos - v_Position;
+        float dist = length(lightVec);
+        lightVec = normalize(lightVec);
 
-        // Calculate the dot product of the light vector and vertex normal.
-        // If the normal and light vector are pointing in the same direction then it will get max illumination.
-        // float diffuse = max(dot(lightVector, modelNormal),0.0); // debug: lights only on camera in front of face
-        float diff = max(dot(lightVector, modelNormal), 0.0);
+        float diff = max(dot(lightVec, N), 0.0);
 
-        // Attenuate the light based on distance.
-        float dist = distance(u_LightPos, modelVertex);
-        dist = 1.0 / (1.0 + dist * 0.025);
-        diffuse = diff * dist;
+        // Attenuation
+        float attenuation = 1.0 / (1.0 + 0.025 * dist);
+        diffuse = diff * attenuation;
 
-        // specular light
-        vec3 viewDir = normalize(u_cameraPos - modelVertex);
-        vec3 reflectDir = reflect(-lightVector, modelNormal);
-        specular = pow(max(dot(reflectDir, viewDir), 0.0), 32.0);
-
-        //if the fragment is not behind light view frustum
-        if (vShadowCoord.w > 0.0) {
-
-            shadow = shadowSimple();
-
-            //scale 0.0-1.0 to 0.2-1.0
-            //otherways everything in shadow would be black
-            shadow = (shadow * 0.5) + 0.5;
-        }
+        // Specular (Blinn-Phong)
+        vec3 viewDir = normalize(u_cameraPos - v_Position);
+        vec3 halfDir = normalize(lightVec + viewDir);
+        specular = pow(max(dot(N, halfDir), 0.0), 32.0) * attenuation;
     }
 
-    // ambient light
-    float ambient = 0.5;
+    // Ambient light
+    float ambient = 0.40;
+    float totalLight = min((diffuse + specular + ambient), 1.0);
 
-    // light
-    float light = min((diffuse + specular + ambient), 1.0);
+    // Combine lighting with color
+    finalColor.rgb = finalColor.rgb * totalLight;
 
-    // calculate final color
-    gl_FragColor = color * tex * vColorMask * (light * shadow) + emissive;
-    gl_FragColor[3] = color[3] * vColorMask[3];
-}                                                                     	
+    // Apply Emissive texture (if enabled)
+    if (u_EmissiveTextured){
+        vec4 emissiveTex = texture2D(u_EmissiveTexture, v_TexCoordinate);
+        finalColor.rgb += emissiveTex.rgb * u_EmissiveFactor;
+    }
+
+    // shadow mapping
+    if (vShadowCoord.w > 0.0) {
+        //shadowFactor = shadowPCF();
+        shadowFactor = shadowSimple();
+        // Scale 0.0-1.0 to 0.5-1.0 to prevent pitch black shadows
+        shadowFactor = (shadowFactor * 0.5) + 0.5;
+    }
+
+    // Set output color
+    gl_FragColor = finalColor * shadowFactor;
+    gl_FragColor.a = finalColor.a * vColorMask.a;
+
+    // Force opaque if mode is 0
+    if (u_AlphaMode == 0) {
+        gl_FragColor.a = 1.0;
+    }
+}
