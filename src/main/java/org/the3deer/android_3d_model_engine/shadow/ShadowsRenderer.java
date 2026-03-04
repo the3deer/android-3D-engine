@@ -587,6 +587,12 @@ public class ShadowsRenderer {
 
         mActiveProgram = mActiveRenderer.getProgram();
 
+        // Inside renderScene() or drawObject() in ShadowsRenderer.java
+        int mapStepXHandle = GLES20.glGetUniformLocation(mActiveProgram, "u_ShadowTexelSizeX");
+        int mapStepYHandle = GLES20.glGetUniformLocation(mActiveProgram, "u_ShadowTexelSizeY");
+        GLES20.glUniform1f(mapStepXHandle, 1.0f / mShadowMapWidth);
+        GLES20.glUniform1f(mapStepYHandle, 1.0f / mShadowMapHeight);
+
         scene_normalMatrixUniform = GLES20.glGetUniformLocation(mActiveProgram, RenderConstants.NORMAL_MATRIX_UNIFORM);
         GLUtil.checkGlError("glGetUniformLocation");
         //scene_lightPosUniform = GLES20.glGetUniformLocation(mActiveProgram, RenderConstants.LIGHT_POSITION_UNIFORM);

@@ -36,7 +36,7 @@ varying vec3 v_Normal;
 // normalMap
 uniform bool u_NormalTextured;
 uniform sampler2D u_NormalTexture;
-varying vec4 v_Tangent; // Aligned with vertex shader (vec4)
+varying vec4 v_Tangent;
 
 // emissiveMap
 uniform bool u_EmissiveTextured;
@@ -50,6 +50,8 @@ uniform float u_TransmissionFactor;
 
 // shadow
 uniform sampler2D uShadowTexture;
+uniform float u_ShadowTexelSizeX; // Dynamic texel width
+uniform float u_ShadowTexelSizeY; // Dynamic texel height
 varying vec4 vShadowCoord;
 
 // unpack colour to depth value
@@ -68,18 +70,13 @@ float shadowPCF()
     vec4 shadowMapPosition = vShadowCoord / vShadowCoord.w;
     shadowMapPosition = (shadowMapPosition + 1.0) / 2.0;
 
-    // Fixed bias to reduce shadow acne
     float bias = 0.0005;
     float shadow = 0.0;
 
-    // 3x3 PCF Kernel
-    // The texel size depends on the shadow map resolution.
-    // Assuming a standard 1024x1024 or similar, 1.0/1024.0 is a good start.
-    float texelSize = 1.0 / 1024.0;
-
+    // 3x3 PCF Kernel using dynamic texel size
     for (int x = -1; x <= 1; x++) {
         for (int y = -1; y <= 1; y++) {
-            vec2 offset = vec2(float(x), float(y)) * texelSize;
+            vec2 offset = vec2(float(x) * u_ShadowTexelSizeX, float(y) * u_ShadowTexelSizeY);
             vec4 packedZValue = texture2D(uShadowTexture, shadowMapPosition.st + offset);
             float distanceFromLight = unpack(packedZValue);
             if (distanceFromLight > (shadowMapPosition.z - bias)) {
@@ -100,7 +97,7 @@ void main(){
     // Combine base, texture, and mask
     vec4 finalColor = baseColor * texColor * vColorMask;
 
-    // Alpha mode handling (Early discard for Mask mode)
+    // Alpha mode handling
     if (u_AlphaMode == 1 && finalColor.a < u_AlphaCutoff) {
         discard;
     }
@@ -114,11 +111,11 @@ void main(){
     if (u_Lighted) {
         // Normal mapping logic
         if (u_NormalTextured){
-            vec3 normalSample = texture2D(u_NormalTexture, v_TexCoordinate).rgb * 2.0 - 1.0;
+            vec3 mapNormal = texture2D(u_NormalTexture, v_TexCoordinate).rgb * 2.0 - 1.0;
             vec3 T = normalize(v_Tangent.xyz - dot(v_Tangent.xyz, N) * N);
             vec3 B = cross(N, T) * v_Tangent.w;
             mat3 TBN = mat3(T, B, N);
-            N = normalize(TBN * normalSample);
+            N = normalize(TBN * mapNormal);
         }
 
         // Blinn-Phong lighting
@@ -135,27 +132,22 @@ void main(){
         vec3 halfDir = normalize(lightVec + viewDir);
         specular = pow(max(dot(N, halfDir), 0.0), 32.0) * attenuation;
 
-        // shadow mapping (use PCF for smooth edges)
+        // shadow mapping
         if (vShadowCoord.w > 0.0) {
             shadowFactor = shadowPCF();
-            // Scale to prevent pitch black shadows
             shadowFactor = (shadowFactor * 0.5) + 0.5;
         }
     }
 
-    // Ambient light
     float ambient = 0.40;
     float totalLight = min((diffuse + specular + ambient), 1.0);
 
-    // Final color assembly
     gl_FragColor = vec4(finalColor.rgb * totalLight * shadowFactor, finalColor.a);
 
-    // Emissive
     if (u_EmissiveTextured){
         gl_FragColor.rgb += texture2D(u_EmissiveTexture, v_TexCoordinate).rgb * u_EmissiveFactor;
     }
 
-    // Force opaque if mode is 0
     if (u_AlphaMode == 0) {
         gl_FragColor.a = 1.0;
     }
