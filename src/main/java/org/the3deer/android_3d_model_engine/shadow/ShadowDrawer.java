@@ -1,6 +1,7 @@
 package org.the3deer.android_3d_model_engine.shadow;
 
 import android.app.Activity;
+import android.opengl.GLES20;
 
 import org.the3deer.android_3d_model_engine.model.Camera;
 import org.the3deer.android_3d_model_engine.model.Light;
@@ -97,8 +98,17 @@ public class ShadowDrawer implements Drawer {
 
         if (!shadowsRenderer.enabled) return;
 
+        // Front-Face Culling for the Shadow Map
+        // A very effective trick to reduce acne is to render only the back faces of your objects
+        // when creating the depth map. This ensures the depth stored in the map is always slightly
+        // "behind" the surface visible to the camera.
+        GLES20.glCullFace(GLES20.GL_FRONT);
+
         // shadow buffer
         shadowsRenderer.onPrepareFrame(shaderFactory, camera.getProjectionMatrix(), camera.getViewMatrix(), light.getLocation(), scene);
+
+        // ... render objects to depth FBO ...
+        GLES20.glCullFace(GLES20.GL_BACK); // Restore for normal rendering
 
         // render with shadows
         shadowsRenderer.onDrawFrame(shaderFactory, camera.getProjectionMatrix(), camera.getViewMatrix(), light.getLocation(), scene);
