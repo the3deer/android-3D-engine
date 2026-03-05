@@ -8,6 +8,7 @@ import org.the3deer.android_3d_model_engine.collision.Collision;
 import org.the3deer.android_3d_model_engine.collision.CollisionDetection;
 import org.the3deer.android_3d_model_engine.controller.TouchEvent;
 import org.the3deer.android_3d_model_engine.model.Camera;
+import org.the3deer.android_3d_model_engine.model.Constants;
 import org.the3deer.android_3d_model_engine.model.Projection;
 import org.the3deer.android_3d_model_engine.model.Screen;
 import org.the3deer.android_3d_model_engine.renderer.Drawer;
@@ -20,12 +21,15 @@ import org.the3deer.util.event.EventManager;
 import org.the3deer.util.math.Math3DUtils;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.EventObject;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import javax.inject.Inject;
 
-@BeanOrder(order=101)
+@BeanOrder(order = 101)
 public class GUISystem implements EventListener, Drawer {
 
     private final static String TAG = GUISystem.class.getSimpleName();
@@ -47,7 +51,11 @@ public class GUISystem implements EventListener, Drawer {
     @Inject
     private List<EventListener> listeners = new ArrayList<>();
 
-    public GUISystem(){
+    // debug
+    private Set<String> debug = new HashSet<>();
+
+
+    public GUISystem() {
     }
 
     /*@Override
@@ -90,14 +98,14 @@ public class GUISystem implements EventListener, Drawer {
     }
 
     @BeanInit
-    public void setUp(){
+    public void setUp() {
         /*this.camera = Registry.getInstance().find(Camera.class, this);
         this.widgets = Registry.getInstance().findAll(Widget.class);
         this.listeners = Registry.getInstance().findAll(EventListener.class);*/
 
         // BeanFactory.getInstance().find(TouchController.class).addListener(this);
 
-        Log.v(TAG,"Widgets found: "+widgets.size());
+        Log.v(TAG, "Widgets found: " + widgets.size());
     }
 
     @Override
@@ -161,17 +169,20 @@ public class GUISystem implements EventListener, Drawer {
 
         //final Camera camera = widget.camera != null? widget.camera : this.camera;
 
-        if (widget.getId().startsWith("fps")) {
-            /*Log.v("GUISystem","Rendering widget... : "+widget.getId()+
-                    ", loc: "+ Arrays.toString(widget.getLocation()));
-            Log.v("GUISystem","Rendering with cam "+camera.getProjection());*/
+        if (Constants.DEBUG_UI) {
+            if (!debug.contains(widget.getId())) {
+                Log.v("GUISystem", "Rendering widget... : " + widget.getId() +
+                        ", loc: " + Arrays.toString(widget.getLocation()));
+                Log.v("GUISystem", "Rendering with cam " + camera.getProjection());
+                debug.add(widget.getId());
+            }
         }
 
         if (shaderFactory == null) return;
 
         final Shader shader = shaderFactory.getShader(R.raw.shader_basic_vert, R.raw.shader_basic_frag);
 
-        shader.draw(widget, camera.getProjectionMatrix(), camera.viewMatrix, null, null,
+        shader.draw(widget, camera.getProjectionMatrix(), camera.getViewMatrix(), null, null,
                 GUIConstants.CAMERA_POSITION, widget.getDrawMode(), widget.getDrawSize());
     }
 
@@ -194,8 +205,8 @@ public class GUISystem implements EventListener, Drawer {
                 float x = touchEvent.getX();
                 float y = touchEvent.getY();
                 if (screen != null) {
-                    float[] nearHit = CollisionDetection.unProject(screen.getWidth(), screen.getHeight(), camera.viewMatrix, camera.getProjectionMatrix(), x, y, 0);
-                    float[] farHit = CollisionDetection.unProject(screen.getWidth(), screen.getHeight(), camera.viewMatrix, camera.getProjectionMatrix(), x, y, 1);
+                    float[] nearHit = CollisionDetection.unProject(screen.getWidth(), screen.getHeight(), camera.getViewMatrix(), camera.getProjectionMatrix(), x, y, 0);
+                    float[] farHit = CollisionDetection.unProject(screen.getWidth(), screen.getHeight(), camera.getViewMatrix(), camera.getProjectionMatrix(), x, y, 1);
                     float[] direction = Math3DUtils.substract(farHit, nearHit);
                     Math3DUtils.normalizeVector(direction);
                     return processDragEvent(touchEvent, widgets, nearHit, direction);
@@ -205,7 +216,7 @@ public class GUISystem implements EventListener, Drawer {
         return false;
     }
 
-    private void hideFloating(List<Widget> widgets){
+    private void hideFloating(List<Widget> widgets) {
         //Log.v(TAG,"Hiding floating widgets... ");
         if (widgets != null && !widgets.isEmpty()) {
             for (Widget child : widgets) {
@@ -220,7 +231,7 @@ public class GUISystem implements EventListener, Drawer {
     }
 
 
-    private boolean processTouchEvent(TouchEvent touchEvent, List<Widget> widgets){
+    private boolean processTouchEvent(TouchEvent touchEvent, List<Widget> widgets) {
         for (Widget child : widgets) {
             // forward first the event to our children
             if (processTouchEvent(touchEvent, child.widgets)) {
@@ -247,8 +258,8 @@ public class GUISystem implements EventListener, Drawer {
     // FIXME: we can calculate vector once rather than recursively
     // FIXME: this function may be replace by detect collision (need to generalize function)
     private float[] getClickPoint(float x, float y, Widget widget) {
-        float[] nearHit = CollisionDetection.unProject(screen.getWidth(), screen.getHeight(), camera.viewMatrix, camera.getProjectionMatrix(), x, y, 0);
-        float[] farHit = CollisionDetection.unProject(screen.getWidth(), screen.getHeight(), camera.viewMatrix, camera.getProjectionMatrix(), x, y, 1);
+        float[] nearHit = CollisionDetection.unProject(screen.getWidth(), screen.getHeight(), camera.getViewMatrix(), camera.getProjectionMatrix(), x, y, 0);
+        float[] farHit = CollisionDetection.unProject(screen.getWidth(), screen.getHeight(), camera.getViewMatrix(), camera.getProjectionMatrix(), x, y, 1);
         float[] direction = Math3DUtils.substract(farHit, nearHit);
         Math3DUtils.normalizeVector(direction);
 
@@ -261,7 +272,7 @@ public class GUISystem implements EventListener, Drawer {
     }
 
     protected float[] unproject(float x, float y, float z) {
-        return CollisionDetection.unProject(screen.getWidth(), screen.getHeight(), camera.viewMatrix, camera.getProjectionMatrix(), x, y, z);
+        return CollisionDetection.unProject(screen.getWidth(), screen.getHeight(), camera.getViewMatrix(), camera.getProjectionMatrix(), x, y, z);
     }
 
     protected boolean processDragEvent(TouchEvent touchEvent, List<Widget> widgets, float[] nearHit, float[] direction) {
@@ -272,8 +283,7 @@ public class GUISystem implements EventListener, Drawer {
                 final Widget child = widgets.get(i);
                 if (processDragEvent(touchEvent, child.widgets, nearHit, direction)) {
                     return true;
-                }
-                else {
+                } else {
                     if (child.isMovable()) {
                         final Collision collision = detectCollision(touchEvent, child, nearHit, direction);
                         if (collision != null) {
@@ -300,7 +310,7 @@ public class GUISystem implements EventListener, Drawer {
             float[] point = Math3DUtils.add(nearHit, Math3DUtils.multiply(direction, intersection[0]));
 
             // calculate point 2
-            float[] nearHit2 = CollisionDetection.unProject(screen.getWidth(), screen.getHeight(), camera.viewMatrix, camera.getProjectionMatrix(),
+            float[] nearHit2 = CollisionDetection.unProject(screen.getWidth(), screen.getHeight(), camera.getViewMatrix(), camera.getProjectionMatrix(),
                     touchEvent.getX2(), touchEvent.getY2(), 0);
             float[] point2 = Math3DUtils.add(nearHit2, Math3DUtils.multiply(direction, intersection[0]));
 

@@ -1,19 +1,11 @@
 package org.the3deer.android_3d_model_engine.gui;
 
 import org.the3deer.android_3d_model_engine.model.Camera;
-import org.the3deer.android_3d_model_engine.model.Scene;
-import org.the3deer.util.bean.BeanInit;
 
 import java.util.EventObject;
 
-import javax.inject.Inject;
-
 public class Axis extends Widget {
 
-    @Inject
-    private Scene scene;
-    //private final float[] matrix = new float[16];
-    //private final Quaternion orientation = new Quaternion(matrix);
 
     public Axis(){
         super(org.the3deer.android_3d_model_engine.objects.Axis.build());
@@ -26,26 +18,17 @@ public class Axis extends Widget {
         setScale(new float[]{0.5f, 0.5f, 0.5f});*/
     }
 
-    @BeanInit
-    public void setUp(){
-        // this.sceneCamera = BeanFactory.getInstance().find(Camera.class, "scene_0");
-        if (this.scene != null && this.scene.getCamera() != null) {
-            this.scene.getCamera().addListener(this);
-        }
-    }
-
-    public void dispose(){
-        if (this.scene != null) {
-            //this.camera.removeListener(this);
-        }
-    }
-
     @Override
     public boolean onEvent(EventObject event) {
         if (event instanceof Camera.CameraUpdatedEvent){
-            if (this.scene != null && this.scene.getCamera() != null) {
-                setOrientation(this.scene.getCamera().getOrientation());
-            }
+
+            // check
+            final Camera camera = ((Camera.CameraUpdatedEvent) event).getCamera();
+            if (camera == null) return false;
+
+            // update
+            setOrientation(camera.getOrientation());
+
         }
         return super.onEvent(event);
     }

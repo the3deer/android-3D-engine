@@ -9,6 +9,7 @@ import org.the3deer.android_3d_model_engine.collision.Collision;
 import org.the3deer.android_3d_model_engine.collision.CollisionDetection;
 import org.the3deer.android_3d_model_engine.controller.TouchEvent;
 import org.the3deer.android_3d_model_engine.model.Camera;
+import org.the3deer.android_3d_model_engine.model.Constants;
 import org.the3deer.android_3d_model_engine.model.Dimensions;
 import org.the3deer.android_3d_model_engine.model.Object3DData;
 import org.the3deer.android_3d_model_engine.model.Screen;
@@ -430,6 +431,12 @@ public class Widget extends Object3DData implements EventListener {
     protected void refreshRelativeLocation() {
 
         if (parent == null || relativeLocation == -1) {
+
+            // debug
+            if (Constants.DEBUG_UI){
+                Log.v("Widget", "id: "+getId()+", relative location is null");
+            }
+
             return;
         }
 
@@ -496,6 +503,12 @@ public class Widget extends Object3DData implements EventListener {
         }
         float[] newLocation = new float[]{x, y, z};
         this.setLocation(newLocation);
+
+        // debug
+        if (Constants.DEBUG_UI){
+            Log.v(TAG, "id: "+getId()+", relative location: "+relativeLocation+", new location: "+Arrays.toString(newLocation));
+            Log.v(TAG, "id: " + getId() + " parent (" + parent.getId() + ") : " + parentDim + ", child: " + widgetDim);
+        }
     }
 
     public int getScreenWidth() {

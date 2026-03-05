@@ -137,7 +137,7 @@ public class SkeletonDrawer implements Drawer, EventListener {
                 }
                 //GLES20.glEnable(GLES20.GL_DEPTH_TEST);
 
-                drawerObject.draw(skeletonModel, camera.getProjectionMatrix(), camera.viewMatrix, Constants.COLOR_BLUE, null, camera.getPos(), skeletonModel.getDrawMode(), skeletonModel.getDrawSize());
+                drawerObject.draw(skeletonModel, camera.getProjectionMatrix(), camera.getViewMatrix(), Constants.COLOR_BLUE, null, camera.getPos(), skeletonModel.getDrawMode(), skeletonModel.getDrawSize());
 
             } catch (Error e) {
                 Log.e("WireframeDrawer", e.getMessage(), e);

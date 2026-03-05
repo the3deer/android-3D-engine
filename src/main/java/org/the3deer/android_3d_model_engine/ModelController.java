@@ -48,8 +48,6 @@ public class ModelController implements EventManager, GLTouchHandler {
     @Inject
     private Screen screen;
     @Inject
-    private List<Camera> cameras;
-    @Inject
     private Scene scene;
     @Inject
     private TouchController touchController;
@@ -90,7 +88,7 @@ public class ModelController implements EventManager, GLTouchHandler {
 
             } else if (rev.getCode() == GLEvent.Code.SURFACE_CHANGED) {
                 // assert
-                if (screen == null || cameras == null) {
+                if (screen == null) {
                     Log.e(TAG, "screen or camera is null. can't update model");
                     return true;
                 }
@@ -100,9 +98,7 @@ public class ModelController implements EventManager, GLTouchHandler {
                         + rev.getWidth() + " width, "
                         + rev.getHeight() + " height");
                 screen.setSize(rev.getWidth(), rev.getHeight());
-                for (Camera camera : cameras) {
-                    camera.setChanged(true);
-                }
+
                 if (gui != null){
                     gui.onEvent(event);
                 }

@@ -22,6 +22,7 @@ public class Constants {
      * - show details about JointTransforms
      */
     public static final boolean DEBUG = false;
+    public static final boolean DEBUG_UI = false;
     public static final boolean DEBUG_COMPARE = false;
     // experimental
     public static final boolean STRATEGY_LOAD_NEW = true;

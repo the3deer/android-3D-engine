@@ -123,7 +123,7 @@ public class WireframeDrawer implements Drawer, EventListener {
                         Log.i("WireframeDrawer", "Wireframe built: " + wireframe);
                     }
                     //animator.update(wireframe, scene.isShowBindPose());
-                    drawerObject.draw(wireframe, camera.getProjectionMatrix(), camera.viewMatrix, null, null, camera.getPos(), wireframe.getDrawMode(), wireframe.getDrawSize());
+                    drawerObject.draw(wireframe, camera.getProjectionMatrix(), camera.getViewMatrix(), null, null, camera.getPos(), wireframe.getDrawMode(), wireframe.getDrawSize());
                 } catch (Error e) {
                     Log.e("WireframeDrawer", e.getMessage(), e);
                 }

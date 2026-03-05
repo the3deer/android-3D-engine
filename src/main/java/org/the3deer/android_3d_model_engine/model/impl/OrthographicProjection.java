@@ -36,16 +36,13 @@ public final class OrthographicProjection implements Projection {
         this.custom = true;
     }
 
-    @BeanInit
-    public void setUp(){
-        refresh();
+    @Override
+    public void refresh() {
+        // not used - we use dynamic update in #getMatrix()
     }
 
     @Override
-    public void refresh(){
-
-        if (screen == null && !custom) return;
-
+    public float[] getMatrix(){
         if (custom) {
             Matrix.orthoM(matrix, 0, -xmag, xmag, -ymag, ymag, znear, zfar);
         } else {
@@ -56,10 +53,6 @@ public final class OrthographicProjection implements Projection {
                     Constants.UNIT,
                     Constants.near, Constants.far);
         }
-    }
-
-    @Override
-    public float[] getMatrix(){
         return matrix;
     }
 }

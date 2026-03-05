@@ -74,6 +74,10 @@ public class Camera {
         public CameraUpdatedEvent(Object source) {
             super(source);
         }
+
+        public Camera getCamera(){
+            return (Camera)getSource();
+        }
     }
 
     private final String name;
@@ -89,7 +93,7 @@ public class Camera {
     protected float[] up = new float[]{0, 1, 0, 1};
 
     // transformation matrix
-    public float[] viewMatrix = new float[16];
+    private float[] viewMatrix = new float[16];
 
     // camera mode
     @Inject

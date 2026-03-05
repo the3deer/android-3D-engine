@@ -160,6 +160,7 @@ public class GUIDefault extends Widget implements EventListener, BeanManaged {
         if (event instanceof GLEvent) {
             final GLEvent rev = (GLEvent) event;
             if (rev.getCode() == GLEvent.Code.SURFACE_CHANGED) {
+                Log.v(TAG, "onEvent. SURFACE_CHANGED. Screen: "+this.screen);
                 setDimensions(calculateScreenDimensions());
                 refresh();
                 Log.v(TAG, "onEvent. SURFACE_CHANGED. Refreshed...");
@@ -172,10 +173,6 @@ public class GUIDefault extends Widget implements EventListener, BeanManaged {
                 fps.setText(fpsEvent.getFps() + " fps");
                 //Log.v(TAG, "FPS: "+fpsEvent.getFps());
             }
-        } else if (event instanceof Camera.CameraUpdatedEvent){
-            setDimensions(calculateScreenDimensions());
-            refresh();
-            //Log.v("GUIDefault", "onEvent. CameraUpdatedEvent. Refreshed...");
         } else if (event instanceof SelectedObjectEvent) {
             if (this.info != null && this.info.isVisible()) {
                 final Object3DData selected = ((SelectedObjectEvent) event).getSelected();

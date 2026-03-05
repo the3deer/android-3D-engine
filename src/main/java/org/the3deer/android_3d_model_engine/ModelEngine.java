@@ -231,7 +231,7 @@ public class ModelEngine {
 
         // visualization
         beanFactory.add("80.gui.projection", OrthographicProjection.class);
-        beanFactory.add("80.gui.camera", new Camera("gui"));
+        beanFactory.add("80.gui.camera", new Camera("gui", new float[]{0, 0, 10}));
 
         final GUISystem guiSystem = new GUISystem();
         guiSystem.setEnabled(true);
