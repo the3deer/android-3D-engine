@@ -220,7 +220,7 @@ public final class ColladaLoaderLegacy {
                     if (skin == null) continue;;
 
                     // no joint linked to geometry - just draw as it is
-                    List<Node> allNodeData = skin.getSceneRoot().findAll(meshData.getId());
+                    List<Node> allNodeData = skin.getRootJoint().findAll(meshData.getId());
                     if (allNodeData.isEmpty()) {
                         Log.d("ColladaLoaderTask", "No joint linked to mesh: " + meshData.getId());
                         continue;
@@ -357,8 +357,8 @@ public final class ColladaLoaderLegacy {
                         // load skin arrays
                         SkinLoader.loadSkinningArrays(meshData);
 
-                        data3D.setJoints(meshData.getJointsBuffer());
-                        data3D.setWeights(meshData.getWeightsBuffer());
+                        data3D.getSkin().setJoints(meshData.getJointsBuffer());
+                        data3D.getSkin().setWeights(meshData.getWeightsBuffer());
                         Log.d("ColladaLoader", "Loaded skinning data: "
                                 + "jointIds: " + (meshData.getJointsArray() != null ? meshData.getJointsArray().length : 0)
                                 + ", weights: " + (meshData.getWeightsArray() != null ? meshData.getWeightsArray().length : 0));

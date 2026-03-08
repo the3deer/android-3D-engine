@@ -245,7 +245,7 @@ public final class GltfLoaderLegacy {
             final Camera camera = new Camera(cameraModel.getName());
             cameraList.add(camera);
 
-            callback.onLoad(camera);
+            callback.onLoad(null, camera);
         }
         return cameraList;
     }
@@ -595,11 +595,11 @@ public final class GltfLoaderLegacy {
             if (joints != null && weights != null) {
                 final ByteBuffer byteBuffer = joints.getAccessorData().createByteBuffer();
                 if (joints.getAccessorData().getComponentType() == int.class) {
-                    model.setJoints(byteBuffer.asIntBuffer());
+                    model.getSkin().setJoints(byteBuffer.asIntBuffer());
                 } else if (joints.getAccessorData().getComponentType() == short.class) {
-                    model.setJoints(byteBuffer.asShortBuffer());
+                    model.getSkin().setJoints(byteBuffer.asShortBuffer());
                 } else if (joints.getAccessorData().getComponentType() == byte.class) {
-                    model.setJoints(byteBuffer);
+                    model.getSkin().setJoints(byteBuffer);
                 }
 
                 // Read the VERY FIRST joint index directly from the buffer.
@@ -627,11 +627,11 @@ public final class GltfLoaderLegacy {
                     Log.w(TAG, "Primitive " + model.getId() + " has skinning data but could not determine a primary joint index.");
                 }
 
-                model.setJointComponents(joints.getElementType().getNumComponents());
+                model.getSkin().setJointComponents(joints.getElementType().getNumComponents());
                 final ByteBuffer weightsBuffer = weights.getAccessorData().createByteBuffer();
                 if (weights.getAccessorData().getComponentType() == float.class) {
-                    model.setWeights(weightsBuffer.asFloatBuffer());
-                    model.setWeightsComponents(weights.getElementType().getNumComponents());
+                    model.getSkin().setWeights(weightsBuffer.asFloatBuffer());
+                    model.getSkin().setWeightsComponents(weights.getElementType().getNumComponents());
                 } else {
                     Log.e(TAG, "Unknown weights type: " + weights.getAccessorData().getComponentType());
                 }
@@ -747,10 +747,10 @@ public final class GltfLoaderLegacy {
                 if (node.getMeshes() != null) {
                     for (Object3DData mesh : node.getMeshes()) {
                         ((AnimatedModel) mesh).setSkin(skin);
-                        skin.setWeightsBuffer(((AnimatedModel) mesh).getVertexWeights());
-                        skin.setJointsBuffer(((AnimatedModel) mesh).getJointIds());
-                        skin.setWeightsComponents(((AnimatedModel) mesh).getWeightsComponents());
-                        skin.setJointComponents(((AnimatedModel) mesh).getJointComponents());
+                        skin.setWeightsBuffer(((AnimatedModel) mesh).getSkin().getWeightsBuffer());
+                        skin.setJointsBuffer(((AnimatedModel) mesh).getSkin().getJointsBuffer());
+                        skin.setWeightsComponents(((AnimatedModel) mesh).getSkin().getWeightsComponents());
+                        skin.setJointComponents(((AnimatedModel) mesh).getSkin().getJointComponents());
 
                         AccessorModel inverseBindMatrices = skinModel.getInverseBindMatrices();
                         FloatBuffer floatBuffer = inverseBindMatrices.getAccessorData().createByteBuffer().asFloatBuffer();

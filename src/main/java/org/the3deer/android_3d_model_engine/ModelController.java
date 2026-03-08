@@ -8,13 +8,17 @@ import androidx.preference.Preference;
 
 import org.the3deer.android_3d_model_engine.camera.CameraController;
 import org.the3deer.android_3d_model_engine.collision.CollisionController;
+import org.the3deer.android_3d_model_engine.collision.CollisionEvent;
 import org.the3deer.android_3d_model_engine.controller.TouchController;
 import org.the3deer.android_3d_model_engine.controller.TouchEvent;
 import org.the3deer.android_3d_model_engine.gui.GUIDefault;
 import org.the3deer.android_3d_model_engine.gui.GUISystem;
 import org.the3deer.android_3d_model_engine.model.Camera;
+import org.the3deer.android_3d_model_engine.model.Object3DData;
+import org.the3deer.android_3d_model_engine.model.Projection;
 import org.the3deer.android_3d_model_engine.model.Scene;
 import org.the3deer.android_3d_model_engine.model.Screen;
+import org.the3deer.android_3d_model_engine.scene.SceneManager;
 import org.the3deer.android_3d_model_engine.shader.ShaderFactory;
 import org.the3deer.android_3d_model_engine.view.GLEvent;
 import org.the3deer.android_3d_model_engine.view.GLTouchHandler;
@@ -48,7 +52,9 @@ public class ModelController implements EventManager, GLTouchHandler {
     @Inject
     private Screen screen;
     @Inject
-    private Scene scene;
+    private Projection projection;
+    @Inject
+    private SceneManager sceneManager;
     @Inject
     private TouchController touchController;
     @Inject
@@ -90,11 +96,11 @@ public class ModelController implements EventManager, GLTouchHandler {
                 // assert
                 if (screen == null) {
                     Log.e(TAG, "screen or camera is null. can't update model");
-                    return true;
+                    return false;
                 }
 
                 // Update model
-                Log.d(TAG, "Updating screen and camera... size: "
+                Log.d(TAG, "Updating screen and camera projection... size: "
                         + rev.getWidth() + " width, "
                         + rev.getHeight() + " height");
                 screen.setSize(rev.getWidth(), rev.getHeight());
@@ -126,22 +132,40 @@ public class ModelController implements EventManager, GLTouchHandler {
             /*if (scene.onEvent(event)) {
                 return true;
             }*/
+            final Scene scene = sceneManager.getCurrentScene();
             if (scene != null && scene.getSelectedObject() != null) {
                 //scene.onEvent(event);
                 cameraController.onEvent(event);
-            } else if (cameraController != null){
+            } else if (cameraController != null) {
                 cameraController.onEvent(event);
                 /*scene.onEvent(event);
                 if (((TouchEvent) event).getAction() == TouchEvent.Action.PINCH) {
                     //surface.onEvent(event);
                 }*/
-            } else {
+            }
+        } else if (event instanceof CollisionEvent){
 
+            // check
+            final Scene scene = sceneManager.getCurrentScene();
+            if (scene == null) return false;
+
+            // get selected object
+            final Object3DData object = ((CollisionEvent) event).getObject();
+
+            if (scene.getSelectedObject() == null || scene.getSelectedObject() != object) {
+
+                // select new object
+                scene.setSelectedObject(object);
+
+            } else if (scene.getSelectedObject() == object){
+
+                // unselect object
+                scene.setSelectedObject(null);
             }
         } else {
             AndroidUtils.fireEvent(listeners, event);
         }
-        return true;
+        return false;
     }
 
 

@@ -6,69 +6,61 @@ import android.util.Log;
 
 import org.the3deer.android_3d_model_engine.model.AnimatedModel;
 import org.the3deer.android_3d_model_engine.model.Node;
+import org.the3deer.android_3d_model_engine.model.Skin;
 import org.the3deer.util.io.IOUtils;
 import org.the3deer.util.math.Math3DUtils;
 
 import java.nio.FloatBuffer;
+import java.nio.IntBuffer;
+import java.nio.ShortBuffer;
+import java.util.Arrays;
 
 public final class Skeleton {
 
     public static AnimatedModel build(AnimatedModel animatedModel) {
 
         // reserve buffers
-        AnimatedModel animSkeleton = animatedModel.clone();
-        animSkeleton.setVertexBuffer(IOUtils.createFloatBuffer(animSkeleton.getJointCount() * 9));   // 4 floats (i,j,k,l) x 3 vertex = 12 floats / joint
-        animSkeleton.setVertexNormalsArrayBuffer(IOUtils.createFloatBuffer(animSkeleton.getJointCount() * 9));
-        // reserve color buffer (ie. to draw "JOINT" types of a different color from others)
-        FloatBuffer colorBuffer = IOUtils.createFloatBuffer(animSkeleton.getJointCount() * 12);  // 4 floats (rgba) x 3 vertex = 12 floats / joint
-        animSkeleton.setVertexColorsArrayBuffer(colorBuffer);
+        final AnimatedModel animSkeleton = animatedModel.clone();
+        animSkeleton.setVertexBuffer(IOUtils.createFloatBuffer(animSkeleton.getSkin().getJointCount() * 9));   // 4 floats (i,j,k,l) x 3 vertex = 12 floats / joint
+        animSkeleton.setNormalsBuffer(IOUtils.createFloatBuffer(animSkeleton.getSkin().getJointCount() * 9));
+        // reserve color buffer (i.e. to draw "JOINT" types of a different color from others)
+        FloatBuffer colorBuffer = IOUtils.createFloatBuffer(animSkeleton.getSkin().getJointCount() * 12);  // 4 floats (rgba) x 3 vertex = 12 floats / joint
+        animSkeleton.setColorsBuffer(colorBuffer);
 
-        // reserve joint buffers
-        animSkeleton.setJoints(IOUtils.createFloatBuffer(animSkeleton.getJointCount() * 3 * 4));
-        animSkeleton.setWeights(IOUtils.createFloatBuffer(animSkeleton.getJointCount() * 3 * 4));
+        // Create new skin
+        final Skin skeletonSkin = animatedModel.getSkin().clone();
+        animSkeleton.setSkin(skeletonSkin);
 
+        // override data
+        skeletonSkin.setJoints(IOUtils.createIntBuffer(animSkeleton.getSkin().getJointCount() * 3 * 4));
+        skeletonSkin.setWeights(IOUtils.createFloatBuffer(animSkeleton.getSkin().getJointCount() * 3 * 4));
 
-
-        // set own data
+        // set properties
         animSkeleton.setId(animatedModel.getId() + "-skeleton");
         animSkeleton.setDrawMode(GLES20.GL_TRIANGLES);
         animSkeleton.setDrawUsingArrays(true);
-        animSkeleton.setModelMatrix(animatedModel.getModelMatrix());
-        animSkeleton.setReadOnly(true);
-
-        // log event
-        Log.i("Skeleton", "Building skeleton... joints: " + animSkeleton.getJointCount());
+        animSkeleton.setDecorator(true);
 
         // build
-        Node node = animSkeleton.getSkin().getSceneRoot();
+        Node skinRoot = animatedModel.getParentNode().getRoot();
 
-        // point
-        float[] point = new float[]{0,0,0,1};
-        float[] inverted = new float[16];
-        Matrix.invertM(inverted,0, node.getInverseBindMatrix(), 0);
-        Matrix.multiplyMV(point, 0, inverted, 0, point, 0);
-        point[3] = 1;
-        buildBones(animSkeleton, node, point, node.getJointIndex(), colorBuffer);
+        // debug
+        Log.d("Skeleton", "Building skeleton... skin root: "+skinRoot.getId()+", joints: " + animSkeleton.getSkin().getJointCount());
 
-        //skeleton.setBindShapeMatrix(animatedModel.getBindShapeMatrix22222());
+        // build
+        buildBones(animSkeleton, skinRoot, new float[]{0,0,0,1}, -1, colorBuffer);
 
         return animSkeleton;
     }
 
-    private static void buildBones(AnimatedModel animatedModel, Node node,
-                                   float[] parentPoint, int parentJoinIndex, FloatBuffer colorBuffer) {
+    private static void buildBones(AnimatedModel skeletonModel, Node node, float [] parentPoint, int parentIndex,
+                                   FloatBuffer colorBuffer) {
 
-        float[] point = new float[4];
-        point[3] = 1;
+        float[] point = new float[]{0,0,0,1};
+        Matrix.multiplyMV(point, 0, node.getBindWorldTransform(), 0, point, 0);
 
-        //point[0] = joint.getBindTransform()[12];
-        //point[1] = joint.getBindTransform()[13];
-        //point[2] = joint.getBindTransform()[14];
 
-        float[] inverted = new float[16];
-        Matrix.invertM(inverted,0, node.getInverseBindMatrix(), 0);
-        Matrix.multiplyMV(point, 0, inverted, 0, point, 0);
-        point[3] = 1;
+        Log.v("Skeleton", "Building bones....  joint: "+node.getId()+", point: "+ Arrays.toString(point));
 
         float[] v = Math3DUtils.substract(point, parentPoint);
         float[] point1 = new float[]{point[0], point[1], point[2] - Matrix.length(v[0], v[1], v[2]) * 0.05f};
@@ -82,56 +74,64 @@ public final class Skeleton {
         } else {
             Math3DUtils.normalizeVector(normal);
         }
-        animatedModel.getVertexNormalsArrayBuffer().put(normal);
-        animatedModel.getVertexNormalsArrayBuffer().put(normal);
-        animatedModel.getVertexNormalsArrayBuffer().put(normal);
 
-        // parent point
-        animatedModel.getVertexBuffer().put(parentPoint[0]);
-        animatedModel.getVertexBuffer().put(parentPoint[1]);
-        animatedModel.getVertexBuffer().put(parentPoint[2]);
-        ((FloatBuffer)animatedModel.getJointIds()).put(Math.max(parentJoinIndex, 0));
-        ((FloatBuffer)animatedModel.getJointIds()).put(0);
-        ((FloatBuffer)animatedModel.getJointIds()).put(0);
-        ((FloatBuffer)animatedModel.getJointIds()).put(0);
-        ((FloatBuffer)animatedModel.getVertexWeights()).put(Math.max(parentJoinIndex,0));
-        ((FloatBuffer)animatedModel.getVertexWeights()).put(0);
-        ((FloatBuffer)animatedModel.getVertexWeights()).put(0);
-        ((FloatBuffer)animatedModel.getVertexWeights()).put(0);
+        if (node.getJointIndex() >= 0) {
+            skeletonModel.getNormalsBuffer().put(normal);
+            skeletonModel.getNormalsBuffer().put(normal);
+            skeletonModel.getNormalsBuffer().put(normal);
 
-        // child point(s)
-        animatedModel.getVertexBuffer().put(point1[0]);
-        animatedModel.getVertexBuffer().put(point1[1]);
-        animatedModel.getVertexBuffer().put(point1[2]);
-        animatedModel.getVertexBuffer().put(point2[0]);
-        animatedModel.getVertexBuffer().put(point2[1]);
-        animatedModel.getVertexBuffer().put(point2[2]);
-        for (int i = 0; i < 2; i++) {
-            ((FloatBuffer)animatedModel.getJointIds()).put(Math.max(node.getJointIndex(), 0));
-            ((FloatBuffer)animatedModel.getJointIds()).put(0);
-            ((FloatBuffer)animatedModel.getJointIds()).put(0);
-            ((FloatBuffer)animatedModel.getJointIds()).put(0);
-            ((FloatBuffer)animatedModel.getVertexWeights()).put(Math.max(node.getJointIndex(), 0));
-            ((FloatBuffer)animatedModel.getVertexWeights()).put(0);
-            ((FloatBuffer)animatedModel.getVertexWeights()).put(0);
-            ((FloatBuffer)animatedModel.getVertexWeights()).put(0);
-        }
+            // parent point
+            skeletonModel.getVertexBuffer().put(parentPoint[0]);
+            skeletonModel.getVertexBuffer().put(parentPoint[1]);
+            skeletonModel.getVertexBuffer().put(parentPoint[2]);
 
-        if (node.getJointIndex()<0){
-            final float color = 0.75f;
-            colorBuffer.put(new float[]{color,0,color,1f});
-            colorBuffer.put(new float[]{color,0,color,1f});
-            colorBuffer.put(new float[]{color,0,color,1f});
-        } else {
-            // you can change the color to red for example, to see linked bones in different color
-            final float color = 1;//-(float)joint.getIndex()/(float)jointCount;
-            colorBuffer.put(new float[]{color,0,color,1});
-            colorBuffer.put(new float[]{color,0,color,1});
-            colorBuffer.put(new float[]{color,0,color,1});
+            // parent influences
+            final IntBuffer jointIds = (IntBuffer) skeletonModel.getSkin().getJointsBuffer();
+            jointIds.put(Math.max(parentIndex, 0));
+            jointIds.put(0);
+            jointIds.put(0);
+            jointIds.put(0);
+            final FloatBuffer vertexWeights = (FloatBuffer) skeletonModel.getSkin().getWeightsBuffer();
+            vertexWeights.put(1);
+            vertexWeights.put(0);
+            vertexWeights.put(0);
+            vertexWeights.put(0);
+
+            // child point(s)
+            skeletonModel.getVertexBuffer().put(point1[0]);
+            skeletonModel.getVertexBuffer().put(point1[1]);
+            skeletonModel.getVertexBuffer().put(point1[2]);
+            skeletonModel.getVertexBuffer().put(point2[0]);
+            skeletonModel.getVertexBuffer().put(point2[1]);
+            skeletonModel.getVertexBuffer().put(point2[2]);
+            for (int i = 0; i < 2; i++) {
+                jointIds.put(node.getJointIndex());
+                jointIds.put(0);
+                jointIds.put(0);
+                jointIds.put(0);
+                vertexWeights.put(1);
+                vertexWeights.put(0);
+                vertexWeights.put(0);
+                vertexWeights.put(0);
+            }
+
+            if (node.getJointIndex() < 0) {
+                Log.w("Skeleton", "no index");
+                final float color = 1;
+                colorBuffer.put(new float[]{color, 0, 0, 1f});
+                colorBuffer.put(new float[]{color, 0, 0, 1f});
+                colorBuffer.put(new float[]{color, 0, 0, 1f});
+            } else {
+                // you can change the color to red for example, to see linked bones in different color
+                final float color = 1;//-(float)joint.getIndex()/(float)jointCount;
+                colorBuffer.put(new float[]{0, 0, color, 1});
+                colorBuffer.put(new float[]{0, 0, color, 1});
+                colorBuffer.put(new float[]{0, 0, color, 1});
+            }
         }
 
         for (Node child : node.getChildren()) {
-            buildBones(animatedModel, child, point, node.getJointIndex(), colorBuffer);
+            buildBones(skeletonModel, child, point, node.getJointIndex(), colorBuffer);
         }
     }
 }

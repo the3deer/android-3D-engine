@@ -39,9 +39,9 @@ public class ModelComparator {
         // Compare buffers by content
         compareFloatBuffer("Vertex Array", legacyModel.getVertexBuffer(), newModel.getVertexBuffer());
         compareFloatBuffer("Normals Array", legacyModel.getVertexNormalsArrayBuffer(), newModel.getVertexNormalsArrayBuffer());
-        compareGenericBuffer("Colors Array", legacyModel.getVertexColorsArrayBuffer(), newModel.getVertexColorsArrayBuffer());
+        compareGenericBuffer("Colors Array", legacyModel.getColorsBuffer(), newModel.getColorsBuffer());
         compareFloatBuffer("Texture Array", legacyModel.getTextureCoordsArrayBuffer(), newModel.getTextureCoordsArrayBuffer());
-        compareFloatBuffer("Colors Array", (FloatBuffer) legacyModel.getVertexColorsArrayBuffer(), (FloatBuffer) newModel.getVertexColorsArrayBuffer());
+        compareFloatBuffer("Colors Array", (FloatBuffer) legacyModel.getColorsBuffer(), (FloatBuffer) newModel.getColorsBuffer());
 
         // Compare elements
         if (legacyModel.getElements() == null && newModel.getElements() == null) {
@@ -71,8 +71,8 @@ public class ModelComparator {
             AnimatedModel legacyAnimated = (AnimatedModel) legacyModel;
             AnimatedModel newAnimated = (AnimatedModel) newModel;
             if (legacyAnimated.getSkin() != null && newAnimated.getSkin() != null) {
-                compareGenericBuffer("Joints", legacyAnimated.getJointIds(), newAnimated.getSkin().getJointsBuffer());
-                compareGenericBuffer("Weights", legacyAnimated.getVertexWeights(), newAnimated.getSkin().getWeightsBuffer());
+                compareGenericBuffer("Joints", legacyAnimated.getSkin().getJointsBuffer(), newAnimated.getSkin().getJointsBuffer());
+                compareGenericBuffer("Weights", legacyAnimated.getSkin().getWeightsBuffer(), newAnimated.getSkin().getWeightsBuffer());
                 // compare inverse bind matrices
                 compareArray("Inverse Bind Matrices", legacyAnimated.getSkin().getInverseBindMatrices(), newAnimated.getSkin().getInverseBindMatrices());
 

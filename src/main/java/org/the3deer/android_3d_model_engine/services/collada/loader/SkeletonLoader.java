@@ -19,6 +19,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class SkeletonLoader {
 
+	private static final String TAG = SkeletonLoader.class.getSimpleName();
 	private final XmlNode xml;
 
 	private final XmlNode geometries;
@@ -36,7 +37,7 @@ public class SkeletonLoader {
 	// <visual_scene>
 	public Map<String, Skin> loadSkeletons(Scene scene){
 
-		Log.d("SkeletonLoader", "Loading skeleton...");
+		Log.d(TAG, "Loading skeleton...");
 
 
 		// a visual scene may contain several nodes of different kinds
@@ -85,7 +86,7 @@ public class SkeletonLoader {
 					instanceNode.addChild(joint);
 
 					// log event
-					Log.i("SkeletonLoader", "Node found. skeleton: "+skeletonId+", geometryId: "+geometryId+", joints: " + count.get());
+					Log.i(TAG, "Node found. skeleton: "+skeletonId+", geometryId: "+geometryId+", joints: " + count.get());
 
 					// add to returned list
 					ret.put(geometryId, new Skin(count.get(), rootNode2));
@@ -94,7 +95,7 @@ public class SkeletonLoader {
 					scene.addRootNode(rootNode2);
 
 				} catch (Exception e) {
-					Log.e("SkeletonLoader", e.getMessage(), e);
+					Log.e(TAG, e.getMessage(), e);
 				}
 
 			} else {
@@ -106,7 +107,7 @@ public class SkeletonLoader {
 				// register root node
 				scene.addRootNode(joint);
 
-				Log.v("SkeletonLoader", "Node found. joints: " + defaultCount.get());
+				Log.v(TAG, "Node found. joints: " + defaultCount.get());
 			}
 		}
 
@@ -115,18 +116,18 @@ public class SkeletonLoader {
 
 		// no skeleton found at all
 		if (ret.isEmpty()){
-			Log.d("SkeletonLoader", "Skeleton not found");
+			Log.d(TAG, "Skeleton not found");
 			return null;
 		}
 
-		Log.d("SkeletonLoader", "Skeleton founds: " + ret.size()+", names: "+ret.keySet());
+		Log.d(TAG, "Skeleton founds: " + ret.size()+", names: "+ret.keySet());
 		return ret;
 	}
 
 	private Node loadNode(XmlNode jointNode, Node parent, AtomicInteger count){
 		Node node = parseNode(jointNode, parent, count);
 
-		// Log.i("SkeletonLoader","Joint: index "+joint.index+", name: "+joint.nameId);
+		// Log.i(TAG,"Joint: index "+joint.index+", name: "+joint.nameId);
 		for(XmlNode childNode : jointNode.getChildren("node")){
 			Node child = loadNode(childNode, node, count);
 			node.addChild(child);
@@ -247,13 +248,13 @@ public class SkeletonLoader {
 							String material_symbol = materialNode.getAttribute("symbol");
 							String material_name = materialNode.getAttribute("target").substring(1);
 							materials.put(material_symbol,material_name);
-							Log.v("SkeletonLoader",String.format("Loaded material: " +
+							Log.v(TAG,String.format("Loaded material: " +
 									"%s->%s",material_symbol,material_name));
 						}
 					}
 				}
 			} catch (Exception e) {
-				Log.e("SkeletonLoader","Error loading material bindings... "+e.getMessage());
+				Log.e(TAG,"Error loading material bindings... "+e.getMessage());
 			}
 		}
 
@@ -293,14 +294,14 @@ public class SkeletonLoader {
 				boneList = skinningData.jointOrder;
 			}
 
-			for (Node node : entry.getValue().getSceneRoot().children) {
+			for (Node node : entry.getValue().getRootJoint().children) {
 				updateChildJointData(node, skinningData, entry.getValue(), boneList != null? boneList : defaultBoneList);
 			}
 
 			// log event
 			StringBuilder jointIndicesString = new StringBuilder();
 			List<Node> pending = new ArrayList<>();
-			pending.add(entry.getValue().getSceneRoot());
+			pending.add(entry.getValue().getRootJoint());
 			while(!pending.isEmpty()){
 				Node current = pending.get(0);
 				if (current.getJointIndex() != -1) {
@@ -310,7 +311,7 @@ public class SkeletonLoader {
 				pending.addAll(current.children);
 				pending.remove(0);
 			}
-			Log.d("SkeletonLoader", "Loaded joint indices: "+jointIndicesString);
+			Log.d(TAG, "Loaded joint indices: "+jointIndicesString);
 		}
 
 
@@ -357,10 +358,10 @@ public class SkeletonLoader {
 		if (index == -1 && geometryId != null) {
 			index = boneOrder.size();
 			boneOrder.add(geometryId);
-			Log.d("SkeletonLoader","Linked geometry have new index: "+geometryId);
+			Log.d(TAG,"Linked geometry have new index: "+geometryId);
 		}
 		if (index == -1){
-			Log.v("SkeletonLoader", "Found unlinked node. " + nodeId);
+			Log.v(TAG, "Found unlinked node. " + nodeId);
 		} else{
 			skin.incrementBoneCount();
 		}

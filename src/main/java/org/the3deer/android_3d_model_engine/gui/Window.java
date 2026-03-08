@@ -140,7 +140,7 @@ public class Window extends Widget {
         int idx = 0;
 
         final FloatBuffer vertexBuffer = getVertexBuffer();
-        final Buffer colorBuffer = getVertexColorsArrayBuffer();
+        final Buffer colorBuffer = getColorsBuffer();
 
         final Dimensions currentDimensions = content.getCurrentDimensions();
         this.width = currentDimensions.getWidth();

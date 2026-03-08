@@ -11,6 +11,7 @@ import androidx.annotation.NonNull;
 
 import org.the3deer.android_3d_model_engine.camera.CameraController;
 import org.the3deer.android_3d_model_engine.camera.DefaultCameraHandler;
+import org.the3deer.android_3d_model_engine.collision.CollisionController;
 import org.the3deer.android_3d_model_engine.controller.TouchController;
 import org.the3deer.android_3d_model_engine.drawer.BoundingBoxDrawer;
 import org.the3deer.android_3d_model_engine.drawer.LightBulbDrawer;
@@ -208,7 +209,7 @@ public class ModelEngine {
         // controllers
         //beanFactory.add("20.controller.animationController", AnimationController.class);
         beanFactory.add("30.controller.cameraController", CameraController.class);
-        //beanFactory.add("30.controller.collisionController", CollisionController.class);
+        beanFactory.add("30.controller.collisionController", CollisionController.class);
 
         // drawers
         beanFactory.add("40.drawer0.SkyBoxDrawer", SkyBoxDrawer.class);

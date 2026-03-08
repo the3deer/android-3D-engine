@@ -26,8 +26,6 @@ public class Wireframe {
      */
     public static Object3DData build(Object3DData objData) {
 
-        // TODO: create several wireframes elements instead of only 1 ?
-
         // log event
         Log.i("Wireframe", "Building wireframe... " + objData);
 
@@ -46,12 +44,18 @@ public class Wireframe {
                     int totalIndex = element.getIndexBuffer().capacity();
                     if (totalIndex % 3 != 0){
                         Log.w("Wireframe", "Element "+i+" has " + totalIndex + " indices. That is not a x3 factor. Fixing...");
-                        totalIndex = totalIndex + (totalIndex % 3);
+                        totalIndex = totalIndex - (totalIndex % 3);
                     }
 
-                    // we need 2 points x face side
-                    Log.i("Wireframe", "Building wireframe... Element: "+i+", Total indices: " + totalIndex);
-                    final IntBuffer newBuffer = IOUtils.createIntBuffer(totalIndex * 2);
+                    // Match the original index buffer type to prevent engine confusion
+                    final Buffer newBuffer;
+                    if (element.getIndexBuffer() instanceof IntBuffer) {
+                        newBuffer = IOUtils.createIntBuffer(totalIndex * 2);
+                    } else if (element.getIndexBuffer() instanceof ShortBuffer) {
+                        newBuffer = IOUtils.createShortBuffer(totalIndex * 2);
+                    } else {
+                        newBuffer = ByteBuffer.allocateDirect(totalIndex * 2).order(java.nio.ByteOrder.nativeOrder());
+                    }
                     newElement.setIndexBuffer(newBuffer);
 
                     final Buffer drawBuffer = element.getIndexBuffer();
@@ -75,12 +79,12 @@ public class Wireframe {
                             throw new IllegalStateException("The IndexBuffer is of unknown type");
                         }
 
-                        newBuffer.put(v0);
-                        newBuffer.put(v1);
-                        newBuffer.put(v1);
-                        newBuffer.put(v2);
-                        newBuffer.put(v2);
-                        newBuffer.put(v0);
+                        putIndex(newBuffer, v0);
+                        putIndex(newBuffer, v1);
+                        putIndex(newBuffer, v1);
+                        putIndex(newBuffer, v2);
+                        putIndex(newBuffer, v2);
+                        putIndex(newBuffer, v0);
                     }
                 }
 
@@ -113,13 +117,13 @@ public class Wireframe {
 
                         retA.setCentered(animSource.isCentered());
 
+                        // Sync animation data
                         retA.setSkin(animSource.getSkin());
-                        retA.setJoints(animSource.getJointIds());
-                        retA.setWeights(animSource.getVertexWeights());
                         retA.refresh();
                     }
                     return false;
                 });
+                ((AnimatedModel) ret).setSkin(((AnimatedModel)objData).getSkin());
             }
 
             // update
@@ -128,16 +132,28 @@ public class Wireframe {
             // return
             Material material = new Material();
             material.setDiffuse(Constants.COLOR_WHITE);
+            // DO NOT NULL OUT BUFFERS - IT CAN CAUSE ATTRIBUTE ALIGNMENT ISSUES IN THE SHADER
+            // ret.setColorsBuffer(null);
+            // ret.setTextureCoordsArrayBuffer(null);
             return ret
                     .setReadOnly(true)
                     .setDrawMode(GLES20.GL_LINES)
                     .setDrawUsingArrays(false)
                     .setMaterial(material)
-                    .setModelMatrix(objData.getModelMatrix())
                     .setId(objData.getId() + "_wireframe");
         } catch (Exception ex) {
             Log.e("Wireframe", ex.getMessage(), ex);
             throw new RuntimeException("Problem building wireframe", ex);
+        }
+    }
+
+    private static void putIndex(Buffer buffer, int value) {
+        if (buffer instanceof IntBuffer) {
+            ((IntBuffer) buffer).put(value);
+        } else if (buffer instanceof ShortBuffer) {
+            ((ShortBuffer) buffer).put((short) value);
+        } else if (buffer instanceof ByteBuffer) {
+            ((ByteBuffer) buffer).put((byte) value);
         }
     }
 }

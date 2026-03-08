@@ -15,8 +15,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class Skin {
 
     private String name;
-
-    private Node sceneRoot;
     private Node rootJoint;
 
     private int jointCount;
@@ -44,12 +42,11 @@ public class Skin {
         this.name = name;
     }
 
-    // gltf - legacy
+    // gltf legacy
     public Skin(String name, List<Node> nodes, List<Node> bones, Node sceneRoot, Node rootJoint) {
         this.name = name;
         this.nodes = nodes;
         this.bones = bones;
-        this.sceneRoot = sceneRoot;
         this.rootJoint = rootJoint;
 
         // init skinning matrix
@@ -88,6 +85,16 @@ public class Skin {
         }
     }
 
+    // collada legacy
+    public Skin(int jointCount, Node sceneRoot) {
+        this.jointCount = jointCount;
+        this.rootJoint = sceneRoot;
+    }
+
+
+    public void setName(String s) {
+        this.name = name;
+    }
 
     public int[] getJoints() {
         return joints;
@@ -110,13 +117,6 @@ public class Skin {
 
     }
 
-    // collada - legacy
-    public Skin(int jointCount, Node sceneRoot) {
-        this.jointCount = jointCount;
-        this.sceneRoot = sceneRoot;
-        this.rootJoint = sceneRoot;
-    }
-
     public void incrementBoneCount() {
         this.boneCount++;
     }
@@ -133,13 +133,13 @@ public class Skin {
         }
     }
 
-    public Node getSceneRoot() {
-        return sceneRoot;
-    }
-
     public int getJointCount() {
-        if (nodes != null) {
+        if (joints != null){
+            return joints.length;
+        } else if (nodes != null) {
             return nodes.size();
+        } else if (jointNames != null) {
+            return jointNames.size();
         } else {
             return jointCount;
         }
@@ -211,7 +211,7 @@ public class Skin {
         this.doInverseBindTranspose = flag;
     }
 
-    // collada - legacy
+    // collada legacy
     public Node find(String geometryId) {
         if (nodes != null) {
             for (int i = 0; i < nodes.size(); i++) {
@@ -220,8 +220,8 @@ public class Skin {
                     return nodes.get(i);
                 }
             }
-        } else if (sceneRoot != null) {
-            return sceneRoot.find(geometryId);
+        } else if (rootJoint != null) {
+            return rootJoint.find(geometryId);
         }
         return null;
     }
@@ -279,7 +279,7 @@ public class Skin {
      */
     public void updateSkinMatrices() {
 
-        // SAFETY CHECK: Ensure skinning is enabled before doing any work.
+        // SAFETY CHECK: Ensure skinning is not disabled because of a previous issue
         if (disabled) {
             return; // If skinning is not enabled, skip the update.
         }
@@ -403,12 +403,15 @@ public class Skin {
         // basic
         clone.rootJoint = this.rootJoint;
         clone.inverseBindMatrices = this.inverseBindMatrices;
+        clone.inverseBindMatrices_transposed = this.inverseBindMatrices_transposed;
+        clone.doInverseBindTranspose = this.doInverseBindTranspose;
         clone.joints = joints;
         clone.jointNames = this.jointNames;
 
         // generated
-        clone.jointMatrices = new float[this.jointMatrices.length][16];
+        clone.jointMatrices = this.jointMatrices;
 
         return clone;
     }
+
 }

@@ -70,7 +70,7 @@ public class Node {
 		this(new Transform());
 	}
 
-	// gltf - new
+	// gltf
 	public Node(int index) {
 		this.id = String.valueOf(index); // The ID is the index.
 		this.localTransform = new Transform();
@@ -142,7 +142,7 @@ public class Node {
 	}
 
 	/**
-	 * Returns the topmost parent node.
+	 * Returns the topmost parent of this node, or this if case this is the root
 	 *
 	 * @return the topmost parent node
 	 */

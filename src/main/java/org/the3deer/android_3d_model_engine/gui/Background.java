@@ -21,7 +21,7 @@ public class Background extends Widget {
         setScale(parent.getScale());
         setLocation(parent.getLocation());
         setVisible(parent.isVisible());
-        setSolid(false);
+        setDecorator(true);
 
         // parent.addListener(this);
 

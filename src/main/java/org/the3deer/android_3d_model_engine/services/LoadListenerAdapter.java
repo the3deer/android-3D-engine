@@ -34,7 +34,7 @@ public class LoadListenerAdapter implements LoadListener {
     }
 
     @Override
-    public void onLoad(Camera camera) {
+    public void onLoad(Scene scene, Camera camera) {
     }
 
     @Override

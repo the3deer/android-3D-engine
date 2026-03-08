@@ -242,6 +242,7 @@ public class GltfLoader {
             return Collections.emptyList();
         }
 
+        // create nodes
         List<Node> nodes = new ArrayList<>(dto.nodes.size());
         for (int i = 0; i < dto.nodes.size(); i++) {
             final GltfNodeDto nodeDto = dto.nodes.get(i);
@@ -250,6 +251,7 @@ public class GltfLoader {
             nodes.add(node);
         }
 
+        // configure nodes
         for (int i = 0; i < dto.nodes.size(); i++) {
             GltfNodeDto nodeDto = dto.nodes.get(i);
             Node node = nodes.get(i);
@@ -386,7 +388,11 @@ public class GltfLoader {
                 model.setDrawMode(GLES20.GL_TRIANGLES);
 
                 if (primitiveDto.materialIndex != null) {
-                    model.setMaterial(materials.get(primitiveDto.materialIndex));
+                    if (materials == null || primitiveDto.materialIndex >= materials.size()) {
+                        Log.e(TAG, "Material index " + primitiveDto.materialIndex + " is out of bounds.");
+                    } else{
+                        model.setMaterial(materials.get(primitiveDto.materialIndex));
+                    }
                 }
 
                 // If no normals were provided, generate them (facet normals for low-poly models)
@@ -742,21 +748,6 @@ public class GltfLoader {
             defaultScene.onLoadComplete();
         }
         return finalScenes;
-    }
-
-    private Camera findFirstCamera(List<Node> nodes) {
-        Stack<Node> stack = new Stack<>();
-        stack.addAll(nodes);
-        while (!stack.isEmpty()) {
-            Node node = stack.pop();
-            if (node.getCamera() != null) {
-                return node.getCamera();
-            }
-            if (node.getChildren() != null) {
-                stack.addAll(node.getChildren());
-            }
-        }
-        return null;
     }
 
     private List<Object3DData> collectMeshes(List<Node> nodes) {

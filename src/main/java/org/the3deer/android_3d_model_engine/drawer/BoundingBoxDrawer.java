@@ -11,6 +11,7 @@ import org.the3deer.android_3d_model_engine.model.Object3DData;
 import org.the3deer.android_3d_model_engine.model.Scene;
 import org.the3deer.android_3d_model_engine.objects.BoundingBox;
 import org.the3deer.android_3d_model_engine.renderer.Drawer;
+import org.the3deer.android_3d_model_engine.scene.SceneManager;
 import org.the3deer.android_3d_model_engine.shader.Shader;
 import org.the3deer.android_3d_model_engine.shader.ShaderFactory;
 
@@ -28,9 +29,8 @@ public class BoundingBoxDrawer implements Drawer {
     @Inject
     private ShaderFactory shaderFactory;
     @Inject
-    private Scene scene;
-    @Inject
-    private Camera camera;
+    private SceneManager sceneManager;
+
     /**
      * Animator
      */
@@ -62,7 +62,16 @@ public class BoundingBoxDrawer implements Drawer {
 
     @Override
     public void onDrawFrame(Config config) {
-        if (!enabled || scene == null || camera == null) {
+
+        // check
+        if (!enabled || sceneManager == null) {
+            // scene not ready
+            return;
+        }
+
+        // check
+        final Scene scene = sceneManager.getCurrentScene();
+        if (scene == null) {
             // scene not ready
             return;
         }
@@ -77,11 +86,17 @@ public class BoundingBoxDrawer implements Drawer {
                     final Object3DData boundingBoxData = getBoundingBox(objData);
                     if (boundingBoxData == null) return;
 
-                    final Shader drawerObject = shaderFactory.getShader(R.raw.shader_animated_vert, R.raw.shader_animated_frag);
+                    if (boundingBoxData instanceof AnimatedModel){
+                        ((AnimatedModel) boundingBoxData).getSkin().updateSkinMatrices();
+                    }
+
+                    final Shader drawerObject = shaderFactory.getShader(R.raw.shader_animated_basic_vert, R.raw.shader_animated_basic_frag);
+                    //final Shader drawerObject = shaderFactory.getShader(R.raw.shader_basic_vert, R.raw.shader_basic_frag);
                     if (drawerObject == null) {
-                        // Log.e(TAG, "No drawer for " + objData.getId());
+                        Log.e(TAG, "No drawer for " + objData.getId());
                         return;
                     }
+
 
                     Object3DData selectedObject = scene.getSelectedObject();
                     /*if (selectedObject instanceof AnimatedModel) {
@@ -89,12 +104,13 @@ public class BoundingBoxDrawer implements Drawer {
                                 , false);
                     }*/
 
-                    final Camera camera = config != null && config.camera != null ? config.camera : this.camera;
+                    final Camera camera = config != null && config.camera != null ? config.camera : scene.getCamera();
                     drawerObject.draw(boundingBoxData, camera.getProjectionMatrix(), camera.getViewMatrix(),
                             null, null, null,
                             boundingBoxData.getDrawMode(), boundingBoxData.getDrawSize());
                 }
             } catch (Exception ex) {
+                this.enabled = false;
                 Log.e(TAG, "There was a problem rendering the object '" + objData.getId() + "':" + ex.getMessage(), ex);
             }
         }
@@ -103,7 +119,6 @@ public class BoundingBoxDrawer implements Drawer {
     private Object3DData getBoundingBox(Object3DData objData) {
         Object3DData boundingBoxData = boundingBoxes.get(objData);
         if (boundingBoxData == null) {
-            Log.v(TAG, "Building bounding box... id: " + objData.getId());
             if (Constants.STRATEGY_BBOX_NEW && objData instanceof AnimatedModel && ((AnimatedModel) objData).getSkin() != null){
                 boundingBoxData = BoundingBox.buildSkinned((AnimatedModel) objData);
             } else {
@@ -112,7 +127,7 @@ public class BoundingBoxDrawer implements Drawer {
             if (boundingBoxData != null) {
                 //boundingBoxData.setModelMatrix(objData.getModelMatrix());
                 //boundingBoxData.setParentBound(true);
-                boundingBoxData.setSolid(false);
+                boundingBoxData.setDecorator(false);
                 //boundingBoxData.setReadOnly(true);
                 //boundingBoxData.setScale(objData.getScale());
                 boundingBoxes.put(objData, boundingBoxData);

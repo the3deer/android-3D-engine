@@ -306,9 +306,9 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
         // colors
         int mColorHandle = -1;
         if (supportsColors) {
-            setFeatureFlag("u_Coloured", obj.getVertexColorsArrayBuffer() != null);
-            if (obj.getVertexColorsArrayBuffer() != null) {
-                mColorHandle = setVBO("a_Color", obj.getVertexColorsArrayBuffer(), COLOR_COORDS_PER_VERTEX, -1);
+            setFeatureFlag("u_Coloured", obj.getColorsBuffer() != null);
+            if (obj.getColorsBuffer() != null) {
+                mColorHandle = setVBO("a_Color", obj.getColorsBuffer(), COLOR_COORDS_PER_VERTEX, -1);
             }
         }
 

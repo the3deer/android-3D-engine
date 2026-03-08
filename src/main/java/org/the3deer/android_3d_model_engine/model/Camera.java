@@ -7,6 +7,7 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 
+import org.the3deer.android_3d_model_engine.model.impl.PerspectiveProjection;
 import org.the3deer.util.android.AndroidUtils;
 import org.the3deer.util.bean.BeanInit;
 import org.the3deer.util.event.EventListener;
@@ -95,10 +96,11 @@ public class Camera {
     // transformation matrix
     private float[] viewMatrix = new float[16];
 
-    // camera mode
+    // default projection (inject only works for managed objects - like the default engine camera)
     @Inject
-    private Projection projection;
+    private Projection projection = new PerspectiveProjection();
 
+    // default listeners (inject only works for managed objects - like the default engine camera)
     @Inject
     private List<EventListener> listeners = new ArrayList<>();
     /**

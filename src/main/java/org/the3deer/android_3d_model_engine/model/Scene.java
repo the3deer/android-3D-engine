@@ -77,4 +77,6 @@ public interface Scene {
     List<Camera> getCameras();
 
     void setDefaultCamera(Camera defaultCamera);
+
+    void setSelectedObject(Object3DData object);
 }

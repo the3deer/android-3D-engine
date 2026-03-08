@@ -258,11 +258,11 @@ public final class Normals {
         normalsObj.setSkin(obj.getSkin());
 
         // skinned normals only for skinned models
-        if (obj.getJointIds() != null && obj.getVertexWeights() != null) {
+        if (obj.getSkin().getJointsBuffer() != null && obj.getSkin().getWeightsBuffer() != null) {
 
             // new buffers are twice the size (3 vertex per face --> 3 lines per face = 6 vertex per face)
-            final FloatBuffer newVertexWeights = IOUtils.createFloatBuffer(obj.getVertexWeights().capacity() * 2);
-            final FloatBuffer newJointIds = IOUtils.createFloatBuffer(obj.getJointIds().capacity() * 2);
+            final FloatBuffer newVertexWeights = IOUtils.createFloatBuffer(obj.getSkin().getWeightsBuffer().capacity() * 2);
+            final FloatBuffer newJointIds = IOUtils.createFloatBuffer(obj.getSkin().getJointsBuffer().capacity() * 2);
 
             // FIXME:
             /*for (int i = 0; i < obj.getJointIds().capacity(); i += 3) {
@@ -279,8 +279,8 @@ public final class Normals {
                 newVertexWeights.put(new float[]{obj.getVertexWeights().get(i), obj.getVertexWeights().get(i + 1), obj.getVertexWeights().get(i + 2)});
             }*/
 
-            normalsObj.setJoints(newJointIds);
-            normalsObj.setWeights(newVertexWeights);
+            normalsObj.getSkin().setJoints(newJointIds);
+            normalsObj.getSkin().setWeights(newVertexWeights);
         }
 
         Log.i("Normals", "New animated normal lines object created");

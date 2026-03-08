@@ -31,10 +31,21 @@ public class CollisionDetection {
      * @return the nearest object intersected by the specified coordinates or null
      */
     public static Object3DData getBoxIntersection(List<Object3DData> objects, int width, int height, float[] modelViewMatrix, float[] modelProjectionMatrix, float windowX, float windowY) {
+
+        // project ray
         float[] nearHit = unProject(width, height, modelViewMatrix, modelProjectionMatrix, windowX, windowY, 0);
         float[] farHit = unProject(width, height, modelViewMatrix, modelProjectionMatrix, windowX, windowY, 1);
+
+        // calculate ray vector
         float[] direction = Math3DUtils.substract(farHit, nearHit);
         Math3DUtils.normalizeVector(direction);
+
+        // debug
+        Log.d("CollisionController", "Testing for collision... (" + objects.size() + " object(s))" +
+                ", width="+width+", height="+height+", x=" + windowX + ", y=" + windowY +
+                ", ray origin=" + Arrays.toString(nearHit) + ", ray end=" + Arrays.toString(farHit));
+
+        // try hit
         return getBoxIntersection(objects, nearHit, farHit, direction);
     }
 
@@ -48,15 +59,39 @@ public class CollisionDetection {
      * @return the object intersected by the specified ray
      */
     private static Object3DData getBoxIntersection(List<Object3DData> objects, float[] nearHit, float[] farHit, float[] direction) {
+
+        // default hit (no intersection)
         float min = Float.MAX_VALUE;
+
+        // hit candidate
         Object3DData ret = null;
+
+        // loop through objects
         for (Object3DData obj : objects) {
+
+            // check
+            if (obj.isDecorator()) {
+                continue;
+            }
+
+            // TODO: makes sense? check this rule later. maybe some UI thing. ugly. use isDecorator()
             if ("Point".equals(obj.getId()) || "Line".equals(obj.getId())) {
                 continue;
             }
 
+            // check (global) transform
+            final float determinant = Math3DUtils.determinant(obj.getModelMatrix());
+            if (determinant == 0){
+                Log.w("CollisionDetection", "Matrix cannot be inverted for object '"+obj.getId()+"': " +
+                        Arrays.toString(obj.getModelMatrix()));
+                continue;
+            }
+
+            // convert world space to local space - no op if already in local space
             float[] invertedModelMatrix = new float[16];
-            Matrix.invertM(invertedModelMatrix, 0, obj.getNodeMatrix(), 0);
+            Matrix.invertM(invertedModelMatrix, 0, obj.getModelMatrix(), 0);
+
+            // convert rays into model's space
             float[] nearAA = new float[4];
             float[] farAA = new float[4];
             Matrix.multiplyMV(nearAA, 0, invertedModelMatrix, 0, nearHit, 0);
@@ -64,6 +99,7 @@ public class CollisionDetection {
             float[] dirAA = Math3DUtils.substract(farAA, nearAA);
             Math3DUtils.normalizeVector(dirAA);
 
+            // get intersection using the axis aligned bounding box
             float[] intersection = getBoxIntersection(nearAA, dirAA, obj.getBoundingBox());
             if (intersection[0] > 0 && intersection[0] <= intersection[1] && intersection[0] < min) {
                 min = intersection[0];
@@ -470,18 +506,18 @@ public class CollisionDetection {
         // v = normal of PCA
         // w = normal of PAB
 
-        float[] u = Math3DUtils.cross(b,c); //       Vector3 u = Cross(b, c);
-        float[] v = Math3DUtils.cross(c,a); //Vector3 v = Cross(c, a);
-        float[] w = Math3DUtils.cross(a,b); //Vector3 w = Cross(a, b);
+        float[] u = Math3DUtils.cross(b, c); //       Vector3 u = Cross(b, c);
+        float[] v = Math3DUtils.cross(c, a); //Vector3 v = Cross(c, a);
+        float[] w = Math3DUtils.cross(a, b); //Vector3 w = Cross(a, b);
 
         // Test to see if the normals are facing
         // the same direction, return false if not
-        if (Math3DUtils.dot(u,v) < 0f){
-        // if (Dot(u, v) < 0f) {
+        if (Math3DUtils.dot(u, v) < 0f) {
+            // if (Dot(u, v) < 0f) {
             return false;
         }
-        if (Math3DUtils.dot(u,w) < 0f){
-        //if (dot(u, w) < 0.0f) {
+        if (Math3DUtils.dot(u, w) < 0f) {
+            //if (dot(u, w) < 0.0f) {
             return false;
         }
 

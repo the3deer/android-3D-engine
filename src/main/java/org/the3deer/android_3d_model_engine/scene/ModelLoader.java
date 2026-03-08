@@ -13,7 +13,7 @@ import android.widget.Toast;
 import org.the3deer.android_3d_model_engine.model.Camera;
 import org.the3deer.android_3d_model_engine.model.Object3DData;
 import org.the3deer.android_3d_model_engine.model.Scene;
-import org.the3deer.android_3d_model_engine.services.LoadListener;
+import org.the3deer.android_3d_model_engine.model.Screen;import org.the3deer.android_3d_model_engine.services.LoadListener;
 import org.the3deer.android_3d_model_engine.services.collada.ColladaLoaderTask;
 import org.the3deer.android_3d_model_engine.services.fbx.FbxLoaderTask;
 import org.the3deer.android_3d_model_engine.services.gltf.GltfLoaderTask;
@@ -53,6 +53,8 @@ public class ModelLoader implements LoadListener {
     private SceneManager sceneManager;
     @Inject
     private Camera defaultCamera;
+    @Inject
+    private Screen screen;
 
     //private Handler handler;
     /**
@@ -234,8 +236,10 @@ public class ModelLoader implements LoadListener {
     }
 
     @Override
-    public void onLoad(Camera camera) {
-        beanFactory.add("model.camera."+camera.getName(), camera);
+    public void onLoad(Scene scene, Camera camera) {
+        //beanFactory.add("model.camera."+camera.getName(), camera);
+
+        camera.getProjection().setScreen(this.screen);
     }
 
     @Override

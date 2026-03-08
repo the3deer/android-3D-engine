@@ -181,10 +181,10 @@ public class SkinLoader {
 			// failover to skeleton if no skinning data is available
 			if (weightsData == null & skin != null) {
 				// FIXME: process all joints?
-				Node node = skin.getSceneRoot().find(geometryId);
+				Node node = skin.getRootJoint().find(geometryId);
 				if (node == null) {
 					Log.v("SkinLoader", "Joint not found for " + geometryId + ". Using root joint");
-					node = skin.getSceneRoot();
+					node = skin.getRootJoint();
 				} else {
 					//Log.v("SkinLoader", "Joint found for " + geometryId + ". Bone " + jointData.getName());
 				}

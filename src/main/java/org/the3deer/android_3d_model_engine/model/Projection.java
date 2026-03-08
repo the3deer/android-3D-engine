@@ -6,4 +6,7 @@ public interface Projection {
 
     float[] getMatrix();
 
+    Screen getScreen();
+
+    void setScreen(Screen screen);
 }

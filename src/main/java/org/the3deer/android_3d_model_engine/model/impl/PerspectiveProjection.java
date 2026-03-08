@@ -24,7 +24,9 @@ public final class PerspectiveProjection implements Projection {
     private float aspectRatio = 1.0f;
     private float znear = Constants.near;
     private float zfar = Constants.far;
-
+    /**
+     * This flag to indicate if the perspective is coming from the 3d model (true = yes)
+     */
     private boolean custom = false;
 
     public PerspectiveProjection(){
@@ -45,10 +47,27 @@ public final class PerspectiveProjection implements Projection {
     }
 
     @Override
-    public void refresh(){
+    public Screen getScreen() {
+        return screen;
+    }
 
-        if (screen == null && !custom) return;
+    @Override
+    public void setScreen(Screen screen) {
 
+        // check
+        if (screen == null) throw new IllegalArgumentException("screen cannot be null");
+
+        // update
+        this.screen = screen;
+    }
+
+    @Override
+    public void refresh() {
+
+    }
+
+    @Override
+    public float[] getMatrix(){
         if (custom) {
             Matrix.perspectiveM(matrix, 0, yfov, aspectRatio, znear, zfar);
         } else {
@@ -56,10 +75,6 @@ public final class PerspectiveProjection implements Projection {
                     -screen.getRatio(), screen.getRatio(),
                     -1f, 1f, Constants.near, Constants.far);
         }
-    }
-
-    @Override
-    public float[] getMatrix(){
         return matrix;
     }
 }

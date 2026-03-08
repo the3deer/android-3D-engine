@@ -302,7 +302,7 @@ public class GUISystem implements EventListener, Drawer {
     private Collision detectCollision(TouchEvent touchEvent, Widget widget, float[] nearHit, float[] direction) {
 
         // discard not applicable objects
-        if (!widget.isVisible() || !widget.isSolid()) return null;
+        if (!widget.isVisible() || widget.isDecorator()) return null;
 
         // get intersection
         final float[] intersection = CollisionDetection.getBoxIntersection(nearHit, direction, widget.getCurrentBoundingBox());

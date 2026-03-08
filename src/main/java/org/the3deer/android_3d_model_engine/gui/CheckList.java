@@ -142,11 +142,11 @@ public class CheckList extends Widget {
         float offsetY = (rows * GLYPH_SIZE) - ((idx + 1) * GLYPH_SIZE);
 
         getVertexBuffer().position(mark);
-        getVertexColorsArrayBuffer().position(mark2);
+        getColorsBuffer().position(mark2);
         if (states.get(idx)) {
-            Glyph.build(getVertexBuffer(), mark, getVertexColorsArrayBuffer(), Glyph.CHECKBOX_ON, Constants.COLOR_WHITE, offsetX, offsetY, 0);
+            Glyph.build(getVertexBuffer(), mark, getColorsBuffer(), Glyph.CHECKBOX_ON, Constants.COLOR_WHITE, offsetX, offsetY, 0);
         } else {
-            Glyph.build(getVertexBuffer(), mark, getVertexColorsArrayBuffer(), Glyph.CHECKBOX_OFF, Constants.COLOR_WHITE, offsetX, offsetY, 0);
+            Glyph.build(getVertexBuffer(), mark, getColorsBuffer(), Glyph.CHECKBOX_OFF, Constants.COLOR_WHITE, offsetX, offsetY, 0);
         }
         setVertexBuffer(getVertexBuffer());
     }
@@ -194,7 +194,7 @@ public class CheckList extends Widget {
         try {
             // allocate buffers
             final FloatBuffer vertexBuffer = getVertexBuffer();
-            final Buffer colorBuffer = getVertexColorsArrayBuffer();
+            final Buffer colorBuffer = getColorsBuffer();
 
             vertexBuffer.position(0);
             colorBuffer.position(0);

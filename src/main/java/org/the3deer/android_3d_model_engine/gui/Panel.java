@@ -19,7 +19,7 @@ public class Panel extends Widget {
     public Panel() {
         super();
         setRender(false);
-        setSolid(false);
+        setDecorator(true);
     }
 
     public void setMargin(float[] margin) {

@@ -69,9 +69,9 @@ public class Label extends Widget {
         float[] data = fontFactory.getSymbol(symbol);
 
         Log.v("Label","About to paint symbol");
-        int idx = Glyph.build(getVertexBuffer(), 0, getVertexColorsArrayBuffer(), 0, 0, data, getColor());
+        int idx = Glyph.build(getVertexBuffer(), 0, getColorsBuffer(), 0, 0, data, getColor());
         IOUtils.fill(getVertexBuffer(), idx, getVertexBuffer().capacity(), 0);
-        IOUtils.fill(getVertexColorsArrayBuffer(), idx/3*4, getVertexColorsArrayBuffer().capacity(), 0);
+        IOUtils.fill(getColorsBuffer(), idx/3*4, getColorsBuffer().capacity(), 0);
 
         this.currentText = symbol;
     }
@@ -82,7 +82,7 @@ public class Label extends Widget {
         final String[] lines = text.split("\\r?\\n");
 
         final FloatBuffer vertexBuffer = getVertexBuffer();
-        final Buffer colorBuffer = getVertexColorsArrayBuffer();
+        final Buffer colorBuffer = getColorsBuffer();
 
         int idx = 0;
         for (int row = 0; row < this.rows && row < lines.length; row++) {

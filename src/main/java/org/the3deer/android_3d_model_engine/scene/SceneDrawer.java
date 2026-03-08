@@ -121,7 +121,7 @@ public class SceneDrawer implements Drawer, EventListener {
         List<Object3DData> objects = scene.getObjects();
         if (objects == null || objects.isEmpty()) return;
 
-        if (Constants.ANIMATIONS_ENABLED) {
+        /*if (Constants.ANIMATIONS_ENABLED) {
 
 
             // 1. ANIMATION PHASE: UPDATE ALL NODE TRANSFORMS
@@ -152,7 +152,7 @@ public class SceneDrawer implements Drawer, EventListener {
                     skin.updateSkinMatrices();
                 }
             }
-        }
+        }*/
 
         // 4. DRAW ALL OBJECTS
         for (int i = 0; i < objects.size(); i++) {

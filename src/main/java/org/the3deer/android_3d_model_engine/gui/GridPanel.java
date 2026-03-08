@@ -33,7 +33,7 @@ public class GridPanel extends Widget {
         this.rowHeights = new float[rows];
         this.colWidths = new float[cols];
         setRender(false);
-        setSolid(false);
+        setDecorator(true);
     }
 
     public void addChild(Widget child, int row, int col) {

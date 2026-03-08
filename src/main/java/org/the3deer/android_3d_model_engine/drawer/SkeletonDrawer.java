@@ -3,6 +3,7 @@ package org.the3deer.android_3d_model_engine.drawer;
 import android.opengl.GLES20;
 import android.util.Log;
 
+import org.the3deer.android_3d_model_engine.R;
 import org.the3deer.android_3d_model_engine.animation.Animator;
 import org.the3deer.android_3d_model_engine.model.AnimatedModel;
 import org.the3deer.android_3d_model_engine.model.Camera;
@@ -15,18 +16,16 @@ import org.the3deer.android_3d_model_engine.scene.SceneManager;
 import org.the3deer.android_3d_model_engine.shader.Shader;
 import org.the3deer.android_3d_model_engine.shader.ShaderFactory;
 import org.the3deer.util.bean.BeanOrder;
-import org.the3deer.util.event.EventListener;
 
 import java.util.Collections;
-import java.util.EventObject;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import javax.inject.Inject;
 
-@BeanOrder(order=100)
-public class SkeletonDrawer implements Drawer, EventListener {
+@BeanOrder(order = 100)
+public class SkeletonDrawer implements Drawer {
 
     private final static String TAG = SkeletonDrawer.class.getSimpleName();
 
@@ -35,7 +34,7 @@ public class SkeletonDrawer implements Drawer, EventListener {
      */
     private final Animator animator = new Animator();
 
-    private boolean enabled = false;
+    private boolean enabled = true;
     @Inject
     private ShaderFactory shaderFactory;
     @Inject
@@ -57,10 +56,10 @@ public class SkeletonDrawer implements Drawer, EventListener {
         this.enabled = enabled;
     }
 
-    public int toggle(){
+    public int toggle() {
         this.enabled = !this.enabled;
         Log.i(TAG, "Toggled skeleton. enabled: " + this.enabled);
-        return this.enabled? 1 : 0;
+        return this.enabled ? 1 : 0;
     }
 
     @Override
@@ -75,11 +74,11 @@ public class SkeletonDrawer implements Drawer, EventListener {
     @Override
     public void onDrawFrame(Config config) {
 
-        // enabled?
+        // check
         if (!enabled) return;
 
-        // assert
-        if (sceneManager == null || camera == null) {
+        // check
+        if (sceneManager == null) {
             return;
         }
 
@@ -91,65 +90,60 @@ public class SkeletonDrawer implements Drawer, EventListener {
         GLES20.glClear(GLES20.GL_DEPTH_BUFFER_BIT);
 
         // draw
-        final Camera camera = config != null && config.camera != null ? config.camera : this.camera;
         List<Object3DData> objects = scene.getObjects();
         for (int i = 0; i < objects.size(); i++) {
-            drawObject(scene, camera, objects, i);
-        }
-    }
-
-    private void drawObject(Scene scene, Camera camera, List<Object3DData> objects, int i) {
-        Object3DData objData = null;
-        try {
-            objData = objects.get(i);
-            if (!objData.isVisible()) {
-                return;
-            }
-
-            // check
-            if (!(objData instanceof AnimatedModel)) return;
-
-            // check
-            if (objData.getDrawMode() != GLES20.GL_TRIANGLES) return;
-
-            // check
-            if (((AnimatedModel) objData).getSkin() == null) return;
-            if (((AnimatedModel) objData).getSkin().getSceneRoot() == null) return;
-
-            // FIXME: maybe this is needed.  we need to draw the hierarchy without
-            if (((AnimatedModel) objData).getSkin().getJointCount() == 0) return;
-
-            // get shader
-            Shader drawerObject = shaderFactory.getShader(scene, objData, false, false, false, true, false, false);
-            if (drawerObject == null) {
-                Log.e(TAG, "No drawer for " + objData.getId());
-                return;
-            }
-
-            // Log.d("ModelRenderer","Drawing wireframe model...");
+            Object3DData objData = null;
             try {
+                objData = objects.get(i);
+                if (!objData.isVisible()) {
+                    continue;
+                }
+
+                // check
+                if (!(objData instanceof AnimatedModel)) continue;
+
+                // check
+                if (objData.getDrawMode() != GLES20.GL_TRIANGLES) continue;
+
+
+                // get shader
+                //Shader drawerObject = shaderFactory.getShader(scene, objData, false, false, false, true, false, false);
+                final Shader drawerObject = shaderFactory.getShader(R.raw.shader_animated_basic_vert, R.raw.shader_animated_basic_frag);
+                if (drawerObject == null) {
+                    Log.e(TAG, "No drawer for " + objData.getId());
+                    continue;
+                }
+
+                // Log.d("ModelRenderer","Drawing wireframe model...");
+
                 // draw skeleton on top of it
                 // GLES20.glDisable(GLES20.GL_DEPTH_TEST);
                 Object3DData skeletonModel = this.skeleton.get(objData);
                 if (skeletonModel == null) {
+
+                    // check
+                    if (((AnimatedModel) objData).getSkin() == null) continue;
+                    if (((AnimatedModel) objData).getSkin().getRootJoint() == null) continue;
+                    if (((AnimatedModel) objData).getSkin().getJoints() == null) continue;
+                    if (((AnimatedModel) objData).getSkin().getJointCount() == 0) continue;
+
+                    // build
                     skeletonModel = Skeleton.build((AnimatedModel) objData);
+
+                    // register
                     this.skeleton.put(objData, skeletonModel);
                 }
                 //GLES20.glEnable(GLES20.GL_DEPTH_TEST);
 
-                drawerObject.draw(skeletonModel, camera.getProjectionMatrix(), camera.getViewMatrix(), Constants.COLOR_BLUE, null, camera.getPos(), skeletonModel.getDrawMode(), skeletonModel.getDrawSize());
+                //animator.update(Collections.singletonList(((AnimatedModel) skeletonModel).getSkin().getRootJoint()), scene.getCurrentAnimation(), false);
 
-            } catch (Error e) {
-                Log.e("WireframeDrawer", e.getMessage(), e);
+                final Camera camera = config != null && config.camera != null ? config.camera : scene.getCamera();
+                drawerObject.draw(skeletonModel, camera.getProjectionMatrix(), camera.getViewMatrix(), Constants.COLOR_BLUE, null, null, skeletonModel.getDrawMode(), skeletonModel.getDrawSize());
+
+            } catch (Exception ex) {
+                this.enabled = false;
+                Log.e(TAG, "There was a problem rendering the skeleton '" + objData.getId() + "':" + ex.getMessage(), ex);
             }
-
-        } catch (Exception ex) {
-            Log.e(TAG, "There was a problem rendering the object '" + objData.getId() + "':" + ex.getMessage(), ex);
         }
-    }
-
-    @Override
-    public boolean onEvent(EventObject event) {
-        return false;
     }
 }

@@ -7,6 +7,7 @@ import org.the3deer.android_3d_model_engine.model.AnimatedModel;
 import org.the3deer.android_3d_model_engine.model.Dimensions;
 import org.the3deer.android_3d_model_engine.model.Object3DData;
 import org.the3deer.android_3d_model_engine.model.Node;
+import org.the3deer.android_3d_model_engine.model.Skin;
 import org.the3deer.util.io.IOUtils;
 
 import java.nio.FloatBuffer;
@@ -29,8 +30,7 @@ public final class BoundingBox {
 
         boundingBox.setId(sourcePrimitive.getId() + "_boundingBox_skinned");
         boundingBox.setParent(sourcePrimitive);
-        boundingBox.setParentBound(true);
-        boundingBox.setSolid(false);
+        boundingBox.setDecorator(true);
 
         Dimensions box = sourcePrimitive.getDimensions();
         FloatBuffer vertices = IOUtils.createFloatBuffer(8 * 3);
@@ -50,27 +50,35 @@ public final class BoundingBox {
         // --- ROBUST SKINNING --- //
         // Bind all 8 vertices of the bounding box to the root joint of the skeleton.
         // This makes the box move as a rigid unit with the model's root, which is the correct behavior.
-        Node rootJoint = sourcePrimitive.getSkin().getRootJoint();
+        Node rootJoint = sourcePrimitive.getParentNode();
         if (rootJoint == null) {
             Log.e("BoundingBox", "Source primitive " + sourcePrimitive.getId() + " has no root joint!");
             return buildStatic(sourcePrimitive); // Fallback to a static box
         }
+        Log.d("BoundingBox", "Root node: " + rootJoint.getId()+", Joint index: "+rootJoint.getJointIndex());
         int rootJointId = Math.max(rootJoint.getJointIndex(), 0);
-        int finalJointId = sourcePrimitive.getPrimaryJointIndex() != -1 ?sourcePrimitive.getPrimaryJointIndex() : rootJointId;
 
         IntBuffer bboxJoints = IOUtils.createIntBuffer(8 * 4);
         FloatBuffer bboxWeights = IOUtils.createFloatBuffer(8 * 4);
 
         for (int i = 0; i < 8; i++) {
             // Bind to root joint with 100% weight
-            bboxJoints.put(finalJointId).put(0).put(0).put(0);
+            bboxJoints.put(rootJointId).put(0).put(0).put(0);
             bboxWeights.put(1.0f).put(0f).put(0f).put(0f);
         }
 
         bboxJoints.flip();
         bboxWeights.flip();
-        boundingBox.setJoints(bboxJoints);
-        boundingBox.setWeights(bboxWeights);
+
+        // create bbox skin
+        final Skin bboxSkin = sourcePrimitive.getSkin().clone();
+        bboxSkin.setName(sourcePrimitive.getSkin().getName() + "_boundingBox");
+        bboxSkin.setJointComponents(4);
+        bboxSkin.setWeightsComponents(4);
+        bboxSkin.setJoints(bboxJoints);
+        bboxSkin.setWeights(bboxWeights);
+        bboxSkin.setRootJoint(rootJoint);
+        boundingBox.setSkin(bboxSkin);
 
         final IntBuffer indexBuffer = IOUtils.createIntBuffer(24);
         //@formatter:off
@@ -122,13 +130,13 @@ public final class BoundingBox {
         indexBuffer.flip();
 
         // prefer topmost node, because some nodes carries a transform + inverse
-        final Node parentNode = obj.getParentNode() != null? obj.getParentNode().getRoot() : null;
+        final Node parentNode = obj.getParentNode() != null? obj.getParentNode() : null;
         Log.v("BoundingBox", "Bounding box Node: " + parentNode);
 
         return new Object3DData(vertices, indexBuffer)
                 .setDrawMode(GLES20.GL_LINES)
                 .setDrawUsingArrays(false)
-                .setSolid(false)
+                .setDecorator(true)
                 .setId(obj.getId() + "_boundingBox_static").setParent(obj).setParentNode(parentNode);
     }
 }

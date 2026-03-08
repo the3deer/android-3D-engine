@@ -59,7 +59,7 @@ public final class Text extends Widget {
         final String[] lines = text.split("\\r?\\n");
 
         final FloatBuffer vertexBuffer = getVertexBuffer();
-        final Buffer colorBuffer = getVertexColorsArrayBuffer();
+        final Buffer colorBuffer = getColorsBuffer();
 
         int idx = 0;
         for (int row=0; row<this.rows && row<lines.length; row++){
@@ -93,7 +93,7 @@ public final class Text extends Widget {
         final String[] lines = text.split("\\r?\\n");
 
         final FloatBuffer vertexBuffer = getVertexBuffer();
-        final Buffer colorBuffer = getVertexColorsArrayBuffer();
+        final Buffer colorBuffer = getColorsBuffer();
 
         int idx = 0;
         for (int row = 0; row < this.rows && row < lines.length; row++) {

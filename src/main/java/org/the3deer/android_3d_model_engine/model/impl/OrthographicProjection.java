@@ -11,8 +11,9 @@ import javax.inject.Inject;
 
 public final class OrthographicProjection implements Projection {
 
+    // default camera - the inject only works for managed beans
     @Inject
-    private Screen screen;
+    private Screen screen = new Screen(640, 480);
 
     // projection matrix
     private final float[] matrix = new float[16];
@@ -34,6 +35,18 @@ public final class OrthographicProjection implements Projection {
         this.znear = znear;
         this.zfar = zfar;
         this.custom = true;
+    }
+
+    @Override
+    public Screen getScreen() {
+        return this.screen;
+    }
+
+    @Override
+    public void setScreen(Screen screen) {
+        if (screen == null) throw new IllegalArgumentException("Screen cannot be null");
+        this.screen = screen;
+        refresh();
     }
 
     @Override

@@ -109,9 +109,9 @@ public class Object3DData {
     private boolean render = true;
 
     /**
-     * can be hit by collision colliders
+     * decorators does not get hit by rays
      */
-    private boolean isSolid = true;
+    private boolean isDecorator = false;
     /**
      * responds to click
      */
@@ -369,13 +369,11 @@ public class Object3DData {
         // material bound to node
         if (parentNode != null && parentNode.getMaterial() != null) return parentNode.getMaterial();
 
-        // material bound to object
-        if (material == null) material = new Material("default", "default");
-
         return material;
     }
 
     public Object3DData setMaterial(Material material) {
+        if (material == null) throw new IllegalArgumentException("Material cannot be null");
         this.material = material;
         return this;
     }
@@ -385,13 +383,13 @@ public class Object3DData {
     }
 
 
-    public Object3DData setSolid(boolean solid) {
-        isSolid = solid;
+    public Object3DData setDecorator(boolean decorator) {
+        isDecorator = decorator;
         return this;
     }
 
-    public boolean isSolid() {
-        return isSolid;
+    public boolean isDecorator() {
+        return isDecorator;
     }
 
 
@@ -409,7 +407,7 @@ public class Object3DData {
 
     public void setMovable(boolean movable) {
         isMovable = movable;
-        isSolid = true;
+        isDecorator = true;
     }
 
     // ---------------------------- dimensions ----------------------------- //
@@ -867,24 +865,26 @@ public class Object3DData {
         if (parentNode == null) {
             return Math3DUtils.IDENTITY_MATRIX;
         }
-        final Node rootNode = parentNode.getRoot();
-        return rootNode.getBindWorldTransform();
+        return parentNode.getBindWorldTransform();
     }
 
     public float[] getModelMatrix() {
 
         // bounding box
-        if (id != null && id.contains("_boundingBox_")) {
-            if (parentNode != null) {
+        /*if (id != null && id.contains("_boundingBox_")) {
+            if (parentNode != null && parentNode.getRoot() != null) {
                 final Node rootNode = parentNode.getRoot();
-                return rootNode.getBindWorldTransform();
-
+                if (rootNode.getAnimatedWorldTransform() != null) {
+                    return rootNode.getAnimatedWorldTransform();
+                } else {
+                    return rootNode.getBindWorldTransform();
+                }
             }
-        }
+        }*/
 
-        if (isParentBound && parent != null) {
+/*        if (isParentBound && parent != null) {
             return parent.getModelMatrix();
-        }
+        }*/
 
         if (parentNode != null) {
             // If this mesh is attached to a node in the scene graph...
@@ -1051,7 +1051,7 @@ public class Object3DData {
         return this;
     }
 
-    public Buffer getVertexColorsArrayBuffer() {
+    public Buffer getColorsBuffer() {
         return vertexColorsArrayBuffer;
     }
 
@@ -1156,8 +1156,8 @@ public class Object3DData {
         //ret.setCurrentDimensions(this.getCurrentDimensions());
         ret.setVertexBuffer(this.getVertexBuffer());
         ret.setIndexBuffer(this.getIndexBuffer());
-        ret.setVertexNormalsArrayBuffer(this.getVertexNormalsArrayBuffer());
-        ret.setVertexColorsArrayBuffer(this.getVertexColorsArrayBuffer());
+        ret.setNormalsBuffer(this.getNormalsBuffer());
+        ret.setColorsBuffer(this.getColorsBuffer());
         ret.setTextureCoordsArrayBuffer(this.getTextureCoordsArrayBuffer());
         if (this.getElements() != null) {
             ret.setElements(new ArrayList<>());
@@ -1232,7 +1232,7 @@ public class Object3DData {
                 "id='" + id + "'" +
                 ", name=" + getName() +
                 ", isVisible=" + isVisible +
-                ", color=" + (getVertexColorsArrayBuffer() != null ? getVertexColorsArrayBuffer().toString() : Arrays.toString(getMaterial().getColor())) +
+                ", color=" + (getColorsBuffer() != null ? getColorsBuffer().toString() : Arrays.toString(getMaterial().getColor())) +
                 ", position=" + Arrays.toString(location) +
                 ", scale=" + Arrays.toString(scale) +
                 ", indexed=" + !isDrawUsingArrays() +

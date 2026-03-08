@@ -26,7 +26,7 @@ public class Constants {
     public static final boolean DEBUG_COMPARE = false;
     // experimental
     public static final boolean STRATEGY_LOAD_NEW = true;
-    public static final boolean STRATEGY_BBOX_NEW = false;
+    public static final boolean STRATEGY_BBOX_NEW = true;
     public static final boolean STRATEGY_QUATERNION_NEW = true;
     // loader
     public static final boolean FIX_SCALE = true;

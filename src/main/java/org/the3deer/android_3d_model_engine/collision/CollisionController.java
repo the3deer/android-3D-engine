@@ -7,7 +7,7 @@ import org.the3deer.android_3d_model_engine.model.Camera;
 import org.the3deer.android_3d_model_engine.model.Object3DData;
 import org.the3deer.android_3d_model_engine.model.Scene;
 import org.the3deer.android_3d_model_engine.model.Screen;
-import org.the3deer.util.event.EventListener;
+import org.the3deer.android_3d_model_engine.scene.SceneManager;import org.the3deer.util.event.EventListener;
 import org.the3deer.util.event.EventManager;
 
 import java.util.Collections;
@@ -29,20 +29,13 @@ public class CollisionController implements EventListener {
     @Inject
     private Camera camera;
     @Inject
-    private Scene scene;
+    private SceneManager sceneManager;
     @Inject
     private EventManager eventManager;
 
-    private boolean enabled;
+    private boolean enabled = true;
 
     public CollisionController() {
-    }
-
-    public List<Object3DData> getObjects() {
-        if (scene != null) {
-            return scene.getObjects();
-        }
-        return Collections.emptyList();
     }
 
     public boolean isEnabled() {
@@ -55,22 +48,36 @@ public class CollisionController implements EventListener {
 
     @Override
     public boolean onEvent(EventObject event) {
+
+        // process event
         //Log.v("CollisionController", "Processing event... " + event.toString());
         if (event instanceof TouchEvent) {
             TouchEvent touchEvent = (TouchEvent) event;
             if (touchEvent.getAction() == TouchEvent.CLICK) {
-                if (getObjects().isEmpty()) return true;
+
+                // check
+                if (!enabled || sceneManager == null) return false;
+
+                // get scene
+                final Scene scene = sceneManager.getCurrentScene();
+                if (scene == null) return false;
+
+                // get objects
+                final List<Object3DData> objects = scene.getObjects();
+                if (objects == null || objects.isEmpty()) return false;
+
                 //Log.v("CollisionController", getObjects().get(0).getCurrentDimensions().toString());
                 final float x = touchEvent.getX();
                 final float y = touchEvent.getY();
-                Log.v("CollisionController", "Testing for collision... (" + getObjects().size() + ") " + x + "," + y);
+
+                // check collision
                 Object3DData objectHit = CollisionDetection.getBoxIntersection(
-                        getObjects(), screen.getWidth(), screen.getHeight(),
+                        objects, screen.getWidth(), screen.getHeight(),
                         camera.getViewMatrix(), camera.getProjectionMatrix(), x, y);
                 if (objectHit != null) {
 
                     // intersection point
-                    Log.v("CollisionController", "Collision. Getting triangle intersection... " + objectHit.getId());
+                    Log.i("CollisionController", "Collision. Getting triangle intersection... " + objectHit.getId());
                     float[] point3D = CollisionDetection.getTriangleIntersection(objectHit, screen.getWidth(), screen.getHeight(),
                             camera.getViewMatrix(), camera.getProjectionMatrix(), x, y);
 

@@ -155,6 +155,8 @@ public class ColladaLoader {
                 finalModels.addAll(geometryTemplates.values()); // Fallback
             }
 
+            Log.i(TAG, "Final model count: " + finalModels.size());
+
             // 5. POPULATE AND RETURN THE SCENE
             scene.setObjects(finalModels);
             //scene.setMaterials(new ArrayList<>(materials.values()));
@@ -177,6 +179,7 @@ public class ColladaLoader {
     private List<org.the3deer.android_3d_model_engine.model.Node> buildNodeHierarchy(List<Node> rootParserNodes, Map<Node, org.the3deer.android_3d_model_engine.model.Node> nodeMap
     , Map<String, Material> materials) {
         if (rootParserNodes == null || rootParserNodes.isEmpty()) {
+            Log.v(TAG, "No nodes has been parsed");
             return new ArrayList<>();
         }
 
@@ -209,7 +212,6 @@ public class ColladaLoader {
         }
 
         // Create a new model Node using its ID from the COLLADA file.
-        // Assuming your model.Node has a constructor that accepts an ID string.
         org.the3deer.android_3d_model_engine.model.Node modelNode = new org.the3deer.android_3d_model_engine.model.Node(parserNode.getId());
         modelNode.setName(parserNode.getName());
         modelNode.setSid(parserNode.getSid());
@@ -515,8 +517,9 @@ public class ColladaLoader {
             if (geometry.getMaterialId() != null && !materials.containsKey(geometry.getMaterialId())) {
                 Log.w(TAG, "Geometry '" + geometry.getId()
                         + "' references unknown material '" + geometry.getMaterialId() + "'");
+            } else {
+                model.setMaterial(materials.get(geometry.getMaterialId()));
             }
-            model.setMaterial(materials.get(geometry.getMaterialId()));
             model.setIndexed(false);
         } else {
             Log.d(TAG, "Geometry '" + geometry.getId()

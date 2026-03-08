@@ -25,15 +25,6 @@ public class AnimatedModel extends Object3DData {
     // skeleton
     private Skin skin;
 
-    private float[] inverseBindMatrices;
-    private Buffer jointIds;
-    private Buffer vertexWeigths;
-
-    @Deprecated
-    private int jointComponents = Constants.MAX_VERTEX_WEIGHTS;
-    @Deprecated
-    private int weightsComponents = Constants.MAX_VERTEX_WEIGHTS;
-
     public AnimatedModel() {
         super();
     }
@@ -131,60 +122,11 @@ public class AnimatedModel extends Object3DData {
         return skin;
     }
 
-    public int getJointCount() {
-        return skin.getJointCount();
-    }
-
-    public int getBoneCount() {
-        if (skin != null) {
-            return skin.getBoneCount();
-        }
-        return 0;
-    }
-
-    public AnimatedModel setJoints(Buffer jointIds) {
-        this.jointIds = jointIds;
-        return this;
-    }
-
-    public Buffer getJointIds() {
-        return jointIds;
-    }
-
-    public AnimatedModel setWeights(Buffer vertexWeigths) {
-        this.vertexWeigths = vertexWeigths;
-        return this;
-    }
-
-    public Buffer getVertexWeights() {
-        return vertexWeigths;
-    }
-
-
-    public int getJointComponents() {
-        return jointComponents;
-    }
-
-    public void setJointComponents(int jointComponents) {
-        this.jointComponents = jointComponents;
-    }
-
-    public int getWeightsComponents() {
-        return weightsComponents;
-    }
-
-    public void setWeightsComponents(int weightsComponents) {
-        this.weightsComponents = weightsComponents;
-    }
-
     @Override
     public AnimatedModel clone() {
         final AnimatedModel ret = new AnimatedModel();
         super.copy(ret);
-        ret.setJoints(this.getJointIds());
-        ret.setWeights(this.getVertexWeights());
-        ret.skin = this.skin;
-        //ret.setBindShapeMatrix(this.getBindShapeMatrix());
+        ret.setSkin(this.getSkin());
         return ret;
     }
 
@@ -207,14 +149,6 @@ public class AnimatedModel extends Object3DData {
             this.vertexArrayBuffer.put(i + 2, shaped[2]);
         }
         updateDimensions();
-    }
-
-    public void setInverseBindMatrices(float[] inverseBindMatrices) {
-        this.inverseBindMatrices = inverseBindMatrices;
-    }
-
-    public float[] getInverseBindMatrices() {
-        return inverseBindMatrices;
     }
 
     @Override

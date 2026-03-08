@@ -215,7 +215,7 @@ public class Widget extends Object3DData implements EventListener {
         this.source = source;
         setVertexBuffer(source.getVertexBuffer());
         setDrawMode(source.getDrawMode());
-        setVertexColorsArrayBuffer(source.getVertexColorsArrayBuffer());
+        setVertexColorsArrayBuffer(source.getColorsBuffer());
     }
 
     /**
@@ -317,7 +317,7 @@ public class Widget extends Object3DData implements EventListener {
         super.setColor(color);
 
         if (!isDrawUsingArrays()) return this;
-        if (getVertexColorsArrayBuffer() == null) return this;
+        if (getColorsBuffer() == null) return this;
 
 
         /*FloatBuffer buffer = getColorsBuffer();
@@ -995,7 +995,7 @@ public class Widget extends Object3DData implements EventListener {
     private Collision detectCollision(TouchEvent touchEvent, float[] nearHit, float[] direction) {
 
         // discard not applicable objects
-        if (!isVisible() || !isSolid()) return null;
+        if (!isVisible() || isDecorator()) return null;
 
         // get intersection
         final float[] intersection = CollisionDetection.getBoxIntersection(nearHit, direction, getCurrentBoundingBox());

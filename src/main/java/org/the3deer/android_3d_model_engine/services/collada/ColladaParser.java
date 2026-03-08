@@ -987,9 +987,9 @@ public class ColladaParser {
         Input weightInput = null;
         int[] vcount = null;
         int[] v = null;
-        int inputCount = 0; // Number of inputs (usually 2: JOINT and WEIGHT)
+        int inputCount = 0;
 
-        // 1. Find all the <input>, <vcount>, and <v> tags
+        // 1. Parse the <vertex_weights> block
         while (parser.next() != XmlPullParser.END_TAG || !parser.getName().equals("vertex_weights")) {
             if (parser.getEventType() != XmlPullParser.START_TAG) continue;
 
@@ -1007,82 +1007,74 @@ public class ColladaParser {
                     }
                     break;
                 case "vcount":
-                    String vcountText = parser.nextText();
-                    String[] vcountStrings = vcountText.trim().split("\\s+");
-                    vcount = new int[vcountStrings.length];
-                    for (int i = 0; i < vcountStrings.length; i++) {
-                        vcount[i] = Integer.parseInt(vcountStrings[i]);
-                    }
+                    vcount = parseIntArray(parser.nextText());
                     break;
                 case "v":
-                    String vText = parser.nextText();
-                    String[] vStrings = vText.trim().split("\\s+");
-                    v = new int[vStrings.length];
-                    for (int i = 0; i < vStrings.length; i++) {
-                        v[i] = Integer.parseInt(vStrings[i]);
-                    }
+                    v = parseIntArray(parser.nextText());
                     break;
             }
         }
 
         if (vcount == null || v == null || jointInput == null || weightInput == null) {
-            Log.e(TAG, "Incomplete <vertex_weights> data. Missing v, vcount, or inputs.");
+            Log.e(TAG, "Incomplete <vertex_weights> data.");
             return null;
         }
 
-        // --- THIS IS THE SECOND FIX ---
-        // The vertex count is simply the length of the vcount array.
         int vertexCount = vcount.length;
-        // --- END OF FIX ---
-
-
-        // 2. Get the raw source data for weights
         Source weightsSource = sources.get(weightInput.sourceId);
-        if (weightsSource == null) {
-            Log.e(TAG, "Could not find weight source: " + weightInput.sourceId);
-            return null;
-        }
-        float[] rawWeights = weightsSource.getFloatData();
+        float[] rawWeights = weightsSource != null ? weightsSource.getFloatData() : new float[0];
 
-        // 3. Process vcount and v to create normalized joint and weight arrays
-        // We will assume a max of 4 influences per vertex, which is standard.
+        // We use a fixed 4 influences per vertex for the output arrays
         int[] finalJointIndices = new int[vertexCount * 4];
         float[] finalWeights = new float[vertexCount * 4];
-        int vIndex = 0;
 
+        for (int i=0; i<finalJointIndices.length; i+=4){
+            finalJointIndices[i] = 1;
+            finalWeights[i] = 1;
+        }
+
+        int vPointer = 0; // Current position in the 'v' array
         for (int i = 0; i < vertexCount; i++) {
             int numInfluences = vcount[i];
             float totalWeight = 0;
 
-            // First pass: read up to 4 influences and accumulate total weight for normalization
-            for (int j = 0; j < numInfluences && j < 4; j++) {
-                int jointIndex = v[vIndex + jointInput.offset];
-                int weightIndex = v[vIndex + weightInput.offset];
-                float weight = rawWeights[weightIndex];
+            // Read influences for this vertex
+            for (int j = 0; j < numInfluences; j++) {
+                int jointIndex = v[vPointer + jointInput.offset];
+                int weightIndex = v[vPointer + weightInput.offset];
+                float weight = (weightIndex < rawWeights.length) ? rawWeights[weightIndex] : 0.0f;
 
-                finalJointIndices[i * 4 + j] = jointIndex;
-                finalWeights[i * 4 + j] = weight;
-                totalWeight += weight;
+                // We only store the first 4 influences
+                if (j < 4) {
+                    finalJointIndices[i * 4 + j] = jointIndex;
+                    finalWeights[i * 4 + j] = weight;
+                    totalWeight += weight;
+                }
 
-                // Move to the next (joint, weight) pair
-                vIndex += inputCount;
+                // Move pointer to the next influence entry in 'v'
+                vPointer += inputCount;
             }
 
-            // Normalize the weights for this vertex if the total is greater than 0
+            // Normalize weights if we have data
             if (totalWeight > 0) {
                 for (int j = 0; j < Math.min(numInfluences, 4); j++) {
                     finalWeights[i * 4 + j] /= totalWeight;
                 }
             }
-
-            // If a vertex had more than 4 influences, we must advance the vIndex past them to stay in sync
-            if (numInfluences > 4) {
-                vIndex += (numInfluences - 4) * inputCount;
-            }
         }
 
         Log.d(TAG, "Assembled vertex weights for " + vertexCount + " vertices.");
         return new VertexWeights(finalJointIndices, finalWeights);
+    }
+
+    private int[] parseIntArray(String text) {
+        if (text == null || text.trim().isEmpty()) return new int[0];
+        String[] parts = text.trim().split("\\s+");
+        int[] result = new int[parts.length];
+        for (int i = 0; i < parts.length; i++) {
+            result[i] = Integer.parseInt(parts[i]);
+        }
+        return result;
     }
 
 

@@ -846,15 +846,12 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
             setRootNodes(rootNodes);
         }
 
-        // prepare world matrix
-        Matrix.setIdentityM(this.worldMatrix, 0);
-
         // 1. UPDATE THE STATIC SCENE GRAPH
         // This sets the base pose for everything, including skeletons.
         if (getRootNodes() != null && !getRootNodes().isEmpty()) {
             for (int i = 0; i < getRootNodes().size(); i++) {
                 // This method should recursively update all children
-                getRootNodes().get(i).updateBindWorldTransform(this.worldMatrix);
+                getRootNodes().get(i).updateBindWorldTransform(Math3DUtils.IDENTITY_MATRIX);
             }
         }
 
@@ -866,15 +863,6 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
         // rescale objects so they all fit in the viewport
         if (Constants.FIX_SCALE) {
             rescale(list, Constants.DEFAULT_MODEL_SIZE, new float[3]);
-        }
-
-        // 1. UPDATE THE STATIC SCENE GRAPH
-        // This sets the base pose for everything, including skeletons.
-        if (getRootNodes() != null && !getRootNodes().isEmpty()) {
-            for (int i = 0; i < getRootNodes().size(); i++) {
-                // This method should recursively update all children
-                getRootNodes().get(i).updateBindWorldTransform(this.worldMatrix);
-            }
         }
     }
 
@@ -899,11 +887,12 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
         return selectedObject;
     }
 
-    private void setSelectedObject(Object3DData selectedObject) {
+    @Override
+    public void setSelectedObject(Object3DData selectedObject) {
         this.selectedObject = selectedObject;
-        if (eventManager != null) {
+        /*if (eventManager != null) {
             eventManager.propagate(new SelectedObjectEvent(this, selectedObject));
-        }
+        }*/
     }
 
 /*    public void loadTexture(Object3DData obj, Uri uri) throws IOException {
