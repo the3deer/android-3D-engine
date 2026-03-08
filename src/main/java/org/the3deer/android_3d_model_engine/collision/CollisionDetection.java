@@ -89,7 +89,11 @@ public class CollisionDetection {
 
             // convert world space to local space - no op if already in local space
             float[] invertedModelMatrix = new float[16];
-            Matrix.invertM(invertedModelMatrix, 0, obj.getModelMatrix(), 0);
+            if (obj.getParentNode() != null && obj.getParentNode().getAnimatedWorldTransform() != null){
+                Matrix.invertM(invertedModelMatrix, 0, obj.getParentNode().getAnimatedWorldTransform(), 0);
+            } else {
+                Matrix.invertM(invertedModelMatrix, 0, obj.getModelMatrix(), 0);
+            }
 
             // convert rays into model's space
             float[] nearAA = new float[4];
