@@ -1,4 +1,4 @@
-package org.the3deer.android_3d_model_engine.drawer;
+package org.the3deer.android_3d_model_engine.decorator;
 
 import android.util.Log;
 
