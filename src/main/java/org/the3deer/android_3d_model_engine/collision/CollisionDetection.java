@@ -80,11 +80,20 @@ public class CollisionDetection {
             }
 
             // check (global) transform
-            final float determinant = Math3DUtils.determinant(obj.getModelMatrix());
-            if (determinant == 0){
-                Log.w("CollisionDetection", "Matrix cannot be inverted for object '"+obj.getId()+"': " +
-                        Arrays.toString(obj.getModelMatrix()));
-                continue;
+            if (obj.getParentNode() != null && obj.getParentNode().getAnimatedWorldTransform() != null){
+                final float determinant = Math3DUtils.determinant(obj.getParentNode().getAnimatedWorldTransform());
+                if (determinant == 0){
+                    Log.w("CollisionDetection", "Matrix cannot be inverted for object '"+obj.getId()+"': " +
+                            Arrays.toString(obj.getParentNode().getAnimatedWorldTransform()));
+                    continue;
+                }
+            } else {
+                final float determinant = Math3DUtils.determinant(obj.getModelMatrix());
+                if (determinant == 0){
+                    Log.w("CollisionDetection", "Matrix cannot be inverted for object '"+obj.getId()+"': " +
+                            Arrays.toString(obj.getModelMatrix()));
+                    continue;
+                }
             }
 
             // convert world space to local space - no op if already in local space
@@ -275,12 +284,16 @@ public class CollisionDetection {
         }
 
         // invert ray
-        float[] inverted = new float[16];
-        Matrix.invertM(inverted, 0, hit.getModelMatrix(), 0);
+        float[] invertedModelMatrix = new float[16];
+        if (hit.getParentNode() != null && hit.getParentNode().getAnimatedWorldTransform() != null){
+            Matrix.invertM(invertedModelMatrix, 0, hit.getParentNode().getAnimatedWorldTransform(), 0);
+        } else {
+            Matrix.invertM(invertedModelMatrix, 0, hit.getModelMatrix(), 0);
+        }
         float[] nearAA = new float[4];
         float[] farAA = new float[4];
-        Matrix.multiplyMV(nearAA, 0, inverted, 0, nearHit, 0);
-        Matrix.multiplyMV(farAA, 0, inverted, 0, farHit, 0);
+        Matrix.multiplyMV(nearAA, 0, invertedModelMatrix, 0, nearHit, 0);
+        Matrix.multiplyMV(farAA, 0, invertedModelMatrix, 0, farHit, 0);
         float[] dirAA = Math3DUtils.substract(farAA, nearAA);
         Math3DUtils.normalizeVector(dirAA);
 
@@ -288,7 +301,15 @@ public class CollisionDetection {
         if (intersection != -1) {
             float[] intersectionPoint = Math3DUtils.add(nearAA, Math3DUtils.multiply(dirAA, intersection));
             float[] realIntersection = new float[4];
-            Matrix.multiplyMV(realIntersection, 0, hit.getModelMatrix(), 0, Math3DUtils.to4d(intersectionPoint), 0);
+            if (hit.getParentNode() != null && hit.getParentNode().getAnimatedWorldTransform() != null){
+                Matrix.multiplyMV(realIntersection, 0, hit.getParentNode().getAnimatedWorldTransform(), 0, Math3DUtils.to4d(intersectionPoint), 0);
+            } else {
+                Matrix.multiplyMV(realIntersection, 0, hit.getModelMatrix(), 0, Math3DUtils.to4d(intersectionPoint), 0);
+            }
+            realIntersection[0] /= realIntersection[3];
+            realIntersection[1] /= realIntersection[3];
+            realIntersection[2] /= realIntersection[3];
+            realIntersection[3] = 1;
             Log.d("CollisionDetection", "Collision point: " + Arrays.toString(realIntersection));
             return realIntersection;
         } else {

@@ -6,9 +6,11 @@ import org.the3deer.android_3d_model_engine.animation.Animation;
 import org.the3deer.android_3d_model_engine.animation.Animator;
 
 import java.util.ArrayList;
+import java.util.EventListener;
+import java.util.EventObject;
 import java.util.List;
 
-public interface Scene {
+public interface Scene extends EventListener {
 
     default boolean isEnabled() {
         return false;
@@ -79,4 +81,6 @@ public interface Scene {
     void setDefaultCamera(Camera defaultCamera);
 
     void setSelectedObject(Object3DData object);
+
+    boolean onEvent(EventObject eventObject);
 }

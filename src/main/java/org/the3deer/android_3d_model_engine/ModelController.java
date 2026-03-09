@@ -149,19 +149,9 @@ public class ModelController implements EventManager, GLTouchHandler {
             final Scene scene = sceneManager.getCurrentScene();
             if (scene == null) return false;
 
-            // get selected object
-            final Object3DData object = ((CollisionEvent) event).getObject();
+            // forward event to current scene
+            scene.onEvent(event);
 
-            if (scene.getSelectedObject() == null || scene.getSelectedObject() != object) {
-
-                // select new object
-                scene.setSelectedObject(object);
-
-            } else if (scene.getSelectedObject() == object){
-
-                // unselect object
-                scene.setSelectedObject(null);
-            }
         } else {
             AndroidUtils.fireEvent(listeners, event);
         }

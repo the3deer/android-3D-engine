@@ -170,7 +170,7 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
     /**
      * Toggle collision detection
      */
-    private boolean isCollision = false;
+    private boolean isCollision = true;
     /**
      * Toggle 3d
      */
@@ -962,11 +962,12 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
                 return true;
             }
         } else if (event instanceof CollisionEvent) {
+            Log.v(TAG, "Processing collision... " + event);
             this.userHasInteracted = true;
             Object3DData objectToSelect = ((CollisionEvent) event).getObject();
             float[] point = ((CollisionEvent) event).getPoint();
             if (isCollision() && point != null) {
-                Log.v(TAG, "Adding collision point " + Arrays.toString(point));
+                Log.d(TAG, "Adding collision point " + Arrays.toString(point));
                 Object3DData point3D = Point.build(point).setColor(new float[]{1.0f, 0f, 0f, 1f});
                 addObject(point3D);
             }
