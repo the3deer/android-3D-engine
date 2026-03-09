@@ -10,6 +10,7 @@ import org.the3deer.util.math.Math3DUtils;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Class that encapsulates all the logic for the collision detection algorithm.
@@ -28,9 +29,10 @@ public class CollisionDetection {
      * @param modelProjectionMatrix model projection matrix
      * @param windowX               the window x coordinate
      * @param windowY               the window y coordinate
+     * @param worldMatrix           the scene's world matrix
      * @return the nearest object intersected by the specified coordinates or null
      */
-    public static Object3DData getBoxIntersection(List<Object3DData> objects, int width, int height, float[] modelViewMatrix, float[] modelProjectionMatrix, float windowX, float windowY) {
+    public static Object3DData getBoxIntersection(List<Object3DData> objects, int width, int height, float[] modelViewMatrix, float[] modelProjectionMatrix, float windowX, float windowY, float[] worldMatrix) {
 
         // project ray
         float[] nearHit = unProject(width, height, modelViewMatrix, modelProjectionMatrix, windowX, windowY, 0);
@@ -38,7 +40,7 @@ public class CollisionDetection {
 
         // calculate ray vector
         float[] direction = Math3DUtils.substract(farHit, nearHit);
-        Math3DUtils.normalizeVector(direction);
+        Math3DUtils.normalizeVectorHighPrecision(direction);
 
         // debug
         Log.d("CollisionController", "Testing for collision... (" + objects.size() + " object(s))" +
@@ -46,7 +48,7 @@ public class CollisionDetection {
                 ", ray origin=" + Arrays.toString(nearHit) + ", ray end=" + Arrays.toString(farHit));
 
         // try hit
-        return getBoxIntersection(objects, nearHit, farHit, direction);
+        return getBoxIntersection(objects, nearHit, farHit, direction, worldMatrix);
     }
 
     /**
@@ -56,9 +58,10 @@ public class CollisionDetection {
      * @param nearHit   the ray start point
      * @param farHit    the ray far hit
      * @param direction the ray direction
+     * @param worldMatrix the scene's world matrix
      * @return the object intersected by the specified ray
      */
-    private static Object3DData getBoxIntersection(List<Object3DData> objects, float[] nearHit, float[] farHit, float[] direction) {
+    private static Object3DData getBoxIntersection(List<Object3DData> objects, float[] nearHit, float[] farHit, float[] direction, float[] worldMatrix) {
 
         // default hit (no intersection)
         float min = Float.MAX_VALUE;
@@ -79,38 +82,43 @@ public class CollisionDetection {
                 continue;
             }
 
-            // check (global) transform
-            if (obj.getParentNode() != null && obj.getParentNode().getAnimatedWorldTransform() != null){
-                final float determinant = Math3DUtils.determinant(obj.getParentNode().getAnimatedWorldTransform());
-                if (determinant == 0){
-                    Log.w("CollisionDetection", "Matrix cannot be inverted for object '"+obj.getId()+"': " +
-                            Arrays.toString(obj.getParentNode().getAnimatedWorldTransform()));
-                    continue;
-                }
+            // get model matrix
+            final float[] modelMatrix = obj.getModelMatrix();
+
+            // Check if modelMatrix is identity or nearly identity
+            // If it is, we need to apply the world matrix scaling
+            // If it already has transformations, we use it as-is (it already includes world transform)
+            boolean isIdentity = Math3DUtils.isIdentity(modelMatrix);
+
+            float[] objectWorldMatrix;
+            if (isIdentity) {
+                // modelMatrix is identity, so apply world matrix for scaling/transform
+                objectWorldMatrix = worldMatrix;
             } else {
-                final float determinant = Math3DUtils.determinant(obj.getModelMatrix());
-                if (determinant == 0){
-                    Log.w("CollisionDetection", "Matrix cannot be inverted for object '"+obj.getId()+"': " +
-                            Arrays.toString(obj.getModelMatrix()));
-                    continue;
-                }
+                // modelMatrix already contains transforms, use it directly
+                objectWorldMatrix = modelMatrix;
+            }
+            // ...existing code...
+
+            // check (global) transform
+            final float determinant = Math3DUtils.determinant(objectWorldMatrix);
+            if (determinant == 0){
+                Log.w("CollisionDetection", "Matrix cannot be inverted for object '"+obj.getId()+"': " +
+                        Arrays.toString(objectWorldMatrix));
+                continue;
             }
 
             // convert world space to local space - no op if already in local space
             float[] invertedModelMatrix = new float[16];
-            if (obj.getParentNode() != null && obj.getParentNode().getAnimatedWorldTransform() != null){
-                Matrix.invertM(invertedModelMatrix, 0, obj.getParentNode().getAnimatedWorldTransform(), 0);
-            } else {
-                Matrix.invertM(invertedModelMatrix, 0, obj.getModelMatrix(), 0);
-            }
+            Matrix.invertM(invertedModelMatrix, 0, objectWorldMatrix, 0);
 
-            // convert rays into model's space
+            // convert rays into model's local space
             float[] nearAA = new float[4];
             float[] farAA = new float[4];
             Matrix.multiplyMV(nearAA, 0, invertedModelMatrix, 0, nearHit, 0);
             Matrix.multiplyMV(farAA, 0, invertedModelMatrix, 0, farHit, 0);
             float[] dirAA = Math3DUtils.substract(farAA, nearAA);
-            Math3DUtils.normalizeVector(dirAA);
+            Math3DUtils.normalizeVectorHighPrecision(dirAA);
 
             // get intersection using the axis aligned bounding box
             float[] intersection = getBoxIntersection(nearAA, dirAA, obj.getBoundingBox());
@@ -124,36 +132,6 @@ public class CollisionDetection {
         }
         return ret;
     }
-
-    /*
-     * Get the entry and exit point of the ray intersecting the nearest object or null if no object is intersected
-     *
-     * @param objects list of objects to test
-     * @param p1      ray start point
-     * @param p2      ray end point
-     * @return the entry and exit point of the ray intersecting the nearest object
-     */
-    /*public static float[] getBoxIntersectionPoint(List<Object3DData> objects, float[] p1, float[] p2) {
-        float[] direction = Math3DUtils.substract(p2, p1);
-        Math3DUtils.normalize(direction);
-        float min = Float.MAX_VALUE;
-        float[] intersection2 = null;
-        Object3DData ret = null;
-        for (Object3DData obj : objects) {
-            BoundingBoxBuilder box = obj.getBoundingBox();
-            float[] intersection = getBoxIntersection(p1, direction, box);
-            if (intersection[0] > 0 && intersection[0] <= intersection[1] && intersection[0] < min) {
-                min = intersection[0];
-                ret = obj;
-                intersection2 = intersection;
-            }
-        }
-        if (ret != null) {
-            Log.i("CollisionDetection", "Collision detected '" + ret.getId() + "' distance: " + min);
-            return new float[]{p1[0] + direction[0] * min, p1[1] + direction[1] * min, p1[2] + direction[2] * min};
-        }
-        return null;
-    }*/
 
     /**
      * Return true if the specified ray intersects the bounding box
@@ -212,70 +190,42 @@ public class CollisionDetection {
         return xyzw;
     }
 
-    /*public static float[] getTriangleIntersection(List<Object3DData> objects, ModelRenderer mRenderer, float
-            windowX, float windowY) {
-        float[] nearHit = unProject(mRenderer, windowX, windowY, 0);
-        float[] farHit = unProject(mRenderer, windowX, windowY, 1);
-        float[] direction = Math3DUtils.substract(farHit, nearHit);
-        Math3DUtils.normalize(direction);
-        Object3DData intersected = getBoxIntersection(objects, nearHit, direction);
-        if (intersected != null) {
-            Log.d("CollisionDetection", "intersected:" + intersected.getId() + ", rayOrigin:" + Arrays.toString(nearHit) + ", rayVector:" + Arrays.toString(direction));
-            FloatBuffer buffer = intersected.getVertexArrayBuffer().asReadOnlyBuffer();
-            float[] modelMatrix = intersected.getModelMatrix();
-            buffer.position(0);
-            float[] selectedv1 = null;
-            float[] selectedv2 = null;
-            float[] selectedv3 = null;
-            float min = Float.MAX_VALUE;
-            for (int i = 0; i < buffer.capacity(); i += 9) {
-                float[] v1 = new float[]{buffer.get(), buffer.get(), buffer.get(), 1};
-                float[] v2 = new float[]{buffer.get(), buffer.get(), buffer.get(), 1};
-                float[] v3 = new float[]{buffer.get(), buffer.get(), buffer.get(), 1};
-                Matrix.multiplyMV(v1, 0, modelMatrix, 0, v1, 0);
-                Matrix.multiplyMV(v2, 0, modelMatrix, 0, v2, 0);
-                Matrix.multiplyMV(v3, 0, modelMatrix, 0, v3, 0);
-                float t = getTriangleIntersection(nearHit, direction, v1, v2, v3);
-                if (t != -1 && t < min) {
-                    min = t;
-                    selectedv1 = v1;
-                    selectedv2 = v2;
-                    selectedv3 = v3;
-                }
-            }
-            if (selectedv1 != null) {
-                float[] outIntersectionPoint = Math3DUtils.add(nearHit, Math3DUtils.multiply(direction, min));
-                return outIntersectionPoint;
-            }
-        }
-        return null;
-    }*/
-
-    public static float[] getTriangleIntersection(List<Object3DData> objects, int width, int height, float[] modelViewMatrix, float[] modelProjectionMatrix, float windowX, float windowY) {
+    public static float[] getTriangleIntersection(List<Object3DData> objects, int width, int height, float[] modelViewMatrix, float[] modelProjectionMatrix, float windowX, float windowY, float[] worldMatrix) {
         float[] nearHit = unProject(width, height, modelViewMatrix, modelProjectionMatrix, windowX, windowY, 0);
         float[] farHit = unProject(width, height, modelViewMatrix, modelProjectionMatrix, windowX, windowY, 1);
         float[] direction = Math3DUtils.substract(farHit, nearHit);
         Math3DUtils.normalizeVector(direction);
-        Object3DData intersected = getBoxIntersection(objects, nearHit, farHit, direction);
+        Object3DData intersected = getBoxIntersection(objects, nearHit, farHit, direction, worldMatrix);
         if (intersected != null) {
-            return getTriangleIntersection(intersected, nearHit, farHit, direction);
+            return getTriangleIntersection(intersected, nearHit, farHit, direction, worldMatrix);
         }
         return null;
     }
 
-    public static float[] getTriangleIntersection(Object3DData hit, int width, int height, float[] viewMatrix, float[] projectionMatrix, float windowX, float windowY) {
+    public static float[] getTriangleIntersection(Object3DData hit, int width, int height, float[] viewMatrix, float[] projectionMatrix, float windowX, float windowY, float[] worldMatrix) {
         float[] nearHit = unProject(width, height, viewMatrix, projectionMatrix, windowX, windowY, 0);
         float[] farHit = unProject(width, height, viewMatrix, projectionMatrix, windowX, windowY, 1);
         float[] direction = Math3DUtils.substract(farHit, nearHit);
-        Math3DUtils.normalizeVector(direction);
-        return getTriangleIntersection(hit, nearHit, farHit, direction);
+        Math3DUtils.normalizeVectorHighPrecision(direction);
+        return getTriangleIntersection(hit, nearHit, farHit, direction, worldMatrix);
     }
 
-    private static float[] getTriangleIntersection(final Object3DData hit, float[] nearHit, float[] farHit, float[] direction) {
+    /**
+     * Get the intersection points of the near and far plane for the specified ray and triangle
+     *
+     * @param hit the object to test agains with
+     * @param nearHit the nearest intersection
+     * @param farHit the farthest intersection
+     * @param direction the direction of the ray
+     * @param worldMatrix the scene's world matrix
+     *
+     * @return the triangle that was intersected
+     */
+    private static float[] getTriangleIntersection(final Object3DData hit, float[] nearHit, float[] farHit, float[] direction, float[] worldMatrix) {
         Log.v("CollisionDetection", "Getting triangle intersection: " + hit.getId());
 
         Octree octree;
-        synchronized (hit) {
+        synchronized (Objects.requireNonNull(hit)) {
             octree = hit.getOctree();
             if (octree == null) {
                 octree = Octree.build(hit);
@@ -283,29 +233,40 @@ public class CollisionDetection {
             }
         }
 
-        // invert ray
-        float[] invertedModelMatrix = new float[16];
-        if (hit.getParentNode() != null && hit.getParentNode().getAnimatedWorldTransform() != null){
-            Matrix.invertM(invertedModelMatrix, 0, hit.getParentNode().getAnimatedWorldTransform(), 0);
+        // get model matrix
+        final float[] modelMatrix = hit.getModelMatrix();
+
+        // Check if modelMatrix is identity or nearly identity
+        // If it is, we need to apply the world matrix scaling
+        // If it already has transformations, we use it as-is (it already includes world transform)
+        boolean isIdentity = Math3DUtils.isIdentity(modelMatrix);
+
+        float[] objectWorldMatrix;
+        if (isIdentity) {
+            // modelMatrix is identity, so apply world matrix for scaling/transform
+            objectWorldMatrix = worldMatrix;
         } else {
-            Matrix.invertM(invertedModelMatrix, 0, hit.getModelMatrix(), 0);
+            // modelMatrix already contains transforms, use it directly
+            objectWorldMatrix = modelMatrix;
         }
+
+        // invert current model transform
+        float[] invertedModelMatrix = new float[16];
+        Matrix.invertM(invertedModelMatrix, 0, objectWorldMatrix, 0);
+
+        // get near and far hits
         float[] nearAA = new float[4];
         float[] farAA = new float[4];
         Matrix.multiplyMV(nearAA, 0, invertedModelMatrix, 0, nearHit, 0);
         Matrix.multiplyMV(farAA, 0, invertedModelMatrix, 0, farHit, 0);
         float[] dirAA = Math3DUtils.substract(farAA, nearAA);
-        Math3DUtils.normalizeVector(dirAA);
+        Math3DUtils.normalizeVectorHighPrecision(dirAA);
 
         float intersection = getTriangleIntersectionForOctree(octree, nearAA, dirAA);
         if (intersection != -1) {
             float[] intersectionPoint = Math3DUtils.add(nearAA, Math3DUtils.multiply(dirAA, intersection));
             float[] realIntersection = new float[4];
-            if (hit.getParentNode() != null && hit.getParentNode().getAnimatedWorldTransform() != null){
-                Matrix.multiplyMV(realIntersection, 0, hit.getParentNode().getAnimatedWorldTransform(), 0, Math3DUtils.to4d(intersectionPoint), 0);
-            } else {
-                Matrix.multiplyMV(realIntersection, 0, hit.getModelMatrix(), 0, Math3DUtils.to4d(intersectionPoint), 0);
-            }
+            Matrix.multiplyMV(realIntersection, 0, objectWorldMatrix, 0, Math3DUtils.to4d(intersectionPoint), 0);
             realIntersection[0] /= realIntersection[3];
             realIntersection[1] /= realIntersection[3];
             realIntersection[2] /= realIntersection[3];
@@ -550,4 +511,3 @@ public class CollisionDetection {
         return true;
     }
 }
-

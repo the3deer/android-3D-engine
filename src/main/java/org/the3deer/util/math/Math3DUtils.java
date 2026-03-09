@@ -933,5 +933,30 @@ public class Math3DUtils {
         return v1 == v2 || v1[0]*factor/factor == v2[0]*factor/factor  && v1[1]*factor/factor  == v2[1]*factor/factor
                 && v1[2]*factor/factor  == v2[2]*factor/factor ;
     }
+
+    /**
+     * Normalize a vector using double precision for improved accuracy.
+     * @param a the vector to normalize
+     */
+    public static void normalizeVectorHighPrecision(float[] a) {
+        double length = Math.sqrt(a[0]*a[0] + a[1]*a[1] + a[2]*a[2]);
+        if (length == 0) return;
+        a[0] = (float)(a[0] / length);
+        a[1] = (float)(a[1] / length);
+        a[2] = (float)(a[2] / length);
+    }
+
+    /**
+     * Normalize a 4D vector using double precision for improved accuracy.
+     * @param a the vector to normalize
+     */
+    public static void normalizeVector4HighPrecision(float[] a) {
+        double length = Math.sqrt(a[0]*a[0] + a[1]*a[1] + a[2]*a[2] + a[3]*a[3]);
+        if (length == 0) return;
+        a[0] = (float)(a[0] / length);
+        a[1] = (float)(a[1] / length);
+        a[2] = (float)(a[2] / length);
+        a[3] = (float)(a[3] / length);
+    }
 }
 

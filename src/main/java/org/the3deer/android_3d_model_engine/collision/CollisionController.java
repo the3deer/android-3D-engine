@@ -7,7 +7,8 @@ import org.the3deer.android_3d_model_engine.model.Camera;
 import org.the3deer.android_3d_model_engine.model.Object3DData;
 import org.the3deer.android_3d_model_engine.model.Scene;
 import org.the3deer.android_3d_model_engine.model.Screen;
-import org.the3deer.android_3d_model_engine.scene.SceneManager;import org.the3deer.util.event.EventListener;
+import org.the3deer.android_3d_model_engine.scene.SceneManager;
+import org.the3deer.util.event.EventListener;
 import org.the3deer.util.event.EventManager;
 
 import java.util.Collections;
@@ -73,13 +74,13 @@ public class CollisionController implements EventListener {
                 // check collision
                 Object3DData objectHit = CollisionDetection.getBoxIntersection(
                         objects, screen.getWidth(), screen.getHeight(),
-                        camera.getViewMatrix(), camera.getProjectionMatrix(), x, y);
+                        camera.getViewMatrix(), camera.getProjectionMatrix(), x, y, scene.getWorldMatrix());
                 if (objectHit != null) {
 
                     // intersection point
                     Log.i("CollisionController", "Collision. Getting triangle intersection... " + objectHit.getId());
                     float[] point3D = CollisionDetection.getTriangleIntersection(objectHit, screen.getWidth(), screen.getHeight(),
-                            camera.getViewMatrix(), camera.getProjectionMatrix(), x, y);
+                            camera.getViewMatrix(), camera.getProjectionMatrix(), x, y, scene.getWorldMatrix());
 
                     final CollisionEvent collisionEvent = new CollisionEvent(this, objectHit, x, y, point3D);
                     if (eventManager != null) {
