@@ -968,7 +968,32 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
             float[] point = ((CollisionEvent) event).getPoint();
             if (isCollision() && point != null) {
                 Log.d(TAG, "Adding collision point " + Arrays.toString(point));
+
+/*                // Transform collision point from local space to world space
+                // For hierarchical models (GLTF with node structure), use the object's model matrix (which combines node hierarchy transforms)
+                // For simple models (OBJ), use the scene's world matrix
+                float[] transformMatrix = objectToSelect.getModelMatrix();
+                if (transformMatrix == null || Math3DUtils.isIdentity(transformMatrix)) {
+                    // Fallback to world matrix for non-animated objects or OBJ models
+                    transformMatrix = this.worldMatrix;
+                    Log.d(TAG, "Using scene world matrix for collision point");
+                } else {
+                    Log.d(TAG, "Using object's model matrix for collision point");
+                }
+
+                float[] worldPoint = new float[4];
+                Matrix.multiplyMV(worldPoint, 0, transformMatrix, 0, point, 0);
+                Log.d(TAG, "Collision point (world space): " + Arrays.toString(worldPoint));
+
+                // Apply a small depth offset toward the camera (negative Z) to prevent z-fighting
+                // This ensures the collision point is always visible on top of the model surface
+                float depthBias = 0.1f;  // Small offset toward camera
+                worldPoint[2] -= depthBias;*/
+
+
                 Object3DData point3D = Point.build(point).setColor(new float[]{1.0f, 0f, 0f, 1f});
+                // Don't set parent node - add directly to scene at world coordinates
+                //point3D.setParentNode(objectToSelect.getParentNode());
                 addObject(point3D);
             }
             if (selectedObject == objectToSelect) {

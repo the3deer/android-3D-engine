@@ -12,7 +12,6 @@ import org.the3deer.util.math.Math3DUtils;
 
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
-import java.nio.ShortBuffer;
 import java.util.Arrays;
 
 public final class Skeleton {
@@ -57,7 +56,7 @@ public final class Skeleton {
                                    FloatBuffer colorBuffer) {
 
         float[] point = new float[]{0,0,0,1};
-        Matrix.multiplyMV(point, 0, node.getBindWorldTransform(), 0, point, 0);
+        Matrix.multiplyMV(point, 0, node.getWorldTransform(), 0, point, 0);
 
 
         Log.v("Skeleton", "Building bones....  joint: "+node.getId()+", point: "+ Arrays.toString(point));

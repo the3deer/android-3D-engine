@@ -532,7 +532,7 @@ public class Camera {
             // Get the node's current world-space transformation matrix
             float[] nodeTransform = this.node.getAnimatedWorldTransform();
             if (nodeTransform == null){
-                nodeTransform = this.node.getBindWorldTransform();
+                nodeTransform = this.node.getWorldTransform();
             }
 
             // A camera's view matrix is the INVERSE of its world transform.

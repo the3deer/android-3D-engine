@@ -865,7 +865,7 @@ public class Object3DData {
         if (parentNode == null) {
             return Math3DUtils.IDENTITY_MATRIX;
         }
-        return parentNode.getBindWorldTransform();
+        return parentNode.getWorldTransform();
     }
 
     public float[] getModelMatrix() {
@@ -911,7 +911,7 @@ public class Object3DData {
                 // Get the parent's final animated world transform.
                 // This will be an identity matrix for static scenes like the door,
                 // or the true animated transform for skeletons.
-                final float[] parentWorldTransform = parentNode.getBindWorldTransform();
+                final float[] parentWorldTransform = parentNode.getWorldTransform();
 
                 //if (true) return parentWorldTransform;
 
@@ -942,8 +942,8 @@ public class Object3DData {
             if (parentNode.getAnimatedWorldTransform() != null) {
                 return parentNode.getAnimatedWorldTransform();
             }
-            if (parentNode.getBindWorldTransform() != null) {
-                return parentNode.getBindWorldTransform();
+            if (parentNode.getWorldTransform() != null) {
+                return parentNode.getWorldTransform();
             }
         }
         // Otherwise, fall back to the object's static model matrix.
@@ -1071,6 +1071,9 @@ public class Object3DData {
         this.dimensions = null;
     }
 
+    /**
+     * @return the local bounding box, without any transformation applied, just the original dimensions.
+     */
     public BoundingBox getBoundingBox() {
         return BoundingBox.create("bbox_" + getId(), getDimensions(), Math3DUtils.IDENTITY_MATRIX);
     }

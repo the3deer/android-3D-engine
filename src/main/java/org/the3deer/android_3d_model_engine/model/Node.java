@@ -396,7 +396,7 @@ public class Node {
 		return materialsMap.get(materialId);
 	}
 
-	public float[] getBindWorldTransform() {
+	public float[] getWorldTransform() {
 		return bindWorldTransform;
 	}
 

@@ -14,3 +14,9 @@
             |- Cameras                          <list>
             |- Animations                       <list>
             |- Skins                            <list>
+
+
+# Transforms
+
+    - Scene
+        |- worldMatrix             <-- rescaling to 

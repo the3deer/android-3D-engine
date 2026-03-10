@@ -142,9 +142,9 @@ public final class ColladaLoaderLegacy {
                             node = skin.find(meshData.getId());
                         }
                         if (node != null) {
-                            Log.d("ColladaLoaderTask", "Mesh joint found. id: "+ node.getName()+", bindTransform: "+ Arrays.toString(node.getBindWorldTransform()));
+                            Log.d("ColladaLoaderTask", "Mesh joint found. id: "+ node.getName()+", bindTransform: "+ Arrays.toString(node.getWorldTransform()));
                             data3D.setName(node.getName()+"."+data3D.hashCode());
-                            data3D.setWorldTransform(node.getBindWorldTransform());
+                            data3D.setWorldTransform(node.getWorldTransform());
                             //data3D.setParentNode(node);
                         }
                     }
@@ -231,7 +231,7 @@ public final class ColladaLoaderLegacy {
                         // Log.d("ColladaLoaderTask", "Found 1 single instance for mesh: " + meshData.getId());
                         final Node node = allNodeData.get(0);
                         // FIXME: set this only if not animated
-                        data3D.setWorldTransform(node.getBindWorldTransform());
+                        data3D.setWorldTransform(node.getWorldTransform());
                         continue;
                     }
 

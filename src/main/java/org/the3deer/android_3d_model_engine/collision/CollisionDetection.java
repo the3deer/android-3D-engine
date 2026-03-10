@@ -82,7 +82,7 @@ public class CollisionDetection {
                 continue;
             }
 
-            // get model matrix
+            // get model matrix - this contains the object's local transform
             final float[] modelMatrix = obj.getModelMatrix();
 
             // Check if modelMatrix is identity or nearly identity
@@ -190,38 +190,24 @@ public class CollisionDetection {
         return xyzw;
     }
 
-    public static float[] getTriangleIntersection(List<Object3DData> objects, int width, int height, float[] modelViewMatrix, float[] modelProjectionMatrix, float windowX, float windowY, float[] worldMatrix) {
-        float[] nearHit = unProject(width, height, modelViewMatrix, modelProjectionMatrix, windowX, windowY, 0);
-        float[] farHit = unProject(width, height, modelViewMatrix, modelProjectionMatrix, windowX, windowY, 1);
-        float[] direction = Math3DUtils.substract(farHit, nearHit);
-        Math3DUtils.normalizeVector(direction);
-        Object3DData intersected = getBoxIntersection(objects, nearHit, farHit, direction, worldMatrix);
-        if (intersected != null) {
-            return getTriangleIntersection(intersected, nearHit, farHit, direction, worldMatrix);
-        }
-        return null;
-    }
-
     public static float[] getTriangleIntersection(Object3DData hit, int width, int height, float[] viewMatrix, float[] projectionMatrix, float windowX, float windowY, float[] worldMatrix) {
         float[] nearHit = unProject(width, height, viewMatrix, projectionMatrix, windowX, windowY, 0);
         float[] farHit = unProject(width, height, viewMatrix, projectionMatrix, windowX, windowY, 1);
         float[] direction = Math3DUtils.substract(farHit, nearHit);
         Math3DUtils.normalizeVectorHighPrecision(direction);
-        return getTriangleIntersection(hit, nearHit, farHit, direction, worldMatrix);
+        return getTriangleIntersection(hit, nearHit, farHit, worldMatrix);
     }
 
     /**
      * Get the intersection points of the near and far plane for the specified ray and triangle
      *
-     * @param hit the object to test agains with
-     * @param nearHit the nearest intersection
-     * @param farHit the farthest intersection
-     * @param direction the direction of the ray
+     * @param hit         the object to test agains with
+     * @param nearHit     the nearest intersection
+     * @param farHit      the farthest intersection
      * @param worldMatrix the scene's world matrix
-     *
      * @return the triangle that was intersected
      */
-    private static float[] getTriangleIntersection(final Object3DData hit, float[] nearHit, float[] farHit, float[] direction, float[] worldMatrix) {
+    private static float[] getTriangleIntersection(final Object3DData hit, float[] nearHit, float[] farHit, float[] worldMatrix) {
         Log.v("CollisionDetection", "Getting triangle intersection: " + hit.getId());
 
         Octree octree;
@@ -234,44 +220,51 @@ public class CollisionDetection {
         }
 
         // get model matrix
-        final float[] modelMatrix = hit.getModelMatrix();
-
-        // Check if modelMatrix is identity or nearly identity
-        // If it is, we need to apply the world matrix scaling
-        // If it already has transformations, we use it as-is (it already includes world transform)
-        boolean isIdentity = Math3DUtils.isIdentity(modelMatrix);
-
-        float[] objectWorldMatrix;
-        if (isIdentity) {
-            // modelMatrix is identity, so apply world matrix for scaling/transform
-            objectWorldMatrix = worldMatrix;
+        float[] modelMatrix = hit.getModelMatrix();
+        if (hit.getParentNode() != null){
+            if (hit.getParentNode().getAnimatedWorldTransform() != null){
+                modelMatrix = hit.getParentNode().getAnimatedWorldTransform();
+                Log.d("CollisionDetection", "Using animated model matrix: " + Arrays.toString(hit.getParentNode().getAnimatedWorldTransform()));
+            } else if (hit.getParentNode().getWorldTransform() != null){
+                modelMatrix = hit.getParentNode().getWorldTransform();
+                Log.d("CollisionDetection", "Using world transform: " + Arrays.toString(hit.getParentNode().getWorldTransform()));
+            } else {
+                Log.d("CollisionDetection", "Using model matrix (1): " + Arrays.toString(modelMatrix));
+            }
         } else {
-            // modelMatrix already contains transforms, use it directly
-            objectWorldMatrix = modelMatrix;
+            Log.d("CollisionDetection", "Using model matrix (2): " + Arrays.toString(modelMatrix));
         }
 
         // invert current model transform
         float[] invertedModelMatrix = new float[16];
-        Matrix.invertM(invertedModelMatrix, 0, objectWorldMatrix, 0);
+        Matrix.invertM(invertedModelMatrix, 0, modelMatrix, 0);
+        Log.d("CollisionDetection", "DEBUG: Inverted matrix: " + Arrays.toString(invertedModelMatrix));
+        Log.d("CollisionDetection", "DEBUG: nearHit: " + Arrays.toString(nearHit));
+        Log.d("CollisionDetection", "DEBUG: farHit: " + Arrays.toString(farHit));
 
         // get near and far hits
         float[] nearAA = new float[4];
-        float[] farAA = new float[4];
         Matrix.multiplyMV(nearAA, 0, invertedModelMatrix, 0, nearHit, 0);
+
+        // convert far hit
+        float[] farAA = new float[4];
         Matrix.multiplyMV(farAA, 0, invertedModelMatrix, 0, farHit, 0);
+
+        // get direction
         float[] dirAA = Math3DUtils.substract(farAA, nearAA);
         Math3DUtils.normalizeVectorHighPrecision(dirAA);
 
+        // get intersection
         float intersection = getTriangleIntersectionForOctree(octree, nearAA, dirAA);
         if (intersection != -1) {
             float[] intersectionPoint = Math3DUtils.add(nearAA, Math3DUtils.multiply(dirAA, intersection));
             float[] realIntersection = new float[4];
-            Matrix.multiplyMV(realIntersection, 0, objectWorldMatrix, 0, Math3DUtils.to4d(intersectionPoint), 0);
-            realIntersection[0] /= realIntersection[3];
+            Matrix.multiplyMV(realIntersection, 0, modelMatrix, 0, Math3DUtils.to4d(intersectionPoint), 0);
+/*            realIntersection[0] /= realIntersection[3];
             realIntersection[1] /= realIntersection[3];
             realIntersection[2] /= realIntersection[3];
-            realIntersection[3] = 1;
-            Log.d("CollisionDetection", "Collision point: " + Arrays.toString(realIntersection));
+            realIntersection[3] = 1;*/
+            Log.d("CollisionDetection", "Collision point. Near: "+Arrays.toString(nearAA)+", farAA" + Arrays.toString(farAA)+", point: "+Arrays.toString(intersectionPoint));
             return realIntersection;
         } else {
             return null;
@@ -311,9 +304,7 @@ public class CollisionDetection {
             }
         }
         if (min != Float.MAX_VALUE) {
-            Log.d("CollisionDetection", "Intersection at distance: " + min);
-            Log.d("CollisionDetection", "Intersection at triangle: " + Arrays.toString(selectedTriangle));
-            Log.d("CollisionDetection", "Intersection at octree: " + selected);
+            Log.d("CollisionDetection", "Intersection at distance: " + min+ ", triangle: " + Arrays.toString(selectedTriangle)+", octree: " + selected);
             return min;
         }
         return -1;
