@@ -21,7 +21,6 @@ import java.util.List;
 public class Octree {
 
     // The minimum size of the 3D space for individual boxes
-    // if the model is 100 size, then 10 for boxes is OK
     public static final double BOX_SIZE = 10;
 
     final BoundingBox boundingBox;
@@ -60,58 +59,45 @@ public class Octree {
     static Octree build(Object3DData object){
         Log.d("Octree", "Building octree for "+object.getId());
         final Octree ret = new Octree(object.getBoundingBox());
+        final FloatBuffer buffer = object.getVertexBuffer().asReadOnlyBuffer();
+        
         if (object.getIndexBuffer() == null) {
             // vertex array contains vertex in sequence
-            final FloatBuffer buffer = object.getVertexBuffer().asReadOnlyBuffer();
             final List<float[]> triangles = new ArrayList<>(buffer.capacity() / 3 * 4);
             //final float[] modelMatrix = object.getModelMatrix();
             //final float[] modelMatrix = Math3DUtils.IDENTITY_MATRIX;
             buffer.position(0);
             for (int i = 0; i <= buffer.capacity()-9; i += 9) {
-                float[] triangle = new float[]{buffer.get(), buffer.get(), buffer.get(), 1,
+                float[] triangle = new float[]{
+                        buffer.get(), buffer.get(), buffer.get(), 1,
                         buffer.get(), buffer.get(), buffer.get(), 1,
                         buffer.get(), buffer.get(), buffer.get(), 1
                 };
-                //Matrix.multiplyMV(triangle, 0, modelMatrix, 0, triangle, 0);
-                //Matrix.multiplyMV(triangle, 4, modelMatrix, 0, triangle, 4);
-                //Matrix.multiplyMV(triangle, 8, modelMatrix, 0, triangle, 8);
                 triangles.add(triangle);
             }
             ret.pending.addAll(triangles);
         } else {
-            // faces are built
+            // Indexed: use indices to jump to the correct XYZ coordinates
             final Buffer drawOrder = object.getIndexBuffer();
-            final FloatBuffer buffer = object.getVertexBuffer().asReadOnlyBuffer();
-            final List<float[]> triangles = new ArrayList<>(drawOrder.capacity() / 3 * 4);
-            //final float[] modelMatrix = object.getModelMatrix();
-            //final float[] modelMatrix = Math3DUtils.IDENTITY_MATRIX;
-            for (int i = 0; i < drawOrder.capacity()-3; i += 3) {
+            for (int i = 0; i < drawOrder.capacity()-2; i += 3) {
+                int idx1, idx2, idx3;
                 if (drawOrder instanceof IntBuffer) {
-                    float[] triangle = new float[]{
-                            buffer.get(((IntBuffer)drawOrder).get(i)), buffer.get(((IntBuffer)drawOrder).get(i) + 1), buffer.get(((IntBuffer)drawOrder).get(i) + 2), 1,
-                            buffer.get(((IntBuffer)drawOrder).get(i + 1)), buffer.get(((IntBuffer)drawOrder).get(i + 1) + 1), buffer.get(((IntBuffer)drawOrder).get(i + 1) + 2), 1,
-                            buffer.get(((IntBuffer)drawOrder).get(i + 2)), buffer.get(((IntBuffer)drawOrder).get(i + 2) + 1), buffer.get(((IntBuffer)drawOrder).get(i + 2) + 2), 1,
-                    };
-                    //Matrix.multiplyMV(triangle, 0, modelMatrix, 0, triangle, 0);
-                    //Matrix.multiplyMV(triangle, 4, modelMatrix, 0, triangle, 4);
-                    //Matrix.multiplyMV(triangle, 8, modelMatrix, 0, triangle, 8);
-                    triangles.add(triangle);
-                } else if (drawOrder instanceof ShortBuffer){
-                    int i1 = Short.toUnsignedInt(((ShortBuffer) drawOrder).get(i));
-                    int i2 = Short.toUnsignedInt(((ShortBuffer) drawOrder).get(i+1));
-                    int i3 = Short.toUnsignedInt(((ShortBuffer) drawOrder).get(i+2));
-                    float[] triangle = new float[]{
-                            buffer.get(i1), buffer.get(i1 + 1), buffer.get(i1 + 2), 1,
-                            buffer.get(i2), buffer.get(i2 + 1), buffer.get(i2 + 2), 1,
-                            buffer.get(i3), buffer.get(i3 + 1), buffer.get(i3 + 2), 1,
-                    };
-                    //Matrix.multiplyMV(triangle, 0, modelMatrix, 0, triangle, 0);
-                    //Matrix.multiplyMV(triangle, 4, modelMatrix, 0, triangle, 4);
-                    //Matrix.multiplyMV(triangle, 8, modelMatrix, 0, triangle, 8);
-                    triangles.add(triangle);
+                    idx1 = ((IntBuffer)drawOrder).get(i);
+                    idx2 = ((IntBuffer)drawOrder).get(i + 1);
+                    idx3 = ((IntBuffer)drawOrder).get(i + 2);
+                } else {
+                    idx1 = Short.toUnsignedInt(((ShortBuffer) drawOrder).get(i));
+                    idx2 = Short.toUnsignedInt(((ShortBuffer) drawOrder).get(i+1));
+                    idx3 = Short.toUnsignedInt(((ShortBuffer) drawOrder).get(i+2));
                 }
+                
+                float[] triangle = new float[]{
+                        buffer.get(idx1 * 3), buffer.get(idx1 * 3 + 1), buffer.get(idx1 * 3 + 2), 1,
+                        buffer.get(idx2 * 3), buffer.get(idx2 * 3 + 1), buffer.get(idx2 * 3 + 2), 1,
+                        buffer.get(idx3 * 3), buffer.get(idx3 * 3 + 1), buffer.get(idx3 * 3 + 2), 1,
+                };
+                ret.pending.add(triangle);
             }
-            ret.pending.addAll(triangles);
         }
         subdivide(ret);
         return ret;
@@ -136,16 +122,16 @@ public class Octree {
         xMin = mid[0]; yMin = mid[1]; zMin = min[2];
         xMax = max[0]; yMax = max[1]; zMax = mid[2];
         octant[3] = new BoundingBox("octree3",xMin,xMax,yMin,yMax,zMin,zMax);
-        xMin = min[0]; yMin = min[1]; zMin = mid[2];
+        xMin = min[0]; yMin = min[1]; zMin = min[2];
         xMax = mid[0]; yMax = mid[1]; zMax = max[2];
         octant[4] = new BoundingBox("octree4",xMin,xMax,yMin,yMax,zMin,zMax);
-        xMin = mid[0]; yMin = min[1]; zMin = mid[2];
+        xMin = mid[0]; yMin = min[1]; zMin = min[2];
         xMax = max[0]; yMax = mid[1]; zMax = max[2];
         octant[5] = new BoundingBox("octree5",xMin,xMax,yMin,yMax,zMin,zMax);
-        xMin = min[0]; yMin = mid[1]; zMin = mid[2];
+        xMin = min[0]; yMin = mid[1]; zMin = min[2];
         xMax = mid[0]; yMax = max[1]; zMax = max[2];
         octant[6] = new BoundingBox("octree6",xMin,xMax,yMin,yMax,zMin,zMax);
-        xMin = mid[0]; yMin = mid[1]; zMin = mid[2];
+        xMin = mid[0]; yMin = mid[1]; zMin = min[2];
         xMax = max[0]; yMax = max[1]; zMax = max[2];
         octant[7] = new BoundingBox("octree7",xMin,xMax,yMin,yMax,zMin,zMax);
         boolean anyInOctant = false;
@@ -168,7 +154,6 @@ public class Octree {
             it.remove();
         }
         if (anyInOctant){
-            // subdivide if big enough (>=0.02)
             if ((mid[0]+min[0])/2 > BOX_SIZE && (mid[1]+min[1])/2 > BOX_SIZE && (mid[2]+min[2])/2 > BOX_SIZE) {
                 octree.subdivide();
             }
