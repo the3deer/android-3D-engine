@@ -70,6 +70,7 @@ public class GltfLoaderTask extends LoaderTask {
 
             for (Scene scene : scenes) {
                 callback.onLoad(scene);
+                callback.onLoadComplete(scene);
             }
 
             return loadNew;

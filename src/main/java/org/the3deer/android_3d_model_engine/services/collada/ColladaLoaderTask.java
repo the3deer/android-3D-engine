@@ -87,8 +87,8 @@ public class ColladaLoaderTask extends LoaderTask {
         }
 
         // --- testing...
-        scene.onLoadComplete();
         callback.onLoad(scene);
+        callback.onLoadComplete(scene);
 
         return loadNew;
     }
