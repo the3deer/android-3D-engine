@@ -42,25 +42,6 @@ public class AnimatedModel extends Object3DData {
         setSkin(skin);
     }
 
-    @Override
-    public float[] getModelMatrix() {
-
-        // If this animated model is attached to a node that has a skeleton,
-        // it means the vertex positions will be fully calculated by the
-        // skinning matrices (u_jointMat) in the vertex shader.
-        // The skinning matrices already contain the full world transformation.
-        //
-        // Therefore, the main model matrix (u_modelMatrix) must be an identity matrix
-        // to avoid applying the world transformation twice.
-        if (getParentNode() != null && getParentNode().getSkin() != null) {
-            return Math3DUtils.IDENTITY_MATRIX;
-        }
-
-        // If there is no skeleton, this model is being animated by node transforms only.
-        // In this case, fall back to the standard behavior.
-        return super.getModelMatrix();
-    }
-
     /**
      * Returns the definitive final world transform for this object, which can be used
      * to position and orient non-deforming helper objects like a Bounding Box.

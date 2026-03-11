@@ -857,17 +857,6 @@ public class Object3DData {
         propagate(new ChangeEvent(this));
     }
 
-    /**
-     * Returns the raw, local model matrix for this object without any other calculations.
-     * This is safe to call from anywhere and will not cause recursion.
-     */
-    public float[] getNodeMatrix() {
-        if (parentNode == null) {
-            return Math3DUtils.IDENTITY_MATRIX;
-        }
-        return parentNode.getWorldTransform();
-    }
-
     public float[] getModelMatrix() {
 
         // bounding box

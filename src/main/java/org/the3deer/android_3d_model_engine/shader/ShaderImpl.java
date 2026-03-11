@@ -24,6 +24,7 @@ import org.the3deer.android_3d_model_engine.model.Texture;
 import org.the3deer.android_3d_model_engine.preferences.PreferenceAdapter;
 import org.the3deer.util.android.GLUtil;
 import org.the3deer.util.io.IOUtils;
+import org.the3deer.util.math.Math3DUtils;
 
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
@@ -268,7 +269,23 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
 
         // mvp matrix for position + lighting + animation
         if (supportsMMatrix) {
-            setUniformMatrix4(obj.getModelMatrix(), "u_MMatrix");
+
+            // Refactoring: move the logic from AnimatedModel.getModelMatrix() into the shader itself.
+            // This ensures that Object3DData always returns its true logical model matrix,
+            // while the shader decides when to ignore it (e.g., during skinning).
+            float[] modelMatrix = obj.getModelMatrix();
+
+            // Check if this is an animated model with a skin.
+            if (obj instanceof AnimatedModel) {
+                AnimatedModel animatedModel = (AnimatedModel) obj;
+                if (animatedModel.getParentNode() != null && animatedModel.getParentNode().getSkin() != null) {
+                    // Skinned models have their world transformation baked into the joint matrices (u_jointMat).
+                    // Therefore, the main model matrix must be identity to avoid double-transformation.
+                    modelMatrix = Math3DUtils.IDENTITY_MATRIX;
+                }
+            }
+
+            setUniformMatrix4(modelMatrix, "u_MMatrix");
         }
 
         // pass in vertex buffer
@@ -276,9 +293,18 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
 
         // pass in normals buffer for lighting
         int mNormalHandle = -1;
-        if (supportsNormals && obj.getVertexNormalsArrayBuffer() != null) {
-            mNormalHandle = setVBO("a_Normal", obj.getVertexNormalsArrayBuffer(), COORDS_PER_VERTEX, GLES20.GL_FLOAT);
-            setUniformMatrix4(obj.getNormalMatrix(), "u_NormalMatrix");
+        if (supportsNormals && obj.getNormalsBuffer() != null) {
+            mNormalHandle = setVBO("a_Normal", obj.getNormalsBuffer(), COORDS_PER_VERTEX, GLES20.GL_FLOAT);
+            
+            // Recalculate normal matrix if the model matrix changed above
+            float[] normalMatrix = obj.getNormalMatrix();
+             if (obj instanceof AnimatedModel) {
+                AnimatedModel animatedModel = (AnimatedModel) obj;
+                if (animatedModel.getParentNode() != null && animatedModel.getParentNode().getSkin() != null) {
+                   normalMatrix = Math3DUtils.IDENTITY_MATRIX;
+                }
+            }
+            setUniformMatrix4(normalMatrix, "u_NormalMatrix");
         }
 
         // pass in normals map for lighting
