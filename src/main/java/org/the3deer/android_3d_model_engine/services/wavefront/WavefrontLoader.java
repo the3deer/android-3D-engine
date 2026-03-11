@@ -118,11 +118,15 @@ public class WavefrontLoader {
             callback.onProgress("Processing geometries...");
 
             // scene
-            final Scene scene = new SceneImpl();
+            final Scene scene = new SceneImpl("default");
+
             callback.onLoad(scene);
 
             // proces all meshes
-            for (MeshData meshData : meshes) {
+            for (int i=0; i< meshes.size(); i++) {
+
+                // get each mesh
+                final MeshData meshData = meshes.get(i);
 
                 // notify listener
                 callback.onProgress("Processing normals...");
@@ -135,14 +139,13 @@ public class WavefrontLoader {
 
                 // create 3D object
                 Object3DData data3D = new Object3DData(meshData.getVertexBuffer());
-                data3D.setMeshData(meshData);
                 data3D.setId(meshData.getId());
+                data3D.setUri(modelURI);
+                data3D.setMeshData(meshData);
                 data3D.setName(meshData.getName());
                 data3D.setVertexNormalsArrayBuffer(meshData.getNormalsBuffer());
                 data3D.setTextureCoordsArrayBuffer(meshData.getTextureBuffer());
                 data3D.setElements(meshData.getElements());
-                data3D.setId(modelURI.toString());
-                data3D.setUri(modelURI);
                 data3D.setDrawUsingArrays(false);
                 data3D.setDrawMode(GLES20.GL_TRIANGLES);
 
@@ -243,10 +246,10 @@ public class WavefrontLoader {
         }
     }
 
-    private List<MeshData> loadModel(String id, InputStream is) {
+    private List<MeshData> loadModel(String uri, InputStream is) {
 
         // log event
-        Log.i("WavefrontLoader", "Loading model... " + id);
+        Log.i("WavefrontLoader", "Loading model... " + uri);
 
         // String fnm = MODEL_DIR + modelNm + ".obj";
         BufferedReader br = null;
@@ -274,7 +277,7 @@ public class WavefrontLoader {
             List<Vertex> currentSmoothingList = null;
 
             // mesh current
-            MeshData.Builder meshCurrent = new MeshData.Builder().id(id);
+            MeshData.Builder meshCurrent = new MeshData.Builder().id(uri);
             Element.Builder elementCurrent = new Element.Builder().id("default");
             List<Integer> indicesCurrent = new ArrayList<>();
             boolean buildNewMesh = false;

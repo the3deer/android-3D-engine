@@ -43,9 +43,9 @@ import kotlin.text.Charsets;
 /**
  * This component loads the model into the engine
  */
-public class ModelLoader implements LoadListener {
+public class SceneLoader implements LoadListener {
 
-    private final static String TAG = ModelLoader.class.getSimpleName();
+    private final static String TAG = SceneLoader.class.getSimpleName();
 
     // dependencies
     @Inject
@@ -86,7 +86,7 @@ public class ModelLoader implements LoadListener {
     // other variables
     private long startTime;
 
-    public ModelLoader() {
+    public SceneLoader() {
 
 
     }
@@ -214,18 +214,18 @@ public class ModelLoader implements LoadListener {
             }
 
             if (modelUri.toString().toLowerCase().endsWith(".obj") || "obj".equalsIgnoreCase(modelType)) {
-                new WavefrontLoaderTask(activity, modelUri, ModelLoader.this).execute();
+                new WavefrontLoaderTask(activity, modelUri, SceneLoader.this).execute();
             } else if (modelUri.toString().toLowerCase().endsWith(".stl") || "stl".equalsIgnoreCase(modelType)) {
                 Log.i(TAG, "Loading STL object from: " + modelUri);
-                new STLLoaderTask(activity, modelUri, ModelLoader.this).execute();
+                new STLLoaderTask(activity, modelUri, SceneLoader.this).execute();
             } else if (modelUri.toString().toLowerCase().endsWith(".dae") || "dae".equalsIgnoreCase(modelType)) {
                 Log.i(TAG, "Loading Collada object from: " + modelUri);
-                new ColladaLoaderTask(activity, modelUri, ModelLoader.this).execute();
+                new ColladaLoaderTask(activity, modelUri, SceneLoader.this).execute();
             } else if (modelUri.toString().toLowerCase().endsWith(".gltf") || modelUri.toString().toLowerCase().endsWith(".glb") || "gltf".equalsIgnoreCase(modelType)) {
                 Log.i(TAG, "Loading GLTF object from: " + modelUri);
-                new GltfLoaderTask(activity, modelUri, ModelLoader.this).execute();
+                new GltfLoaderTask(activity, modelUri, SceneLoader.this).execute();
             } else if (modelUri.toString().toLowerCase().endsWith(".fbx")){
-                new FbxLoaderTask(activity, modelUri, ModelLoader.this).execute();
+                new FbxLoaderTask(activity, modelUri, SceneLoader.this).execute();
             }
         // });
     }
@@ -266,9 +266,18 @@ public class ModelLoader implements LoadListener {
         //if (this.sceneManager == null) return;
 
         // configure default camera
-        Log.d("ModelLoader", "Initializing scene... name: " + scene.getName());
+        Log.d(TAG, "Initializing scene... name: " + scene.getName());
         scene.setDefaultCamera(defaultCamera);
         scene.setEventManager(eventManager);
+    }
+
+    @Override
+    public void onLoad(Scene scene, Object3DData data) {
+        scene.addObject(data);
+    }
+
+    @Override
+    public void onLoadComplete(Scene scene) {
 
         // get objects
         final List<Object3DData> objects = scene.getObjects();
@@ -285,6 +294,9 @@ public class ModelLoader implements LoadListener {
                 loadTextureDatas(objects.get(m).getMaterial());
             }
         }
+
+        // initialize scene
+        scene.onLoadComplete();
 
         // show object errors
         List<String> allErrors = new ArrayList<>();
@@ -318,17 +330,8 @@ public class ModelLoader implements LoadListener {
         // fame camera
         CameraUtils.frameModel(scene.getCamera(), scene.getObjects());
 
+        // register scene
         this.sceneManager.addScene(scene);
-    }
-
-    @Override
-    public void onLoad(Scene scene, Object3DData data) {
-        scene.addObject(data);
-    }
-
-    @Override
-    public void onLoadComplete(Scene scene) {
-        scene.onLoadComplete();
     }
 
     @Override

@@ -87,13 +87,13 @@ public class Object3DData {
      */
     private URI uri;
     /**
-     * model id
+     * model id - default name
      */
-    private String id;
+    private String id = "object_"+System.identityHashCode(this);
     /**
-     * model friendly name or joint name
+     * model id - friendly name
      */
-    private String name;
+    private String name = "object_"+System.identityHashCode(this);;
     /**
      * Whether to draw object using indices or not
      */

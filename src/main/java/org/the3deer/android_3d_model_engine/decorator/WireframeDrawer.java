@@ -76,10 +76,14 @@ public class WireframeDrawer implements Drawer, EventListener {
         if (sceneManager == null || camera == null) {
             return;
         }
+
+        // current scene
         final Scene scene = sceneManager.getCurrentScene();
 
-        // draw
-        List<Object3DData> objects = scene.getObjects();
+        // get objects
+        final List<Object3DData> objects = scene.getObjects();
+
+        // draw objects
         for (int i = 0; i < objects.size(); i++) {
             final Camera camera = config != null && config.camera != null ? config.camera : this.camera;
             drawObject(scene, camera, objects, i);
@@ -119,7 +123,7 @@ public class WireframeDrawer implements Drawer, EventListener {
                     // Only draw wireframes for objects having faces (triangles)
                     Object3DData wireframe = wireframes.get(objData.getId());
                     if (wireframe == null) {
-                        Log.i("WireframeDrawer", "Building wireframe model...");
+                        Log.i("WireframeDrawer", "Building wireframe model... object: "+objData.getId());
                         wireframe = Wireframe.build(objData);
                         wireframes.put(objData.getId(), wireframe);
                         Log.i("WireframeDrawer", "Wireframe built: " + wireframe);

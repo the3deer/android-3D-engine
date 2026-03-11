@@ -214,6 +214,10 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
     public SceneImpl() {
     }
 
+    public SceneImpl(String name) {
+        this.name = name;
+    }
+
     @Override
     public boolean isEnabled() {
         return enabled;

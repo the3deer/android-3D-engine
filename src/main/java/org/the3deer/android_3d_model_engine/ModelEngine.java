@@ -34,7 +34,7 @@ import org.the3deer.android_3d_model_engine.renderer.AnaglyphRenderer;
 import org.the3deer.android_3d_model_engine.renderer.DefaultRenderer;
 import org.the3deer.android_3d_model_engine.renderer.RendererPreferences;
 import org.the3deer.android_3d_model_engine.scene.SceneDrawer;
-import org.the3deer.android_3d_model_engine.scene.ModelLoader;
+import org.the3deer.android_3d_model_engine.scene.SceneLoader;
 import org.the3deer.android_3d_model_engine.scene.SceneManager;
 import org.the3deer.android_3d_model_engine.shader.ShaderFactory;
 import org.the3deer.android_3d_model_engine.shader.ShaderPreferences;
@@ -184,7 +184,7 @@ public class ModelEngine {
         //beanFactory.add("fragment_gl", GLFragment.class);
         beanFactory.add("10.shaderFactory", ShaderFactory.class);
         beanFactory.add("10.screen", new Screen(640, 480));
-        beanFactory.add("10.modelLoader", ModelLoader.class);
+        beanFactory.add("10.sceneLoader", SceneLoader.class);
         beanFactory.add("10.cameraHandler", DefaultCameraHandler.class);
         //beanFactory.add("10.settings", PreferenceFragment.class);
 
