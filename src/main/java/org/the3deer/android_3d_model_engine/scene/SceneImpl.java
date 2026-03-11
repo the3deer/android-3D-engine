@@ -2,7 +2,6 @@ package org.the3deer.android_3d_model_engine.scene;
 
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.opengl.Matrix;
 import android.os.SystemClock;
 import android.util.Log;
 import android.widget.Toast;
@@ -18,7 +17,6 @@ import org.the3deer.android_3d_model_engine.model.AnimatedModel;
 import org.the3deer.android_3d_model_engine.model.Camera;
 import org.the3deer.android_3d_model_engine.model.Constants;
 import org.the3deer.android_3d_model_engine.model.Dimensions;
-import org.the3deer.android_3d_model_engine.model.Light;
 import org.the3deer.android_3d_model_engine.model.Material;
 import org.the3deer.android_3d_model_engine.model.Node;
 import org.the3deer.android_3d_model_engine.model.Object3DData;
@@ -27,14 +25,11 @@ import org.the3deer.android_3d_model_engine.model.Skin;
 import org.the3deer.android_3d_model_engine.model.Transform;
 import org.the3deer.android_3d_model_engine.objects.Point;
 import org.the3deer.android_3d_model_engine.view.RenderListener;
-import org.the3deer.util.android.ContentUtils;
 import org.the3deer.util.event.EventListener;
 import org.the3deer.util.event.EventManager;
-import org.the3deer.util.io.IOUtils;
 import org.the3deer.util.math.Math3DUtils;
 import org.the3deer.util.math.Quaternion;
 
-import java.io.InputStream;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -212,9 +207,6 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
 
     private Map<Object3DData, Transform> originalTransforms = new HashMap<>();
 
-    // This matrix will hold the global scale for the entire scene.
-    private final float[] worldMatrix = Math3DUtils.IDENTITY_MATRIX.clone();
-
     private EventManager eventManager;
 
     private boolean enabled = true;
@@ -264,6 +256,11 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
     }*/
 
     @Override
+    public void setEventManager(EventManager eventManager) {
+        this.eventManager = eventManager;
+    }
+
+    @Override
     public void setDefaultCamera(Camera defaultCamera) {
 
         // check
@@ -310,8 +307,8 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
         for (int i = 0; i < objects.size(); i++) {
             final Object3DData objData = objects.get(i);
             if (objData.getAuthoringTool() != null && objData.getAuthoringTool().toLowerCase().contains("blender")) {
-                Matrix.rotateM(this.worldMatrix, 0, -90, 1, 0, 0);
-                Log.d(TAG, "Fixed coordinate system to -90 degrees on y axis. worldMatrix: " + Arrays.toString(this.worldMatrix));
+                // Matrix.rotateM(this.worldMatrix, 0, -90, 1, 0, 0);
+                // Log.d(TAG, "Fixed coordinate system to -90 degrees on y axis. worldMatrix: " + Arrays.toString(this.worldMatrix));
                 break;
                 /*Quaternion quaternion = Quaternion.getQuaternion(new float[]{1, 0, 0}, (float) (-Math.PI / 2f));
                 quaternion.normalize();
@@ -377,11 +374,6 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
     public Animator getAnimator() {
         return animator;
     }
-
-    public float[] getWorldMatrix() {
-        return worldMatrix;
-    }
-
 
     @Override
     public void setMaterials(ArrayList<Material> materials) {
@@ -787,98 +779,13 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
 
     public synchronized void onLoadComplete() {
 
-        if (objects == null || objects.isEmpty()) {
-            Log.w(TAG, "No objects were loaded");
-        } else {
-            Log.i(TAG, "onLoadComplete: " + getName() + ", Objects: " + objects.size());
-        }
-
-
-        // get complete list of objects loaded
-        final List<Object3DData> objs = getObjects();
-
-        for (int i = 0; i < objs.size(); i++) {
-            for (int m = 0; m < objs.size(); m++) {
-                loadTextureDatas(objs.get(m).getMaterial());
-            }
-        }
-
-        // show object errors
-        List<String> allErrors = new ArrayList<>();
-        for (Object3DData data : objs) {
-            allErrors.addAll(data.getErrors());
-        }
-        if (!allErrors.isEmpty()) {
-            makeToastText(allErrors.toString(), Toast.LENGTH_LONG);
-        }
-
-        // notify user
-        final String elapsed = (SystemClock.uptimeMillis() - startTime) / 1000 + " secs";
-        makeToastText("Load complete (" + elapsed + ")", Toast.LENGTH_SHORT);
-
-        // rescale all object so they fit in the screen
-        //rescale(this.getObjects(), DEFAULT_MAX_MODEL_SIZE, new float[3]);
-        //if (this.getObjects().stream().filter(obj->obj.isPinned()).count() == 1){
-        final List<Object3DData> list = new ArrayList<>();
-        for (int i = 0; i < getObjects().size(); i++) {
-            if (getObjects().get(i).isPinned()) continue;
-            list.add(getObjects().get(i));
-        }
-        /*if (list.size() == 1) {
-            for (int i = 0; i < list.size(); i++) {
-                list.get(i).setCentered(true);
-            }
-        }*/
-
-        // Ensure all objects have a parent node to unify the rendering pipeline.
-        if (getRootNodes() == null || getRootNodes().isEmpty()) {
-            Log.i(TAG, "Scene has no root nodes. Creating default nodes for all objects.");
-            List<Node> rootNodes = new ArrayList<>();
-            for (Object3DData obj : getObjects()) {
-                // Create a new node and assign the object to it.
-                Node node = new Node();
-                node.setMesh(obj); // Link the visible object to this node.
-                node.setMatrix(obj.getModelMatrix());
-                obj.setParentNode(node);
-                obj.setParentBound(true);
-                rootNodes.add(node);
-            }
-            setRootNodes(rootNodes);
-        }
-
         // 1. UPDATE THE STATIC SCENE GRAPH
         // This sets the base pose for everything, including skeletons.
         if (getRootNodes() != null && !getRootNodes().isEmpty()) {
-            for (int i = 0; i < getRootNodes().size(); i++) {
+            for (int i = 0; i <getRootNodes().size(); i++) {
                 // This method should recursively update all children
                 getRootNodes().get(i).updateBindWorldTransform(Math3DUtils.IDENTITY_MATRIX);
             }
-        }
-
-        // fix coordinate system
-        if (Constants.FIX_COORDINATE_SYSTEM) {
-            fixCoordinateSystem();
-        }
-
-        // rescale objects so they all fit in the viewport
-        if (Constants.FIX_SCALE) {
-            rescale(list, Constants.DEFAULT_MODEL_SIZE, new float[3]);
-        }
-    }
-
-    private void loadTextureDatas(Material mat) {
-        if (mat == null) return;
-        if (mat.getColorTexture() != null && mat.getColorTexture().getFile() != null) {
-            String textureFile = mat.getColorTexture().getFile();
-            Log.i(TAG, "Loading texture file: " + textureFile);
-            try (InputStream stream = ContentUtils.getInputStream(textureFile)) {
-                mat.getColorTexture().setData(IOUtils.read(stream));
-                Log.i(TAG, "Texture successfully loaded: " + textureFile);
-            } catch (Exception ex) {
-                Log.e(TAG, "Error loading texture file '" + textureFile + "': " + ex.getMessage(), ex);
-                makeToastText("Error loading texture file '" + textureFile + "': " + ex.getMessage(), Toast.LENGTH_LONG);
-            }
-
         }
     }
 
@@ -890,9 +797,9 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
     @Override
     public void setSelectedObject(Object3DData selectedObject) {
         this.selectedObject = selectedObject;
-        /*if (eventManager != null) {
+        if (eventManager != null) {
             eventManager.propagate(new SelectedObjectEvent(this, selectedObject));
-        }*/
+        }
     }
 
 /*    public void loadTexture(Object3DData obj, Uri uri) throws IOException {
@@ -1125,13 +1032,13 @@ public class SceneImpl implements EventListener, RenderListener, org.the3deer.an
         Log.v(TAG, "Translation delta: " + Arrays.toString(globalDifference));
 
 
-        if (scaleFactor < 0.5f || scaleFactor > 1.5f) {
+        /*if (scaleFactor < 0.5f || scaleFactor > 1.5f) {
             Matrix.translateM(this.worldMatrix, 0, globalDifference[0] * scaleFactor, globalDifference[1] * scaleFactor, globalDifference[2] * scaleFactor);
             Matrix.scaleM(this.worldMatrix, 0, scaleFactor, scaleFactor, scaleFactor);
         } else {
             Matrix.translateM(this.worldMatrix, 0, globalDifference[0] * scaleFactor, globalDifference[1] * scaleFactor, globalDifference[2] * scaleFactor);
-        }
-        Log.d(TAG, "World matrix: " + Arrays.toString(this.worldMatrix));
+        }*/
+        //Log.d(TAG, "World matrix: " + Arrays.toString(this.worldMatrix));
     }
 
 

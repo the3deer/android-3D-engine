@@ -29,8 +29,8 @@ public class Constants {
     public static final boolean STRATEGY_BBOX_NEW = true;
     public static final boolean STRATEGY_QUATERNION_NEW = true;
     // loader
-    public static final boolean FIX_SCALE = true;
-    public static final boolean FIX_COORDINATE_SYSTEM = true;
+    public static final boolean FIX_SCALE = false;
+    public static final boolean FIX_COORDINATE_SYSTEM = false;
     // animation
     public static final boolean PREFER_QUATERNION = true;
     public static final boolean PREFER_QUATERNION_MATRIX = true;

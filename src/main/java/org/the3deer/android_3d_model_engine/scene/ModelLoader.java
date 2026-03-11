@@ -4,16 +4,18 @@ package org.the3deer.android_3d_model_engine.scene;
 import android.app.Activity;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
 import android.os.SystemClock;
 import android.util.Log;
 import android.widget.Toast;
 
+import org.the3deer.android_3d_model_engine.camera.CameraUtils;
 import org.the3deer.android_3d_model_engine.model.Camera;
+import org.the3deer.android_3d_model_engine.model.Material;
+import org.the3deer.android_3d_model_engine.model.Node;
 import org.the3deer.android_3d_model_engine.model.Object3DData;
 import org.the3deer.android_3d_model_engine.model.Scene;
-import org.the3deer.android_3d_model_engine.model.Screen;import org.the3deer.android_3d_model_engine.services.LoadListener;
+import org.the3deer.android_3d_model_engine.model.Screen;
+import org.the3deer.android_3d_model_engine.services.LoadListener;
 import org.the3deer.android_3d_model_engine.services.collada.ColladaLoaderTask;
 import org.the3deer.android_3d_model_engine.services.fbx.FbxLoaderTask;
 import org.the3deer.android_3d_model_engine.services.gltf.GltfLoaderTask;
@@ -22,10 +24,15 @@ import org.the3deer.android_3d_model_engine.services.wavefront.WavefrontLoaderTa
 import org.the3deer.util.android.ContentUtils;
 import org.the3deer.util.bean.BeanFactory;
 import org.the3deer.util.bean.BeanInit;
+import org.the3deer.util.event.EventManager;
+import org.the3deer.util.io.IOUtils;
 
+import java.io.InputStream;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import javax.inject.Inject;
@@ -53,6 +60,8 @@ public class ModelLoader implements LoadListener {
     private SceneManager sceneManager;
     @Inject
     private Camera defaultCamera;
+    @Inject
+    private EventManager eventManager;
     @Inject
     private Screen screen;
 
@@ -257,8 +266,57 @@ public class ModelLoader implements LoadListener {
         //if (this.sceneManager == null) return;
 
         // configure default camera
-        Log.d("ModelLoader", "Setting default camera:" + defaultCamera.getName() + " for scene: " + scene.getName());
+        Log.d("ModelLoader", "Initializing scene... name: " + scene.getName());
         scene.setDefaultCamera(defaultCamera);
+        scene.setEventManager(eventManager);
+
+        // get objects
+        final List<Object3DData> objects = scene.getObjects();
+
+        // check
+        if (objects == null || objects.isEmpty()) {
+            Log.w(TAG, "No objects were loaded");
+        } else {
+            Log.i(TAG, "onLoadComplete: " + scene.getName() + ", Objects: " + objects.size());
+        }
+
+        for (int i = 0; i < objects.size(); i++) {
+            for (int m = 0; m < objects.size(); m++) {
+                loadTextureDatas(objects.get(m).getMaterial());
+            }
+        }
+
+        // show object errors
+        List<String> allErrors = new ArrayList<>();
+        for (Object3DData data : objects) {
+            allErrors.addAll(data.getErrors());
+        }
+        if (!allErrors.isEmpty()) {
+            makeToastText(allErrors.toString(), Toast.LENGTH_LONG);
+        }
+
+        // notify user
+        final String elapsed = (SystemClock.uptimeMillis() - startTime) / 1000 + " secs";
+        makeToastText("Load complete (" + elapsed + ")", Toast.LENGTH_SHORT);
+
+        // Ensure all objects have a parent node to unify the rendering pipeline.
+        if (scene.getRootNodes() == null || scene.getRootNodes().isEmpty()) {
+            Log.i(TAG, "Scene has no root nodes. Creating default nodes for all objects.");
+            List<Node> rootNodes = new ArrayList<>();
+            for (Object3DData obj : objects) {
+                // Create a new node and assign the object to it.
+                Node node = new Node();
+                node.setMesh(obj); // Link the visible object to this node.
+                node.setMatrix(obj.getModelMatrix());
+                obj.setParentNode(node);
+                obj.setParentBound(true);
+                rootNodes.add(node);
+            }
+            scene.setRootNodes(rootNodes);
+        }
+
+        // fame camera
+        CameraUtils.frameModel(scene.getCamera(), scene.getObjects());
 
         this.sceneManager.addScene(scene);
     }
@@ -278,4 +336,24 @@ public class ModelLoader implements LoadListener {
         ContentUtils.setThreadActivity(null);
     }
 
+    private void loadTextureDatas(Material mat) {
+        if (mat == null) return;
+        if (mat.getColorTexture() != null && mat.getColorTexture().getFile() != null) {
+            String textureFile = mat.getColorTexture().getFile();
+            Log.i(TAG, "Loading texture file: " + textureFile);
+            try (InputStream stream = ContentUtils.getInputStream(textureFile)) {
+                mat.getColorTexture().setData(IOUtils.read(stream));
+                Log.i(TAG, "Texture successfully loaded: " + textureFile);
+            } catch (Exception ex) {
+                Log.e(TAG, "Error loading texture file '" + textureFile + "': " + ex.getMessage(), ex);
+                makeToastText("Error loading texture file '" + textureFile + "': " + ex.getMessage(), Toast.LENGTH_LONG);
+            }
+
+        }
+    }
+
+    private void makeToastText(final String text, final int toastDuration) {
+        if (activity == null) return;
+        activity.runOnUiThread(() -> Toast.makeText(activity.getApplicationContext(), text, toastDuration).show());
+    }
 }

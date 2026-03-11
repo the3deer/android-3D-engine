@@ -74,13 +74,13 @@ public class CollisionController implements EventListener {
                 // check collision
                 Object3DData objectHit = CollisionDetection.getBoxIntersection(
                         objects, screen.getWidth(), screen.getHeight(),
-                        camera.getViewMatrix(), camera.getProjectionMatrix(), x, y, scene.getWorldMatrix());
+                        camera.getViewMatrix(), camera.getProjectionMatrix(), x, y);
                 if (objectHit != null) {
 
                     // intersection point
                     Log.i("CollisionController", "Getting intersection... " + objectHit.getId()+", x="+x+", y="+y);
                     float[] point3D = CollisionDetection.getTriangleIntersection(objectHit, screen.getWidth(), screen.getHeight(),
-                            camera.getViewMatrix(), camera.getProjectionMatrix(), x, y, scene.getWorldMatrix());
+                            camera.getViewMatrix(), camera.getProjectionMatrix(), x, y);
 
                     final CollisionEvent collisionEvent = new CollisionEvent(this, objectHit, x, y, point3D);
                     if (eventManager != null) {

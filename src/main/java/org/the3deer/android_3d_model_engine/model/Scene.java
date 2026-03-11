@@ -4,6 +4,7 @@ import androidx.annotation.NonNull;
 
 import org.the3deer.android_3d_model_engine.animation.Animation;
 import org.the3deer.android_3d_model_engine.animation.Animator;
+import org.the3deer.util.event.EventManager;
 
 import java.util.ArrayList;
 import java.util.EventListener;
@@ -64,8 +65,6 @@ public interface Scene extends EventListener {
 
     Animator getAnimator();
 
-    public float[] getWorldMatrix();
-
     void setMaterials(ArrayList<Material> materials);
 
     void setAnimations(List<Animation> sceneAnimations);
@@ -77,6 +76,8 @@ public interface Scene extends EventListener {
     void setCameras(List<Camera> cameras);
 
     List<Camera> getCameras();
+
+    void setEventManager(EventManager eventManager);
 
     void setDefaultCamera(Camera defaultCamera);
 

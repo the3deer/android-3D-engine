@@ -2,6 +2,8 @@ package org.the3deer.android_3d_model_engine.model;
 
 import android.opengl.Matrix;
 
+import androidx.annotation.NonNull;
+
 import org.the3deer.util.math.Math3DUtils;
 
 /**
@@ -73,6 +75,19 @@ public final class BoundingBox {
         return actualMax[2];
     }
 
+    public float[][] getCorners() {
+        return new float[][]{
+                {actualMin[0], actualMin[1], actualMin[2]},
+                {actualMin[0], actualMin[1], actualMax[2]},
+                {actualMin[0], actualMax[1], actualMin[2]},
+                {actualMin[0], actualMax[1], actualMax[2]},
+                {actualMax[0], actualMin[1], actualMin[2]},
+                {actualMax[0], actualMin[1], actualMax[2]},
+                {actualMax[0], actualMax[1], actualMin[2]},
+                {actualMax[0], actualMax[1], actualMax[2]}
+        };
+    }
+
     public boolean insideBounds(float x, float y, float z) {
         return !outOfBound(x, y, z);
     }
@@ -81,6 +96,7 @@ public final class BoundingBox {
         return x > getxMax() || x < getxMin() || y < getyMin() || y > getyMax() || z < getzMin() || z > getzMax();
     }
 
+    @NonNull
     @Override
     public String toString() {
         return "BoundingBox{" +

@@ -11,6 +11,7 @@ import org.the3deer.android_3d_model_engine.model.Skin;
 import org.the3deer.android_3d_model_engine.scene.SceneManager;
 import org.the3deer.android_3d_model_engine.view.Renderer;
 import org.the3deer.util.event.EventListener;
+import org.the3deer.util.math.Math3DUtils;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -105,7 +106,7 @@ public class DefaultRenderer implements Renderer, EventListener {
             if (scene.getRootNodes() != null && !scene.getRootNodes().isEmpty()) {
                 for (int i = 0; i < scene.getRootNodes().size(); i++) {
                     // This method should now recursively calculate the *animated* world transform
-                    scene.getRootNodes().get(i).updateAnimatedWorldTransform(scene.getWorldMatrix());
+                    scene.getRootNodes().get(i).updateAnimatedWorldTransform(Math3DUtils.IDENTITY_MATRIX);
                 }
             }
 
