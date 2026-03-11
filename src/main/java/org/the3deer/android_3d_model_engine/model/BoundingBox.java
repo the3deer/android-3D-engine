@@ -38,9 +38,42 @@ public final class BoundingBox {
         refresh();
     }
 
-    private void refresh(){
-        Matrix.multiplyMV(actualMin,0,modelMatrix,0,this.min,0);
-        Matrix.multiplyMV(actualMax,0,modelMatrix,0,this.max,0);
+    private void refresh() {
+        if (Math3DUtils.isIdentity(modelMatrix)) {
+            System.arraycopy(min, 0, actualMin, 0, 4);
+            System.arraycopy(max, 0, actualMax, 0, 4);
+            return;
+        }
+
+        // To correctly find the world-space AABB of a transformed box,
+        // we must transform all 8 corners and find the new min/max.
+        float[][] localCorners = new float[][]{
+                {min[0], min[1], min[2], 1},
+                {min[0], min[1], max[2], 1},
+                {min[0], max[1], min[2], 1},
+                {min[0], max[1], max[2], 1},
+                {max[0], min[1], min[2], 1},
+                {max[0], min[1], max[2], 1},
+                {max[0], max[1], min[2], 1},
+                {max[0], max[1], max[2], 1}
+        };
+
+        float[] worldCorner = new float[4];
+        float minX = Float.MAX_VALUE, minY = Float.MAX_VALUE, minZ = Float.MAX_VALUE;
+        float maxX = -Float.MAX_VALUE, maxY = -Float.MAX_VALUE, maxZ = -Float.MAX_VALUE;
+
+        for (float[] corner : localCorners) {
+            Matrix.multiplyMV(worldCorner, 0, modelMatrix, 0, corner, 0);
+            minX = Math.min(minX, worldCorner[0]);
+            minY = Math.min(minY, worldCorner[1]);
+            minZ = Math.min(minZ, worldCorner[2]);
+            maxX = Math.max(maxX, worldCorner[0]);
+            maxY = Math.max(maxY, worldCorner[1]);
+            maxZ = Math.max(maxZ, worldCorner[2]);
+        }
+
+        actualMin[0] = minX; actualMin[1] = minY; actualMin[2] = minZ; actualMin[3] = 1;
+        actualMax[0] = maxX; actualMax[1] = maxY; actualMax[2] = maxZ; actualMax[3] = 1;
     }
 
     public float[] getMin() {

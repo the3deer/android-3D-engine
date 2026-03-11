@@ -37,8 +37,6 @@ public class SceneDrawer implements Drawer, EventListener {
     @Inject
     private Light light;
     @Inject
-    private Projection projection;
-    @Inject
     private Camera defaultCamera;
 
     /**
@@ -190,7 +188,7 @@ public class SceneDrawer implements Drawer, EventListener {
             // draw points
             if (objData.getDrawMode() == GLES20.GL_POINTS) {
                 Shader basicDrawer = shaderFactory.getShader(R.raw.shader_basic_vert, R.raw.shader_basic_frag);
-                basicDrawer.draw(objData, projection.getMatrix(), camera.getViewMatrix(),
+                basicDrawer.draw(objData, camera.getProjection().getMatrix(), camera.getViewMatrix(),
                         light.getLocation(), colorMask,
                         camera.getPos(), objData.getDrawMode(), objData.getDrawSize());
             } else {
@@ -204,7 +202,7 @@ public class SceneDrawer implements Drawer, EventListener {
                     } else {
                         //Log.i(TAG, "Drawing " + objData.getId());
                     }
-                    shader.draw(objData, projection.getMatrix(), camera.getViewMatrix(),
+                    shader.draw(objData, camera.getProjection().getMatrix(), camera.getViewMatrix(),
                             light.getLocation(), colorMask, camera.getPos(),
                             objData.getDrawMode(), objData.getDrawSize());
 

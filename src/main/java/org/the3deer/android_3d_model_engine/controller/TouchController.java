@@ -1,6 +1,5 @@
 package org.the3deer.android_3d_model_engine.controller;
 
-import android.opengl.Matrix;
 import android.os.SystemClock;
 import android.util.Log;
 import android.view.MotionEvent;
@@ -8,78 +7,36 @@ import android.view.MotionEvent;
 import org.the3deer.android_3d_model_engine.view.GLEvent;
 import org.the3deer.util.event.EventListener;
 import org.the3deer.util.event.EventManager;
-import org.the3deer.util.math.Math3DUtils;
 
 import java.util.EventObject;
 
 import javax.inject.Inject;
 
 /**
- * <p>Android Generic Touch Screen Controller</p>
+ * <p>Improved Android Touch Screen Controller</p>
  * <p>It fires events of this type @{@link TouchEvent}</p>
+ * @author Gemini AI
  */
 public class TouchController implements EventListener {
 
     private static final String TAG = TouchController.class.getSimpleName();
 
-    private static final int TOUCH_STATUS_ZOOMING_CAMERA = 1;
-    private static final int TOUCH_STATUS_ROTATING_CAMERA = 4;
-    private static final int TOUCH_STATUS_MOVING_WORLD = 5;
-
     // constants
     private int width;
     private int height;
 
-    // variables
     @Inject
     private EventManager eventManager;
-    private float x1 = Float.MIN_VALUE;
-    private float y1 = Float.MIN_VALUE;
-    private float x2 = Float.MIN_VALUE;
-    private float y2 = Float.MIN_VALUE;
-    private float dx1 = Float.MIN_VALUE;
-    private float dy1 = Float.MIN_VALUE;
-    private float dx2 = Float.MIN_VALUE;
-    private float dy2 = Float.MIN_VALUE;
 
-    private float length = Float.MIN_VALUE;
-    private float previousLength = Float.MIN_VALUE;
-    private float currentPress1 = Float.MIN_VALUE;
-    private float currentPress2 = Float.MIN_VALUE;
-
-    private float rotation = 0;
-    private int currentSquare = Integer.MIN_VALUE;
-
-    private boolean isOneFixedAndOneMoving = false;
-    private boolean fingersAreClosing = false;
-    private boolean isRotating = false;
-
-    private boolean gestureChanged = false;
-    private boolean move = false;
-    private boolean click = false;
-    private boolean clickLarge = false;
+    // Gesture tracking state
+    private float previousX1, previousY1;
+    private float previousX2, previousY2;
+    private float previousPinchDist;
+    private double previousRotateAngle;
+    
     private long lastClickTime;
-    private int moveCounter = -2;
-    private float previousX1;
-    private float previousY1;
-    private float previousX2;
-    private float previousY2;
-    private float[] previousVector = new float[4];
-    private float[] vector = new float[4];
-    private float previousRotationSquare;
-
-/*	public TouchController(Activity parent) {
-		super();
-		try {
-			if (!AndroidUtils.supportsMultiTouch(parent.getPackageManager())) {
-				Log.w(TAG,"Multitouch not supported. Some app features may not be available");
-			} else {
-				Log.i(TAG,"Initializing TouchController...");
-			}
-		}catch (Exception e){
-			Toast.makeText(parent, "Error loading Touch Controller:\n" +e.getMessage(), Toast.LENGTH_LONG).show();
-		}
-	}*/
+    private int moveCounter;
+    private boolean isActionStarted;
 
     public TouchController() {
     }
@@ -88,7 +45,6 @@ public class TouchController implements EventListener {
         this.width = width;
         this.height = height;
     }
-
 
     private void fireEvent(EventObject eventObject) {
         if (eventManager != null) {
@@ -109,142 +65,96 @@ public class TouchController implements EventListener {
         return false;
     }
 
-    public boolean onMotionEvent(MotionEvent motionEvent) {
+    public boolean onMotionEvent(MotionEvent event) {
+        final int action = event.getActionMasked();
+        final int pointerCount = event.getPointerCount();
 
-        final int pointerCount = motionEvent.getPointerCount();
-
-
-        switch (motionEvent.getActionMasked()) {
+        switch (action) {
             case MotionEvent.ACTION_DOWN:
             case MotionEvent.ACTION_POINTER_DOWN:
-            case MotionEvent.ACTION_HOVER_ENTER:
-                move = false;
-                click = false;
-                clickLarge = false;
-
-                gestureChanged = true;
+                isActionStarted = true;
                 moveCounter = 0;
                 lastClickTime = SystemClock.uptimeMillis();
-                break;
-            case MotionEvent.ACTION_MOVE:
-                move = true;
-                click = false;
-                moveCounter++;
-                break;
-            case MotionEvent.ACTION_UP:
-            case MotionEvent.ACTION_CANCEL:
-            case MotionEvent.ACTION_POINTER_UP:
-            case MotionEvent.ACTION_HOVER_EXIT:
-            case MotionEvent.ACTION_OUTSIDE:
-                // this to handle "1 simple touch"
-                click = moveCounter < 20;
-                move = false;
-                clickLarge = click && lastClickTime > SystemClock.uptimeMillis() - 2000;
-
-                gestureChanged = true;
-                moveCounter = 0;
-                lastClickTime = SystemClock.uptimeMillis();
-                break;
-            default:
-                Log.w(TAG, "Unknown state: " + motionEvent.getAction());
-                gestureChanged = true;
-        }
-
-        // Log.v(TAG, "click: " + click + ", clickLarge: "+clickLarge+", move: " + move+", moveCounter: "+moveCounter);
-
-        if (pointerCount == 1) {
-            x1 = motionEvent.getX();
-            y1 = motionEvent.getY();
-            //Log.v(TAG, "1 touch ! x:" + x1 + ",y:" + y1);
-            if (gestureChanged) {
-                previousX1 = x1;
-                previousY1 = y1;
-            }
-            dx1 = x1 - previousX1;
-            dy1 = y1 - previousY1;
-        } else if (pointerCount == 2) {
-            x1 = motionEvent.getX(0);
-            y1 = motionEvent.getY(0);
-            x2 = motionEvent.getX(1);
-            y2 = motionEvent.getY(1);
-            //Log.v(TAG, "2 touch ! x1:" + x1 + ",y1:" + y1 + ",x2:" + x2 + ",y2:" + y2);
-
-            vector[0] = x2 - x1;
-            vector[1] = y2 - y1;
-            vector[2] = 0;
-            vector[3] = 1;
-            float len = Matrix.length(vector[0], vector[1], vector[2]);
-            vector[0] /= len;
-            vector[1] /= len;
-
-            if (gestureChanged) {
-                previousX1 = x1;
-                previousY1 = y1;
-                previousX2 = x2;
-                previousY2 = y2;
-                System.arraycopy(vector, 0, previousVector, 0, vector.length);
-            }
-            dx1 = x1 - previousX1;
-            dy1 = y1 - previousY1;
-            dx2 = x2 - previousX2;
-            dy2 = y2 - previousY2;
-
-            previousLength = (float) Math
-                    .sqrt(Math.pow(previousX2 - previousX1, 2) + Math.pow(previousY2 - previousY1, 2));
-            length = (float) Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
-
-            currentPress1 = motionEvent.getPressure(0);
-            currentPress2 = motionEvent.getPressure(1);
-            rotation = 0;
-            rotation = TouchScreen.getRotation360(motionEvent);
-            currentSquare = TouchScreen.getSquare(motionEvent);
-            if (currentSquare == 1 && previousRotationSquare == 4) {
-                rotation = 0;
-            } else if (currentSquare == 4 && previousRotationSquare == 1) {
-                rotation = 360;
-            }
-
-            // gesture detection
-            isOneFixedAndOneMoving = ((dx1 + dy1) == 0) != (((dx2 + dy2) == 0));
-            fingersAreClosing = (Math.abs(dx1 + dx2) < 10 && Math.abs(dy1 + dy2) < 10);
-            isRotating = !isOneFixedAndOneMoving && (dx1 != 0 && dy1 != 0 && dx2 != 0 && dy2 != 0);
-        }
-
-        if (pointerCount == 1 && click) {
-            fireEvent(new TouchEvent(this, TouchEvent.CLICK, width, height, x1, y1));
-        } else if (pointerCount == 1 && move) {
-            fireEvent(new TouchEvent(this, TouchEvent.MOVE, width, height, previousX1, previousY1,
-                    x1, y1, dx1, dy1, 0,
-                    0f));
-        } else if (pointerCount == 2) {
-            if (fingersAreClosing) {
-                fireEvent(new TouchEvent(this, TouchEvent.PINCH, width, height, previousX1, previousY1,
-                        x1, y1, dx1, dy1, (previousLength - length), 0f));
-                fingersAreClosing = false;
-            } else if (isRotating) {
-                final double angle = Math3DUtils.calculateAngleBetween(previousVector, vector);
-                if (Math.abs(angle) >= Math.PI / 180) {
-                    fireEvent(new TouchEvent(this, TouchEvent.ROTATE, width, height, previousX1, previousY1
-                            , x1, y1, dx1, dy1, 0, (float) angle));
+                
+                // Initialize state for the new gesture
+                previousX1 = event.getX(0);
+                previousY1 = event.getY(0);
+                if (pointerCount >= 2) {
+                    previousX2 = event.getX(1);
+                    previousY2 = event.getY(1);
+                    previousPinchDist = calculateDistance(previousX1, previousY1, previousX2, previousY2);
+                    previousRotateAngle = calculateAngle(previousX1, previousY1, previousX2, previousY2);
                 }
-            }
-        }
-        //}
+                break;
 
+            case MotionEvent.ACTION_MOVE:
+                if (!isActionStarted) break;
+                moveCounter++;
 
-        previousX1 = x1;
-        previousY1 = y1;
-        previousX2 = x2;
-        previousY2 = y2;
+                float x1 = event.getX(0);
+                float y1 = event.getY(0);
+                float dx1 = x1 - previousX1;
+                float dy1 = y1 - previousY1;
 
-        previousRotationSquare = currentSquare;
+                if (pointerCount == 1) {
+                    // Single finger move -> Rotate camera/object
+                    fireEvent(new TouchEvent(this, TouchEvent.MOVE, width, height, previousX1, previousY1, x1, y1, dx1, dy1, 0, 0f));
+                } else if (pointerCount >= 2) {
+                    float x2 = event.getX(1);
+                    float y2 = event.getY(1);
+                    float dx2 = x2 - previousX2;
+                    float dy2 = y2 - previousY2;
 
-        System.arraycopy(vector, 0, previousVector, 0, vector.length);
+                    // 1. PINCH (Zoom) detection
+                    float currentPinchDist = calculateDistance(x1, y1, x2, y2);
+                    if (Math.abs(currentPinchDist - previousPinchDist) > 2f) {
+                        // Delta is positive when fingers move apart (Zoom IN)
+                        float zoomDelta = currentPinchDist - previousPinchDist;
+                        fireEvent(new TouchEvent(this, TouchEvent.PINCH, width, height, x1, y1, x2, y2, dx1, dy1, zoomDelta, 0f));
+                        previousPinchDist = currentPinchDist;
+                    }
 
-        if (gestureChanged && moveCounter > 1) {
-            gestureChanged = false;
+                    // 2. ROTATE (Twist) detection
+                    double currentRotateAngle = calculateAngle(x1, y1, x2, y2);
+                    double angleDelta = currentRotateAngle - previousRotateAngle;
+                    
+                    // Handle wrap-around for angles
+                    if (angleDelta > 180) angleDelta -= 360;
+                    else if (angleDelta < -180) angleDelta += 360;
+
+                    if (Math.abs(angleDelta) > 0.5) {
+                        fireEvent(new TouchEvent(this, TouchEvent.ROTATE, width, height, x1, y1, x2, y2, dx1, dy1, 0, (float) Math.toRadians(angleDelta)));
+                        previousRotateAngle = currentRotateAngle;
+                    }
+                    
+                    previousX2 = x2;
+                    previousY2 = y2;
+                }
+                
+                previousX1 = x1;
+                previousY1 = y1;
+                break;
+
+            case MotionEvent.ACTION_UP:
+            case MotionEvent.ACTION_POINTER_UP:
+            case MotionEvent.ACTION_CANCEL:
+                if (action == MotionEvent.ACTION_UP && moveCounter < 10) {
+                    // It's a click!
+                    fireEvent(new TouchEvent(this, TouchEvent.CLICK, width, height, event.getX(), event.getY()));
+                }
+                isActionStarted = false;
+                break;
         }
         return true;
     }
-}
 
+    private float calculateDistance(float x1, float y1, float x2, float y2) {
+        float dx = x1 - x2;
+        float dy = y1 - y2;
+        return (float) Math.sqrt(dx * dx + dy * dy);
+    }
+
+    private double calculateAngle(float x1, float y1, float x2, float y2) {
+        return Math.toDegrees(Math.atan2(y2 - y1, x2 - x1));
+    }
+}

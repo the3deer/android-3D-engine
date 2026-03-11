@@ -81,7 +81,9 @@ public final class CameraController implements Camera.Controller, EventListener 
                     break;
                 case PINCH:
                     final float zoomFactor = ((TouchEvent) event).getZoom();
-                    cameraHandler.zoom((float) (-zoomFactor/4 * Constants.near * Math.log(activeCamera.getDistance())));
+                    // LINEAR ZOOM: Proportional to distance
+                    // This allows smooth zooming even for tiny models like the Avocado.
+                    cameraHandler.zoom(zoomFactor * activeCamera.getDistance() * 0.01f);
                     break;
                 case SPREAD:
                     // TODO:

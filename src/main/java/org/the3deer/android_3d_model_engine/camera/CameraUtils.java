@@ -70,7 +70,7 @@ public class CameraUtils {
         float dy = maxY - minY;
         float dz = maxZ - minZ;
         
-        // Sphere radius that encloses the box
+        // Sphere radius that perfectly encloses the AABB
         float radius = (float) Math.sqrt(dx * dx + dy * dy + dz * dz) / 2.0f;
 
         // 3. Calculate distance based on FOV
@@ -78,14 +78,44 @@ public class CameraUtils {
         float fov = (projection != null) ? projection.getFov() : 60.0f; 
 
         // distance = radius / sin(fov / 2)
-        // We add padding (1.2f) to give some extra space
+        // Adding 20% padding for a comfortable view
         double halfFovRad = Math.toRadians(fov / 2.0);
         float distance = (float) (radius / Math.sin(halfFovRad)) * 1.2f;
 
-        Log.i(TAG, "Framing model: center=(" + centerX + "," + centerY + "," + centerZ + "), radius=" + radius + ", distance=" + distance);
+        // --- ATOMIC AVOCADO / TINY MODEL HANDLING ---
+        if (radius < 0.1f) {
+            distance = distance * 0.8f; // Get a bit closer for tiny things
+        }
+
+        // --- ROBUST CLIPPING PLANE LOGIC ---
+        // Avoid "gaps" (Z-fighting) by maintaining a healthy Near/Far ratio.
+        if (projection != null) {
+            
+            // We set near to a small fraction of the distance. 
+            // This provides plenty of room to zoom in before clipping starts.
+            float suggestedNear = distance * 0.05f;
+            
+            // Floors to avoid numerical instability
+            float floor = (radius < 0.1f) ? 0.0001f : 0.01f;
+            suggestedNear = Math.max(suggestedNear, floor);
+            
+            // Set far plane to capture the whole model plus plenty of headroom
+            float suggestedFar = distance + radius * 10.0f;
+            
+            // The Golden Ratio: Keep Far/Near <= 10,000 to prevent depth buffer "gaps"
+            if (suggestedFar / suggestedNear > 10000f) {
+                suggestedFar = suggestedNear * 10000f;
+            }
+
+            projection.setNear(suggestedNear);
+            projection.setFar(suggestedFar);
+            
+            Log.i(TAG, "Dynamic projection: near=" + suggestedNear + ", far=" + suggestedFar + " (Ratio: " + (suggestedFar/suggestedNear) + ")");
+        }
+
+        Log.i(TAG, "Framing model: center=(" + centerX + "," + centerY + "," + centerZ + "), distance=" + distance);
 
         // 4. Position the camera
-        // Keep current direction if possible, otherwise look from a default direction (e.g. along Z axis)
         float[] lookDir = new float[]{
                 camera.getView()[0] - camera.getPos()[0],
                 camera.getView()[1] - camera.getPos()[1],
@@ -94,14 +124,13 @@ public class CameraUtils {
         float lookLen = (float) Math.sqrt(lookDir[0] * lookDir[0] + lookDir[1] * lookDir[1] + lookDir[2] * lookDir[2]);
 
         if (lookLen < 0.0001f) {
-            lookDir = new float[]{0, 0, -1}; // Default look direction
+            lookDir = new float[]{0, 0, -1};
         } else {
             lookDir[0] /= lookLen;
             lookDir[1] /= lookLen;
             lookDir[2] /= lookLen;
         }
 
-        // Set camera position at 'distance' away from the center, looking at the center
         float newPosX = centerX - lookDir[0] * distance;
         float newPosY = centerY - lookDir[1] * distance;
         float newPosZ = centerZ - lookDir[2] * distance;

@@ -671,7 +671,9 @@ public class GltfLoader {
                 scene.setRootNodes(rootNodes);
 
                 // camera configuration
-                scene.setCameras(sceneData.cameras);
+                if (sceneData.cameras != null) {
+                    scene.setCameras(sceneData.cameras);
+                }
 
                 // set default camera from the gltf model
                 /*Camera defaultCamera = findFirstCamera(rootNodes);
