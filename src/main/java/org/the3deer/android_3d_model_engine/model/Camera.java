@@ -35,6 +35,9 @@ public class Camera {
 
         default void rotate(float angle) {
         }
+
+        default void pan(float dX, float dY) {
+        }
     }
 
     public static class CameraLoadedEvent extends EventObject {
@@ -220,6 +223,11 @@ public class Camera {
             controller.rotate(angle);
     }
 
+    public void pan(float dX, float dY) {
+        if (controller != null)
+            controller.pan(dX, dY);
+    }
+
     protected void refresh() {
         // update orientation
         Matrix.setLookAtM(this.orientationMatrix, 0,
@@ -254,10 +262,10 @@ public class Camera {
             Log.v("Camera", "Out of room walls. " + x + "," + y + "," + z);
             return true;
         }
-        if (!centerBox.outOfBound(x, y, z)) {
+        /*if (!centerBox.outOfBound(x, y, z)) {
             Log.v("Camera", "Inside absolute center");
             return true;
-        }
+        }*/
         return false;
     }
 

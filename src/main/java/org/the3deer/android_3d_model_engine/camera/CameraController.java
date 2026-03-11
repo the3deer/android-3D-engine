@@ -71,8 +71,12 @@ public final class CameraController implements Camera.Controller, EventListener 
                     float dx1 = touchEvent.getdX();
                     float dy1 = touchEvent.getdY();
                     float max = Math.max(screen.getWidth(), screen.getHeight());
-                    dx1 = (float) (dx1 / max * Math.PI * 2);
+                    
+                    // X axis: Invert to match "Object Drag" (swipe right = model rotates right)
+                    dx1 = (float) (-dx1 / max * Math.PI * 2);
+                    // Y axis: Keep sign to match "Object Drag" (swipe up = model rotates up/back)
                     dy1 = (float) (dy1 / max * Math.PI * 2);
+                    
                     cameraHandler.move(dx1, dy1);
                     break;
                 case ROTATE:
@@ -81,12 +85,15 @@ public final class CameraController implements Camera.Controller, EventListener 
                     break;
                 case PINCH:
                     final float zoomFactor = ((TouchEvent) event).getZoom();
-                    // LINEAR ZOOM: Proportional to distance
-                    // This allows smooth zooming even for tiny models like the Avocado.
+                    // Linear zoom proportional to distance
                     cameraHandler.zoom(zoomFactor * activeCamera.getDistance() * 0.01f);
                     break;
                 case SPREAD:
-                    // TODO:
+                    final float dx = ((TouchEvent) event).getdX();
+                    final float dy = ((TouchEvent) event).getdY();
+                    // Pan logic: -dx moves camera left (object moves right), dy moves camera down (object moves up)
+                    cameraHandler.pan(-dx, dy);
+                    break;
                 case CLICK:
                     break;
 

@@ -11,13 +11,10 @@ import java.util.EventObject;
 import javax.inject.Inject;
 
 /**
- * <p>Improved Android Touch Screen Controller</p>
- * <p>It fires events of this type @{@link TouchEvent}</p>
+ * <p>Improved Android Touch Screen Controller with Sticky Gesture Filtering</p>
  * @author Gemini AI
  */
 public class TouchController implements EventListener {
-
-    private static final String TAG = TouchController.class.getSimpleName();
 
     private int width;
     private int height;
@@ -25,11 +22,9 @@ public class TouchController implements EventListener {
     @Inject
     private EventManager eventManager;
 
-    // Pointer ID tracking
     private int primaryId = -1;
     private int secondaryId = -1;
 
-    // Gesture tracking state
     private float startX, startY;
     private float lastX1, lastY1;
     private float lastX2, lastY2;
@@ -37,7 +32,11 @@ public class TouchController implements EventListener {
     private double lastRotateAngle;
     
     private boolean isTapCandidate;
-    private static final float TAP_THRESHOLD = 20f; // Pixels
+    private static final float TAP_THRESHOLD = 20f; 
+
+    // Sticky gesture state
+    private enum Gesture { NONE, ZOOM, PAN, ROTATE }
+    private Gesture activeGesture = Gesture.NONE;
 
     public TouchController() {
     }
@@ -76,10 +75,11 @@ public class TouchController implements EventListener {
                 startX = lastX1 = event.getX(0);
                 startY = lastY1 = event.getY(0);
                 isTapCandidate = true;
+                activeGesture = Gesture.NONE;
                 break;
 
             case MotionEvent.ACTION_POINTER_DOWN:
-                isTapCandidate = false; // Multiple fingers -> Not a tap
+                isTapCandidate = false;
                 if (secondaryId == -1) {
                     secondaryId = event.getPointerId(index);
                     lastX2 = event.getX(index);
@@ -107,35 +107,38 @@ public class TouchController implements EventListener {
 
                     if (isTapCandidate) {
                         float totalDist = (float) Math.sqrt(Math.pow(x1 - startX, 2) + Math.pow(y1 - startY, 2));
-                        if (totalDist > TAP_THRESHOLD) {
-                            isTapCandidate = false;
-                        }
+                        if (totalDist > TAP_THRESHOLD) isTapCandidate = false;
                     }
 
                     if (sIdx == -1) {
-                        // Single finger move
                         fireEvent(new TouchEvent(this, TouchEvent.MOVE, width, height, lastX1, lastY1, x1, y1, dx1, dy1, 0, 0f));
                     } else {
-                        // Two finger gestures
                         float x2 = event.getX(sIdx);
                         float y2 = event.getY(sIdx);
+                        float dx2 = x2 - lastX2;
+                        float dy2 = y2 - lastY2;
 
+                        // Calculate gesture dominance
                         float currentDist = calculateDistance(x1, y1, x2, y2);
-                        if (Math.abs(currentDist - lastPinchDist) > 2f) {
-                            float zoomDelta = currentDist - lastPinchDist;
-                            fireEvent(new TouchEvent(this, TouchEvent.PINCH, width, height, x1, y1, x2, y2, dx1, dy1, zoomDelta, 0f));
+                        float distDelta = Math.abs(currentDist - lastPinchDist);
+                        float moveX = Math.abs(dx1 + dx2) / 2f;
+                        float moveY = Math.abs(dy1 + dy2) / 2f;
+                        float totalMove = moveX + moveY;
+
+                        // Decide gesture mode if not already locked
+                        if (activeGesture == Gesture.NONE) {
+                            if (distDelta > totalMove && distDelta > 5f) activeGesture = Gesture.ZOOM;
+                            else if (totalMove > distDelta && totalMove > 5f) activeGesture = Gesture.PAN;
+                        }
+
+                        // Execute locked gesture
+                        if (activeGesture == Gesture.ZOOM) {
+                            fireEvent(new TouchEvent(this, TouchEvent.PINCH, width, height, x1, y1, x2, y2, dx1, dy1, currentDist - lastPinchDist, 0f));
                             lastPinchDist = currentDist;
+                        } else if (activeGesture == Gesture.PAN) {
+                            fireEvent(new TouchEvent(this, TouchEvent.SPREAD, width, height, x1, y1, x2, y2, (dx1+dx2)/2f, (dy1+dy2)/2f, 0, 0f));
                         }
 
-                        double currentAngle = calculateAngle(x1, y1, x2, y2);
-                        double angleDelta = currentAngle - lastRotateAngle;
-                        if (angleDelta > 180) angleDelta -= 360;
-                        else if (angleDelta < -180) angleDelta += 360;
-
-                        if (Math.abs(angleDelta) > 0.5) {
-                            fireEvent(new TouchEvent(this, TouchEvent.ROTATE, width, height, x1, y1, x2, y2, dx1, dy1, 0, (float) Math.toRadians(angleDelta)));
-                            lastRotateAngle = currentAngle;
-                        }
                         lastX2 = x2;
                         lastY2 = y2;
                     }
@@ -157,17 +160,18 @@ public class TouchController implements EventListener {
                 } else if (upId == secondaryId) {
                     secondaryId = -1;
                 }
+                activeGesture = Gesture.NONE; // Reset lock when finger is lifted
                 break;
 
             case MotionEvent.ACTION_UP:
                 if (isTapCandidate) {
                     fireEvent(new TouchEvent(this, TouchEvent.CLICK, width, height, event.getX(), event.getY()));
                 }
-                // Fall through
             case MotionEvent.ACTION_CANCEL:
                 primaryId = -1;
                 secondaryId = -1;
                 isTapCandidate = false;
+                activeGesture = Gesture.NONE;
                 break;
         }
         return true;
