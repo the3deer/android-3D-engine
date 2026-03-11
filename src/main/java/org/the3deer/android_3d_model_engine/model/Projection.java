@@ -9,4 +9,14 @@ public interface Projection {
     Screen getScreen();
 
     void setScreen(Screen screen);
+
+    float getNear();
+
+    void setNear(float near);
+
+    float getFar();
+
+    void setFar(float far);
+
+    float getFov();
 }

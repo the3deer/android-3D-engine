@@ -83,8 +83,9 @@ public class Camera {
 
     private final String name;
 
-    private final BoundingBox centerBox = new BoundingBox("scene", -Constants.ROOM_CENTER_SIZE, Constants.ROOM_CENTER_SIZE,
-            -Constants.ROOM_CENTER_SIZE, Constants.ROOM_CENTER_SIZE, -Constants.ROOM_CENTER_SIZE, Constants.ROOM_CENTER_SIZE);
+    // Relaxed bounding boxes to allow framing of tiny models (like Avocado)
+    private final BoundingBox centerBox = new BoundingBox("scene", -0.00001f, 0.00001f,
+            -0.00001f, 0.00001f, -0.00001f, 0.00001f);
     private final BoundingBox roomBox = new BoundingBox("scene", -Constants.ROOM_SIZE, Constants.ROOM_SIZE,
             -Constants.ROOM_SIZE, Constants.ROOM_SIZE, -Constants.ROOM_SIZE, Constants.ROOM_SIZE);
 
@@ -121,9 +122,6 @@ public class Camera {
     private Controller controller;
 
     private boolean changed = false;
-
-    //private Dimensions dimensions2D = new Dimensions();
-    //private Dimensions dimensions3D = new Dimensions();
 
     // stereoscopic handlers
     private Camera[] stereoCam;
@@ -223,19 +221,6 @@ public class Camera {
     }
 
     protected void refresh() {
-
-        // check
-        //if (screen == null) return;
-
-        //Log.v("Camera", "location: "+ Arrays.toString(this.pos));
-
-        // setup view matrix
-        /*Matrix.setLookAtM(viewMatrix, 0,
-                getxPos(), getyPos(), getzPos(),
-                getxView(), getyView(), getzView(),
-                getxUp(), getyUp(), getzUp());*/
-
-
         // update orientation
         Matrix.setLookAtM(this.orientationMatrix, 0,
                 0, 0, 0,
@@ -243,23 +228,15 @@ public class Camera {
                 getxUp(), getyUp(), getzUp());
         this.orientation.setMatrix(orientationMatrix);
 
-        // dimensions
-        //this.dimensions2D.set(-Constants.UNIT * screen.getRatio(), Constants.UNIT * screen.getRatio(), Constants.UNIT, -Constants.UNIT, 1, 0);
-        //this.dimensions3D.set(0, screen.getWidth(), screen.getHeight(), 0, Constants.near, -Constants.far);
-
         // projection
         if (this.projection != null) {
             this.projection.refresh();
         }
-
-        //Log.v("Camera","Camera refreshed: "+this.projection);
     }
 
     public Quaternion getOrientation() {
         return orientation;
     }
-
-
 
     public void enable() {
     }
@@ -284,21 +261,6 @@ public class Camera {
         return false;
     }
 
-    /**
-     * Translation is the movement that makes the Earth around the Sun.
-     * So in this context, translating the camera means moving the camera around the Zero (0,0,0)
-     * <p>
-     * This implementation makes uses of 3D Vectors Algebra.
-     * <p>
-     * The idea behind this implementation is to translate the 2D user vectors (the line in the
-     * screen) with the 3D equivalents.
-     * <p>
-     * In order to to that, we need to calculate the Right and Arriba vectors so we have a match
-     * for user 2D vector.
-     *
-     * @param dX the X component of the user 2D vector, that is, a value between [-1,1]
-     * @param dY the Y component of the user 2D vector, that is, a value between [-1,1]
-     */
     public synchronized void translateCamera(float dX, float dY) {
     }
 
@@ -356,17 +318,13 @@ public class Camera {
 
         // update left
         final Camera left = stereoCam[0];
-        //left.screen = this.screen;
         left.projection = this.projection;
         left.set(xPosLeft, yPosLeft, zPosLeft, xViewLeft, yViewLeft, zViewLeft, getxUp(), getyUp(), getzUp());
-        //left.refresh();
 
         // update right
         final Camera right = stereoCam[1];
-        //right.screen = this.screen;
         right.projection = this.projection;
         right.set(xPosRight, yPosRight, zPosRight, xViewRight, yViewRight, zViewRight, getxUp(), getyUp(), getzUp());
-        //right.refresh();
 
         return stereoCam;
     }
@@ -410,13 +368,6 @@ public class Camera {
 
     public void set(float xPos, float yPos, float zPos, float xView, float yView, float zView, float xUp, float yUp,
                     float zUp) {
-
-        // check that we have valid coordinates
-
-
-        // Here we set the camera to the values sent in to us. This is mostly
-        // used to set up a
-        // default position.
         this.pos[0] = xPos;
         this.pos[1] = yPos;
         this.pos[2] = zPos;
@@ -472,16 +423,6 @@ public class Camera {
             angle = previous - angle;
         }
 
-        float dX = (float) Math.sin(Math.toRadians(angle));
-        float dY = (float) Math.cos(Math.toRadians(angle));
-        float[] right = Math3DUtils.to4d(getRight());
-
-        // screen orientation vector
-        /*float[] ovector1 = Math3DUtils.multiply(up, dX);
-        float[] ovector2 = Math3DUtils.multiply(getRight(), -dY);
-        float[] ovector = Math3DUtils.add(ovector1,ovector2);
-        Math3DUtils.normalize(ovector);*/
-
         // rotation matrix
         float[] matrix = new float[16];
         Matrix.setIdentityM(matrix, 0);
@@ -496,39 +437,11 @@ public class Camera {
         this.up[2] = newUp[2];
 
         setChanged(true);
-
-        /*float rota = -(float) Math.tan(angle-180)/5f; //-angle / 90f;
-
-        float dot = Math.abs(Math3DUtils.dotProduct(up, newUp));
-        if (Math.abs(dot) < 0.1f){
-            Log.v("Camera","angle: "+angle+", rot:"+rota+", dx:"+dX+", dy:"+dY+" HIT! "+Math3DUtils.dotProduct(up,newUp));
-            return;
-        } else {
-            Log.v("Camera","angle: "+angle+", rot:"+rota+", dx:"+dX+", dy:"+dY+" DOT! "+Math3DUtils.dotProduct(up,newUp));
-            //return;
-        }
-
-        Matrix.setIdentityM(matrix,0);
-        Matrix.setRotateM(matrix,0, -angle/90f, getxPos(),getyPos(),getzPos());
-        Matrix.multiplyMV(newUp,0,matrix,0,up,0);
-        Math3DUtils.normalize(newUp);
-
-        this.up[0] = newUp[0];
-        this.up[1] = newUp[1];
-        this.up[2] = newUp[2];
-        setChanged(true);*/
     }
-
-    /*public float[] getViewMatrix() {
-        *//*Matrix.setLookAtM(this.viewMatrix,0,getxPos(),getyPos(),getzPos(),
-                getxView(),getyView(),getzView(),getxUp(),getyUp(),getzUp());*//*
-        return viewMatrix;
-    }*/
 
     public float[] getViewMatrix() {
         // If this camera is attached to a node in the scene graph...
         if (this.node != null) {
-            //Log.d("Camera", "getViewMatrix: attached to a node");
             // Get the node's current world-space transformation matrix
             float[] nodeTransform = this.node.getAnimatedWorldTransform();
             if (nodeTransform == null){
@@ -539,13 +452,6 @@ public class Camera {
             if (nodeTransform != null) {
                 Matrix.invertM(viewMatrix, 0, nodeTransform, 0);
             }
-        //} else if (controller != null) {
-
-            // FALLBACK: If not attached to a node, or node isn't animated,
-            // use the old behavior (e.g., the user-controlled handler)
-            // You probably have this logic already.
-            // FIXME: camera node view matrix
-            //return controller.getViewMatrix();
         } else {
             Matrix.setLookAtM(this.viewMatrix, 0, getxPos(), getyPos(), getzPos(),
                     getxView(), getyView(), getzView(), getxUp(), getyUp(), getzUp());
@@ -557,16 +463,6 @@ public class Camera {
     public float[] getProjectionMatrix() {
         return projection.getMatrix();
     }
-
-/*    public float[] getProjectionViewMatrix() {
-        return projectionViewMatrix;
-    }*/
-
-    // from gui
-
-    /*public Dimensions getDimensions2D() {
-        return dimensions2D;
-    }*/
 
     @NonNull
     @Override

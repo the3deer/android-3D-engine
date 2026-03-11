@@ -50,6 +50,31 @@ public final class OrthographicProjection implements Projection {
     }
 
     @Override
+    public float getNear() {
+        return 0;
+    }
+
+    @Override
+    public void setNear(float near) {
+
+    }
+
+    @Override
+    public float getFar() {
+        return 0;
+    }
+
+    @Override
+    public void setFar(float far) {
+
+    }
+
+    @Override
+    public float getFov() {
+        return 0;
+    }
+
+    @Override
     public void refresh() {
         // not used - we use dynamic update in #getMatrix()
     }

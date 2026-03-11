@@ -5,9 +5,13 @@ import android.util.Log;
 
 import org.the3deer.android_3d_model_engine.model.Camera;
 import org.the3deer.android_3d_model_engine.model.Object3DData;
+import org.the3deer.android_3d_model_engine.model.Projection;
 
 import java.util.List;
 
+/**
+ * @author Gemini AI
+ */
 public class CameraUtils {
 
     private static final String TAG = CameraUtils.class.getSimpleName();
@@ -36,21 +40,20 @@ public class CameraUtils {
         for (Object3DData obj : objects) {
             if (obj.isDecorator()) continue;
 
-            float[][] corners = obj.getBoundingBox().getCorners();
-            float[] modelMatrix = obj.getModelMatrix();
-            float[] worldCorner = new float[4];
+            // Use the object's world-space bounding box
+            float objMinX = obj.getCurrentBoundingBox().getxMin();
+            float objMaxX = obj.getCurrentBoundingBox().getxMax();
+            float objMinY = obj.getCurrentBoundingBox().getyMin();
+            float objMaxY = obj.getCurrentBoundingBox().getyMax();
+            float objMinZ = obj.getCurrentBoundingBox().getzMin();
+            float objMaxZ = obj.getCurrentBoundingBox().getzMax();
 
-            for (float[] corner : corners) {
-                float[] corner4 = new float[]{corner[0], corner[1], corner[2], 1.0f};
-                Matrix.multiplyMV(worldCorner, 0, modelMatrix, 0, corner4, 0);
-
-                minX = Math.min(minX, worldCorner[0]);
-                minY = Math.min(minY, worldCorner[1]);
-                minZ = Math.min(minZ, worldCorner[2]);
-                maxX = Math.max(maxX, worldCorner[0]);
-                maxY = Math.max(maxY, worldCorner[1]);
-                maxZ = Math.max(maxZ, worldCorner[2]);
-            }
+            minX = Math.min(minX, objMinX);
+            maxX = Math.max(maxX, objMaxX);
+            minY = Math.min(minY, objMinY);
+            maxY = Math.max(maxY, objMaxY);
+            minZ = Math.min(minZ, objMinZ);
+            maxZ = Math.max(maxZ, objMaxZ);
         }
 
         if (minX == Float.MAX_VALUE) {
@@ -67,24 +70,22 @@ public class CameraUtils {
         float dy = maxY - minY;
         float dz = maxZ - minZ;
         
-        // Use the furthest corner from the center to get the radius of the bounding sphere
+        // Sphere radius that encloses the box
         float radius = (float) Math.sqrt(dx * dx + dy * dy + dz * dz) / 2.0f;
 
         // 3. Calculate distance based on FOV
-        // Assuming a standard 60 degree vertical FOV. 
-        // In a more complex implementation, we'd pull this from the camera's Projection.
-        float fov = 60.0f; 
+        Projection projection = camera.getProjection();
+        float fov = (projection != null) ? projection.getFov() : 60.0f; 
 
         // distance = radius / sin(fov / 2)
-        // We add a small multiplier (e.g. 1.1) to give some padding around the model.
+        // We add padding (1.2f) to give some extra space
         double halfFovRad = Math.toRadians(fov / 2.0);
-        float distance = (float) (radius / Math.sin(halfFovRad)) * 1.1f;
+        float distance = (float) (radius / Math.sin(halfFovRad)) * 1.2f;
 
         Log.i(TAG, "Framing model: center=(" + centerX + "," + centerY + "," + centerZ + "), radius=" + radius + ", distance=" + distance);
 
         // 4. Position the camera
-        // We look at the model from its "front" (along the -Z axis relative to the model's center)
-        // but we'll try to preserve the existing look direction if possible.
+        // Keep current direction if possible, otherwise look from a default direction (e.g. along Z axis)
         float[] lookDir = new float[]{
                 camera.getView()[0] - camera.getPos()[0],
                 camera.getView()[1] - camera.getPos()[1],

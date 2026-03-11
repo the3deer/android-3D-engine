@@ -71,10 +71,39 @@ public final class PerspectiveProjection implements Projection {
         if (custom) {
             Matrix.perspectiveM(matrix, 0, yfov, aspectRatio, znear, zfar);
         } else {
-            Matrix.frustumM(matrix, 0,
-                    -screen.getRatio(), screen.getRatio(),
-                    -1f, 1f, Constants.near, Constants.far);
+            // Calculate frustum based on yfov and znear to maintain consistent FOV
+            float ratio = screen.getRatio();
+            float top = (float) Math.tan(Math.toRadians(yfov / 2.0)) * znear;
+            float bottom = -top;
+            float left = -top * ratio;
+            float right = top * ratio;
+            Matrix.frustumM(matrix, 0, left, right, bottom, top, znear, zfar);
         }
         return matrix;
+    }
+
+    @Override
+    public float getNear() {
+        return znear;
+    }
+
+    @Override
+    public void setNear(float near) {
+        this.znear = near;
+    }
+
+    @Override
+    public float getFar() {
+        return zfar;
+    }
+
+    @Override
+    public void setFar(float far) {
+        this.zfar = far;
+    }
+
+    @Override
+    public float getFov() {
+        return yfov;
     }
 }
