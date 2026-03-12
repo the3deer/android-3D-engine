@@ -5,6 +5,7 @@ import android.opengl.Matrix;
 import android.util.Log;
 
 import org.the3deer.android_3d_model_engine.model.AnimatedModel;
+import org.the3deer.android_3d_model_engine.model.Material;
 import org.the3deer.android_3d_model_engine.model.Node;
 import org.the3deer.android_3d_model_engine.model.Skin;
 import org.the3deer.util.io.IOUtils;
@@ -18,13 +19,16 @@ public final class Skeleton {
 
     public static AnimatedModel build(AnimatedModel animatedModel) {
 
-        // reserve buffers
+        // clone model
         final AnimatedModel animSkeleton = animatedModel.clone();
+
+        // override buffers
         animSkeleton.setVertexBuffer(IOUtils.createFloatBuffer(animSkeleton.getSkin().getJointCount() * 9));   // 4 floats (i,j,k,l) x 3 vertex = 12 floats / joint
         animSkeleton.setNormalsBuffer(IOUtils.createFloatBuffer(animSkeleton.getSkin().getJointCount() * 9));
         // reserve color buffer (i.e. to draw "JOINT" types of a different color from others)
         FloatBuffer colorBuffer = IOUtils.createFloatBuffer(animSkeleton.getSkin().getJointCount() * 12);  // 4 floats (rgba) x 3 vertex = 12 floats / joint
         animSkeleton.setColorsBuffer(colorBuffer);
+        animSkeleton.setMaterial(new Material());
 
         // Create new skin
         final Skin skeletonSkin = animatedModel.getSkin().clone();
@@ -41,7 +45,7 @@ public final class Skeleton {
         animSkeleton.setDecorator(true);
 
         // build
-        Node skinRoot = animatedModel.getParentNode().getRoot();
+        Node skinRoot = animatedModel.getSkin().getRootJoint();
 
         // debug
         Log.d("Skeleton", "Building skeleton... skin root: "+skinRoot.getId()+", joints: " + animSkeleton.getSkin().getJointCount());

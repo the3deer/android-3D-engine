@@ -42,7 +42,7 @@ public class SkeletonDrawer implements Drawer {
     @Inject
     private Camera camera;
     // The skeleton associated
-    private Map<Object3DData, Object3DData> skeleton = new HashMap<>();
+    private final Map<String, AnimatedModel> skeleton = new HashMap<>();
 
     public List<? extends Object3DData> getObjects() {
         return Collections.emptyList();
@@ -114,31 +114,33 @@ public class SkeletonDrawer implements Drawer {
                     continue;
                 }
 
-                // Log.d("ModelRenderer","Drawing wireframe model...");
+
 
                 // draw skeleton on top of it
                 // GLES20.glDisable(GLES20.GL_DEPTH_TEST);
-                Object3DData skeletonModel = this.skeleton.get(objData);
+                AnimatedModel skeletonModel = this.skeleton.get(objData.getId());
                 if (skeletonModel == null) {
 
                     // check
                     if (((AnimatedModel) objData).getSkin() == null) continue;
                     if (((AnimatedModel) objData).getSkin().getRootJoint() == null) continue;
-                    if (((AnimatedModel) objData).getSkin().getJoints() == null) continue;
                     if (((AnimatedModel) objData).getSkin().getJointCount() == 0) continue;
+
+                    // debug
+                    Log.d(TAG,"Building skeleton... object: "+objData.getId());
 
                     // build
                     skeletonModel = Skeleton.build((AnimatedModel) objData);
 
-                    // register
-                    this.skeleton.put(objData, skeletonModel);
-                }
-                //GLES20.glEnable(GLES20.GL_DEPTH_TEST);
+                    // debug
+                    Log.d(TAG,"Skeleton built: "+skeletonModel);
 
-                //animator.update(Collections.singletonList(((AnimatedModel) skeletonModel).getSkin().getRootJoint()), scene.getCurrentAnimation(), false);
+                    // register
+                    this.skeleton.put(objData.getId(), skeletonModel);
+                }
 
                 final Camera camera = config != null && config.camera != null ? config.camera : scene.getCamera();
-                drawerObject.draw(skeletonModel, camera.getProjectionMatrix(), camera.getViewMatrix(), Constants.COLOR_BLUE, null, null, skeletonModel.getDrawMode(), skeletonModel.getDrawSize());
+                drawerObject.draw(skeletonModel, camera.getProjectionMatrix(), camera.getViewMatrix(), null, null, camera.getPos(), skeletonModel.getDrawMode(), skeletonModel.getDrawSize());
 
             } catch (Exception ex) {
                 this.enabled = false;
