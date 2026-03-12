@@ -125,8 +125,9 @@ public class Material {
         this.specular = specular;
     }
 
-    public void setColorTexture(Texture colorTexture) {
+    public Material setColorTexture(Texture colorTexture) {
         this.colorTexture = colorTexture;
+        return this;
     }
 
     public Texture getColorTexture() {

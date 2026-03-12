@@ -47,6 +47,9 @@ public class Label extends Widget {
 
     @Override
     public void init() {
+
+        super.init();
+
         setVertexBuffer(IOUtils.createFloatBuffer(columns * rows * 12 * 3));
         setVertexColorsArrayBuffer(IOUtils.createFloatBuffer(columns * rows * 12 * 4));
 

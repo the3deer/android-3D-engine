@@ -40,8 +40,7 @@ public final class FbxLoaderTask extends LoaderTask {
             final Scene sceneDefault = new SceneImpl();
             sceneDefault.setObjects(load);
             callback.onLoad(sceneDefault);
-
-            sceneDefault.onLoadComplete();
+            callback.onLoadComplete(sceneDefault);
             callback.onLoadComplete();
 
             return load;

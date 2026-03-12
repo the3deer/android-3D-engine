@@ -228,7 +228,9 @@ public class Widget extends Object3DData implements EventListener {
     }
 
     public void init() {
-        //refresh();
+
+        // init color
+        setColor(Constants.COLOR_WHITE);
     }
 
     /**

@@ -111,11 +111,7 @@ public class FbxLoader {
                 mesh.setTextureCoordsArrayBuffer(texCoordsBuffer);
                 mesh.setDrawMode(GLES20.GL_TRIANGLES);
                 mesh.setIndexed(false);
-
-                // material
-                if (material != null) {
-                    mesh.setMaterial(material);
-                }
+                mesh.setMaterial(material);
                 
                 ret.add(mesh);
             }
