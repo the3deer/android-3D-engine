@@ -43,7 +43,7 @@ public final class Skeleton {
 
         animSkeleton.setId(animatedModel.getId() + "-skeleton");
         animSkeleton.setDrawMode(GLES20.GL_TRIANGLES);
-        animSkeleton.setDrawUsingArrays(true);
+        animSkeleton.setIndexed(false);
         animSkeleton.setDecorator(true);
 
         Node skinRoot = skin.getRootJoint();

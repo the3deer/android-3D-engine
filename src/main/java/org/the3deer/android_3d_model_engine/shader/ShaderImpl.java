@@ -362,7 +362,7 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
         if (supportsTextures) {
             setFeatureFlag("u_Textured", false);
 
-            if (obj.getTextureCoordsArrayBuffer() != null) {
+            if (obj.getMaterial() != null && obj.getTextureCoordsArrayBuffer() != null) {
                 mTextureHandle = setVBO("a_TexCoordinate", obj.getTextureCoordsArrayBuffer(), TEXTURE_COORDS_PER_VERTEX, GLES20.GL_FLOAT);
 
                 if (obj.getMaterial().getColorTexture() != null) {
@@ -383,7 +383,7 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
         }
 
         // pass in the SkyBox texture
-        if (obj.getMaterial().getColorTexture() != null && supportsTextureCube) {
+        if (obj.getMaterial() != null && obj.getMaterial().getColorTexture() != null && supportsTextureCube) {
             setTextureCube(obj.getMaterial().getColorTexture().getId(), 3);
         }
 
@@ -796,7 +796,7 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
         int drawBufferType = -1;
         Buffer drawOrderBuffer;
         final FloatBuffer vertexBuffer;
-        if (obj.isDrawUsingArrays()) {
+        if (!obj.isIndexed()) {
             drawOrderBuffer = null;
             vertexBuffer = obj.getVertexBuffer();
         } else {
@@ -826,13 +826,13 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
 
         List<int[]> drawModeList = obj.getDrawModeList();
         if (drawModeList != null) {
-            if (obj.isDrawUsingArrays()) {
+            if (!obj.isIndexed()) {
                 drawPolygonsUsingArrays(drawMode, drawModeList);
             } else {
                 drawPolygonsUsingIndex(drawOrderBuffer, drawBufferType, drawModeList);
             }
         } else {
-            if (obj.isDrawUsingArrays()) {
+            if (!obj.isIndexed()) {
                 drawTrianglesUsingArrays(drawMode, drawSize, vertexBuffer.capacity() / COORDS_PER_VERTEX);
             } else {
                 drawTrianglesUsingIndex(obj, element, drawMode, drawSize, drawOrderBuffer, drawBufferType);
@@ -983,8 +983,16 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
             flags.put(element, id);
         }*/
 
-        if (element.getMaterial() != null && element.getMaterial().getColor() != null) {
-            setUniform4(element.getMaterial().getColor(), "vColor");
+        // element material
+        Material material = element.getMaterial();
+
+        // override if null
+        if (material == null) {
+            material = obj.getMaterial();
+        }
+
+        if (material != null && material.getColor() != null) {
+            setUniform4(material.getColor(), "vColor");
         } else {
             //setUniform4(DEFAULT_COLOR, "vColor");
         }
@@ -997,82 +1005,85 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
         // default is no textured
         if (supportsTextures) {
             setFeatureFlag("u_Textured", obj.getTextureCoordsArrayBuffer() != null
-                    && element.getMaterial() != null && element.getMaterial().getColorTexture() != null
-                    && element.getMaterial().getColorTexture().hasId()
+                    && material != null && material.getColorTexture() != null
+                    && material.getColorTexture().hasId()
                     && texturesEnabled);
         }
 
         // texture transform (Khronos)
         if (supportsTexturesTransformed) {
             setFeatureFlag("u_TextureTransformed", false);
-            try {
-                if (element.getMaterial().getColorTexture() != null &&
-                        element.getMaterial().getColorTexture().getExtensions() != null &&
-                        element.getMaterial().getColorTexture().getExtensions().containsKey("KHR_texture_transform")) {
-                    Map<String, ?> extensions = (Map<String, ?>) element.getMaterial().getColorTexture().getExtensions().get("KHR_texture_transform");
-                    List<Double> offset = (List<Double>) extensions.get("offset");
-                    if (offset != null) {
-                        setUniform2(new float[]{offset.get(0).floatValue(), offset.get(1).floatValue()}, "u_TextureOffset");
-                    } else {
-                        setUniform2(new float[]{0f, 0f}, "u_TextureOffset");
+
+            if (material != null) {
+                try {
+                    if (material.getColorTexture() != null &&
+                            material.getColorTexture().getExtensions() != null &&
+                            material.getColorTexture().getExtensions().containsKey("KHR_texture_transform")) {
+                        Map<String, ?> extensions = (Map<String, ?>) material.getColorTexture().getExtensions().get("KHR_texture_transform");
+                        List<Double> offset = (List<Double>) extensions.get("offset");
+                        if (offset != null) {
+                            setUniform2(new float[]{offset.get(0).floatValue(), offset.get(1).floatValue()}, "u_TextureOffset");
+                        } else {
+                            setUniform2(new float[]{0f, 0f}, "u_TextureOffset");
+                        }
+                        List<Double> scale = (List<Double>) extensions.get("scale");
+                        if (scale != null) {
+                            setUniform2(new float[]{scale.get(0).floatValue(), scale.get(1).floatValue()}, "u_TextureScale");
+                        } else {
+                            setUniform2(new float[]{1f, 1f}, "u_TextureScale");
+                        }
+                        Double rotation = (Double) extensions.get("rotation");
+                        if (rotation != null) {
+                            setUniform1(rotation.floatValue(), "u_TextureRotation");
+                        } else {
+                            setUniform1(0, "u_TextureRotation");
+                        }
+                        setFeatureFlag("u_TextureTransformed", true);
                     }
-                    List<Double> scale = (List<Double>) extensions.get("scale");
-                    if (scale != null) {
-                        setUniform2(new float[]{scale.get(0).floatValue(), scale.get(1).floatValue()}, "u_TextureScale");
-                    } else {
-                        setUniform2(new float[]{1f, 1f}, "u_TextureScale");
-                    }
-                    Double rotation = (Double) extensions.get("rotation");
-                    if (rotation != null) {
-                        setUniform1(rotation.floatValue(), "u_TextureRotation");
-                    } else {
-                        setUniform1(0, "u_TextureRotation");
-                    }
-                    setFeatureFlag("u_TextureTransformed", true);
+                } catch (Exception e) {
+                    // ignore
                 }
-            } catch (Exception e) {
-                // ignore
             }
         }
 
         textureCounter = 4;
-        if (element.getMaterial() != null) {
+        if (material != null) {
 
             // set alpha cutoff
             if (supportBlending) {
-                setUniform1(element.getMaterial().getAlphaCutoff(), "u_AlphaCutoff");
-                setUniformInt(element.getMaterial().getAlphaMode().ordinal(), "u_AlphaMode");
+                setUniform1(material.getAlphaCutoff(), "u_AlphaCutoff");
+                setUniformInt(material.getAlphaMode().ordinal(), "u_AlphaMode");
             }
 
             if (supportsTextures && obj.getTextureCoordsArrayBuffer() != null
-                    && element.getMaterial().getColorTexture() != null
+                    && material.getColorTexture() != null
                     && texturesEnabled) {
-                loadTexture(element.getMaterial().getColorTexture());
-                setTexture(element.getMaterial().getColorTexture(), "u_Texture", textureCounter++);
+                loadTexture(material.getColorTexture());
+                setTexture(material.getColorTexture(), "u_Texture", textureCounter++);
                 setFeatureFlag("u_Textured", true);
             }
 
             // transmission map
             if (supportsTransmissionTexture) {
-                boolean toggle = element.getMaterial().getTransmissionTexture() != null;
-                loadTexture(element.getMaterial().getTransmissionTexture());
-                setTexture(element.getMaterial().getTransmissionTexture(), "u_TransmissionTexture", textureCounter++);
-                setUniform1(element.getMaterial().getThicknessFactor(), "u_TransmissionFactor");
+                boolean toggle = material.getTransmissionTexture() != null;
+                loadTexture(material.getTransmissionTexture());
+                setTexture(material.getTransmissionTexture(), "u_TransmissionTexture", textureCounter++);
+                setUniform1(material.getThicknessFactor(), "u_TransmissionFactor");
                 setFeatureFlag("u_TransmissionTextured", toggle);
             }
 
-            if (element.getMaterial().getNormalTexture() != null) {
-                loadTexture(element.getMaterial().getNormalTexture());
-                setTexture(element.getMaterial().getNormalTexture(), "u_NormalTexture", textureCounter++);
+            if (material.getNormalTexture() != null) {
+                loadTexture(material.getNormalTexture());
+                setTexture(material.getNormalTexture(), "u_NormalTexture", textureCounter++);
                 setFeatureFlag("u_NormalTextured", true);
             }
 
-            boolean enableEmissive = element.getMaterial().getEmissiveTexture() != null && element.getMaterial().getEmissiveFactor() != null;
+            boolean enableEmissive = material.getEmissiveTexture() != null && material.getEmissiveFactor() != null;
             setFeatureFlag("u_EmissiveTextured", enableEmissive);
             if (enableEmissive) {
-                loadTexture(element.getMaterial().getEmissiveTexture());
-                setTexture(element.getMaterial().getEmissiveTexture(), "u_EmissiveTexture", textureCounter++);
-                setUniform3(element.getMaterial().getEmissiveFactor(), "u_EmissiveFactor");
+                loadTexture(material.getEmissiveTexture());
+                setTexture(material.getEmissiveTexture(), "u_EmissiveTexture", textureCounter++);
+                setUniform3(material.getEmissiveFactor(), "u_EmissiveFactor");
             }
         }
 

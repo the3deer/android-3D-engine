@@ -31,13 +31,8 @@ public class BoundingBoxDrawer implements Drawer {
     @Inject
     private SceneManager sceneManager;
 
-    /**
-     * Animator
-     */
-    private Animator animator = new Animator();
-
     // dynamic bounding boxes
-    private Map<Object3DData, Object3DData> boundingBoxes = new HashMap<>();
+    private Map<String, Object3DData> boundingBoxes = new HashMap<>();
 
     private boolean enabled = true;
 
@@ -117,7 +112,7 @@ public class BoundingBoxDrawer implements Drawer {
     }
 
     private Object3DData getBoundingBox(Object3DData objData) {
-        Object3DData boundingBoxData = boundingBoxes.get(objData);
+        Object3DData boundingBoxData = boundingBoxes.get(objData.getId());
         if (boundingBoxData == null) {
             if (Constants.STRATEGY_BBOX_NEW && objData instanceof AnimatedModel && ((AnimatedModel) objData).getSkin() != null){
                 boundingBoxData = BoundingBox.buildSkinned((AnimatedModel) objData);
@@ -130,7 +125,7 @@ public class BoundingBoxDrawer implements Drawer {
                 boundingBoxData.setDecorator(false);
                 //boundingBoxData.setReadOnly(true);
                 //boundingBoxData.setScale(objData.getScale());
-                boundingBoxes.put(objData, boundingBoxData);
+                boundingBoxes.put(objData.getId(), boundingBoxData);
             }
         }
 

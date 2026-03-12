@@ -26,11 +26,14 @@ public final class BoundingBox {
 
         Log.d("BoundingBox", "Building SKINNED bounding box for: " + sourcePrimitive.getId());
 
+        // clone model
         AnimatedModel boundingBox = sourcePrimitive.clone();
 
+        // override attributes
         boundingBox.setId(sourcePrimitive.getId() + "_boundingBox_skinned");
         boundingBox.setParent(sourcePrimitive);
         boundingBox.setDecorator(true);
+        boundingBox.setTextureCoordsArrayBuffer(null);
 
         Dimensions box = sourcePrimitive.getDimensions();
         FloatBuffer vertices = IOUtils.createFloatBuffer(8 * 3);
@@ -93,7 +96,7 @@ public final class BoundingBox {
         boundingBox.setIndexBuffer(indexBuffer);
         boundingBox.getElements().get(0).setIndexBuffer(indexBuffer);
         boundingBox.setDrawMode(GLES20.GL_LINES);
-        boundingBox.setDrawUsingArrays(false);
+        boundingBox.setIndexed(true);
         boundingBox.setDrawModeList(null);
 
         return boundingBox;
@@ -135,7 +138,7 @@ public final class BoundingBox {
 
         return new Object3DData(vertices, indexBuffer)
                 .setDrawMode(GLES20.GL_LINES)
-                .setDrawUsingArrays(false)
+                .setIndexed(true)
                 .setDecorator(true)
                 .setId(obj.getId() + "_boundingBox_static").setParent(obj).setParentNode(parentNode);
     }

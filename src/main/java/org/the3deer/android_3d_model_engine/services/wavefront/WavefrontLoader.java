@@ -146,7 +146,7 @@ public class WavefrontLoader {
                 data3D.setVertexNormalsArrayBuffer(meshData.getNormalsBuffer());
                 data3D.setTextureCoordsArrayBuffer(meshData.getTextureBuffer());
                 data3D.setElements(meshData.getElements());
-                data3D.setDrawUsingArrays(false);
+                data3D.setIndexed(true);
                 data3D.setDrawMode(GLES20.GL_TRIANGLES);
 
                 // add model to scene

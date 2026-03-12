@@ -86,7 +86,7 @@ public class ColladaLoaderTask extends LoaderTask {
             }
         }
 
-        // --- testing...
+        // invoke the handler
         callback.onLoad(scene);
         callback.onLoadComplete(scene);
 

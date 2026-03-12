@@ -167,7 +167,7 @@ public class Widget extends Object3DData implements EventListener {
 
     {
         setId(getClass().getSimpleName() + "_" + ++counter);
-        setDrawUsingArrays(true);
+        setIndexed(false);
         setDrawMode(GLES20.GL_LINE_STRIP);
         setVisible(false);
         //setCentered(true);
@@ -316,7 +316,7 @@ public class Widget extends Object3DData implements EventListener {
     public Object3DData setColor(float[] color) {
         super.setColor(color);
 
-        if (!isDrawUsingArrays()) return this;
+        if (isIndexed()) return this;
         if (getColorsBuffer() == null) return this;
 
 

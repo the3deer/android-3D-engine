@@ -44,15 +44,13 @@ public class Object3DData {
         this.material = material;
     }
 
-    private boolean isIndexed = false;
-
-    public Object isIndexed() {
+    public boolean isIndexed() {
         return this.isIndexed;
     }
 
-    public void setIndexed(boolean indexed) {
+    public Object3DData setIndexed(boolean indexed) {
         this.isIndexed = indexed;
-        this.drawUsingArrays = !indexed;
+        return this;
     }
 
     public static class ChangeEvent extends EventObject {
@@ -97,7 +95,7 @@ public class Object3DData {
     /**
      * Whether to draw object using indices or not
      */
-    private boolean drawUsingArrays = false;
+    private boolean isIndexed = false;
     /**
      * Whether the object is to be drawn (and children)
      */
@@ -143,7 +141,7 @@ public class Object3DData {
     private Materials materials;
 
     // simple object variables for drawing using arrays
-    private Material material = new Material("default", "default");
+    private Material material;
     protected Buffer indexBuffer = null;
 
     // Processed arrays
@@ -254,14 +252,12 @@ public class Object3DData {
 
     public Object3DData(FloatBuffer vertexArrayBuffer) {
         this.vertexArrayBuffer = vertexArrayBuffer;
-        this.setDrawUsingArrays(true);
         updateDimensions();
     }
 
     public Object3DData(FloatBuffer verticesBuffer, Buffer indicesBuffer) {
         this.vertexArrayBuffer = verticesBuffer;
         this.indexBuffer = indicesBuffer;
-        this.setDrawUsingArrays(false);
         updateDimensions();
     }
 
@@ -269,7 +265,6 @@ public class Object3DData {
         this.vertexArrayBuffer = vertexArrayBuffer;
         this.textureCoordsArrayBuffer = textureCoordsArrayBuffer;
         this.getMaterial().setColorTexture(new Texture().setData(texData));
-        this.setDrawUsingArrays(true);
         updateDimensions();
     }
 
@@ -279,7 +274,6 @@ public class Object3DData {
         this.vertexColorsArrayBuffer = vertexColorsArrayBuffer;
         this.textureCoordsArrayBuffer = textureCoordsArrayBuffer;
         this.getMaterial().setColorTexture(new Texture().setData(texData));
-        this.setDrawUsingArrays(true);
         updateDimensions();
     }
 
@@ -289,7 +283,6 @@ public class Object3DData {
         this.vertexArrayBuffer = verts;
         this.vertexNormalsArrayBuffer = normals;
         this.materials = materials;
-        this.setDrawUsingArrays(false);
         this.updateDimensions();
     }
 
@@ -338,11 +331,11 @@ public class Object3DData {
         return this.name;
     }
 
-    public void setSkined(boolean skinned) {
+    public void setSkinned(boolean skinned) {
         this.isSkinned = skinned;
     }
 
-    public boolean isSkined() {
+    public boolean isSkinned() {
         return this.isSkinned;
     }
 
@@ -352,16 +345,6 @@ public class Object3DData {
 
     public URI getUri() {
         return this.uri;
-    }
-
-    public boolean isDrawUsingArrays() {
-        return drawUsingArrays;
-    }
-
-    public Object3DData setDrawUsingArrays(boolean drawUsingArrays) {
-        this.drawUsingArrays = drawUsingArrays;
-        this.isIndexed = !drawUsingArrays;
-        return this;
     }
 
     public Material getMaterial() {
@@ -441,7 +424,7 @@ public class Object3DData {
 
         // Case 1: The object is drawn using glDrawArrays (non-indexed)
         // This is typically true when 'elements' is null or empty.
-        if (isDrawUsingArrays()) {
+        if (!isIndexed()) {
             for (int i = 0; i < vertexArrayBuffer.capacity() / 3; i++) {
                 dimensions.update(vertexArrayBuffer.get(i * 3), vertexArrayBuffer.get(i * 3 + 1), vertexArrayBuffer.get(i * 3 + 2));
             }
@@ -653,13 +636,24 @@ public class Object3DData {
     }
 
     public float[] getColor() {
-        return getMaterial().getColor();
+
+        // check material
+        if (material != null){
+            return material.getColor();
+        }
+
+        return null;
     }
 
     public Object3DData setColor(float[] color) {
 
         // set color only if valid data
         if (color != null) {
+
+            // init material if null
+            if (material == null){
+                material = new Material();
+            }
 
             // color variable when using single color
             this.getMaterial().setDiffuse(color);
@@ -1094,7 +1088,6 @@ public class Object3DData {
     public List<Element> getElements() {
         if (elements == null && getIndexBuffer() != null) {
             Element element = new Element(getId(), getIndexBuffer(), null);
-            element.setMaterial(this.getMaterial());
             elements = Collections.singletonList(element);
         }
         return elements;
@@ -1157,9 +1150,9 @@ public class Object3DData {
                 ret.getElements().add(this.getElements().get(i).clone());
             }
         }
-        ret.setMaterial(this.getMaterial());
+        ret.material = this.material;
         ret.setDrawMode(this.getDrawMode());
-        ret.setDrawUsingArrays(this.isDrawUsingArrays());
+        ret.setIndexed(this.isIndexed());
         ret.setParentNode(this.getParentNode());
         //ret.setDrawUsingArrays(this.isDrawUsingArrays());
 
@@ -1224,10 +1217,10 @@ public class Object3DData {
                 "id='" + id + "'" +
                 ", name=" + getName() +
                 ", isVisible=" + isVisible +
-                ", color=" + (getColorsBuffer() != null ? getColorsBuffer().toString() : Arrays.toString(getMaterial().getColor())) +
                 ", position=" + Arrays.toString(location) +
                 ", scale=" + Arrays.toString(scale) +
-                ", indexed=" + !isDrawUsingArrays() +
+                ", indexed=" + isIndexed() +
+                ", colors=" + (vertexColorsArrayBuffer != null ? vertexColorsArrayBuffer.capacity() / 4 : 0) +
                 ", vertices: " + (vertexArrayBuffer != null ? vertexArrayBuffer.capacity() / 3 : 0) +
                 ", normals: " + (vertexNormalsArrayBuffer != null ? vertexNormalsArrayBuffer.capacity() / 3 : 0) +
                 ", dimensions: " + this.dimensions +

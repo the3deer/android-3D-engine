@@ -134,12 +134,12 @@ public class Element {
     @Override
     public Element clone() {
         final Element ret = new Element();
-        if (this.getMaterial() != null)
-            ret.setMaterial(this.getMaterial().clone());
-        ret.setIndexBuffer(this.getIndexBuffer());
-        ret.materialId = this.materialId;
         ret.id = this.id;
+        ret.materialId = this.materialId;
+        ret.material = this.material;
+        ret.indexBuffer = this.indexBuffer;
         ret.indicesArray = this.indicesArray;
         return ret;
     }
+
 }

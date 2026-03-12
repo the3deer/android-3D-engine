@@ -319,7 +319,7 @@ public final class GltfLoaderLegacy {
 
                             // flag skinned
                             if (nodeModel.getSkinModel() != null) {
-                                clonedObj.setSkined(true);
+                                clonedObj.setSkinned(true);
                             }
 
                             // Add the clone to the scene so it gets rendered
@@ -457,7 +457,7 @@ public final class GltfLoaderLegacy {
         model.setTangentBuffer(tangentBuffer);
         model.setVertexColorsArrayBuffer(colorBuffer);
         model.setIndexBuffer(drawBuffer);
-        model.setDrawUsingArrays(drawBuffer == null);
+        model.setIndexed(drawBuffer != null);
         model.setDrawMode(meshPrimitiveModel.getMode());
 
         // init normals

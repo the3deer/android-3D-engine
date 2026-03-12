@@ -24,7 +24,7 @@ public class Material {
     }
 
     // material name
-    private String id;
+    private String id = "Material_"+System.identityHashCode(this);
     private String name;
 
     // colour info

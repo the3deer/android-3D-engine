@@ -34,7 +34,7 @@ public class Wireframe {
 
         try {
 
-            if (!objData.isDrawUsingArrays()) {
+            if (objData.isIndexed()) {
 
                 // process all elements
                 for (int i=0; i<objData.getElements().size(); i++) {
@@ -138,7 +138,7 @@ public class Wireframe {
             return ret
                     .setReadOnly(true)
                     .setDrawMode(GLES20.GL_LINES)
-                    .setDrawUsingArrays(false)
+                    .setIndexed(true)
                     .setMaterial(material)
                     .setId(objData.getId() + "_wireframe");
         } catch (Exception ex) {

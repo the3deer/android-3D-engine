@@ -384,7 +384,7 @@ public class GltfLoader {
                 model.setTextureCoordsArrayBuffer((FloatBuffer) primitiveDto.texCoords);
                 model.setColorsBuffer(primitiveDto.colors);
                 model.setIndexBuffer(primitiveDto.indices);
-                model.setDrawUsingArrays(primitiveDto.indices == null);
+                model.setIndexed(primitiveDto.indices != null);
                 model.setDrawMode(GLES20.GL_TRIANGLES);
 
                 if (primitiveDto.materialIndex != null) {

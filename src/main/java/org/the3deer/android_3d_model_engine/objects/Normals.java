@@ -41,14 +41,14 @@ public final class Normals {
         Log.i("Normals", "Generating normals object... " + obj.getId());
 
         if (obj instanceof AnimatedModel) {
-            if (obj.isDrawUsingArrays()) {
+            if (!obj.isIndexed()) {
                 // TODO: do we have AnimatedModel using arrays ?
                 return null;
             } else {
                 return buildNormalLinesForElements((AnimatedModel) obj);
             }
         } else {
-            if (obj.isDrawUsingArrays()) {
+            if (!obj.isIndexed()) {
 
                 if (obj.getVertexNormalsArrayBuffer() != null) {
                     return buildNormalLines(obj);
@@ -147,7 +147,7 @@ public final class Normals {
         normalsObj.setModelMatrix(obj.getModelMatrix());
         normalsObj.setReadOnly(true);
         normalsObj.setElements(normalsElements);
-        normalsObj.setDrawUsingArrays(false);
+        normalsObj.setIndexed(true);
 
         Log.i("Normals", "Built normals object: '" + normalsObj);
 
@@ -254,7 +254,7 @@ public final class Normals {
         normalsObj.setModelMatrix(obj.getModelMatrix());
         normalsObj.setReadOnly(true);
         normalsObj.setElements(newElements);
-        normalsObj.setDrawUsingArrays(false);
+        normalsObj.setIndexed(true);
         normalsObj.setSkin(obj.getSkin());
 
         // skinned normals only for skinned models

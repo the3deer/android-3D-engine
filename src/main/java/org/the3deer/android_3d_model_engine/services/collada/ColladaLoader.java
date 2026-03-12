@@ -221,8 +221,9 @@ public class ColladaLoader {
         // bindings
         if (parserNode.getBindMaterialId() != null) {
             if (materials == null || !materials.containsKey(parserNode.getBindMaterialId())) {
-                Log.w(TAG, "Node '" + parserNode.getId() + "' references unknown material '" + parserNode.getBindMaterialId() + "'");
+                Log.d(TAG, "Node '" + parserNode.getId() + "' references unknown material '" + parserNode.getBindMaterialId() + "'");
             } else {
+                Log.d(TAG, "Node '" + parserNode.getId() + "' bound to material '" + parserNode.getBindMaterialId() + "'");
                 final Material material = materials.get(parserNode.getBindMaterialId());
                 modelNode.setMaterial(material);
             }
@@ -305,10 +306,10 @@ public class ColladaLoader {
                 }
             }
 
+            // register model
             finalModels.add(newInstance);
-            Log.d(TAG, "Node '" + parserNode.getId() + "' resolved to template "+parserNode.getId());
 
-            // This log is now even more useful
+            // debug link
             Log.d(TAG, "Node '" + parserNode.getId() + "' resolved to template "+parserNode.getId());
         }
 
@@ -520,7 +521,7 @@ public class ColladaLoader {
             } else {
                 model.setMaterial(materials.get(geometry.getMaterialId()));
             }
-            model.setIndexed(false);
+            model.setIndexed(geometry.getIndices() != null);
         } else {
             Log.d(TAG, "Geometry '" + geometry.getId()
                     + "' has multiple meshes: "+ geometry.getMeshes().size());

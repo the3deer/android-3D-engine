@@ -126,7 +126,7 @@ public final class ColladaLoaderLegacy {
                     data3D.setElements(meshData.getElements());
                     //data3D.setDimensions(meshData.getDimension());
                     data3D.setDrawMode(GLES20.GL_TRIANGLES);
-                    data3D.setDrawUsingArrays(false);
+                    data3D.setIndexed(true);
 
                     // bind transform
                     if (skeletons != null) {
