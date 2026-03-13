@@ -133,27 +133,31 @@ public class GltfParser {
             if (materialModel instanceof MaterialModelV2) {
                 MaterialModelV2 materialModelV2 = (MaterialModelV2) materialModel;
 
-                // Base color and texture
-                materialDto.baseColorFactor = materialModelV2.getBaseColorFactor();
-                if (materialModelV2.getBaseColorTexture() != null && materialModelV2.getBaseColorTexture().getImageModel() != null) {
-                    materialDto.baseColorTexture = materialModelV2.getBaseColorTexture().getImageModel().getImageData();
-                }
+                try {
+                    // Base color and texture
+                    materialDto.baseColorFactor = materialModelV2.getBaseColorFactor();
+                    if (materialModelV2.getBaseColorTexture() != null && materialModelV2.getBaseColorTexture().getImageModel() != null) {
+                        materialDto.baseColorTexture = materialModelV2.getBaseColorTexture().getImageModel().getImageData();
+                    }
 
-                // Alpha settings
-                materialDto.alphaCutoff = materialModelV2.getAlphaCutoff();
-                if (materialModelV2.getAlphaMode() != null) {
-                    materialDto.alphaMode = materialModelV2.getAlphaMode().name();
-                }
+                    // Alpha settings
+                    materialDto.alphaCutoff = materialModelV2.getAlphaCutoff();
+                    if (materialModelV2.getAlphaMode() != null) {
+                        materialDto.alphaMode = materialModelV2.getAlphaMode().name();
+                    }
 
-                // Normal map
-                if (materialModelV2.getNormalTexture() != null && materialModelV2.getNormalTexture().getImageModel() != null) {
-                    materialDto.normalTexture = materialModelV2.getNormalTexture().getImageModel().getImageData();
-                }
+                    // Normal map
+                    if (materialModelV2.getNormalTexture() != null && materialModelV2.getNormalTexture().getImageModel() != null) {
+                        materialDto.normalTexture = materialModelV2.getNormalTexture().getImageModel().getImageData();
+                    }
 
-                // Emissive map and factor
-                materialDto.emissiveFactor = materialModelV2.getEmissiveFactor();
-                if (materialModelV2.getEmissiveTexture() != null && materialModelV2.getEmissiveTexture().getImageModel() != null) {
-                    materialDto.emissiveTexture = materialModelV2.getEmissiveTexture().getImageModel().getImageData();
+                    // Emissive map and factor
+                    materialDto.emissiveFactor = materialModelV2.getEmissiveFactor();
+                    if (materialModelV2.getEmissiveTexture() != null && materialModelV2.getEmissiveTexture().getImageModel() != null) {
+                        materialDto.emissiveTexture = materialModelV2.getEmissiveTexture().getImageModel().getImageData();
+                    }
+                } catch (Exception e) {
+                    Log.e(TAG, "Failed to parse v2 material: " + e.getMessage(), e);
                 }
 
                 // KHR_materials_volume extension
