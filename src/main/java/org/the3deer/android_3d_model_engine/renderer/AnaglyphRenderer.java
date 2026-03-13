@@ -7,6 +7,7 @@ import org.the3deer.android_3d_model_engine.model.Camera;
 import org.the3deer.android_3d_model_engine.model.Constants;
 import org.the3deer.android_3d_model_engine.model.Object3DData;
 import org.the3deer.android_3d_model_engine.model.Scene;
+import org.the3deer.android_3d_model_engine.scene.SceneManager;
 import org.the3deer.android_3d_model_engine.view.Renderer;
 import org.the3deer.util.event.EventListener;
 
@@ -31,7 +32,7 @@ public class AnaglyphRenderer implements EventListener, Renderer {
     @Inject
     private List<Drawer> drawers;
     @Inject
-    private Scene scene;
+    private SceneManager sceneManager;
     @Inject
     private List<EventListener> listeners = new ArrayList<>();
 
@@ -49,17 +50,18 @@ public class AnaglyphRenderer implements EventListener, Renderer {
         this.enabled = enabled;
     }
 
-    public void setScene(Scene scene) {
-        Log.v(TAG, "New scene. Objects: " + scene.getObjects().size());
-        this.scene = scene;
-    }
-
     public AnaglyphRenderer addListener(EventListener listener) {
         this.listeners.add(listener);
         return this;
     }
 
     public void onDrawFrame() {
+
+        // assert
+        if (sceneManager == null) return;
+
+        // get current scene
+        final Scene scene = sceneManager.getCurrentScene();
 
         // assert
         if (scene == null || scene.getCamera() == null) return;
