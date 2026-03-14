@@ -58,6 +58,10 @@ public class GpuAsset {
         this.hasTangents = hasTangents;
     }
 
+    public int[] getVboIds() {
+        return vboIds;
+    }
+
     public void bind() {
         GLES30.glBindVertexArray(vaoId);
     }

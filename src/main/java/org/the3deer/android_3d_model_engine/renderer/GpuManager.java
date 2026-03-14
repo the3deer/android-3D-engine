@@ -3,6 +3,7 @@ package org.the3deer.android_3d_model_engine.renderer;
 import android.opengl.GLES30;
 import android.util.Log;
 
+import org.the3deer.android_3d_model_engine.gui.Widget;
 import org.the3deer.android_3d_model_engine.model.AnimatedModel;
 import org.the3deer.android_3d_model_engine.model.Element;
 import org.the3deer.android_3d_model_engine.model.Object3DData;
@@ -49,6 +50,9 @@ public class GpuManager {
         if (asset == null) {
             asset = createAsset(obj);
             assetMap.put(obj, asset);
+        } else if (obj.isChanged()) {
+            updateAsset(asset, obj);
+            obj.setChanged(false);
         }
         return asset;
     }
@@ -66,24 +70,27 @@ public class GpuManager {
         GLES30.glGenBuffers(7, vboIds, 0);
 
         // Attribute 0: Position (mandatory)
-        uploadAttribute(ATTR_POSITION, vboIds[ATTR_POSITION], obj.getVertexBuffer(), 3);
+        // Note: For UI widgets like Text, we use GL_DYNAMIC_DRAW because they change often
+        int usage = obj instanceof Widget ? GLES30.GL_DYNAMIC_DRAW : GLES30.GL_STATIC_DRAW;
+
+        uploadAttribute(ATTR_POSITION, vboIds[ATTR_POSITION], obj.getVertexBuffer(), 3, usage);
 
         // Attribute 1: Normal
         boolean hasNormals = obj.getNormalsBuffer() != null;
         if (hasNormals) {
-            uploadAttribute(ATTR_NORMAL, vboIds[ATTR_NORMAL], obj.getNormalsBuffer(), 3);
+            uploadAttribute(ATTR_NORMAL, vboIds[ATTR_NORMAL], obj.getNormalsBuffer(), 3, usage);
         }
 
         // Attribute 2: Texture Coordinates (UV)
         boolean hasTexCoords = obj.getTextureCoordsArrayBuffer() != null;
         if (hasTexCoords) {
-            uploadAttribute(ATTR_TEXCOORD, vboIds[ATTR_TEXCOORD], obj.getTextureCoordsArrayBuffer(), 2);
+            uploadAttribute(ATTR_TEXCOORD, vboIds[ATTR_TEXCOORD], obj.getTextureCoordsArrayBuffer(), 2, usage);
         }
 
         // Attribute 3: Colors
         boolean hasColors = obj.getColorsBuffer() != null;
         if (hasColors) {
-            uploadAttribute(ATTR_COLOR, vboIds[ATTR_COLOR], obj.getColorsBuffer(), 4);
+            uploadAttribute(ATTR_COLOR, vboIds[ATTR_COLOR], obj.getColorsBuffer(), 4, usage);
         }
 
         // Animation Attributes
@@ -91,17 +98,16 @@ public class GpuManager {
         if (obj instanceof AnimatedModel) {
             Skin skin = ((AnimatedModel) obj).getSkin();
             if (skin != null && skin.getJointsBuffer() != null && skin.getWeightsBuffer() != null) {
-                // Pass joint indices as float-convertible to match 'vec4' in shader
-                uploadAttribute(ATTR_JOINT_INDICES, vboIds[ATTR_JOINT_INDICES], skin.getJointsBuffer(), skin.getJointComponents());
-                uploadAttribute(ATTR_JOINT_WEIGHTS, vboIds[ATTR_JOINT_WEIGHTS], skin.getWeightsBuffer(), skin.getWeightsComponents());
+                uploadAttribute(ATTR_JOINT_INDICES, vboIds[ATTR_JOINT_INDICES], skin.getJointsBuffer(), skin.getJointComponents(), usage);
+                uploadAttribute(ATTR_JOINT_WEIGHTS, vboIds[ATTR_JOINT_WEIGHTS], skin.getWeightsBuffer(), skin.getWeightsComponents(), usage);
                 hasSkin = true;
             }
         }
 
-        // Attribute 6: Tangents (for normal mapping)
+        // Attribute 6: Tangents
         boolean hasTangents = obj.getTangentBuffer() != null;
         if (hasTangents) {
-            uploadAttribute(ATTR_TANGENT, vboIds[ATTR_TANGENT], obj.getTangentBuffer(), 4);
+            uploadAttribute(ATTR_TANGENT, vboIds[ATTR_TANGENT], obj.getTangentBuffer(), 4, usage);
         }
 
         // 3. Create GPU Elements (EBOs)
@@ -109,12 +115,10 @@ public class GpuManager {
         if (obj.isIndexed()) {
             List<Element> elements = obj.getElements();
             if (elements != null && !elements.isEmpty()) {
-                // Multi-element support
                 for (Element element : elements) {
                     gpuElements.add(uploadIndexBuffer(element.getIndexBuffer()));
                 }
             } else if (obj.getIndexBuffer() != null) {
-                // Single index buffer fallback
                 gpuElements.add(uploadIndexBuffer(obj.getIndexBuffer()));
             }
         }
@@ -128,37 +132,53 @@ public class GpuManager {
                 hasSkin, hasNormals, hasTexCoords, hasColors, hasTangents);
     }
 
+    private void updateAsset(GpuAsset asset, Object3DData obj) {
+        // Only update attributes that are likely to change in a UI context: Position and Colors
+        if (obj.getVertexBuffer() != null) {
+            updateVbo(asset.getVboIds()[ATTR_POSITION], obj.getVertexBuffer());
+        }
+        if (obj.getColorsBuffer() != null) {
+            updateVbo(asset.getVboIds()[ATTR_COLOR], obj.getColorsBuffer());
+        }
+    }
+
+    private void updateVbo(int vboId, Buffer buffer) {
+        GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, vboId);
+        buffer.position(0);
+        int elementSize = (buffer instanceof FloatBuffer || buffer instanceof IntBuffer) ? 4 : (buffer instanceof ShortBuffer) ? 2 : 1;
+        GLES30.glBufferSubData(GLES30.GL_ARRAY_BUFFER, 0, buffer.capacity() * elementSize, buffer);
+    }
+
     private GpuAsset.GpuElement uploadIndexBuffer(Buffer indexBuffer) {
         if (indexBuffer == null) return null;
-        
         int[] eboIds = new int[1];
         GLES30.glGenBuffers(1, eboIds, 0);
         int eboId = eboIds[0];
-        
         GLES30.glBindBuffer(GLES30.GL_ELEMENT_ARRAY_BUFFER, eboId);
         indexBuffer.position(0);
         int count = indexBuffer.capacity();
         int type;
-        
+        int size;
         if (indexBuffer instanceof IntBuffer) {
-            GLES30.glBufferData(GLES30.GL_ELEMENT_ARRAY_BUFFER, count * 4, indexBuffer, GLES30.GL_STATIC_DRAW);
+            size = count * 4;
+            GLES30.glBufferData(GLES30.GL_ELEMENT_ARRAY_BUFFER, size, indexBuffer, GLES30.GL_STATIC_DRAW);
             type = GLES30.GL_UNSIGNED_INT;
         } else if (indexBuffer instanceof ShortBuffer) {
-            GLES30.glBufferData(GLES30.GL_ELEMENT_ARRAY_BUFFER, count * 2, indexBuffer, GLES30.GL_STATIC_DRAW);
+            size = count * 2;
+            GLES30.glBufferData(GLES30.GL_ELEMENT_ARRAY_BUFFER, size, indexBuffer, GLES30.GL_STATIC_DRAW);
             type = GLES30.GL_UNSIGNED_SHORT;
         } else {
-            GLES30.glBufferData(GLES30.GL_ELEMENT_ARRAY_BUFFER, count, indexBuffer, GLES30.GL_STATIC_DRAW);
+            size = count;
+            GLES30.glBufferData(GLES30.GL_ELEMENT_ARRAY_BUFFER, size, indexBuffer, GLES30.GL_STATIC_DRAW);
             type = GLES30.GL_UNSIGNED_BYTE;
         }
-        
         return new GpuAsset.GpuElement(eboId, count, type);
     }
 
-    private void uploadAttribute(int location, int vboId, Buffer buffer, int size) {
+    private void uploadAttribute(int location, int vboId, Buffer buffer, int size, int usage) {
         if (buffer == null) return;
         GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, vboId);
         buffer.position(0);
-        
         int type;
         int elementSize;
         if (buffer instanceof FloatBuffer) {
@@ -176,26 +196,18 @@ public class GpuManager {
         } else {
             throw new IllegalArgumentException("Unsupported buffer type: " + buffer.getClass());
         }
-        
-        GLES30.glBufferData(GLES30.GL_ARRAY_BUFFER, buffer.capacity() * elementSize, buffer, GLES30.GL_STATIC_DRAW);
+        GLES30.glBufferData(GLES30.GL_ARRAY_BUFFER, buffer.capacity() * elementSize, buffer, usage);
         GLES30.glEnableVertexAttribArray(location);
-        
-        // Note: We use glVertexAttribPointer even for integers because our current shaders 
-        // expect 'vec4' (float) and let the hardware/driver convert the values.
         GLES30.glVertexAttribPointer(location, size, type, false, 0, 0);
     }
 
     public void removeAsset(Object3DData obj) {
         GpuAsset asset = assetMap.remove(obj);
-        if (asset != null) {
-            asset.dispose();
-        }
+        if (asset != null) asset.dispose();
     }
 
     public void clear() {
-        for (GpuAsset asset : assetMap.values()) {
-            asset.dispose();
-        }
+        for (GpuAsset asset : assetMap.values()) asset.dispose();
         assetMap.clear();
     }
 }

@@ -128,7 +128,7 @@ public class GUIDefault extends Widget implements EventListener, BeanManaged {
                 fps = new Label(FontFactory.getInstance(), 7, 1);
                 fps.setId("fps");
                 //fps.setPadding(1);
-                fps.setText("fps");
+                fps.setText("0 fps");
                 fps.setVisible(true);
                 addChild(fps);
             }
@@ -174,6 +174,7 @@ public class GUIDefault extends Widget implements EventListener, BeanManaged {
                 //Log.v(TAG, "FPS: "+fpsEvent.getFps());
             }
         } else if (event instanceof SelectedObjectEvent) {
+            Log.v(TAG, "onEvent. SelectedObjectEvent: "+((SelectedObjectEvent) event).getSelected());
             if (this.info != null && this.info.isVisible()) {
                 final Object3DData selected = ((SelectedObjectEvent) event).getSelected();
                 final StringBuilder info = new StringBuilder();

@@ -112,6 +112,8 @@ public class Label extends Widget {
 
         this.currentText = text;
 
+        setChanged(true);
+
         return this;
     }
 }

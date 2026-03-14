@@ -88,6 +88,8 @@ public final class Text extends Widget {
         IOUtils.fill(colorBuffer, idxColor, colorBuffer.capacity(), 0);
 
         this.currentText = text;
+
+        setChanged(true);
     }
 
     public void update_old(String text) {
