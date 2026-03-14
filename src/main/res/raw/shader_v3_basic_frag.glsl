@@ -1,6 +1,7 @@
 #version 300 es
 
 // OpenGL ES 3.x High-Performance Static Fragment Shader
+// @author andresoviedo
 // @author Gemini AI
 
 precision highp float;

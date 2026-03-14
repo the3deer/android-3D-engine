@@ -72,6 +72,7 @@ void main(){
     vec4 finalColor = baseColor * texColor * u_ColorMask;
 
     // Alpha mode handling (Early discard for Mask mode)
+    // 1 == MASK
     if (u_AlphaMode == 1 && finalColor.a < u_AlphaCutoff) {
         discard;
     }
@@ -130,7 +131,7 @@ void main(){
     // Set output color
     gl_FragColor = finalColor;
 
-    // Force opaque if mode is 0
+    // Force opaque if mode is 0 (OPAQUE)
     if (u_AlphaMode == 0) {
         gl_FragColor.a = 1.0;
     }

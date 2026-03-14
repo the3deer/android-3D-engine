@@ -5,12 +5,12 @@ import org.the3deer.android_3d_model_engine.R;
 
 public enum ShaderResource {
 
-    SKYBOX("skybox", R.raw.shader_skybox_vert, R.raw.shader_skybox_frag),
-    BASIC("basic", R.raw.shader_basic_vert_v2, R.raw.shader_basic_frag_v2),
-    STATIC("static", R.raw.shader_static_vert_v2, R.raw.shader_static_frag_v2),
-    ANIMATED("animated", R.raw.shader_animated_vert_v2, R.raw.shader_animated_frag_v2),
-    SHADOW_MAP("shadow_map", R.raw.shader_v_depth_map_v2, R.raw.shader_f_depth_map_v2),
-    SHADOW("shadow_map", R.raw.shader_v_with_shadow, R.raw.shader_f_with_simple_shadow);
+    SKYBOX("skybox", R.raw.shader_v2_skybox_vert, R.raw.shader_v2_skybox_frag),
+    BASIC("basic", R.raw.shader_v2_basic_vert, R.raw.shader_v2_basic_frag),
+    STATIC("static", R.raw.shader_v2_static_vert, R.raw.shader_v2_static_frag),
+    ANIMATED("animated", R.raw.shader_v2_animated_vert, R.raw.shader_v2_animated_frag),
+    SHADOW_MAP("shadow_map", R.raw.shader_v2_shadow_depth_map_vert, R.raw.shader_v2_shadow_depth_map_frag),
+    SHADOW("shadow_map", R.raw.shader_v2_with_shadow_vert, R.raw.shader_v2_shadow_frag);
 
     String id;
     int vertexShaderResourceId = -1;

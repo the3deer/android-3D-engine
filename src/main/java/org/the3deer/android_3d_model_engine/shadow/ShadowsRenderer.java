@@ -262,7 +262,7 @@ public class ShadowsRenderer {
 
         Matrix.frustumM(mLightProjectionMatrix, 0, -1.1f*ratio, 1.1f*ratio, 1.1f*bottom, 1.1f*top, near, far);
 
-        mDepthMapProgram = shaderFactory.getShader(R.raw.shader_v_depth_map_v2, R.raw.shader_f_depth_map_v2);
+        mDepthMapProgram = shaderFactory.getShader(R.raw.shader_v2_shadow_depth_map_vert, R.raw.shader_v2_shadow_depth_map_frag);
         mDepthMapProgram.setAutoUseProgram(false);
 
         Matrix.setIdentityM(mModelMatrix, 0);
@@ -345,7 +345,7 @@ public class ShadowsRenderer {
         Matrix.multiplyMM(tempResultMatrix, 0, mViewMatrix, 0, mModelMatrix, 0);
         System.arraycopy(tempResultMatrix, 0, mMVMatrix, 0, 16);
 
-        mActiveRenderer = shaderFactory.getShader(R.raw.shader_v_with_shadow, R.raw.shader_f_with_simple_shadow);
+        mActiveRenderer = shaderFactory.getShader(R.raw.shader_v2_with_shadow_vert, R.raw.shader_v2_shadow_frag);
         mActiveRenderer.setAutoUseProgram(false);
         mActiveRenderer.useProgram();
 

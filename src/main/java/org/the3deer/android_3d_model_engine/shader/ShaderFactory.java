@@ -78,17 +78,17 @@ public class ShaderFactory {
         String typeId;
 
         if (Constants.ANIMATIONS_ENABLED && isAnimated) {
-            typeId = "animated";
-            vertResId = (Constants.DEFAULT_SHADER_VERSION == 3) ? R.raw.shader_animated_vert_v3 : R.raw.shader_animated_vert_v2;
-            fragResId = (Constants.DEFAULT_SHADER_VERSION == 3) ? R.raw.shader_animated_frag_v3 : R.raw.shader_animated_frag_v2;
+            typeId = "shader_v"+Constants.DEFAULT_SHADER_VERSION+"_animated";
+            vertResId = (Constants.DEFAULT_SHADER_VERSION == 3) ? R.raw.shader_v3_animated_vert : R.raw.shader_v2_animated_vert;
+            fragResId = (Constants.DEFAULT_SHADER_VERSION == 3) ? R.raw.shader_v3_animated_frag : R.raw.shader_v2_animated_frag;
         } else if (Constants.LIGHTING_ENABLED && !isPoints) {
-            typeId = "static";
-            vertResId = (Constants.DEFAULT_SHADER_VERSION == 3) ? R.raw.shader_basic_vert_v3 : R.raw.shader_static_vert_v2;
-            fragResId = (Constants.DEFAULT_SHADER_VERSION == 3) ? R.raw.shader_basic_frag_v3 : R.raw.shader_static_frag_v2;
+            typeId = "shader_v"+Constants.DEFAULT_SHADER_VERSION+"_static";
+            vertResId = (Constants.DEFAULT_SHADER_VERSION == 3) ? R.raw.shader_v3_static_vert : R.raw.shader_v2_static_vert;
+            fragResId = (Constants.DEFAULT_SHADER_VERSION == 3) ? R.raw.shader_v3_static_frag : R.raw.shader_v2_static_frag;
         } else {
-            typeId = "basic";
-            vertResId = (Constants.DEFAULT_SHADER_VERSION == 3) ? R.raw.shader_basic_vert_v3 : R.raw.shader_basic_vert_v2;
-            fragResId = (Constants.DEFAULT_SHADER_VERSION == 3) ? R.raw.shader_basic_frag_v3 : R.raw.shader_basic_frag_v2;
+            typeId = "shader_v"+Constants.DEFAULT_SHADER_VERSION+"_basic";
+            vertResId = (Constants.DEFAULT_SHADER_VERSION == 3) ? R.raw.shader_v3_basic_vert : R.raw.shader_v2_basic_vert;
+            fragResId = (Constants.DEFAULT_SHADER_VERSION == 3) ? R.raw.shader_v3_basic_frag : R.raw.shader_v2_basic_frag;
         }
 
         // Check cache
@@ -137,13 +137,13 @@ public class ShaderFactory {
     private ShaderImplV2 loadShader(String shaderId, int vertexShaderResourceId, int fragmentShaderResourceId) {
         ShaderImplV2 renderer;
         // build drawer
-        String vertexShaderCode;
+        String vertexShaderCode = shadersCode.get(vertexShaderResourceId);
 
         // experimental: inject glPointSize
-        vertexShaderCode = shadersCode.get(vertexShaderResourceId).replace("void main(){", "void main(){\n\tgl_PointSize = 5.0;");
+        //vertexShaderCode = shadersCode.get(vertexShaderResourceId).replace("void main(){", "void main(){\n\tgl_PointSize = 5.0;");
 
         // use opengl constant to dynamically set up array size in shaders. That should be >=120
-        vertexShaderCode = vertexShaderCode.replace("const int MAX_JOINTS = 60;", "const int MAX_JOINTS = gl_MaxVertexUniformVectors > 60 ? 60 : gl_MaxVertexUniformVectors;");
+        //vertexShaderCode = vertexShaderCode.replace("const int MAX_JOINTS = 60;", "const int MAX_JOINTS = gl_MaxVertexUniformVectors > 60 ? 60 : gl_MaxVertexUniformVectors;");
 
         // create drawer
         /*Log.v("RendererFactory", "\n---------- Vertex shader ----------\n");

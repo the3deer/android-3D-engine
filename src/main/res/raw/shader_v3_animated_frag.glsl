@@ -1,9 +1,14 @@
+#version 300 es
+
+// OpenGL ES 3.x High-Performance Fragment Shader
+// @author andresoviedo
+// @author Gemini AI
+
 precision highp float;
 
-// data
 uniform mat4 u_MMatrix;
 uniform vec3 u_cameraPos;
-varying vec3 v_Position;
+in vec3 v_Position;
 
 // color
 uniform vec4 u_Color;
@@ -11,12 +16,12 @@ uniform vec4 u_ColorMask;
 
 // colors
 uniform bool u_Coloured;
-varying vec4 v_Color;
+in vec4 v_Color;
 
 // texture
 uniform bool u_Textured;
 uniform sampler2D u_Texture;
-varying vec2 v_TexCoordinate;
+in vec2 v_TexCoordinate;
 
 // texture transform
 uniform bool u_TextureTransformed;
@@ -31,12 +36,12 @@ uniform int u_AlphaMode;
 // light
 uniform bool u_Lighted;
 uniform vec3 u_LightPos;
-varying vec3 v_Normal;
+in vec3 v_Normal;
 
 // normalMap
 uniform bool u_NormalTextured;
 uniform sampler2D u_NormalTexture;
-varying vec4 v_Tangent;
+in vec4 v_Tangent;
 
 // emissiveMap
 uniform bool u_EmissiveTextured;
@@ -48,11 +53,12 @@ uniform bool u_TransmissionTextured;
 uniform sampler2D u_TransmissionTexture;
 uniform float u_TransmissionFactor;
 
-void main(){
+out vec4 fragColor;
 
+void main() {
     // colors initialization
     vec4 baseColor = u_Coloured ? v_Color : u_Color;
-    vec4 texColor = u_Textured ? texture2D(u_Texture, v_TexCoordinate) : vec4(1.0);
+    vec4 texColor = u_Textured ? texture(u_Texture, v_TexCoordinate) : vec4(1.0);
 
     // Texture transformation (if enabled)
     if (u_Textured && u_TextureTransformed){
@@ -65,13 +71,14 @@ void main(){
         mat3 scale = mat3(u_TextureScale.x, 0, 0, 0, u_TextureScale.y, 0, 0, 0, 1);
         mat3 matrix = translation * rotation * scale;
         vec2 uvTransformed = (matrix * vec3(v_TexCoordinate.xy, 1)).xy;
-        texColor = texture2D(u_Texture, uvTransformed);
+        texColor = texture(u_Texture, uvTransformed);
     }
 
     // Combine base, texture, and mask
     vec4 finalColor = baseColor * texColor * u_ColorMask;
 
     // Alpha mode handling (Early discard for Mask mode)
+    // 1 == MASK
     if (u_AlphaMode == 1 && finalColor.a < u_AlphaCutoff) {
         discard;
     }
@@ -85,7 +92,7 @@ void main(){
         // Normal mapping logic
         if (u_NormalTextured){
             // Sample normal map [0, 1] and convert to [-1, 1]
-            vec3 normalSample = texture2D(u_NormalTexture, v_TexCoordinate).rgb * 2.0 - 1.0;
+            vec3 normalSample = texture(u_NormalTexture, v_TexCoordinate).rgb * 2.0 - 1.0;
 
             // Re-orthogonalize tangent (Gram-Schmidt process)
             vec3 T = normalize(v_Tangent.xyz - dot(v_Tangent.xyz, N) * N);
@@ -123,15 +130,15 @@ void main(){
 
     // Apply Emissive texture (if enabled)
     if (u_EmissiveTextured){
-        vec4 emissiveTex = texture2D(u_EmissiveTexture, v_TexCoordinate);
+        vec4 emissiveTex = texture(u_EmissiveTexture, v_TexCoordinate);
         finalColor.rgb += emissiveTex.rgb * u_EmissiveFactor;
     }
 
     // Set output color
-    gl_FragColor = finalColor;
+    fragColor = finalColor;
 
-    // Force opaque if mode is 0
+    // Force opaque if mode is 0 (OPAQUE)
     if (u_AlphaMode == 0) {
-        gl_FragColor.a = 1.0;
+        fragColor.a = 1.0;
     }
 }

@@ -1,5 +1,8 @@
 precision highp float;
 
+// OpenGL ES 2.x Animated Shader
+// @author andresoviedo
+
 // MVP matrices
 uniform mat4 u_MMatrix;
 uniform mat4 u_VMatrix;

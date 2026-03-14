@@ -28,6 +28,7 @@ out vec3 v_Position;
 out vec3 v_Normal;
 out vec2 v_TexCoordinate;
 out vec4 v_Color;
+out vec4 v_Tangent;
 
 void main() {
     vec4 localPos = vec4(a_Position, 1.0);

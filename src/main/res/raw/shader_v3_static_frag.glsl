@@ -1,6 +1,7 @@
 #version 300 es
 
-// OpenGL ES 3.x High-Performance Fragment Shader
+// OpenGL ES 3.x High-Performance Basic Fragment Shader
+// @author andresoviedo
 // @author Gemini AI
 
 precision highp float;
@@ -40,6 +41,7 @@ in vec3 v_Normal;
 // normalMap
 uniform bool u_NormalTextured;
 uniform sampler2D u_NormalTexture;
+in vec4 v_Tangent;
 
 // emissiveMap
 uniform bool u_EmissiveTextured;
@@ -56,22 +58,20 @@ out vec4 fragColor;
 void main() {
     // colors initialization
     vec4 baseColor = u_Coloured ? v_Color : u_Color;
-    vec4 texColor = vec4(1.0);
+    vec4 texColor = u_Textured ? texture(u_Texture, v_TexCoordinate) : vec4(1.0);
 
-    if (u_Textured) {
-        vec2 uv = v_TexCoordinate;
-        if (u_TextureTransformed) {
-            mat3 translation = mat3(1, 0, 0, 0, 1, 0, u_TextureOffset.x, u_TextureOffset.y, 1);
-            mat3 rotation = mat3(
+    // Texture transformation (if enabled)
+    if (u_Textured && u_TextureTransformed){
+        mat3 translation = mat3(1, 0, 0, 0, 1, 0, u_TextureOffset.x, u_TextureOffset.y, 1);
+        mat3 rotation = mat3(
             cos(u_TextureRotation), -sin(u_TextureRotation), 0,
             sin(u_TextureRotation), cos(u_TextureRotation), 0,
             0, 0, 1
-            );
-            mat3 scale = mat3(u_TextureScale.x, 0, 0, 0, u_TextureScale.y, 0, 0, 0, 1);
-            mat3 matrix = translation * rotation * scale;
-            uv = (matrix * vec3(v_TexCoordinate.xy, 1)).xy;
-        }
-        texColor = texture(u_Texture, uv);
+        );
+        mat3 scale = mat3(u_TextureScale.x, 0, 0, 0, u_TextureScale.y, 0, 0, 0, 1);
+        mat3 matrix = translation * rotation * scale;
+        vec2 uvTransformed = (matrix * vec3(v_TexCoordinate.xy, 1)).xy;
+        texColor = texture(u_Texture, uvTransformed);
     }
 
     // Combine base, texture, and mask
@@ -85,15 +85,45 @@ void main() {
 
     // Light initialization
     float diffuse = 0.25;
+    float specular = 0.0;
+    vec3 N = normalize(v_Normal);
+
     if (u_Lighted) {
-        vec3 N = normalize(v_Normal);
-        vec3 L = normalize(u_LightPos - v_Position);
-        diffuse = max(dot(N, L), 0.0);
+        // Normal mapping logic
+        if (u_NormalTextured){
+            // Sample normal map [0, 1] and convert to [-1, 1]
+            vec3 normalSample = texture(u_NormalTexture, v_TexCoordinate).rgb * 2.0 - 1.0;
+
+            // Re-orthogonalize tangent (Gram-Schmidt process)
+            vec3 T = normalize(v_Tangent.xyz - dot(v_Tangent.xyz, N) * N);
+            // Construct bitangent respecting handedness (w)
+            vec3 B = cross(N, T) * v_Tangent.w;
+
+            // Construct TBN matrix and transform sample to world space
+            mat3 TBN = mat3(T, B, N);
+            N = normalize(TBN * normalSample);
+        }
+
+        // Blinn-Phong lighting
+        vec3 lightVec = u_LightPos - v_Position;
+        float dist = length(lightVec);
+        lightVec = normalize(lightVec);
+
+        float diff = max(dot(lightVec, N), 0.0);
+
+        // Attenuation
+        float attenuation = 1.0 / (1.0 + 0.025 * dist);
+        diffuse = diff * attenuation;
+
+        // Specular (Blinn-Phong)
+        vec3 viewDir = normalize(u_cameraPos - v_Position);
+        vec3 halfDir = normalize(lightVec + viewDir);
+        specular = pow(max(dot(N, halfDir), 0.0), 32.0) * attenuation;
     }
 
     // Ambient light
     float ambient = 0.40;
-    float totalLight = min((diffuse + ambient), 1.0);
+    float totalLight = min((diffuse + specular + ambient), 1.0);
 
     // Combine lighting with color
     finalColor.rgb = finalColor.rgb * totalLight;
@@ -106,7 +136,6 @@ void main() {
 
     // Set output color
     fragColor = finalColor;
-    // fragColor = vec4(1.0,1.0,1.0,1.0);  <-- debug only
 
     // Force opaque if mode is 0 (OPAQUE)
     if (u_AlphaMode == 0) {
