@@ -230,7 +230,7 @@ public final class GLUtil {
      * Utility method for debugging OpenGL calls. Provide the name of the call just after making it:
      *
      * <pre>
-     * mColorHandle = GLES20.glGetUniformLocation(mProgram, &quot;vColor&quot;);
+     * mColorHandle = GLES20.glGetUniformLocation(mProgram, &quot;u_Color&quot;);
      * MyGLRenderer.checkGlError(&quot;glGetUniformLocation&quot;);
      * </pre>
      * <p>

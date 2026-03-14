@@ -6,8 +6,8 @@ uniform vec3 u_cameraPos;
 varying vec3 v_Position;
 
 // color
-uniform vec4 vColor;
-uniform vec4 vColorMask;
+uniform vec4 u_Color;
+uniform vec4 u_ColorMask;
 
 // colors
 uniform bool u_Coloured;
@@ -51,7 +51,7 @@ uniform float u_TransmissionFactor;
 void main(){
 
     // colors initialization
-    vec4 baseColor = u_Coloured ? v_Color : vColor;
+    vec4 baseColor = u_Coloured ? v_Color : u_Color;
     vec4 texColor = u_Textured ? texture2D(u_Texture, v_TexCoordinate) : vec4(1.0);
 
     // Texture transformation (if enabled)
@@ -69,7 +69,7 @@ void main(){
     }
 
     // Combine base, texture, and mask
-    vec4 finalColor = baseColor * texColor * vColorMask;
+    vec4 finalColor = baseColor * texColor * u_ColorMask;
 
     // Alpha mode handling (Early discard for Mask mode)
     if (u_AlphaMode == 1 && finalColor.a < u_AlphaCutoff) {

@@ -59,6 +59,11 @@ public class Material {
         this.name = name;
     }
 
+    public Material(String id, float[] color) {
+        this.id = id;
+        this.diffuse = color;
+    }
+
     // --------- set/get methods for colour info --------------
 
     public void setAlpha(float val) {

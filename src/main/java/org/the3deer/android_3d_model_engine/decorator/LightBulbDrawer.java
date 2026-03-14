@@ -2,7 +2,6 @@ package org.the3deer.android_3d_model_engine.decorator;
 
 import android.util.Log;
 
-import org.the3deer.android_3d_model_engine.R;
 import org.the3deer.android_3d_model_engine.model.Camera;
 import org.the3deer.android_3d_model_engine.model.Light;
 import org.the3deer.android_3d_model_engine.model.Object3DData;
@@ -73,7 +72,7 @@ public class LightBulbDrawer implements Drawer, EventListener {
             return;
         }
 
-        Shader drawer = shaderFactory.getShader(R.raw.shader_basic_vert, R.raw.shader_basic_frag);
+        Shader drawer = shaderFactory.getShader(lightBulb);
         if (drawer == null) {
             Log.e(TAG, "No drawer");
             setEnabled(false);

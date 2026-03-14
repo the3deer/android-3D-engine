@@ -1,6 +1,8 @@
 package org.the3deer.android_3d_model_engine.renderer;
 
+import android.app.Activity;
 import android.util.Log;
+import android.widget.Toast;
 
 import org.the3deer.android_3d_model_engine.animation.Animator;
 import org.the3deer.android_3d_model_engine.model.Constants;
@@ -25,6 +27,9 @@ public class DefaultRenderer implements Renderer, EventListener {
     private final static String TAG = DefaultRenderer.class.getSimpleName();
 
     private boolean enabled = true;
+
+    @Inject
+    private Activity activity;
 
     @Inject
     private SceneManager sceneManager;
@@ -130,8 +135,18 @@ public class DefaultRenderer implements Renderer, EventListener {
             try {
                 drawers.get(i).onDrawFrame(null);
             } catch (Exception e) {
+
+                // log the error
                 Log.e(TAG, e.getMessage(), e);
+
+                // disable drawer
                 drawers.get(i).setEnabled(false);
+
+                // notify user
+                activity.runOnUiThread(() -> {
+                    Toast.makeText(activity, "There was a problem rendering the model: " + e.getMessage(),
+                            Toast.LENGTH_LONG).show();
+                });
             }
         }
     }

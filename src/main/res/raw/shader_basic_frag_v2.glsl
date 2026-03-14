@@ -1,8 +1,8 @@
 precision highp float;
 
 // color
-uniform vec4 vColor;
-uniform vec4 vColorMask;
+uniform vec4 u_Color;
+uniform vec4 u_ColorMask;
 
 // colors
 uniform bool u_Coloured;
@@ -15,9 +15,9 @@ void main(){
   if (u_Coloured){
     color = v_Color;
   } else {
-    color = vColor;
+    color = u_Color;
   }
 
-  gl_FragColor = color * vColorMask;
-  gl_FragColor[3] = color[3] * vColorMask[3];
+  gl_FragColor = color * u_ColorMask;
+  gl_FragColor[3] = color[3] * u_ColorMask[3];
 }

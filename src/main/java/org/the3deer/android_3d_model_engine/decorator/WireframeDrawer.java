@@ -3,7 +3,6 @@ package org.the3deer.android_3d_model_engine.decorator;
 import android.opengl.GLES20;
 import android.util.Log;
 
-import org.the3deer.android_3d_model_engine.R;
 import org.the3deer.android_3d_model_engine.animation.Animator;
 import org.the3deer.android_3d_model_engine.model.AnimatedModel;
 import org.the3deer.android_3d_model_engine.model.Camera;
@@ -105,13 +104,6 @@ public class WireframeDrawer implements Drawer, EventListener {
                 }
             }
 
-            //Shader drawerObject = shaderFactory.getShader(scene, objData, false, false, false, true, false, false);
-            final Shader drawerObject = shaderFactory.getShader(R.raw.shader_animated_basic_vert, R.raw.shader_animated_basic_frag);
-            if (drawerObject == null) {
-                Log.e(TAG, "No drawer for " + objData.getId());
-                return;
-            }
-
             //boolean changed = objData.isChanged();
             //objData.setChanged(false);
 
@@ -128,6 +120,14 @@ public class WireframeDrawer implements Drawer, EventListener {
                         wireframes.put(objData.getId(), wireframe);
                         Log.i("WireframeDrawer", "Wireframe built: " + wireframe);
                     }
+
+                    //Shader drawerObject = shaderFactory.getShader(scene, objData, false, false, false, true, false, false);
+                    final Shader drawerObject = shaderFactory.getShader(wireframe);
+                    if (drawerObject == null) {
+                        Log.e(TAG, "No drawer for " + objData.getId());
+                        return;
+                    }
+
                     //animator.update(wireframe, scene.isShowBindPose());
                     //animator.update(scene.getRootNodes(), scene.getCurrentAnimation(), false);
                     drawerObject.draw(wireframe, camera.getProjectionMatrix(), camera.getViewMatrix(), null, null, camera.getPos(), wireframe.getDrawMode(), wireframe.getDrawSize());

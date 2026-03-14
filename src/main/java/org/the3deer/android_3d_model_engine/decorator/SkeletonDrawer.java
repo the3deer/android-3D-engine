@@ -3,11 +3,9 @@ package org.the3deer.android_3d_model_engine.decorator;
 import android.opengl.GLES20;
 import android.util.Log;
 
-import org.the3deer.android_3d_model_engine.R;
 import org.the3deer.android_3d_model_engine.animation.Animator;
 import org.the3deer.android_3d_model_engine.model.AnimatedModel;
 import org.the3deer.android_3d_model_engine.model.Camera;
-import org.the3deer.android_3d_model_engine.model.Constants;
 import org.the3deer.android_3d_model_engine.model.Object3DData;
 import org.the3deer.android_3d_model_engine.model.Scene;
 import org.the3deer.android_3d_model_engine.objects.Skeleton;
@@ -105,17 +103,6 @@ public class SkeletonDrawer implements Drawer {
                 // check
                 if (objData.getDrawMode() != GLES20.GL_TRIANGLES) continue;
 
-
-                // get shader
-                //Shader drawerObject = shaderFactory.getShader(scene, objData, false, false, false, true, false, false);
-                final Shader drawerObject = shaderFactory.getShader(R.raw.shader_animated_basic_vert, R.raw.shader_animated_basic_frag);
-                if (drawerObject == null) {
-                    Log.e(TAG, "No drawer for " + objData.getId());
-                    continue;
-                }
-
-
-
                 // draw skeleton on top of it
                 // GLES20.glDisable(GLES20.GL_DEPTH_TEST);
                 AnimatedModel skeletonModel = this.skeleton.get(objData.getId());
@@ -137,6 +124,14 @@ public class SkeletonDrawer implements Drawer {
 
                     // register
                     this.skeleton.put(objData.getId(), skeletonModel);
+                }
+
+                // get shader
+                //Shader drawerObject = shaderFactory.getShader(scene, objData, false, false, false, true, false, false);
+                final Shader drawerObject = shaderFactory.getShader(skeletonModel);
+                if (drawerObject == null) {
+                    Log.e(TAG, "No drawer for " + objData.getId());
+                    continue;
                 }
 
                 final Camera camera = config != null && config.camera != null ? config.camera : scene.getCamera();

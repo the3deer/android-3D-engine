@@ -9,7 +9,7 @@ uniform mat4 u_PMatrix;
 attribute vec4 a_Position;
 
 // colors
-//uniform vec4 vColor;
+//uniform vec4 u_Color;
 //varying vec4 v_Color;
 
 // skybox

@@ -8,6 +8,7 @@ import androidx.annotation.NonNull;
 import org.the3deer.util.math.Math3DUtils;
 
 import java.nio.Buffer;
+import java.nio.FloatBuffer;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -28,7 +29,7 @@ public class Skin {
     private int jointComponents = Constants.MAX_VERTEX_WEIGHTS;
     private int weightsComponents = Constants.MAX_VERTEX_WEIGHTS;
     private Buffer jointsBuffer;
-    private Buffer weightsBuffer;
+    private FloatBuffer weightsBuffer;
     private float[] bindShapeMatrix;
     private float[][] jointMatrices;
     private float[] inverseBindMatrices;
@@ -70,7 +71,7 @@ public class Skin {
     }
 
     // collada - new
-    public Skin(float[] bindShapeMatrix, Buffer jointIds, Buffer weights, float[] inverseBindMatrices, List<String> jointNames) {
+    public Skin(float[] bindShapeMatrix, Buffer jointIds, FloatBuffer weights, float[] inverseBindMatrices, List<String> jointNames) {
         this.name = name;
         this.bindShapeMatrix = bindShapeMatrix;
         this.jointsBuffer = jointIds;
@@ -186,16 +187,16 @@ public class Skin {
         this.jointsBuffer = joints;
     }
 
-    public Buffer getWeightsBuffer() {
+    public FloatBuffer getWeightsBuffer() {
         return weightsBuffer;
     }
 
     @Deprecated
-    public void setWeightsBuffer(Buffer weightsBuffer) {
+    public void setWeightsBuffer(FloatBuffer weightsBuffer) {
         setWeights(weightsBuffer);
     }
 
-    public void setWeights(Buffer weights) {
+    public void setWeights(FloatBuffer weights) {
         this.weightsBuffer = weights;
     }
 

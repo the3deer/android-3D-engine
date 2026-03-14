@@ -26,6 +26,7 @@ import org.the3deer.android_3d_model_engine.preferences.PreferenceAdapter;
 import org.the3deer.android_3d_model_engine.renderer.Drawer;
 import org.the3deer.android_3d_model_engine.shader.Shader;
 import org.the3deer.android_3d_model_engine.shader.ShaderFactory;
+import org.the3deer.android_3d_model_engine.shader.ShaderResource;
 import org.the3deer.android_3d_model_engine.toolbar.MenuAdapter;
 import org.the3deer.android_3d_model_engine.util.Rescaler;
 import org.the3deer.util.android.GLUtil;
@@ -232,10 +233,6 @@ public class SkyBoxDrawer implements Drawer, MenuAdapter, PreferenceAdapter {
         // assert
         if (skyBoxId < 0 || skyBoxId >= skyBoxes.length) return;
 
-        if (shader == null) {
-            shader = shaderFactory.getShader(R.raw.shader_skybox_vert, R.raw.shader_skybox_frag);
-        }
-
         try {
             // lazy building of the 3d object
             if (skyBoxes3D[skyBoxId] == null) {
@@ -262,6 +259,8 @@ public class SkyBoxDrawer implements Drawer, MenuAdapter, PreferenceAdapter {
             //GLES20.glClearColor(0, 0, 0, 1);
             GLES20.glDisable(GLES20.GL_CULL_FACE);
             //GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
+
+            Shader shader = shaderFactory.getShader(ShaderResource.SKYBOX);
 
             final Camera camera = config != null && config.camera != null? config.camera : this.camera;
             shader.draw(skyBoxes3D[skyboxId], this.projectionMatrix, camera.getViewMatrix(),

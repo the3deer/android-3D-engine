@@ -32,6 +32,7 @@ import org.the3deer.android_3d_model_engine.objects.Point;
 import org.the3deer.android_3d_model_engine.preferences.PreferenceFragment;
 import org.the3deer.android_3d_model_engine.renderer.AnaglyphRenderer;
 import org.the3deer.android_3d_model_engine.renderer.DefaultRenderer;
+import org.the3deer.android_3d_model_engine.renderer.GpuManager;
 import org.the3deer.android_3d_model_engine.renderer.RendererPreferences;
 import org.the3deer.android_3d_model_engine.scene.SceneDrawer;
 import org.the3deer.android_3d_model_engine.scene.SceneLoader;
@@ -114,7 +115,12 @@ public class ModelEngine {
         return beanFactory.find(PreferenceFragment.class);
     }
 
-    public void init(){
+    /**
+     * Initialize the engine. That is, instantiate all the engine components and invoke the initialization method.
+     *
+     * @throws Exception if initialization fails on any of the components
+     */
+    public void init() throws Exception {
 
         // check
         if (initialized) return;
@@ -139,6 +145,8 @@ public class ModelEngine {
             // clear resources
             ContentUtils.clearDocumentsProvided();
             ContentUtils.setThreadActivity(null);
+
+            throw ex;
         }
     }
 
@@ -166,7 +174,7 @@ public class ModelEngine {
 
     }
 
-    private void initEngine() {
+    private void initEngine() throws Exception {
         // init
         Log.i(TAG, "Setting up engine...");
 
@@ -182,6 +190,7 @@ public class ModelEngine {
         beanFactory.add("10.controller", ModelController.class);
         //beanFactory.add("surface", this.surface);
         //beanFactory.add("fragment_gl", GLFragment.class);
+        beanFactory.add("10.gpuManager", GpuManager.class);
         beanFactory.add("10.shaderFactory", ShaderFactory.class);
         beanFactory.add("10.screen", new Screen(640, 480));
         beanFactory.add("10.sceneLoader", SceneLoader.class);
@@ -222,7 +231,7 @@ public class ModelEngine {
         beanFactory.add("40.drawer5.skeletonDrawer", SkeletonDrawer.class);
         beanFactory.add("40.drawer6.boundingBoxDrawer", BoundingBoxDrawer.class);
 
-        // renderers
+        // renderer
         beanFactory.add("50.renderer0.sceneRenderer", DefaultRenderer.class);
         beanFactory.add("50.renderer1.anaglyphRenderer", AnaglyphRenderer.class);
 

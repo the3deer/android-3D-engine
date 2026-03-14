@@ -12,7 +12,7 @@ public class GltfPrimitiveDto {
 
     // Skinning Data
     public Buffer jointIds;
-    public Buffer weights;
+    public FloatBuffer weights;
     public int jointIdsComponents; // The property we wanted to move!
     public int weightsComponents; // The property we wanted to move!
 

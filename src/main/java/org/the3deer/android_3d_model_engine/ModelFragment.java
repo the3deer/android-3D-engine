@@ -75,10 +75,16 @@ public class ModelFragment extends Fragment implements PreferenceAdapter {
         super.onCreate(savedInstanceState);
 
         // get parameters
-        onRestoreEngine(savedInstanceState);
+        try {
+            onRestoreEngine(savedInstanceState);
+        } catch (Exception ex){
+            Log.e(TAG, "Error creating the engine: "+ex.getMessage(), ex);
+            Toast.makeText(getActivity(), "There was a problem initializing the engine: " + ex.getMessage(),
+                    Toast.LENGTH_LONG).show();
+        }
     }
 
-    private void onRestoreEngine(Bundle savedInstanceState) {
+    private void onRestoreEngine(Bundle savedInstanceState) throws Exception {
 
         // get model
         final ModelViewModel viewModel = new ViewModelProvider(requireActivity()).get(ModelViewModel.class);
@@ -164,7 +170,13 @@ public class ModelFragment extends Fragment implements PreferenceAdapter {
 
         // restore engine (eg: back button)
         Log.d(TAG, "onCreateView. Restoring engine...");
-        onRestoreEngine(savedInstanceState);
+        try{
+            onRestoreEngine(savedInstanceState);
+        } catch (Exception ex){
+            Log.e(TAG, "Error restoring engine: "+ex.getMessage(), ex);
+            Toast.makeText(getActivity(), "There was a problem restoring the engine: " + ex.getMessage(),
+                    Toast.LENGTH_LONG).show();
+        }
 
         return super.onCreateView(inflater, container, savedInstanceState);
     }

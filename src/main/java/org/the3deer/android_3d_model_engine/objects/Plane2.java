@@ -102,7 +102,7 @@ public class Plane2 {
 
 	        //GLES20.glEnableVertexAttribArray(colorAttribute);
 
-			int handle = GLES20.glGetUniformLocation(mProgram, "vColor");
+			int handle = GLES20.glGetUniformLocation(mProgram, "u_Color");
 			GLUtil.checkGlError("glGetUniformLocation");
 
 			GLES20.glUniform4fv(handle, 1, Constants.COLOR_GREEN, 0);

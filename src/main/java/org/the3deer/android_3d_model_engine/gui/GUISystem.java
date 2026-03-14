@@ -3,7 +3,6 @@ package org.the3deer.android_3d_model_engine.gui;
 import android.opengl.GLES20;
 import android.util.Log;
 
-import org.the3deer.android_3d_model_engine.R;
 import org.the3deer.android_3d_model_engine.collision.Collision;
 import org.the3deer.android_3d_model_engine.collision.CollisionDetection;
 import org.the3deer.android_3d_model_engine.controller.TouchEvent;
@@ -180,7 +179,7 @@ public class GUISystem implements EventListener, Drawer {
 
         if (shaderFactory == null) return;
 
-        final Shader shader = shaderFactory.getShader(R.raw.shader_basic_vert, R.raw.shader_basic_frag);
+        final Shader shader = shaderFactory.getShader(widget);
 
         shader.draw(widget, camera.getProjectionMatrix(), camera.getViewMatrix(), null, null,
                 GUIConstants.CAMERA_POSITION, widget.getDrawMode(), widget.getDrawSize());

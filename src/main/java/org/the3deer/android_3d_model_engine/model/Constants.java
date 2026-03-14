@@ -3,18 +3,23 @@ package org.the3deer.android_3d_model_engine.model;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * TODO: fix this documentation
- * Default max model size for a camera located at 100 distance units
- * https://stackoverflow.com/questions/6653080/in-opengl-how-can-i-determine-the-bounds-of-the-view-at-a-given-depth
- *   h = height, fieldofview is 45 degrees (because near 1 and width or ratio is 1)
- *        h = tan(FieldOfView / 2) * a;
- *        h = tan(45 / 2) * camera_distance;
- *        h = 0,414213562 * camera_distance
- *   example: with a near=1.0 unit, width=1.0 unit (height=1.0*ratio),
- *         if camera at 100 units, then we have 41,421356237 => 82,842712475 total max width to fit viewport
- *
+ * Global Constants
  */
 public class Constants {
+
+    /**
+     * Default shader version. 2 for OpenGL ES 2.0, 3 for OpenGL ES 3.0
+     */
+    public static int DEFAULT_SHADER_VERSION = 2;
+    /**
+     * Enable engine to process animations
+     */
+    public static boolean ANIMATIONS_ENABLED = true;
+    /**
+     * Enable rendering with lights
+     */
+    public static boolean LIGHTING_ENABLED = true;
+
 
     /**
      * <p>Debug low level information. Will affect performance, so should be false in production
@@ -34,8 +39,6 @@ public class Constants {
     // animation
     public static final boolean PREFER_QUATERNION = true;
     public static final boolean PREFER_QUATERNION_MATRIX = true;
-    // features
-    public static final boolean ANIMATIONS_ENABLED = true;
 
     /**
      * Default unit factor for dimension on any axis. 1cm = 1f
@@ -61,9 +64,33 @@ public class Constants {
      * Stereoscopic camera: eye separation is about 6.4cm = 6.4f
      */
     public static float EYE_DISTANCE = 6.4f;
+
+    /**
+     * Colors
+     */
+    public static final float[] COLOR_RED = {1,0,0,1};
+    public static final float[] COLOR_RED_TRANSLUCENT = {1,0,0,0.25f};
+    public static final float[] COLOR_GREEN = {0,1,0,1};
+    public static final float[] COLOR_CYAN = {0,1,1,1};
+    public static final float[] COLOR_GREEN_TRANSLUCENT = {0,1,0,0.25f};
+    public static final float[] COLOR_BLUE = {0,0,1,1f};
+    public static final float[] COLOR_BLUE_TRANSLUCENT = {0,0,1,0.25f};
+
+    public static final float[] COLOR_WHITE = {1, 1, 1, 1};
+    public static final float[] COLOR_BLACK = {0, 0, 0, 1};
+    public static final float[] COLOR_YELLOW = {1, 1, 0, 1};
+    public static final float[] COLOR_NULL = {0, 0, 0, 0};
+    public static final float[] COLOR_GRAY = {0.5f, 0.5f, 0.5f, 1f};
+    public static final float[] COLOR_TRANSPARENT = {0f, 0f, 0f, 0f};
+    public static final float[] COLOR_GRAY_TRANSLUCENT = {0.5f, 0.5f, 0.5f, 0.5f};
+    public static final float[] COLOR_HALF_TRANSPARENT = {1f, 1f, 1f, 0.5f};
+    public static final float[] COLOR_ALMOST_TRANSPARENT = {1f, 1f, 1f, 0.1f};
+    public static final float[] COLOR_BIT_TRANSPARENT = {1f, 1f, 1f, 0.9f};
+
     /**
      * Default camera position on Z axis
      */
+    public static final Material DEFAULT_MATERIAL = new Material("default", COLOR_WHITE);
     public static final float[] DEFAULT_CAMERA_POSITION = new float[]{0,0,100f};
     /**
      * Light bulb location (3d object) - it's a point in the center - location will be different
@@ -109,31 +136,8 @@ public class Constants {
     public static final float GRID_SIZE = 0.1f;
     public static final float[] GRID_COLOR = {0.25f, 0.25f, 0.25f, 0.5f};
 
-    public static final float[] COLOR_RED = {1,0,0,1};
-    public static final float[] COLOR_RED_TRANSLUCENT = {1,0,0,0.25f};
-    public static final float[] COLOR_GREEN = {0,1,0,1};
-    public static final float[] COLOR_CYAN = {0,1,1,1};
-    public static final float[] COLOR_GREEN_TRANSLUCENT = {0,1,0,0.25f};
-    public static final float[] COLOR_BLUE = {0,0,1,1f};
-    public static final float[] COLOR_BLUE_TRANSLUCENT = {0,0,1,0.25f};
-
-    public static final float[] COLOR_WHITE = {1, 1, 1, 1};
-    public static final float[] COLOR_BLACK = {0, 0, 0, 1};
-    public static final float[] COLOR_YELLOW = {1, 1, 0, 1};
-    public static final float[] COLOR_NULL = {0, 0, 0, 0};
-    public static final float[] COLOR_GRAY = {0.5f, 0.5f, 0.5f, 1f};
-    public static final float[] COLOR_TRANSPARENT = {0f, 0f, 0f, 0f};
-    public static final float[] COLOR_GRAY_TRANSLUCENT = {0.5f, 0.5f, 0.5f, 0.5f};
-    public static final float[] COLOR_HALF_TRANSPARENT = {1f, 1f, 1f, 0.5f};
-    public static final float[] COLOR_ALMOST_TRANSPARENT = {1f, 1f, 1f, 0.1f};
-    public static final float[] COLOR_BIT_TRANSPARENT = {1f, 1f, 1f, 0.9f};
-
-
-
     public static AtomicInteger MENU_ORDER_ID = new AtomicInteger(10);
     public static AtomicInteger MENU_ITEM_ID = new AtomicInteger(1000);
     public static AtomicInteger MENU_GROUP_ID = new AtomicInteger(100000);
-
-
 
 }

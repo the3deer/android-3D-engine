@@ -1,11 +1,10 @@
 package org.the3deer.android_3d_model_engine.services.gltf;
 
-import android.util.Log; // It's good practice to use Android's Log
+import android.util.Log;
 
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
-import java.nio.ShortBuffer;
 
 import de.javagl.jgltf.model.AccessorData;
 import de.javagl.jgltf.model.AccessorModel;
@@ -109,7 +108,7 @@ public final class GltfUtil {
         }
     }
 
-    public static Buffer createNormalizedWeightsBuffer(AccessorModel accessor) {
+    public static FloatBuffer createNormalizedWeightsBuffer(AccessorModel accessor) {
         if (accessor == null) {
             return null;
         }
@@ -118,10 +117,6 @@ public final class GltfUtil {
 
         final int glComponentType = accessorData.getGlComponentType();
         switch (glComponentType) {
-            case 5121: // GL_UNSIGNED_BYTE
-                return byteBuffer;
-            case 5123: // GL_UNSIGNED_SHORT
-                return byteBuffer.asShortBuffer();
             case 5126: // FLOAT
                 return byteBuffer.asFloatBuffer();
             default:

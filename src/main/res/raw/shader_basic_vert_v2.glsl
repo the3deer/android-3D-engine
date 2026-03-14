@@ -7,6 +7,7 @@ uniform mat4 u_PMatrix;
 
 // mesh
 attribute vec3 a_Position;
+varying vec3 v_Position;
 
 // colors
 uniform bool u_Coloured;

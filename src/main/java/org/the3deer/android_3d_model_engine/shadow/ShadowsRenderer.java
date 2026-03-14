@@ -262,7 +262,7 @@ public class ShadowsRenderer {
 
         Matrix.frustumM(mLightProjectionMatrix, 0, -1.1f*ratio, 1.1f*ratio, 1.1f*bottom, 1.1f*top, near, far);
 
-        mDepthMapProgram = shaderFactory.getShader(R.raw.shader_v_depth_map, R.raw.shader_f_depth_map);
+        mDepthMapProgram = shaderFactory.getShader(R.raw.shader_v_depth_map_v2, R.raw.shader_f_depth_map_v2);
         mDepthMapProgram.setAutoUseProgram(false);
 
         Matrix.setIdentityM(mModelMatrix, 0);

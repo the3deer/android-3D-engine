@@ -2,8 +2,6 @@ package org.the3deer.android_3d_model_engine.decorator;
 
 import android.util.Log;
 
-import org.the3deer.android_3d_model_engine.R;
-import org.the3deer.android_3d_model_engine.animation.Animator;
 import org.the3deer.android_3d_model_engine.model.AnimatedModel;
 import org.the3deer.android_3d_model_engine.model.Camera;
 import org.the3deer.android_3d_model_engine.model.Constants;
@@ -85,7 +83,7 @@ public class BoundingBoxDrawer implements Drawer {
                         ((AnimatedModel) boundingBoxData).getSkin().updateSkinMatrices();
                     }
 
-                    final Shader drawerObject = shaderFactory.getShader(R.raw.shader_animated_basic_vert, R.raw.shader_animated_basic_frag);
+                    final Shader drawerObject = shaderFactory.getShader(boundingBoxData);
                     //final Shader drawerObject = shaderFactory.getShader(R.raw.shader_basic_vert, R.raw.shader_basic_frag);
                     if (drawerObject == null) {
                         Log.e(TAG, "No drawer for " + objData.getId());

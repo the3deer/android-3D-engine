@@ -52,7 +52,7 @@ import java.util.Set;
  * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
  * OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-public class ShaderImpl implements Shader, PreferenceAdapter {
+public class ShaderImplV2 implements Shader, PreferenceAdapter {
 
     private static final String TAG = Shader.class.getSimpleName();
 
@@ -142,8 +142,8 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
      * @param fragmentShaderCode
      * @return the compiled Shader
      */
-    static ShaderImpl getInstance(String id, String vertexShaderCode, String fragmentShaderCode) {
-        return new ShaderImpl(id, vertexShaderCode, fragmentShaderCode);
+    static ShaderImplV2 getInstance(String id, String vertexShaderCode, String fragmentShaderCode) {
+        return new ShaderImplV2(id, vertexShaderCode, fragmentShaderCode);
     }
 
     private static boolean testShaderFeature(Set<String> outputFeatures, String shaderCode, String feature) {
@@ -163,7 +163,7 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
      * @param vertexShaderCode
      * @param fragmentShaderCode
      */
-    private ShaderImpl(String id, String vertexShaderCode, String fragmentShaderCode) {
+    private ShaderImplV2(String id, String vertexShaderCode, String fragmentShaderCode) {
 
         this.id = id;
 
@@ -324,9 +324,9 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
 
         // pass in color or colors array
         if (obj.getColor() != null) {
-            setUniform4(obj.getColor(), "vColor");
+            setUniform4(obj.getColor(), "u_Color");
         } else {
-            setUniform4(DEFAULT_COLOR, "vColor");
+            setUniform4(DEFAULT_COLOR, "u_Color");
         }
 
         // colors
@@ -339,7 +339,7 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
         }
 
         // pass in color mask - i.e. stereoscopic
-        setUniform4(colorMask != null ? colorMask : NO_COLOR_MASK, "vColorMask");
+        setUniform4(colorMask != null ? colorMask : NO_COLOR_MASK, "u_ColorMask");
 
         // --- NEW: BLENDING LOGIC ---
         Material material = obj.getMaterial();
@@ -992,9 +992,9 @@ public class ShaderImpl implements Shader, PreferenceAdapter {
         }
 
         if (material != null && material.getColor() != null) {
-            setUniform4(material.getColor(), "vColor");
+            setUniform4(material.getColor(), "u_Color");
         } else {
-            //setUniform4(DEFAULT_COLOR, "vColor");
+            //setUniform4(DEFAULT_COLOR, "u_Color");
         }
 
         /*// default is no textured
