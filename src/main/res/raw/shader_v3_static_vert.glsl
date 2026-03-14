@@ -1,6 +1,6 @@
 #version 300 es
 
-// OpenGL ES 3.x High-Performance Animated Shader
+// OpenGL ES 3.x High-Performance Static Vertex Shader
 // @author andresoviedo
 // @author Gemini AI
 
@@ -26,23 +26,24 @@ out vec4 v_Color;
 out vec4 v_Tangent;
 
 void main() {
-    vec4 localPos = vec4(a_Position, 1.0);
-    vec3 localNormal = a_Normal;
+    // 1. Initialize all varyings to avoid undefined values/NaN in fragment shader
+    v_Position = vec3(0.0);
+    v_Normal = vec3(0.0, 1.0, 0.0); // Default up normal
+    v_TexCoordinate = vec2(0.0);
+    v_Color = vec4(1.0);
+    v_Tangent = vec4(0.0);
 
-    // Standard transformations
+    vec4 localPos = vec4(a_Position, 1.0);
     v_Position = vec3(u_MMatrix * localPos);
 
-    // normal and tangent to world space
-    if (u_Lighted){
-        v_Normal = mat3(u_NormalMatrix) * localNormal;
+    if (u_Lighted) {
+        v_Normal = mat3(u_NormalMatrix) * a_Normal;
     }
 
-    // pass color to fragment shader
-    if (u_Coloured){
+    if (u_Coloured) {
         v_Color = a_Color;
     }
 
-    // texture
     if (u_Textured) {
         v_TexCoordinate = a_TexCoordinate;
     }

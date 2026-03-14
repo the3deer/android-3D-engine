@@ -36,13 +36,26 @@ public class GpuAsset {
     private final List<GpuElement> gpuElements;
     private final int vertexCount;
     private final int drawMode;
+    
+    // Metadata to track what's baked into this asset
+    private final boolean hasSkin;
+    private final boolean hasNormals;
+    private final boolean hasTexCoords;
+    private final boolean hasColors;
+    private final boolean hasTangents;
 
-    public GpuAsset(int vaoId, int[] vboIds, List<GpuElement> gpuElements, int vertexCount, int drawMode) {
+    public GpuAsset(int vaoId, int[] vboIds, List<GpuElement> gpuElements, int vertexCount, int drawMode,
+                    boolean hasSkin, boolean hasNormals, boolean hasTexCoords, boolean hasColors, boolean hasTangents) {
         this.vaoId = vaoId;
         this.vboIds = vboIds;
         this.gpuElements = gpuElements;
         this.vertexCount = vertexCount;
         this.drawMode = drawMode;
+        this.hasSkin = hasSkin;
+        this.hasNormals = hasNormals;
+        this.hasTexCoords = hasTexCoords;
+        this.hasColors = hasColors;
+        this.hasTangents = hasTangents;
     }
 
     public void bind() {
@@ -64,6 +77,12 @@ public class GpuAsset {
     public int getDrawMode() {
         return drawMode;
     }
+
+    public boolean hasSkin() { return hasSkin; }
+    public boolean hasNormals() { return hasNormals; }
+    public boolean hasTexCoords() { return hasTexCoords; }
+    public boolean hasColors() { return hasColors; }
+    public boolean hasTangents() { return hasTangents; }
 
     /**
      * Deletes all resources from GPU memory.

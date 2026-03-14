@@ -9,6 +9,7 @@ import org.the3deer.android_3d_model_engine.model.Object3DData;
 import org.the3deer.android_3d_model_engine.model.Skin;
 
 import java.nio.Buffer;
+import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.nio.ShortBuffer;
@@ -34,6 +35,7 @@ public class GpuManager {
     public static final int ATTR_COLOR = 3;
     public static final int ATTR_JOINT_INDICES = 4;
     public static final int ATTR_JOINT_WEIGHTS = 5;
+    public static final int ATTR_TANGENT = 6;
 
     // Cache to map Object3DData to its GPU representation
     private final Map<Object3DData, GpuAsset> assetMap = new HashMap<>();
@@ -59,39 +61,47 @@ public class GpuManager {
         GLES30.glGenVertexArrays(1, vaoIds, 0);
         GLES30.glBindVertexArray(vaoIds[0]);
 
-        // 2. Create VBOs for attributes
-        int[] vboIds = new int[6];
-        GLES30.glGenBuffers(6, vboIds, 0);
+        // 2. Create VBOs for attributes (now 7 attributes)
+        int[] vboIds = new int[7];
+        GLES30.glGenBuffers(7, vboIds, 0);
 
         // Attribute 0: Position (mandatory)
         uploadAttribute(ATTR_POSITION, vboIds[ATTR_POSITION], obj.getVertexBuffer(), 3);
 
         // Attribute 1: Normal
-        if (obj.getNormalsBuffer() != null) {
+        boolean hasNormals = obj.getNormalsBuffer() != null;
+        if (hasNormals) {
             uploadAttribute(ATTR_NORMAL, vboIds[ATTR_NORMAL], obj.getNormalsBuffer(), 3);
         }
 
         // Attribute 2: Texture Coordinates (UV)
-        if (obj.getTextureCoordsArrayBuffer() != null) {
+        boolean hasTexCoords = obj.getTextureCoordsArrayBuffer() != null;
+        if (hasTexCoords) {
             uploadAttribute(ATTR_TEXCOORD, vboIds[ATTR_TEXCOORD], obj.getTextureCoordsArrayBuffer(), 2);
         }
 
         // Attribute 3: Colors
-        if (obj.getColorsBuffer() != null) {
-            uploadAttribute(ATTR_COLOR, vboIds[ATTR_COLOR], (FloatBuffer) obj.getColorsBuffer(), 4);
+        boolean hasColors = obj.getColorsBuffer() != null;
+        if (hasColors) {
+            uploadAttribute(ATTR_COLOR, vboIds[ATTR_COLOR], obj.getColorsBuffer(), 4);
         }
 
         // Animation Attributes
+        boolean hasSkin = false;
         if (obj instanceof AnimatedModel) {
             Skin skin = ((AnimatedModel) obj).getSkin();
-            if (skin != null) {
-                if (skin.getJointsBuffer() != null) {
-                    uploadIntAttribute(ATTR_JOINT_INDICES, vboIds[ATTR_JOINT_INDICES], skin.getJointsBuffer(), skin.getJointComponents());
-                }
-                if (skin.getWeightsBuffer() != null) {
-                    uploadAttribute(ATTR_JOINT_WEIGHTS, vboIds[ATTR_JOINT_WEIGHTS], skin.getWeightsBuffer(), skin.getWeightsComponents());
-                }
+            if (skin != null && skin.getJointsBuffer() != null && skin.getWeightsBuffer() != null) {
+                // Pass joint indices as float-convertible to match 'vec4' in shader
+                uploadAttribute(ATTR_JOINT_INDICES, vboIds[ATTR_JOINT_INDICES], skin.getJointsBuffer(), skin.getJointComponents());
+                uploadAttribute(ATTR_JOINT_WEIGHTS, vboIds[ATTR_JOINT_WEIGHTS], skin.getWeightsBuffer(), skin.getWeightsComponents());
+                hasSkin = true;
             }
+        }
+
+        // Attribute 6: Tangents (for normal mapping)
+        boolean hasTangents = obj.getTangentBuffer() != null;
+        if (hasTangents) {
+            uploadAttribute(ATTR_TANGENT, vboIds[ATTR_TANGENT], obj.getTangentBuffer(), 4);
         }
 
         // 3. Create GPU Elements (EBOs)
@@ -114,7 +124,8 @@ public class GpuManager {
 
         return new GpuAsset(vaoIds[0], vboIds, gpuElements, 
                 obj.getVertexBuffer().capacity() / 3, 
-                obj.getDrawMode());
+                obj.getDrawMode(),
+                hasSkin, hasNormals, hasTexCoords, hasColors, hasTangents);
     }
 
     private GpuAsset.GpuElement uploadIndexBuffer(Buffer indexBuffer) {
@@ -143,27 +154,35 @@ public class GpuManager {
         return new GpuAsset.GpuElement(eboId, count, type);
     }
 
-    private void uploadAttribute(int location, int vboId, FloatBuffer buffer, int size) {
+    private void uploadAttribute(int location, int vboId, Buffer buffer, int size) {
         if (buffer == null) return;
         GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, vboId);
         buffer.position(0);
-        GLES30.glBufferData(GLES30.GL_ARRAY_BUFFER, buffer.capacity() * 4, buffer, GLES30.GL_STATIC_DRAW);
-        GLES30.glEnableVertexAttribArray(location);
-        GLES30.glVertexAttribPointer(location, size, GLES30.GL_FLOAT, false, 0, 0);
-    }
-
-    private void uploadIntAttribute(int location, int vboId, Buffer buffer, int size) {
-        if (buffer == null) return;
-        GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, vboId);
-        buffer.position(0);
-        int elementSize = (buffer instanceof IntBuffer) ? 4 : (buffer instanceof ShortBuffer) ? 2 : 1;
+        
+        int type;
+        int elementSize;
+        if (buffer instanceof FloatBuffer) {
+            type = GLES30.GL_FLOAT;
+            elementSize = 4;
+        } else if (buffer instanceof IntBuffer) {
+            type = GLES30.GL_UNSIGNED_INT;
+            elementSize = 4;
+        } else if (buffer instanceof ShortBuffer) {
+            type = GLES30.GL_UNSIGNED_SHORT;
+            elementSize = 2;
+        } else if (buffer instanceof ByteBuffer) {
+            type = GLES30.GL_UNSIGNED_BYTE;
+            elementSize = 1;
+        } else {
+            throw new IllegalArgumentException("Unsupported buffer type: " + buffer.getClass());
+        }
+        
         GLES30.glBufferData(GLES30.GL_ARRAY_BUFFER, buffer.capacity() * elementSize, buffer, GLES30.GL_STATIC_DRAW);
         GLES30.glEnableVertexAttribArray(location);
         
-        int type = (buffer instanceof IntBuffer) ? GLES30.GL_UNSIGNED_INT : 
-                   (buffer instanceof ShortBuffer) ? GLES30.GL_UNSIGNED_SHORT : GLES30.GL_UNSIGNED_BYTE;
-        
-        GLES30.glVertexAttribIPointer(location, size, type, 0, 0);
+        // Note: We use glVertexAttribPointer even for integers because our current shaders 
+        // expect 'vec4' (float) and let the hardware/driver convert the values.
+        GLES30.glVertexAttribPointer(location, size, type, false, 0, 0);
     }
 
     public void removeAsset(Object3DData obj) {

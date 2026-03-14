@@ -9,6 +9,7 @@ layout(location = 2) in vec2 a_TexCoordinate;
 layout(location = 3) in vec4 a_Color;
 layout(location = 4) in vec4 in_jointIndices;
 layout(location = 5) in vec4 in_weights;
+layout(location = 6) in vec4 a_Tangent;
 
 const int MAX_JOINTS = 60;
 
@@ -23,6 +24,7 @@ uniform bool u_Animated;
 uniform bool u_Coloured;
 uniform bool u_Textured;
 uniform bool u_Lighted;
+uniform bool u_NormalTextured;
 
 out vec3 v_Position;
 out vec3 v_Normal;
@@ -33,6 +35,13 @@ out vec4 v_Tangent;
 void main() {
     vec4 localPos = vec4(a_Position, 1.0);
     vec3 localNormal = a_Normal;
+    vec3 localTangent = vec3(0.0);
+    float bitangentSign = 1.0;
+
+    if (u_NormalTextured) {
+        localTangent = a_Tangent.xyz;
+        bitangentSign = a_Tangent.w;
+    }
 
     if (u_Animated) {
         vec4 bindPos = u_BindShapeMatrix * localPos;
@@ -44,7 +53,7 @@ void main() {
         animatedPos += (jointTransforms[int(in_jointIndices.w)] * bindPos) * in_weights.w;
         localPos = animatedPos;
 
-        // Normal skinning (rotation/scale only)
+        // Normal skinning
         mat3 skinMat0 = mat3(jointTransforms[int(in_jointIndices.x)]);
         mat3 skinMat1 = mat3(jointTransforms[int(in_jointIndices.y)]);
         mat3 skinMat2 = mat3(jointTransforms[int(in_jointIndices.z)]);
@@ -54,11 +63,26 @@ void main() {
         localNormal += (skinMat1 * a_Normal) * in_weights.y;
         localNormal += (skinMat2 * a_Normal) * in_weights.z;
         localNormal += (skinMat3 * a_Normal) * in_weights.w;
+
+        // Tangent skinning - Only if normal mapping is enabled
+        if (u_NormalTextured) {
+            localTangent = (skinMat0 * a_Tangent.xyz) * in_weights.x;
+            localTangent += (skinMat1 * a_Tangent.xyz) * in_weights.y;
+            localTangent += (skinMat2 * a_Tangent.xyz) * in_weights.z;
+            localTangent += (skinMat3 * a_Tangent.xyz) * in_weights.w;
+        }
     }
 
     // Standard transformations
     v_Position = vec3(u_MMatrix * localPos);
     v_Normal = mat3(u_NormalMatrix) * localNormal;
+
+    if (u_NormalTextured) {
+        v_Tangent = vec4(mat3(u_NormalMatrix) * localTangent, bitangentSign);
+    } else {
+        v_Tangent = vec4(0.0, 0.0, 0.0, 1.0);
+    }
+
     v_TexCoordinate = a_TexCoordinate;
     v_Color = a_Color;
 
