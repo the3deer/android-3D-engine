@@ -224,13 +224,13 @@ public class ModelEngine {
         // drawers
         beanFactory.add("40.drawer0.SkyBoxDrawer", SkyBoxDrawer.class);
         beanFactory.add("40.drawer1.SceneDrawer", SceneDrawer.class);
-        beanFactory.add("40.drawer2.lightBulb", Point.build(Constants.VECTOR_ZERO)
+        beanFactory.add("40.drawer2.boundingBoxDrawer", BoundingBoxDrawer.class);
+        beanFactory.add("40.drawer3.lightBulb", Point.build(Constants.VECTOR_ZERO)
                 .setId("light").setColor(Constants.COLOR_YELLOW));
-        beanFactory.add("40.drawer2.lightBulbDrawer", LightBulbDrawer.class);
-        beanFactory.add("40.drawer3.shadowRenderer", ShadowDrawer.class);
+        beanFactory.add("40.drawer3.lightBulbDrawer", LightBulbDrawer.class);
         beanFactory.add("40.drawer4.wireframeDrawer", WireframeDrawer.class);
         beanFactory.add("40.drawer5.skeletonDrawer", SkeletonDrawer.class);
-        beanFactory.add("40.drawer6.boundingBoxDrawer", BoundingBoxDrawer.class);
+        beanFactory.add("40.drawer6.shadowRenderer", ShadowDrawer.class);
 
         // renderer
         beanFactory.add("50.renderer0.defaultRenderer", DefaultRenderer.class);

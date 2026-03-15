@@ -53,9 +53,6 @@ public class AnaglyphRenderer extends DefaultRenderer {
 
     public void onDrawFrame() {
 
-        // invoke parent behaviour
-        super.onDrawFrame();
-
         // assert
         if (sceneManager == null) return;
 

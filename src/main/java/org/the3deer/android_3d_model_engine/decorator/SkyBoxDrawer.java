@@ -216,11 +216,11 @@ public class SkyBoxDrawer implements Drawer, MenuAdapter, PreferenceAdapter {
 
     @Override
     public void onDrawFrame(Config config) {
-        draw(config,null, null, null, -1, null, null, null, -1, -1);
+        draw(config);
     }
 
     //@Override
-    private void draw(Config config, Object3DData obj, float[] pMatrix, float[] vMatrix, int textureId, float[] lightPosInWorldSpace, float[] colorMask, float[] cameraPos, int drawType, int drawSize) {
+    private void draw(Config config) {
 
         // enabled?
         if (!enabled) return;
@@ -238,7 +238,7 @@ public class SkyBoxDrawer implements Drawer, MenuAdapter, PreferenceAdapter {
             if (skyBoxes3D[skyBoxId] == null) {
                 Log.i("SkyBoxDrawer", "Loading sky box textures to GPU... skybox: " + skyBoxId);
                 int textureIdMap = GLUtil.loadCubeMap(skyBoxes[skyBoxId].getCubeMap());
-                Log.d("SkyBoxDrawer", "Loaded textures to GPU... id: " + textureId);
+                Log.d("SkyBoxDrawer", "Loaded textures to GPU... id: " + textureIdMap);
                 if (textureIdMap != -1) {
                     skyBoxes3D[skyBoxId] = SkyBox.build(skyBoxes[skyBoxId]);
                     Rescaler.rescale(skyBoxes3D[skyBoxId], 1f);

@@ -1,6 +1,7 @@
 package org.the3deer.android_3d_model_engine.renderer;
 
 import android.app.Activity;
+import android.opengl.GLES20;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -86,14 +87,69 @@ public class DefaultRenderer implements Renderer, EventListener {
     }
 
     @Override
+    public void onPrepareFrame(){
+
+        // check
+        if (!enabled) return;
+
+        // prepare frame
+        prepareFrame(null);
+    }
+
+    @Override
     public void onDrawFrame() {
 
         // check
         if (!enabled) return;
 
+        drawFrame(null);
+    }
+
+    protected void drawFrame(Drawer.Config config) {
+
+        // configure screen
+        if (config != null){
+
+            // configure viewport
+            GLES20.glViewport(config.viewPortX, config.viewPortY, config.viewPortWidth, config.viewPortHeigth);
+            GLES20.glScissor(config.viewPortX, config.viewPortY, config.viewPortWidth, config.viewPortHeigth);
+        }
+
+        // invoke all decorators
+        for (int i = 0; i < drawers.size(); i++) {
+            if (!drawers.get(i).isEnabled()) {
+                continue;
+            }
+
+
+            try {
+                drawers.get(i).onDrawFrame(config);
+            } catch (Exception e) {
+
+                // log the error
+                Log.e(TAG, e.getMessage(), e);
+
+                // disable drawer
+                drawers.get(i).setEnabled(false);
+
+                // notify user
+                activity.runOnUiThread(() -> {
+                    Toast.makeText(activity, "There was a problem rendering the model: " + e.getMessage(),
+                            Toast.LENGTH_LONG).show();
+                });
+            }
+        }
+    }
+
+    protected void prepareFrame(Drawer.Config config) {
+
+        // get current scene
         final Scene scene = sceneManager.getCurrentScene();
+
+        // check
         if (scene == null || scene.getObjects() == null) return;
 
+        //
         if (Constants.ANIMATIONS_ENABLED) {
 
 
@@ -124,29 +180,6 @@ public class DefaultRenderer implements Renderer, EventListener {
                     // using the now-correct animatedWorldTransform of each joint node.
                     skin.updateSkinMatrices();
                 }
-            }
-        }
-
-        // invoke all decorators
-        for (int i = 0; i < drawers.size(); i++) {
-            if (!drawers.get(i).isEnabled()) {
-                continue;
-            }
-            try {
-                drawers.get(i).onDrawFrame(null);
-            } catch (Exception e) {
-
-                // log the error
-                Log.e(TAG, e.getMessage(), e);
-
-                // disable drawer
-                drawers.get(i).setEnabled(false);
-
-                // notify user
-                activity.runOnUiThread(() -> {
-                    Toast.makeText(activity, "There was a problem rendering the model: " + e.getMessage(),
-                            Toast.LENGTH_LONG).show();
-                });
             }
         }
     }

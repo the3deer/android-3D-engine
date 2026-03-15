@@ -12,6 +12,11 @@ public interface Drawer extends RenderListener {
      * Rendering configuration
      */
     class Config {
+        public int viewPortX;
+        public int viewPortY;
+        public int viewPortWidth;
+        public int viewPortHeigth;
+
         public Camera camera;
     }
 

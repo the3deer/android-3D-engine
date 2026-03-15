@@ -345,7 +345,7 @@ public class ShadowsRenderer {
         Matrix.multiplyMM(tempResultMatrix, 0, mViewMatrix, 0, mModelMatrix, 0);
         System.arraycopy(tempResultMatrix, 0, mMVMatrix, 0, 16);
 
-        mActiveRenderer = shaderFactory.getShader(R.raw.shader_v2_with_shadow_vert, R.raw.shader_v2_shadow_frag);
+        mActiveRenderer = shaderFactory.getShader(R.raw.shader_v2_shadow_vert, R.raw.shader_v2_shadow_frag);
         mActiveRenderer.setAutoUseProgram(false);
         mActiveRenderer.useProgram();
 

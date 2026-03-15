@@ -94,6 +94,20 @@ void main(){
     vec4 baseColor = u_Coloured ? v_Color : u_Color;
     vec4 texColor = u_Textured ? texture2D(u_Texture, v_TexCoordinate) : vec4(1.0);
 
+    // Texture transformation (if enabled)
+    if (u_Textured && u_TextureTransformed){
+        mat3 translation = mat3(1, 0, 0, 0, 1, 0, u_TextureOffset.x, u_TextureOffset.y, 1);
+        mat3 rotation = mat3(
+            cos(u_TextureRotation), -sin(u_TextureRotation), 0,
+            sin(u_TextureRotation), cos(u_TextureRotation), 0,
+            0, 0, 1
+        );
+        mat3 scale = mat3(u_TextureScale.x, 0, 0, 0, u_TextureScale.y, 0, 0, 0, 1);
+        mat3 matrix = translation * rotation * scale;
+        vec2 uvTransformed = (matrix * vec3(v_TexCoordinate.xy, 1)).xy;
+        texColor = texture2D(u_Texture, uvTransformed);
+    }
+
     // Combine base, texture, and mask
     vec4 finalColor = baseColor * texColor * u_ColorMask;
 
@@ -111,19 +125,27 @@ void main(){
     if (u_Lighted) {
         // Normal mapping logic
         if (u_NormalTextured){
-            vec3 mapNormal = texture2D(u_NormalTexture, v_TexCoordinate).rgb * 2.0 - 1.0;
+            // Sample normal map [0, 1] and convert to [-1, 1]
+            vec3 normalSample = texture2D(u_NormalTexture, v_TexCoordinate).rgb * 2.0 - 1.0;
+
+            // Re-orthogonalize tangent (Gram-Schmidt process)
             vec3 T = normalize(v_Tangent.xyz - dot(v_Tangent.xyz, N) * N);
+            // Construct bitangent respecting handedness (w)
             vec3 B = cross(N, T) * v_Tangent.w;
+
+            // Construct TBN matrix and transform sample to world space
             mat3 TBN = mat3(T, B, N);
-            N = normalize(TBN * mapNormal);
+            N = normalize(TBN * normalSample);
         }
 
         // Blinn-Phong lighting
-        vec3 lightVec = normalize(u_LightPos - v_Position);
+        vec3 lightVec = u_LightPos - v_Position;
+        float dist = length(lightVec);
+        lightVec = normalize(lightVec);
+
         float diff = max(dot(lightVec, N), 0.0);
 
         // Attenuation
-        float dist = distance(u_LightPos, v_Position);
         float attenuation = 1.0 / (1.0 + 0.025 * dist);
         diffuse = diff * attenuation;
 
@@ -139,15 +161,23 @@ void main(){
         }
     }
 
+    // Ambient light
     float ambient = 0.40;
     float totalLight = min((diffuse + specular + ambient), 1.0);
 
-    gl_FragColor = vec4(finalColor.rgb * totalLight * shadowFactor, finalColor.a);
+    // Combine lighting with color
+    finalColor.rgb = finalColor.rgb * totalLight *  shadowFactor;
 
+    // Apply Emissive texture (if enabled)
     if (u_EmissiveTextured){
-        gl_FragColor.rgb += texture2D(u_EmissiveTexture, v_TexCoordinate).rgb * u_EmissiveFactor;
+        vec4 emissiveTex = texture2D(u_EmissiveTexture, v_TexCoordinate);
+        finalColor.rgb += emissiveTex.rgb * u_EmissiveFactor;
     }
 
+    // Set output color
+    gl_FragColor = finalColor;
+
+    // Force opaque if mode is 0 (OPAQUE)
     if (u_AlphaMode == 0) {
         gl_FragColor.a = 1.0;
     }

@@ -151,7 +151,7 @@ public class GLRendererImpl implements GLSurfaceView.Renderer, MenuAdapter {
         this.ratio = (float) width / height;
 
         // Adjust the viewport based on geometry changes, such as screen rotation
-        GLES20.glViewport(0, 0, width, height);
+        //GLES20.glViewport(0, 0, width, height);
 
         // call renderers
         for (int i = 0; i < renderers.size(); i++) {

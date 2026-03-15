@@ -33,10 +33,6 @@ uniform bool u_NormalTextured;
 attribute vec4 a_Tangent;
 varying vec4 v_Tangent;
 
-// emissiveMap
-//uniform bool u_EmissiveTextured;
-//uniform sampler2D u_EmissiveTexture;
-
 // animation
 uniform bool u_Animated;
 attribute vec4 in_jointIndices;
