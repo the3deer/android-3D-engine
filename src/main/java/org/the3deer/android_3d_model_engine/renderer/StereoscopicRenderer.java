@@ -94,6 +94,12 @@ public class StereoscopicRenderer extends DefaultRenderer {
         rightConf.viewPortWidth = width / 2;
         rightConf.viewPortHeigth = height;
 
+        // Fix projections
+        float halfRatio = (float)(width / 2) / height;
+        leftCamera.getProjection().setAspectRatio(halfRatio);
+        rightCamera.getProjection().setAspectRatio(halfRatio);
+
+
         // draw left eye image
         super.drawFrame(leftConf);
 

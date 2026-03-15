@@ -326,12 +326,12 @@ public class Camera {
 
         // update left
         final Camera left = stereoCam[0];
-        left.projection = this.projection;
+        left.projection = this.projection.clone();
         left.set(xPosLeft, yPosLeft, zPosLeft, xViewLeft, yViewLeft, zViewLeft, getxUp(), getyUp(), getzUp());
 
         // update right
         final Camera right = stereoCam[1];
-        right.projection = this.projection;
+        right.projection = this.projection.clone();
         right.set(xPosRight, yPosRight, zPosRight, xViewRight, yViewRight, zViewRight, getxUp(), getyUp(), getzUp());
 
         return stereoCam;

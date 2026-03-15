@@ -246,9 +246,9 @@ public class SceneLoader implements LoadListener {
 
     @Override
     public void onLoad(Scene scene, Camera camera) {
-        //beanFactory.add("model.camera."+camera.getName(), camera);
 
-        camera.getProjection().setScreen(this.screen);
+        // fix aspect ratio
+        camera.getProjection().setAspectRatio(screen.getRatio());
     }
 
     @Override

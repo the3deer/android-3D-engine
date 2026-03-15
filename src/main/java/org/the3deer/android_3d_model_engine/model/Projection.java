@@ -6,10 +6,6 @@ public interface Projection {
 
     float[] getMatrix();
 
-    Screen getScreen();
-
-    void setScreen(Screen screen);
-
     float getNear();
 
     void setNear(float near);
@@ -19,4 +15,8 @@ public interface Projection {
     void setFar(float far);
 
     float getFov();
+    
+    Projection clone();
+
+    void setAspectRatio(float halfRatio);
 }
