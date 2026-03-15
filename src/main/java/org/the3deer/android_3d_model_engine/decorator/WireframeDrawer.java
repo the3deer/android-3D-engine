@@ -72,40 +72,33 @@ public class WireframeDrawer implements Drawer, EventListener {
         if (!enabled) return;
 
         // assert
-        if (sceneManager == null || camera == null) {
+        if (sceneManager == null) {
             return;
         }
 
         // current scene
         final Scene scene = sceneManager.getCurrentScene();
 
+        // check
+        if (scene == null) return;
+
         // get objects
         final List<Object3DData> objects = scene.getObjects();
 
         // draw objects
         for (int i = 0; i < objects.size(); i++) {
-            final Camera camera = config != null && config.camera != null ? config.camera : this.camera;
-            drawObject(scene, camera, objects, i);
+            final Camera camera = config != null && config.camera != null ? config.camera : scene.getCamera();
+            drawObject(camera, objects, i);
         }
     }
 
-    private void drawObject(Scene scene, Camera camera, List<Object3DData> objects, int i) {
+    private void drawObject(Camera camera, List<Object3DData> objects, int i) {
         Object3DData objData = null;
         try {
             objData = objects.get(i);
             if (!objData.isVisible()) {
                 return;
             }
-
-            if (objData instanceof AnimatedModel){
-                if (((AnimatedModel) objData).getSkin() == null){
-                    // patch. we have to wait loader to finish loading
-                    return;
-                }
-            }
-
-            //boolean changed = objData.isChanged();
-            //objData.setChanged(false);
 
             // draw points
             // draw wireframe
@@ -122,15 +115,15 @@ public class WireframeDrawer implements Drawer, EventListener {
                     }
 
                     //Shader drawerObject = shaderFactory.getShader(scene, objData, false, false, false, true, false, false);
-                    final Shader drawerObject = shaderFactory.getShader(wireframe);
-                    if (drawerObject == null) {
+                    final Shader shader = shaderFactory.getShader(wireframe);
+                    if (shader == null) {
                         Log.e(TAG, "No drawer for " + objData.getId());
                         return;
                     }
 
                     //animator.update(wireframe, scene.isShowBindPose());
                     //animator.update(scene.getRootNodes(), scene.getCurrentAnimation(), false);
-                    drawerObject.draw(wireframe, camera.getProjectionMatrix(), camera.getViewMatrix(), null, null, camera.getPos(), wireframe.getDrawMode(), wireframe.getDrawSize());
+                    shader.draw(wireframe, camera.getProjectionMatrix(), camera.getViewMatrix(), null, null, camera.getPos(), wireframe.getDrawMode(), wireframe.getDrawSize());
                 } catch (Error e) {
                     Log.e("WireframeDrawer", e.getMessage(), e);
                 }

@@ -114,7 +114,7 @@ public class ShaderFactory {
     }
 
     public Shader getShader(ShaderResource shaderResource) {
-        return getShader(shaderResource.vertexShaderResourceId, shaderResource.fragmentShaderResourceId);
+        return getShader(shaderResource.id, shaderResource.vertexShaderResourceId, shaderResource.fragmentShaderResourceId);
     }
 
     /**
@@ -122,14 +122,14 @@ public class ShaderFactory {
      * @param resIdVertexShader the shader resource id
      * @return
      */
-    public Shader getShader(int resIdVertexShader, int resIdFragmentShader){
-        final String shaderName = shadersCode.get(resIdVertexShader);
-        final Shader shader = shadersCache.get(shaderName);
+    private Shader getShader(String id, int resIdVertexShader, int resIdFragmentShader){
+        //final String shaderName = shadersCode.get(resIdVertexShader);
+        final Shader shader = shadersCache.get(id);
         if (shader == null){
-            Log.d("ShaderFactory", "Loading shader... "+ shaderName);
-            final ShaderImplV2 impl = loadShader(shaderName, resIdVertexShader, resIdFragmentShader);
-            shadersCache.put(shaderName, impl);
-            Log.d("ShaderFactory", "Loaded "+ shaderName);
+            Log.d("ShaderFactory", "Loading shader... "+ id);
+            final ShaderImplV2 impl = loadShader(id, resIdVertexShader, resIdFragmentShader);
+            shadersCache.put(id, impl);
+            Log.d("ShaderFactory", "Loaded "+ id);
             return impl;
         }
         return shader;

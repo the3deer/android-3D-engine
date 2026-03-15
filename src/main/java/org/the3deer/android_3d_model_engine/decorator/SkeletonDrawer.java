@@ -128,14 +128,14 @@ public class SkeletonDrawer implements Drawer {
 
                 // get shader
                 //Shader drawerObject = shaderFactory.getShader(scene, objData, false, false, false, true, false, false);
-                final Shader drawerObject = shaderFactory.getShader(skeletonModel);
-                if (drawerObject == null) {
+                final Shader shader = shaderFactory.getShader(skeletonModel);
+                if (shader == null) {
                     Log.e(TAG, "No drawer for " + objData.getId());
                     continue;
                 }
 
                 final Camera camera = config != null && config.camera != null ? config.camera : scene.getCamera();
-                drawerObject.draw(skeletonModel, camera.getProjectionMatrix(), camera.getViewMatrix(), null, null, camera.getPos(), skeletonModel.getDrawMode(), skeletonModel.getDrawSize());
+                shader.draw(skeletonModel, camera.getProjectionMatrix(), camera.getViewMatrix(), null, null, camera.getPos(), skeletonModel.getDrawMode(), skeletonModel.getDrawSize());
 
             } catch (Exception ex) {
                 this.enabled = false;

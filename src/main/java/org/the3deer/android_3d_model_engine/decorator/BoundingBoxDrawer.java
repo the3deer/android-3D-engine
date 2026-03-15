@@ -83,9 +83,9 @@ public class BoundingBoxDrawer implements Drawer {
                         ((AnimatedModel) boundingBoxData).getSkin().updateSkinMatrices();
                     }
 
-                    final Shader drawerObject = shaderFactory.getShader(boundingBoxData);
+                    final Shader shader = shaderFactory.getShader(boundingBoxData);
                     //final Shader drawerObject = shaderFactory.getShader(R.raw.shader_basic_vert, R.raw.shader_basic_frag);
-                    if (drawerObject == null) {
+                    if (shader == null) {
                         Log.e(TAG, "No drawer for " + objData.getId());
                         return;
                     }
@@ -98,7 +98,7 @@ public class BoundingBoxDrawer implements Drawer {
                     }*/
 
                     final Camera camera = config != null && config.camera != null ? config.camera : scene.getCamera();
-                    drawerObject.draw(boundingBoxData, camera.getProjectionMatrix(), camera.getViewMatrix(),
+                    shader.draw(boundingBoxData, camera.getProjectionMatrix(), camera.getViewMatrix(),
                             null, null, null,
                             boundingBoxData.getDrawMode(), boundingBoxData.getDrawSize());
                 }

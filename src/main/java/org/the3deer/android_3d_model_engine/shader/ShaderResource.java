@@ -10,7 +10,7 @@ public enum ShaderResource {
     STATIC("static", R.raw.shader_v2_static_vert, R.raw.shader_v2_static_frag),
     ANIMATED("animated", R.raw.shader_v2_animated_vert, R.raw.shader_v2_animated_frag),
     SHADOW_MAP("shadow_map", R.raw.shader_v2_shadow_depth_map_vert, R.raw.shader_v2_shadow_depth_map_frag),
-    SHADOW("shadow_map", R.raw.shader_v2_shadow_vert, R.raw.shader_v2_shadow_frag);
+    SHADOW("shadow", R.raw.shader_v2_shadow_vert, R.raw.shader_v2_shadow_frag);
 
     String id;
     int vertexShaderResourceId = -1;
