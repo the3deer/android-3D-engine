@@ -30,6 +30,7 @@ import org.the3deer.android_3d_model_engine.model.impl.OrthographicProjection;
 import org.the3deer.android_3d_model_engine.model.impl.PerspectiveProjection;
 import org.the3deer.android_3d_model_engine.objects.Point;
 import org.the3deer.android_3d_model_engine.preferences.PreferenceFragment;
+import org.the3deer.android_3d_model_engine.preferences.Preferences;
 import org.the3deer.android_3d_model_engine.renderer.AnaglyphRenderer;
 import org.the3deer.android_3d_model_engine.renderer.DefaultRenderer;
 import org.the3deer.android_3d_model_engine.renderer.StereoscopicRenderer;
@@ -237,6 +238,8 @@ public class ModelEngine {
         beanFactory.add("50.renderer1.anaglyphRenderer", AnaglyphRenderer.class);
         beanFactory.add("50.renderer2.stereoscopicRenderer", StereoscopicRenderer.class);
 
+        // preferences
+        beanFactory.add("100.preferences", Preferences.class);
     }
 
     private void initGUI() {

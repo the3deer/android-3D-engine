@@ -1,7 +1,6 @@
 package org.the3deer.android_3d_model_engine.preferences;
 
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.util.Log;
 
@@ -9,16 +8,13 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.preference.PreferenceFragmentCompat;
-import androidx.preference.PreferenceManager;
 import androidx.preference.PreferenceScreen;
 import androidx.preference.SwitchPreference;
 
 import org.the3deer.android_3d_model_engine.ModelEngine;
 import org.the3deer.android_3d_model_engine.ModelViewModel;
-import org.the3deer.android_3d_model_engine.R;
 
 import java.util.List;
-import java.util.Map;
 
 public class PreferenceFragment extends PreferenceFragmentCompat {
 
@@ -34,54 +30,46 @@ public class PreferenceFragment extends PreferenceFragmentCompat {
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
 
-        init();
-    }
+        // get view model
+        this.viewModel = new ViewModelProvider(requireActivity()).get(ModelViewModel.class);
 
-    private void init() {
-        viewModel = new ViewModelProvider(requireActivity()).get(ModelViewModel.class);
-
-        // check
+        // check we have a model
         if (viewModel.getRecentId().getValue() == null){
             Log.e(TAG, "onCreate: viewModel.getRecentUri().getValue() is null");
             return;
+        } else {
+            Log.d(TAG, "onCreate: engine id: " +viewModel.getRecentId().getValue());
         }
 
-        this.engine = viewModel.getModelEngine(viewModel.getRecentId().getValue());
+        // get the correct engine
+        this.engine = viewModel.getModelEngine();
 
+        // get preference adapters
         this.adapters =
                 engine.getBeanFactory().findAll(PreferenceAdapter.class, null);
+
+        // check
         if (adapters.isEmpty()){
             Log.e(TAG, "onCreate: adapters is empty");
         } else {
             Log.d(TAG, "onCreate: adapters list: " +adapters);
         }
 
-        // get
-        final SharedPreferences sharedPreferences =
-                PreferenceManager.getDefaultSharedPreferences(requireContext());
-        final Map<String, ?> all = sharedPreferences.getAll();
-
-        // load
-        for (PreferenceAdapter a : adapters) {
-            a.onRestorePreferences(all);
-        }
+        // invoke super - it will trigger our onCreatePreference()
+        super.onCreate(savedInstanceState);
     }
 
     @Override
     public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
 
         // check
-        init();
-
-        // check
         if (adapters == null || adapters.isEmpty()){
-            Log.e(TAG, "onCreate: adapters is empty");
+            Log.e(TAG, "onCreate: adapters is null or empty");
             return;
         }
 
-        Log.v(TAG, "onCreatePreferences");
+        Log.i(TAG, "Creating the preferences screen...");
 
         // create screen
         final Context context = requireContext();
@@ -103,6 +91,8 @@ public class PreferenceFragment extends PreferenceFragmentCompat {
 
         // update
         setPreferenceScreen(screen);
+
+        Log.i(TAG, "Preferences screen set.");
     }
 
     public void onSaveInstanceState(Bundle outState) {
