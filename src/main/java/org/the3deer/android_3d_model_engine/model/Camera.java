@@ -312,27 +312,21 @@ public class Camera {
         float xPosLeft = pos[0] - crossRight[0] * midEye;
         float yPosLeft = pos[1] - crossRight[1] * midEye;
         float zPosLeft = pos[2] - crossRight[2] * midEye;
-        float xViewLeft = xConv - xPosLeft;
-        float yViewLeft = yConv - yPosLeft;
-        float zViewLeft = zConv - zPosLeft;
 
         // new right pos
         float xPosRight = pos[0] + crossRight[0] * midEye;
         float yPosRight = pos[1] + crossRight[1] * midEye;
         float zPosRight = pos[2] + crossRight[2] * midEye;
-        float xViewRight = xConv - xPosRight;
-        float yViewRight = yConv - yPosRight;
-        float zViewRight = zConv - zPosRight;
 
         // update left
         final Camera left = stereoCam[0];
         left.projection = this.projection.clone();
-        left.set(xPosLeft, yPosLeft, zPosLeft, xViewLeft, yViewLeft, zViewLeft, getxUp(), getyUp(), getzUp());
+        left.set(xPosLeft, yPosLeft, zPosLeft, xConv, yConv, zConv, getxUp(), getyUp(), getzUp());
 
         // update right
         final Camera right = stereoCam[1];
         right.projection = this.projection.clone();
-        right.set(xPosRight, yPosRight, zPosRight, xViewRight, yViewRight, zViewRight, getxUp(), getyUp(), getzUp());
+        right.set(xPosRight, yPosRight, zPosRight, xConv, yConv, zConv, getxUp(), getyUp(), getzUp());
 
         return stereoCam;
     }

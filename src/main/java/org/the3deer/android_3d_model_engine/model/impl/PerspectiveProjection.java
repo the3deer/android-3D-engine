@@ -92,6 +92,6 @@ public final class PerspectiveProjection implements Projection {
 
     @Override
     public Projection clone() {
-        return new PerspectiveProjection(yfov, aspectRatio, znear, zfar);
+        return new PerspectiveProjection((float) Math.toRadians(yfov), aspectRatio, znear, zfar);
     }
 }
