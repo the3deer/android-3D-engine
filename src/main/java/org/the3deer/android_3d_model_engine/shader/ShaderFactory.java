@@ -9,6 +9,8 @@ import org.the3deer.android_3d_model_engine.R;
 import org.the3deer.android_3d_model_engine.model.AnimatedModel;
 import org.the3deer.android_3d_model_engine.model.Constants;
 import org.the3deer.android_3d_model_engine.model.Object3DData;
+import org.the3deer.android_3d_model_engine.shader.v2.ShaderImplV2;
+import org.the3deer.android_3d_model_engine.shader.v3.ShaderImplV3;
 import org.the3deer.util.bean.BeanInit;
 import org.the3deer.util.io.IOUtils;
 

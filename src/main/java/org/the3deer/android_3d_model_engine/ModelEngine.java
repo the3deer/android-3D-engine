@@ -32,7 +32,8 @@ import org.the3deer.android_3d_model_engine.objects.Point;
 import org.the3deer.android_3d_model_engine.preferences.PreferenceFragment;
 import org.the3deer.android_3d_model_engine.renderer.AnaglyphRenderer;
 import org.the3deer.android_3d_model_engine.renderer.DefaultRenderer;
-import org.the3deer.android_3d_model_engine.renderer.GpuManager;
+import org.the3deer.android_3d_model_engine.renderer.StereoscopicRenderer;
+import org.the3deer.android_3d_model_engine.shader.v3.GpuManager;
 import org.the3deer.android_3d_model_engine.renderer.RendererPreferences;
 import org.the3deer.android_3d_model_engine.scene.SceneDrawer;
 import org.the3deer.android_3d_model_engine.scene.SceneLoader;
@@ -232,8 +233,9 @@ public class ModelEngine {
         beanFactory.add("40.drawer6.boundingBoxDrawer", BoundingBoxDrawer.class);
 
         // renderer
-        beanFactory.add("50.renderer0.sceneRenderer", DefaultRenderer.class);
+        beanFactory.add("50.renderer0.defaultRenderer", DefaultRenderer.class);
         beanFactory.add("50.renderer1.anaglyphRenderer", AnaglyphRenderer.class);
+        beanFactory.add("50.renderer2.stereoscopicRenderer", StereoscopicRenderer.class);
 
     }
 

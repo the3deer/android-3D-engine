@@ -25,7 +25,7 @@ import javax.inject.Inject;
  * the viewer sees a 3D image
  */
 //public class AnaglyphRenderer implements Renderer, EventListener {
-public class AnaglyphRenderer implements EventListener, Renderer {
+public class AnaglyphRenderer extends DefaultRenderer {
 
     private final static String TAG = AnaglyphRenderer.class.getSimpleName();
 
@@ -37,10 +37,6 @@ public class AnaglyphRenderer implements EventListener, Renderer {
     private List<EventListener> listeners = new ArrayList<>();
 
     private boolean enabled;
-
-    public List<? extends Object3DData> getObjects() {
-        return Collections.emptyList();
-    }
 
     public boolean isEnabled() {
         return enabled;
@@ -56,6 +52,9 @@ public class AnaglyphRenderer implements EventListener, Renderer {
     }
 
     public void onDrawFrame() {
+
+        // invoke parent behaviour
+        super.onDrawFrame();
 
         // assert
         if (sceneManager == null) return;

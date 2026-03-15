@@ -1,4 +1,4 @@
-package org.the3deer.android_3d_model_engine.renderer;
+package org.the3deer.android_3d_model_engine.shader.v3;
 
 import android.opengl.GLES30;
 import android.util.Log;

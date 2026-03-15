@@ -1,9 +1,8 @@
-package org.the3deer.android_3d_model_engine.shader;
+package org.the3deer.android_3d_model_engine.shader.v3;
 
 import android.content.Context;
 import android.opengl.GLES30;
 import android.os.Bundle;
-import android.util.Log;
 import android.util.SparseArray;
 
 import androidx.annotation.Nullable;
@@ -17,8 +16,7 @@ import org.the3deer.android_3d_model_engine.model.Object3DData;
 import org.the3deer.android_3d_model_engine.model.Skin;
 import org.the3deer.android_3d_model_engine.model.Texture;
 import org.the3deer.android_3d_model_engine.preferences.PreferenceAdapter;
-import org.the3deer.android_3d_model_engine.renderer.GpuAsset;
-import org.the3deer.android_3d_model_engine.renderer.GpuManager;
+import org.the3deer.android_3d_model_engine.shader.Shader;
 import org.the3deer.util.android.GLUtil;
 import org.the3deer.util.math.Math3DUtils;
 
@@ -64,7 +62,7 @@ public class ShaderImplV3 implements Shader, PreferenceAdapter {
     // Internal GpuManager instance for asset retrieval
     private final GpuManager gpuManager = new GpuManager();
 
-    static ShaderImplV3 getInstance(String id, String vertexShaderCode, String fragmentShaderCode) {
+    public static ShaderImplV3 getInstance(String id, String vertexShaderCode, String fragmentShaderCode) {
         return new ShaderImplV3(id, vertexShaderCode, fragmentShaderCode);
     }
 

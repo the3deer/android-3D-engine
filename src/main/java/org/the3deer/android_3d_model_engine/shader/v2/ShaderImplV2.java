@@ -1,4 +1,4 @@
-package org.the3deer.android_3d_model_engine.shader;
+package org.the3deer.android_3d_model_engine.shader.v2;
 
 import android.content.Context;
 import android.opengl.GLES20;
@@ -22,6 +22,7 @@ import org.the3deer.android_3d_model_engine.model.Object3DData;
 import org.the3deer.android_3d_model_engine.model.Skin;
 import org.the3deer.android_3d_model_engine.model.Texture;
 import org.the3deer.android_3d_model_engine.preferences.PreferenceAdapter;
+import org.the3deer.android_3d_model_engine.shader.Shader;
 import org.the3deer.util.android.GLUtil;
 import org.the3deer.util.io.IOUtils;
 import org.the3deer.util.math.Math3DUtils;
@@ -142,7 +143,7 @@ public class ShaderImplV2 implements Shader, PreferenceAdapter {
      * @param fragmentShaderCode
      * @return the compiled Shader
      */
-    static ShaderImplV2 getInstance(String id, String vertexShaderCode, String fragmentShaderCode) {
+    public static ShaderImplV2 getInstance(String id, String vertexShaderCode, String fragmentShaderCode) {
         return new ShaderImplV2(id, vertexShaderCode, fragmentShaderCode);
     }
 

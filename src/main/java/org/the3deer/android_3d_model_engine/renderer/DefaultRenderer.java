@@ -127,7 +127,7 @@ public class DefaultRenderer implements Renderer, EventListener {
             }
         }
 
-        // debugger
+        // invoke all decorators
         for (int i = 0; i < drawers.size(); i++) {
             if (!drawers.get(i).isEnabled()) {
                 continue;
