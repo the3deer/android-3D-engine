@@ -1,7 +1,6 @@
 
 package org.the3deer.android_3d_model_engine;
 
-import android.util.Log;
 import android.view.MotionEvent;
 
 import androidx.preference.Preference;
@@ -13,11 +12,8 @@ import org.the3deer.android_3d_model_engine.controller.TouchController;
 import org.the3deer.android_3d_model_engine.controller.TouchEvent;
 import org.the3deer.android_3d_model_engine.gui.GUIDefault;
 import org.the3deer.android_3d_model_engine.gui.GUISystem;
-import org.the3deer.android_3d_model_engine.model.Camera;
-import org.the3deer.android_3d_model_engine.model.Object3DData;
 import org.the3deer.android_3d_model_engine.model.Projection;
 import org.the3deer.android_3d_model_engine.model.Scene;
-import org.the3deer.android_3d_model_engine.model.Screen;
 import org.the3deer.android_3d_model_engine.scene.SceneManager;
 import org.the3deer.android_3d_model_engine.shader.ShaderFactory;
 import org.the3deer.android_3d_model_engine.view.GLEvent;
@@ -50,8 +46,6 @@ public class ModelController implements EventManager, GLTouchHandler {
 
     // dependencies
     @Inject
-    private Screen screen;
-    @Inject
     private Projection projection;
     @Inject
     private SceneManager sceneManager;
@@ -63,7 +57,6 @@ public class ModelController implements EventManager, GLTouchHandler {
     private GUISystem guiSystem;
     @Inject
     private CollisionController collisionController;
-
     @Inject
     private CameraController cameraController;
     @Inject
@@ -93,17 +86,6 @@ public class ModelController implements EventManager, GLTouchHandler {
                 shaderFactory.reset();
 
             } else if (rev.getCode() == GLEvent.Code.SURFACE_CHANGED) {
-                // assert
-                if (screen == null) {
-                    Log.e(TAG, "screen or camera is null. can't update model");
-                    return false;
-                }
-
-                // Update model
-                Log.d(TAG, "Updating screen and camera projection... size: "
-                        + rev.getWidth() + " width, "
-                        + rev.getHeight() + " height");
-                screen.setSize(rev.getWidth(), rev.getHeight());
 
                 if (gui != null){
                     gui.onEvent(event);

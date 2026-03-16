@@ -30,6 +30,9 @@ public class GLRendererImpl implements GLSurfaceView.Renderer, MenuAdapter {
     private final static String TAG = GLRendererImpl.class.getSimpleName();
 
     @Inject
+    private Screen screen;
+
+    @Inject
     private EventManager eventManager;
     @Inject
     private List<RenderListener> listeners;
@@ -161,6 +164,9 @@ public class GLRendererImpl implements GLSurfaceView.Renderer, MenuAdapter {
                 Log.e(TAG, "Exception on delegate: " + renderers.get(i), ex);
             }
         }
+
+        // update model
+        screen.setSize(width, height);
 
         // fire event
         eventManager.propagate(new GLEvent(this, GLEvent.Code.SURFACE_CHANGED,
