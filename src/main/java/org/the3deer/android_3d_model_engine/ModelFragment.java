@@ -5,12 +5,9 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
-import android.view.LayoutInflater;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.Toast;
 
-import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
@@ -21,6 +18,7 @@ import androidx.preference.PreferenceGroup;
 import androidx.preference.SwitchPreference;
 
 import org.the3deer.android_3d_model_engine.preferences.PreferenceAdapter;
+import org.the3deer.android_3d_model_engine.view.GLRendererImpl;
 import org.the3deer.android_3d_model_engine.view.GLSurfaceView;
 import org.the3deer.android_3d_model_engine.view.GLTouchHandler;
 
@@ -33,10 +31,8 @@ public class ModelFragment extends Fragment implements PreferenceAdapter {
 
     private final static String TAG = ModelFragment.class.getSimpleName();
 
-    private String currentEngineId;
     private String currentModelUri;
     protected ModelEngine modelEngine;
-    private OnBackPressedCallback onBackPressedCallback;
     protected final Handler handler;
 
     private GLSurfaceView glSurfaceView;
@@ -73,214 +69,122 @@ public class ModelFragment extends Fragment implements PreferenceAdapter {
     public void onCreate(Bundle savedInstanceState) {
         Log.d(TAG, "onCreate. Loading model fragment...");
         super.onCreate(savedInstanceState);
+    }
 
-        // get parameters
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+
+        // log event
+        Log.i(TAG, "Creating Model Engine view... state: " + savedInstanceState);
+
+        // call super
+        super.onViewCreated(view, savedInstanceState);
+
+        // get gl view
+        glSurfaceView = view.findViewById(R.id.gl_surface_view);
+
+        // restore engine (eg: back button)
         try {
-            onRestoreEngine(savedInstanceState);
-        } catch (Exception ex){
-            Log.e(TAG, "Error creating the engine: "+ex.getMessage(), ex);
-            Toast.makeText(getActivity(), "There was a problem initializing the engine: " + ex.getMessage(),
-                    Toast.LENGTH_LONG).show();
+            onRestoreEngine(savedInstanceState, getArguments());
+        } catch (Exception ex) {
+            Log.e(TAG, "Error restoring engine: " + ex.getMessage(), ex);
+
+            // notify user
+            requireActivity().runOnUiThread(() -> {
+                Toast.makeText(getActivity(), "There was a problem restoring the Engine status. " + ex.getMessage(),
+                        Toast.LENGTH_LONG).show();
+            });
         }
     }
 
-    private void onRestoreEngine(Bundle savedInstanceState) throws Exception {
+    private void onRestoreEngine(Bundle savedInstanceState, Bundle arguments) throws Exception {
 
         // get model
         final ModelViewModel viewModel = new ViewModelProvider(requireActivity()).get(ModelViewModel.class);
 
         if (savedInstanceState != null) {
+
             // Fragment is being re-created from a previous state
             Log.d(TAG, "onRestoreEngine: Restoring from savedInstanceState");
-            currentEngineId = savedInstanceState.getString("id");
             currentModelUri = savedInstanceState.getString("uri");
-        } else {
-            // Fragment is being created for the first time (or arguments are the source of truth)
-            Bundle arguments = getArguments();
-            if (arguments != null) {
+        } else if (arguments != null) {
                 Log.d(TAG, "onRestoreEngine: Initializing from arguments");
-                currentEngineId = arguments.getString("id");
                 currentModelUri = arguments.getString("uri");
-            } else {
-                // Optional: Handle case where no arguments were provided if that's an error
-                Log.w(TAG, "onRestoreEngine: No arguments provided and no saved state!");
-                // You might set default values or throw an exception if arguments are mandatory
-            }
-        }
-
-        // get model
-        if (currentEngineId == null){
-            currentEngineId = currentModelUri;
-        }
-        if (currentEngineId != null) {
-            modelEngine = viewModel.getModelEngine(currentEngineId);
         } else {
-            currentEngineId = "android://fragment/"+this.getClass().getSimpleName()
-                    .replace("Fragment","");
+            // Optional: Handle case where no arguments were provided if that's an error
+            Log.w(TAG, "onRestoreEngine: No arguments provided and no saved state!");
+            // You might set default values or throw an exception if arguments are mandatory
         }
-
-        // init engine
-        if (modelEngine == null) {
-            Log.i(TAG, "ModelEngine not found in ViewModel, Creating new instance... "+ currentEngineId);
-            modelEngine = ModelEngine.newInstance(currentEngineId, requireActivity(), savedInstanceState, getArguments());
-            //modelEngine.getBeanFactory().addOrReplace("_uri", currentModelUri);
-            //modelEngine.getBeanFactory().addOrReplace("scene_0.loader", new SceneLoader());
-            /*modelEngine.getBeanFactory().addOrReplace("100.renderer", GLRendererImpl.class);
-            modelEngine.getBeanFactory().addOrReplace("100.surface", new GLSurfaceView(requireActivity()));
-            modelEngine.getBeanFactory().addOrReplace("100.fragment_gl", new GLFragment());*/
-            modelEngine.init();
-            modelEngine.start();
-        } else {
-            Log.i(TAG, "Resuming ModelEngine from ViewModel... "+ currentEngineId);
-            //modelEngine.getBeanFactory().addOrReplace("_uri", currentModelUri);
-            //modelEngine.getBeanFactory().addOrReplace("extras", getArguments());
-            //modelEngine.getBeanFactory().addOrReplace("scene_0.loader", new SceneLoader());
-            /*modelEngine.getBeanFactory().addOrReplace("100.renderer", GLRendererImpl.class);
-            modelEngine.getBeanFactory().addOrReplace("100.surface", new GLSurfaceView(requireActivity()));
-            modelEngine.getBeanFactory().addOrReplace("100.fragment_gl", new GLFragment());*/
-        }
-
-        //modelEngine.getBeanFactory().addOrReplace("99.activity", requireActivity());
-        //modelEngine.getBeanFactory().addOrReplace("bundle", savedInstanceState);
-        //modelEngine.getBeanFactory().addOrReplace("extras", getArguments());
-        //modelEngine.getBeanFactory().addOrReplace("99.loader", new SceneLoader());
-        //modelEngine.getBeanFactory().addOrReplace("shaderFactory", new ShaderFactory(requireActivity()));
-        //Log.i(TAG, "Adding GL components... "+System.identityHashCode(this));
-        //modelEngine.getBeanFactory().addOrReplace("99.shaderFactory", new ShaderFactory());
-        //modelEngine.getBeanFactory().addOrReplace("99.shaderPreferences", new ShaderPreferences());
-        //modelEngine.getBeanFactory().addOrReplace("99.renderer", new GLRendererImpl());
-        //modelEngine.getBeanFactory().addOrReplace("99.surface", new GLSurfaceView(requireActivity()));
-        //modelEngine.getBeanFactory().addOrReplace("99.fragment_gl", new GLFragment());
-        //modelEngine.getBeanFactory().addOrReplace("99.settings", new PreferenceFragment());
-
-        // restore state
-        //modelEngine.getPreferenceFragment().onRestoreInstanceState(savedInstanceState);
-        //SceneManager sceneLoader = modelEngine.getBeanFactory().find(SceneManager.class);
-        //sceneLoader.loadFromBundle(getArguments());
-
-        modelEngine.getBeanFactory().addOrReplace("model_fragment", (PreferenceAdapter)this);
-
-        viewModel.setModelEngine(currentEngineId, modelEngine);
-        viewModel.setRecentId(currentEngineId);
-    }
-
-    @Nullable
-    @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-
-        // restore engine (eg: back button)
-        Log.d(TAG, "onCreateView. Restoring engine...");
-        try{
-            onRestoreEngine(savedInstanceState);
-        } catch (Exception ex){
-            Log.e(TAG, "Error restoring engine: "+ex.getMessage(), ex);
-            Toast.makeText(getActivity(), "There was a problem restoring the engine: " + ex.getMessage(),
-                    Toast.LENGTH_LONG).show();
-        }
-
-        return super.onCreateView(inflater, container, savedInstanceState);
-    }
-
-    @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
-
-        // register touch handler
-        Log.d(TAG, "onViewCreated. Registering touch handler...");
-        glSurfaceView = view.findViewById(R.id.gl_surface_view);
-        GLTouchHandler glTouchHandler = modelEngine.getBeanFactory().find(GLTouchHandler.class);
-        if (glTouchHandler != null) {
-            glSurfaceView.setTouchEventHandler(glTouchHandler); // Set the fragment as the callback
-            glSurfaceView.setUp(modelEngine);
-        } else {
-            Log.e(TAG, "Touch handler not found!");
-        }
-    }
-
-    /* @Nullable
-    @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        final View view = super.onCreateView(inflater, container, savedInstanceState);
-
-        modelEngine.getBeanFactory().addOrReplace("gl_fragment", this);
-
-        // settings view
-        //createSettings();
-
-        return view;
-    }*/
-
-    /*@Override
-    public void onAttach(@NonNull Context context) {
-        super.onAttach(context);
-        if (onBackPressedCallback == null) {
-            onBackPressedCallback = new OnBackPressedCallback(true) {
-                @Override
-                public void handleOnBackPressed() {
-                    Log.v(TAG, "handleOnBackPressed");
-                    Bundle result = new Bundle();
-                    result.putString("action", "back");
-                    getParentFragmentManager().setFragmentResult("app", result);
-                }
-            };
-            requireActivity().getOnBackPressedDispatcher().addCallback(onBackPressedCallback);
-        }
-    }
-
-    @Override
-    public void onDetach() {
-        super.onDetach();
-        if (onBackPressedCallback != null) {
-            onBackPressedCallback.remove();
-            onBackPressedCallback = null;
-        }
-        if (modelEngine != null){
-            final Scene scene = modelEngine.getBeanFactory().find(Scene.class);
-            if (scene != null) {
-                scene.reset();
-            }
-        }
-        Log.v(TAG, "onDetach");
-    }*/
-
-    private void createSettings() {
 
         // check
-        //if (modelEngine.getPreferenceFragment() == null) return;
-
-        //Log.v(TAG, "createSettings");
-
-        // toolbar (disabled in favor of settings)
-        /*Toolbar myToolbar = findViewById(R.id.my_toolbar);
-        setSupportActionBar(myToolbar);*/
-        //surfaceView.setBackgroundColor(backgroundColor);
-
-        // settings button
-        /*final FloatingActionButton fab = getView().findViewById(R.id.button_settings);
-        if (fab == null){
+        if (currentModelUri == null){
+            Log.e(TAG, "onRestoreEngine: uri is null");
             return;
-        }*/
+        }
 
-        /*fab.setOnClickListener(view -> {
+        // get engine
+        modelEngine = viewModel.getModelEngine(currentModelUri);
 
-            // check
-            final Fragment settings = getChildFragmentManager().findFragmentByTag("settings");
-            if (settings != null) {
-                // hide settings
-                getChildFragmentManager()
-                        .beginTransaction()
-                        .remove(settings)
-                        .commit();
-            } else {
+        // init engine if not found
+        if (modelEngine == null) {
 
-                // show settings
-                getChildFragmentManager()
-                        .beginTransaction()
-                        .setReorderingAllowed(true)
-                        .replace(R.id.settings, modelEngine.getPreferenceFragment(), "settings")
-                        .commit();
-            }
-        });*/
+            // Run initialization in a background thread to avoid UI contention
+            handler.post(() -> {
+                try {
+                    // inform
+                    Log.i(TAG, "ModelEngine not found in ViewModel, Creating new instance... "+ currentModelUri);
+
+                    // create
+                    modelEngine = ModelEngine.newInstance(currentModelUri, requireActivity(), savedInstanceState, getArguments());
+
+                    // configure
+                    modelEngine.getBeanFactory().addOrReplace("model_fragment", this);
+
+                    // init
+                    modelEngine.init();
+
+                    // start
+                    modelEngine.start();
+
+                    // configure GL touch handler
+                    Log.d(TAG, "Configuring GL view...");
+                    GLTouchHandler glTouchHandler = modelEngine.getBeanFactory().find(GLTouchHandler.class);
+                    glSurfaceView.setTouchEventHandler(glTouchHandler);
+
+                    // configure GL renderers
+                    Log.d(TAG, "Configuring renderer...");
+                    final GLRendererImpl renderer = (GLRendererImpl) glSurfaceView.getRenderer();
+                    modelEngine.getBeanFactory().configure(renderer);
+
+                    // register engine in the application
+                    Log.d(TAG, "Registering engine... ");
+                    viewModel.setModelEngine(currentModelUri, modelEngine);
+                    viewModel.setRecentUri(currentModelUri);
+
+                    // inform
+                    Log.i(TAG, "Model Engine initialized for '"+currentModelUri+"'");
+
+                } catch (Exception ex) {
+                    Log.e(TAG, "Error initializing engine in background: " + ex.getMessage(), ex);
+                    handler.post(() -> {
+                        if (isAdded()) {
+                            Toast.makeText(getContext(), "Error: " + ex.getMessage(), Toast.LENGTH_LONG).show();
+                        }
+                    });
+                }
+            });
+        } else {
+            Log.i(TAG, "Resuming ModelEngine from ViewModel... "+ currentModelUri);
+
+            // configure GL touch handler
+            Log.d(TAG, "Configuring GL view...");
+            GLTouchHandler glTouchHandler = modelEngine.getBeanFactory().find(GLTouchHandler.class);
+            glSurfaceView.setTouchEventHandler(glTouchHandler);
+
+            // configure GL renderers
+            Log.d(TAG, "Configuring renderer...");
+            modelEngine.getBeanFactory().addOrReplace("gl_renderer", glSurfaceView.getRenderer());
+        }
     }
 
     /*private void setupOrientationListener() {

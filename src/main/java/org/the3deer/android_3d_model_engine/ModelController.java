@@ -1,6 +1,7 @@
 
 package org.the3deer.android_3d_model_engine;
 
+import android.util.Log;
 import android.view.MotionEvent;
 
 import androidx.preference.Preference;
@@ -12,6 +13,7 @@ import org.the3deer.android_3d_model_engine.controller.TouchController;
 import org.the3deer.android_3d_model_engine.controller.TouchEvent;
 import org.the3deer.android_3d_model_engine.gui.GUIDefault;
 import org.the3deer.android_3d_model_engine.gui.GUISystem;
+import org.the3deer.android_3d_model_engine.model.Object3DData;
 import org.the3deer.android_3d_model_engine.model.Projection;
 import org.the3deer.android_3d_model_engine.model.Scene;
 import org.the3deer.android_3d_model_engine.scene.SceneManager;
@@ -83,7 +85,24 @@ public class ModelController implements EventManager, GLTouchHandler {
             final GLEvent rev = (GLEvent) event;
             //Log.v(TAG, "propagate. RenderEvent:" + rev.getCode());
             if (rev.getCode() == GLEvent.Code.SURFACE_CREATED) {
+                
+                Log.i(TAG, "GL Surface Created. Resetting GPU assets...");
+
+                // 1. Reset Shaders (Clears Shader Cache and GpuManager VBOs/VAOs)
                 shaderFactory.reset();
+
+                // 2. Reset Textures (Mark them as not uploaded)
+                final Scene currentScene = sceneManager.getCurrentScene();
+                if (currentScene != null && currentScene.getObjects() != null) {
+                    for (Object3DData obj : currentScene.getObjects()) {
+                        if (obj.getMaterial() != null) {
+                            if (obj.getMaterial().getColorTexture() != null) obj.getMaterial().getColorTexture().setId(-1);
+                            if (obj.getMaterial().getNormalTexture() != null) obj.getMaterial().getNormalTexture().setId(-1);
+                            if (obj.getMaterial().getEmissiveTexture() != null) obj.getMaterial().getEmissiveTexture().setId(-1);
+                            if (obj.getMaterial().getTransmissionTexture() != null) obj.getMaterial().getTransmissionTexture().setId(-1);
+                        }
+                    }
+                }
 
             } else if (rev.getCode() == GLEvent.Code.SURFACE_CHANGED) {
 
@@ -108,7 +127,7 @@ public class ModelController implements EventManager, GLTouchHandler {
             if (collisionController != null && collisionController.onEvent(event)) {
                 return true;
             }
-            if (guiSystem.onEvent(event)) {
+            if (guiSystem != null && guiSystem.onEvent(event)) {
                 return true;
             }
             /*if (scene.onEvent(event)) {
@@ -140,69 +159,4 @@ public class ModelController implements EventManager, GLTouchHandler {
         return false;
     }
 
-
-
-    /*@Override
-    public boolean onEvent(EventObject event) {
-        if (gui != null && event instanceof FPSEvent) {
-            gui.onEvent(event);
-        } else if (gui != null && event instanceof SelectedObjectEvent) {
-            gui.onEvent(event);
-        } else if (event.getSource() instanceof MotionEvent) {
-            // event coming from glview
-        *//*if (touchController != null) {
-            touchController.onMotionEvent((MotionEvent) event.getSource());
-        }*//*
-        } else if (event instanceof CollisionEvent) {
-            scene.onEvent(event);
-        } else if (event instanceof TouchEvent) {
-            if (!gui.onEvent(event)) {
-                return false;
-            } else if (!collisionController.onEvent(event)) {
-                scene.onEvent(event);
-            }
-            if (scene.getSelectedObject() != null) {
-                scene.onEvent(event);
-            } else {
-                // cameraController.onEvent(event);
-                scene.onEvent(event);
-                if (((TouchEvent) event).getAction() == TouchEvent.Action.PINCH) {
-                    surface.onEvent(event);
-                }
-            }
-        }
-        return true;
-    }*/
-
-    /*private void toggleImmersive() {
-        this.immersiveMode = !this.immersiveMode;
-        if (this.immersiveMode) {
-            hideSystemUI();
-        } else {
-            showSystemUI();
-        }
-        Toast.makeText(activity, "Fullscreen " + this.immersiveMode, Toast.LENGTH_SHORT).show();
-    }
-
-    void hideSystemUI() {
-        if (!this.immersiveMode) {
-            return;
-        }
-        // Set the IMMERSIVE flag.
-        // Set the content to appear under the system bars so that the content
-        // doesn't resize when the system bars hide and show.
-        final View decorView = activity.getWindow().getDecorView();
-        decorView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION // hide nav bar
-                | View.SYSTEM_UI_FLAG_FULLSCREEN // hide status bar
-                | View.SYSTEM_UI_FLAG_IMMERSIVE);
-    }
-
-    // This snippet shows the system bars. It does this by removing all the flags
-    // except for the ones that make the content appear under the system bars.
-    void showSystemUI() {
-        handler.removeCallbacksAndMessages(null);
-        final View decorView = activity.getWindow().getDecorView();
-        decorView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_VISIBLE);
-    }*/
 }

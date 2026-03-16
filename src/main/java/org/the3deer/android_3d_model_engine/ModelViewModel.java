@@ -10,9 +10,9 @@ import java.util.Map;
 public class ModelViewModel extends ViewModel {
 
     private final MutableLiveData<Map<String,ModelEngine>> modelEngine = new MutableLiveData<>();
-    private final MutableLiveData<String> recentId = new MutableLiveData<>();
+    private final MutableLiveData<String> recentUri = new MutableLiveData<>();
 
-    public void setModelEngine(String id, ModelEngine me) {
+    public void setModelEngine(String uri, ModelEngine me) {
         final Map<String, ModelEngine> value;
         if (modelEngine.getValue() == null){
             value = new LinkedHashMap<>();
@@ -20,25 +20,25 @@ public class ModelViewModel extends ViewModel {
         } else {
             value = modelEngine.getValue();
         }
-        value.put(id, me);
+        value.put(uri, me);
     }
 
-    public ModelEngine getModelEngine(String id) {
+    public ModelEngine getModelEngine(String uri) {
         if (modelEngine.getValue() != null){
-            return modelEngine.getValue().get(id);
+            return modelEngine.getValue().get(uri);
         }
         return null;
     }
 
-    public void setRecentId(String id) {
-        recentId.setValue(id);
+    public void setRecentUri(String uri) {
+        recentUri.setValue(uri);
     }
 
-    public LiveData<String> getRecentId() {
-        return recentId;
+    public LiveData<String> getRecentUri() {
+        return recentUri;
     }
 
     public ModelEngine getModelEngine() {
-        return getModelEngine(getRecentId().getValue());
+        return getModelEngine(getRecentUri().getValue());
     }
 }

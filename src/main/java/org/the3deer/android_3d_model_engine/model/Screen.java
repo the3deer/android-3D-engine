@@ -1,5 +1,7 @@
 package org.the3deer.android_3d_model_engine.model;
 
+import android.util.Log;
+
 import androidx.annotation.NonNull;
 
 public class Screen {
@@ -18,6 +20,8 @@ public class Screen {
         this.height = height;
         // derived
         this.ratio = (float) width / height;
+
+        Log.i("Screen", "Screen size is width: "+ width + ", height: " + height + ", ratio: "+ratio);
     }
 
     public int getWidth() {

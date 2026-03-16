@@ -185,6 +185,16 @@ public class BeanFactory {
         return bean;
     }
 
+    /**
+     * Helper to inject all dependencies of the bean
+     * @param bean the bean with dependencies
+     * @return the bean fully injected
+     * @param <T> any bean type
+     */
+    public <T> T configure(T bean) {
+        return (T)configureBean("no-id", bean);
+    }
+
     private Object configureBean(String id) {
         if (id == null || !beans.containsKey(id))
             throw new IllegalArgumentException("id or bean not found: " + id);
@@ -204,6 +214,12 @@ public class BeanFactory {
             return bean;
         }
         this.status.put(id, STATUS_CONFIGURED);
+
+        return configureBean(id, bean);
+    }
+
+    @Nullable
+    private Object configureBean(String id, Object bean) {
 
         // check
         if (bean == null) return null;
@@ -297,10 +313,8 @@ public class BeanFactory {
                 }*/
             }
             return null;
-        } catch (InvocationTargetException e) {
+        } catch (InvocationTargetException | IllegalAccessException e) {
             Log.e("BeanFactory", "Exception initializing bean: " + id + ", " + e.getMessage(), e);
-            throw new RuntimeException(e);
-        } catch (IllegalAccessException e) {
             throw new RuntimeException(e);
         }
     }
@@ -309,7 +323,8 @@ public class BeanFactory {
 
         // check
         if (initialized){
-            throw new IllegalStateException("Already initialized");
+            Log.d("BeanFactory", "Factory already initialized");
+            return;
         }
         initialized = true;
 

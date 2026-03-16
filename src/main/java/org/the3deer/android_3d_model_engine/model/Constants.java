@@ -19,7 +19,10 @@ public class Constants {
      * Enable rendering with lights
      */
     public static boolean LIGHTING_ENABLED = true;
-
+    /**
+     * Bean name for Screen
+     */
+    public static String BEAN_ID_SCREEN = "screen";
 
     /**
      * <p>Debug low level information. Will affect performance, so should be false in production

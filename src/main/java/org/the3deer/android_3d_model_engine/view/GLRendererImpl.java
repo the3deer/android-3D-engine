@@ -32,7 +32,6 @@ public class GLRendererImpl implements GLSurfaceView.Renderer, MenuAdapter {
 
     @Inject
     private Screen screen;
-
     @Inject
     private EventManager eventManager;
     @Inject
@@ -44,15 +43,21 @@ public class GLRendererImpl implements GLSurfaceView.Renderer, MenuAdapter {
      * Background GL clear color. Default is light gray
      */
     private float[] backgroundColor = Constants.COLOR_GRAY;
-    // width of the screen
+    /**
+     * GL Screen width
+     */
     private int width;
-    // height of the screen
+    /**
+     * GL Screen width
+     */
     private int height;
-    private float ratio;
+    /**
+     * Toggle feature to initialize the Engine's screen
+     */
+    private boolean screenInitialized;
 
     // frames per second
     private long framesPerSecondTime = -1;
-    private int framesPerSecond = 0;
     private int framesPerSecondCounter = 0;
 
     // sub-menu
@@ -66,6 +71,10 @@ public class GLRendererImpl implements GLSurfaceView.Renderer, MenuAdapter {
      * Construct a new renderer for the specified surface view
      */
     public GLRendererImpl() {
+    }
+
+    public Screen getScreen() {
+        return screen;
     }
 
     public void setBackgroundColor(float[] backgroundColor) {
@@ -147,42 +156,68 @@ public class GLRendererImpl implements GLSurfaceView.Renderer, MenuAdapter {
         // Enable not drawing out of view port
         GLES20.glEnable(GLES20.GL_SCISSOR_TEST);
 
-        eventManager.propagate(new GLEvent(this, GLEvent.Code.SURFACE_CREATED));
+        if (eventManager != null) {
+            eventManager.propagate(new GLEvent(this, GLEvent.Code.SURFACE_CREATED));
+        }
+
     }
 
     @Override
     public void onSurfaceChanged(GL10 unused, int width, int height) {
-        Log.i(TAG, "onSurfaceChanged. with: " + width + ", height: " + height);
 
+        // init
         this.width = width;
         this.height = height;
-        this.ratio = (float) width / height;
 
-        // Adjust the viewport based on geometry changes, such as screen rotation
-        //GLES20.glViewport(0, 0, width, height);
+        // log event
+        Log.i(TAG, "onSurfaceChanged. with: " + width + ", height: " + height);
 
-        // call renderers
-        for (int i = 0; i < renderers.size(); i++) {
-            try {
-                renderers.get(i).onSurfaceChanged(width, height);
-            } catch (Exception ex) {
-                Log.e(TAG, "Exception on delegate: " + renderers.get(i), ex);
+        // update model
+        if (this.screen != null) {
+            this.screen.setSize(width, height);
+            this.screenInitialized = true;
+        }
+
+        // fire event
+        if (renderers != null) {
+            for (int i = 0; i < renderers.size(); i++) {
+                try {
+                    renderers.get(i).onSurfaceChanged(width, height);
+                } catch (Exception ex) {
+                    Log.e(TAG, "Exception on delegate: " + renderers.get(i), ex);
+                }
             }
         }
 
-        // update model
-        screen.setSize(width, height);
-
         // fire event
-        eventManager.propagate(new GLEvent(this, GLEvent.Code.SURFACE_CHANGED,
-                this.width, this.height));
+        if (eventManager != null) {
+            eventManager.propagate(new GLEvent(this, GLEvent.Code.SURFACE_CHANGED,
+                    width, height));
+        }
     }
 
     @Override
     public void onDrawFrame(GL10 unused) {
+
         if (renderers == null || renderers.isEmpty()) {
             // scene not ready
+            //Log.w(TAG, "onDrawFrame. Scene not ready");
             return;
+        }
+
+        // initialize screen in case this bean was initialized lately
+        if (!this.screenInitialized && this.screen != null) {
+
+            // update model
+            this.screen.setSize(width, height);
+            this.screenInitialized = true;
+
+            // fire late events
+            if (eventManager != null) {
+                eventManager.propagate(new GLEvent(this, GLEvent.Code.SURFACE_CREATED));
+                eventManager.propagate(new GLEvent(this, GLEvent.Code.SURFACE_CHANGED,
+                        width, height));
+            }
         }
 
         // Default viewport
@@ -233,7 +268,7 @@ public class GLRendererImpl implements GLSurfaceView.Renderer, MenuAdapter {
                     framesPerSecondTime = SystemClock.elapsedRealtime();
                     framesPerSecondCounter++;
                 } else if (SystemClock.elapsedRealtime() > framesPerSecondTime + 1000) {
-                    framesPerSecond = framesPerSecondCounter;
+                    int framesPerSecond = framesPerSecondCounter;
                     framesPerSecondCounter = 1;
                     framesPerSecondTime = SystemClock.elapsedRealtime();
                     eventManager.propagate(new FPSEvent(this, framesPerSecond));

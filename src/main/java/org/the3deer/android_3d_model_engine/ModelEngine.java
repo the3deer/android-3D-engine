@@ -117,6 +117,10 @@ public class ModelEngine {
         return beanFactory.find(PreferenceFragment.class);
     }
 
+    public boolean isInitialized() {
+        return initialized;
+    }
+
     /**
      * Initialize the engine. That is, instantiate all the engine components and invoke the initialization method.
      *
@@ -180,21 +184,23 @@ public class ModelEngine {
         // init
         Log.i(TAG, "Setting up engine...");
 
-        // android
-
+        // activity
         beanFactory.add("activity", this.activity);
+        // FIXME: remove this
         beanFactory.add("handler", this.handler);
+
+        // state + arguments
         beanFactory.add("bundle", this.bundle);
         beanFactory.add("extras", this.extras);
 
+        // core
+        beanFactory.add(Constants.BEAN_ID_SCREEN, new Screen(640, 480));
+        beanFactory.add("model", ModelEngine.this);
+        beanFactory.add("controller", ModelController.class);
+
         // system
-        beanFactory.add("10.model", ModelEngine.this);
-        beanFactory.add("10.controller", ModelController.class);
-        //beanFactory.add("surface", this.surface);
-        //beanFactory.add("fragment_gl", GLFragment.class);
         beanFactory.add("10.gpuManager", GpuManager.class);
         beanFactory.add("10.shaderFactory", ShaderFactory.class);
-        beanFactory.add("10.screen", new Screen(640, 480));
         beanFactory.add("10.sceneLoader", SceneLoader.class);
         beanFactory.add("10.cameraHandler", DefaultCameraHandler.class);
         //beanFactory.add("10.settings", PreferenceFragment.class);
@@ -258,183 +264,4 @@ public class ModelEngine {
         beanFactory.add("80.gui.default", GUIDefault.class);
         beanFactory.add("80.gui.axis", Axis.class);
     }
-
-    /*@Override
-    public void onCreatePreferences(@Nullable Bundle savedInstanceState, @Nullable String rootKey, Context context, PreferenceScreen screen) {
-
-        SwitchPreference immersiveSwitch = new SwitchPreference(context);
-        immersiveSwitch.setKey("activity.immersive");
-        immersiveSwitch.setTitle("Immersive View");
-        immersiveSwitch.setIconSpaceReserved(screen.isIconSpaceReserved());
-        immersiveSwitch.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
-            @Override
-            public boolean onPreferenceChange(@NonNull Preference preference, Object newValue) {
-                toggleImmersive();
-                return true;
-            }
-        });
-        screen.addPreference(immersiveSwitch);
-    }*/
-
- /*   @Override
-    public boolean onSurfaceTouchEvent(MotionEvent event) {
-        return propagate(new EventObject(event));
-    }*/
-
-    /*@Override
-    public void onSaveInstanceState(Bundle outState) {
-
-        Log.v(TAG, "Saving state... ");
-
-        // assert
-        if (outState == null || this.preferenceAdapters == null) return;
-
-        // inform listeners
-        for (PreferenceAdapter l : this.preferenceAdapters) {
-            if (l == this) continue;
-            l.onSaveInstanceState(outState);
-        }
-    }
-
-    @Override
-    public void onRestoreInstanceState(Bundle state) {
-
-        Log.v(TAG,"Restoring state... "+state);
-
-        // assert
-        if (state == null || this.preferenceAdapters == null) return;
-
-        // inform listeners
-        for (PreferenceAdapter l : this.preferenceAdapters){
-            if (l == this) continue;
-            l.onRestoreInstanceState(state);
-        }
-    }*/
-
-    //@Override
-    /*public boolean propagate(EventObject event) {
-        if (event instanceof RenderEvent) {
-            final RenderEvent rev = (RenderEvent) event;
-            //Log.v(TAG, "onEvent. RenderEvent:" + rev.getCode());
-            if (rev.getCode() == RenderEvent.Code.SURFACE_CHANGED) {
-                // assert
-                if (screen == null || cameras == null) {
-                    Log.e(TAG, "screen or camera is null. can't update model");
-                    return true;
-                }
-
-                // Update model
-                Log.v(TAG, "Updating screen and camera... size: "
-                        + rev.getWidth() + " width, "
-                        + rev.getHeight() + " height");
-                screen.setSize(rev.getWidth(), rev.getHeight());
-                for (Camera camera : cameras) {
-                    camera.setChanged(true);
-                }
-            }
-            //Log.v(TAG, "onEvent. RenderEvent: listeners: " + listeners);
-            AndroidUtils.fireEvent(listeners, event);
-            //Log.v(TAG, "onEvent. RenderEvent: finished");
-        } else if (event.getSource() instanceof MotionEvent) {
-            if (touchController != null) {  // event coming from glview
-                touchController.onEvent(event);
-            }
-        } else if (event instanceof TouchEvent) {
-
-            //Log.v(TAG,"Processing event... "+event);
-
-*//*            if (gui.onEvent(event)) {
-                return true;
-            }*//*
-            if (collisionController.onEvent(event)) {
-                return true;
-            }
-            if (guiSystem.onEvent(event)) {
-                return true;
-            }
-            if (scene.onEvent(event)) {
-                return true;
-            }
-            if (scene.getSelectedObject() != null) {
-                scene.onEvent(event);
-            } else {
-                cameraController.onEvent(event);
-                *//*scene.onEvent(event);
-                if (((TouchEvent) event).getAction() == TouchEvent.Action.PINCH) {
-                    //surface.onEvent(event);
-                }*//*
-            }
-        } else if (event instanceof CollisionEvent) {
-            return scene.onEvent(event);
-        } else {
-            AndroidUtils.fireEvent(listeners, event);
-        }
-        return true;
-    }*/
-
-
-
-    /*@Override
-    public boolean onEvent(EventObject event) {
-        if (gui != null && event instanceof FPSEvent) {
-            gui.onEvent(event);
-        } else if (gui != null && event instanceof SelectedObjectEvent) {
-            gui.onEvent(event);
-        } else if (event.getSource() instanceof MotionEvent) {
-            // event coming from glview
-        *//*if (touchController != null) {
-            touchController.onMotionEvent((MotionEvent) event.getSource());
-        }*//*
-        } else if (event instanceof CollisionEvent) {
-            scene.onEvent(event);
-        } else if (event instanceof TouchEvent) {
-            if (!gui.onEvent(event)) {
-                return false;
-            } else if (!collisionController.onEvent(event)) {
-                scene.onEvent(event);
-            }
-            if (scene.getSelectedObject() != null) {
-                scene.onEvent(event);
-            } else {
-                // cameraController.onEvent(event);
-                scene.onEvent(event);
-                if (((TouchEvent) event).getAction() == TouchEvent.Action.PINCH) {
-                    surface.onEvent(event);
-                }
-            }
-        }
-        return true;
-    }*/
-
-    /*private void toggleImmersive() {
-        this.immersiveMode = !this.immersiveMode;
-        if (this.immersiveMode) {
-            hideSystemUI();
-        } else {
-            showSystemUI();
-        }
-        Toast.makeText(activity, "Fullscreen " + this.immersiveMode, Toast.LENGTH_SHORT).show();
-    }
-
-    void hideSystemUI() {
-        if (!this.immersiveMode) {
-            return;
-        }
-        // Set the IMMERSIVE flag.
-        // Set the content to appear under the system bars so that the content
-        // doesn't resize when the system bars hide and show.
-        final View decorView = activity.getWindow().getDecorView();
-        decorView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION // hide nav bar
-                | View.SYSTEM_UI_FLAG_FULLSCREEN // hide status bar
-                | View.SYSTEM_UI_FLAG_IMMERSIVE);
-    }
-
-    // This snippet shows the system bars. It does this by removing all the flags
-    // except for the ones that make the content appear under the system bars.
-    void showSystemUI() {
-        handler.removeCallbacksAndMessages(null);
-        final View decorView = activity.getWindow().getDecorView();
-        decorView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_VISIBLE);
-    }*/
 }

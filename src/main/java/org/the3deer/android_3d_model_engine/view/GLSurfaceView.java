@@ -5,7 +5,7 @@ import android.util.AttributeSet;
 import android.util.Log;
 import android.view.MotionEvent;
 
-import org.the3deer.android_3d_model_engine.ModelEngine;
+import org.the3deer.android_3d_model_engine.model.Constants;
 
 /**
  * This is the actual OpenGL surface.
@@ -17,8 +17,8 @@ public class GLSurfaceView extends android.opengl.GLSurfaceView {
     private final static String TAG = GLSurfaceView.class.getSimpleName();
 
     private GLTouchHandler glTouchHandler;
-    private ModelEngine modelEngine;
-    private Renderer glRenderer;
+
+    private final Renderer glRenderer = new GLRendererImpl();
 
     /**
      * Construct a new renderer for the specified surface view
@@ -28,20 +28,15 @@ public class GLSurfaceView extends android.opengl.GLSurfaceView {
 
         Log.i(TAG, "Creating OpenGL 3 surface... " + System.identityHashCode(this));
 
-        // Create an OpenGL ES 3.0 context.
-        setEGLContextClientVersion(3);
+        // Create an OpenGL ES context.
+        setEGLContextClientVersion(Constants.DEFAULT_SHADER_VERSION);
+
+        // set renderer
+        setRenderer(glRenderer);
     }
 
-    //@BeanInit
-    public void setUp(ModelEngine modelEngine) {
-
-        glRenderer = new GLRendererImpl();
-        //glTouchHandler = modelEngine.getBeanFactory().find(GLTouchHandler.class);
-
-        modelEngine.getBeanFactory().addOrReplace("gl_renderer", glRenderer);
-
-        Log.d(TAG, "Configuring renderer: " + glRenderer.getClass().getName());
-        setRenderer(glRenderer);
+    public Renderer getRenderer() {
+        return glRenderer;
     }
 
     @Override
@@ -54,17 +49,6 @@ public class GLSurfaceView extends android.opengl.GLSurfaceView {
     public void onPause() {
         if (glRenderer != null)
             super.onPause();
-    }
-
-    @Override
-    protected void onDetachedFromWindow() {
-        super.onDetachedFromWindow();
-        tearDown();
-    }
-
-    public void tearDown() {
-        if (modelEngine != null)
-            modelEngine.getBeanFactory().remove("gl_renderer");
     }
 
     /**

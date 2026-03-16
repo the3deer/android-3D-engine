@@ -35,11 +35,11 @@ public class PreferenceFragment extends PreferenceFragmentCompat {
         this.viewModel = new ViewModelProvider(requireActivity()).get(ModelViewModel.class);
 
         // check we have a model
-        if (viewModel.getRecentId().getValue() == null){
+        if (viewModel.getRecentUri().getValue() == null){
             Log.e(TAG, "onCreate: viewModel.getRecentUri().getValue() is null");
             return;
         } else {
-            Log.d(TAG, "onCreate: engine id: " +viewModel.getRecentId().getValue());
+            Log.d(TAG, "onCreate: engine id: " +viewModel.getRecentUri().getValue());
         }
 
         // get the correct engine

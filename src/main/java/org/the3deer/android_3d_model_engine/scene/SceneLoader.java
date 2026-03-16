@@ -92,9 +92,9 @@ public class SceneLoader implements LoadListener {
     }
 
     @BeanFactory.OnBeanUpdate
-    public boolean onBeanUpdate(String id, Object updated){
+    public boolean onBeanUpdate(String id, Object updated) {
         Log.v(TAG, "onBeanUpdate: " + id);
-        if ("extras".equals(id)){
+        if ("extras".equals(id)) {
             loadFromBundle(extras);
         }
         return true;
@@ -146,87 +146,87 @@ public class SceneLoader implements LoadListener {
             }
         }
 
-        if (modelUri == null && !isDemo){
+        if (modelUri == null && !isDemo) {
             return;
         }
 
 
         // handler.post(() -> {
 
-            // load model
-            Log.i(TAG, "Loading model... " + this.modelUri);
+        // load model
+        Log.i(TAG, "Loading model... " + this.modelUri);
 
-            // if the model is a zip file, we need to extract it and register the entries as content uris
+        // if the model is a zip file, we need to extract it and register the entries as content uris
 
-            // if the model is a zip file, we need to extract it and register the entries as content uris
-            if (modelUri.toString().toLowerCase().endsWith(".zip")) {
-                final Map<String, byte[]> zipFiles;
-                try {
-                    zipFiles = ContentUtils.readFiles(new URL(modelUri.toString()));
-                    Uri modelFile = null;
-                    for (Map.Entry<String, byte[]> zipFile : zipFiles.entrySet()) {
+        // if the model is a zip file, we need to extract it and register the entries as content uris
+        if (modelUri.toString().toLowerCase().endsWith(".zip")) {
+            final Map<String, byte[]> zipFiles;
+            try {
+                zipFiles = ContentUtils.readFiles(new URL(modelUri.toString()));
+                Uri modelFile = null;
+                for (Map.Entry<String, byte[]> zipFile : zipFiles.entrySet()) {
 
-                        final String zipFilename = zipFile.getKey();
-                        final int dotIndex = zipFilename.lastIndexOf('.');
-                        final String fileExtension;
-                        if (dotIndex != -1) {
-                            fileExtension = zipFilename.substring(dotIndex);
-                        } else {
-                            fileExtension = "?";
-                        }
-
-                        // register all zip entries
-
-                        String encodedName = URLEncoder.encode(zipFilename, Charsets.UTF_8.name());
-                        final Uri pseudoUri = Uri.parse("android://" + activity.getPackageName() + "/binary/" + encodedName);
-                        ContentUtils.addUri(encodedName, pseudoUri);
-
-                        encodedName = encodedName.replace("+","%20");
-                        final Uri pseudoUri2 = Uri.parse("android://" + activity.getPackageName() + "/binary/" + encodedName);
-                        ContentUtils.addUri(encodedName, pseudoUri2);
-
-                        ContentUtils.addData(pseudoUri, zipFile.getValue());
-                        ContentUtils.addData(pseudoUri2, zipFile.getValue());
-
-                        // detect model
-                        switch (fileExtension.toLowerCase()) {
-                            case ".obj":
-                            case ".stl":
-                            case ".dae":
-                            case ".gltf":
-                            case ".glb":
-                            case ".fbx":
-                                modelFile = pseudoUri;
-                                modelUri = new URI(pseudoUri.toString());
-                                break;
-                        }
-                    }
-                    if (modelFile == null) {
-                        Log.e(TAG, "Model not found in zip '" + modelUri + "'");
-                        Toast.makeText(activity, "Model not found in zip '" + modelUri + "'", Toast.LENGTH_LONG).show();
+                    final String zipFilename = zipFile.getKey();
+                    final int dotIndex = zipFilename.lastIndexOf('.');
+                    final String fileExtension;
+                    if (dotIndex != -1) {
+                        fileExtension = zipFilename.substring(dotIndex);
                     } else {
-                        Log.i(TAG, "Model found in zip: " + modelFile);
+                        fileExtension = "?";
                     }
-                } catch (Exception e) {
-                    Log.e(TAG, "Error loading zip file '" + modelUri + "': " + e.getMessage(), e);
-                    Toast.makeText(activity, "Error loading zip file '" + modelUri + "': " + e.getMessage(), Toast.LENGTH_LONG).show();
-                }
-            }
 
-            if (modelUri.toString().toLowerCase().endsWith(".obj") || "obj".equalsIgnoreCase(modelType)) {
-                new WavefrontLoaderTask(activity, modelUri, SceneLoader.this).execute();
-            } else if (modelUri.toString().toLowerCase().endsWith(".stl") || "stl".equalsIgnoreCase(modelType)) {
-                Log.i(TAG, "Loading STL object from: " + modelUri);
-                new STLLoaderTask(activity, modelUri, SceneLoader.this).execute();
-            } else if (modelUri.toString().toLowerCase().endsWith(".dae") || "dae".equalsIgnoreCase(modelType)) {
-                Log.i(TAG, "Loading Collada object from: " + modelUri);
-                new ColladaLoaderTask(activity, modelUri, SceneLoader.this).execute();
-            } else if (modelUri.toString().toLowerCase().endsWith(".gltf") || modelUri.toString().toLowerCase().endsWith(".glb") || "gltf".equalsIgnoreCase(modelType)) {
-                Log.i(TAG, "Loading GLTF object from: " + modelUri);
-                new GltfLoaderTask(activity, modelUri, SceneLoader.this).execute();
-            } else if (modelUri.toString().toLowerCase().endsWith(".fbx")){
-                new FbxLoaderTask(activity, modelUri, SceneLoader.this).execute();
+                    // register all zip entries
+
+                    String encodedName = URLEncoder.encode(zipFilename, Charsets.UTF_8.name());
+                    final Uri pseudoUri = Uri.parse("android://" + activity.getPackageName() + "/binary/" + encodedName);
+                    ContentUtils.addUri(encodedName, pseudoUri);
+
+                    encodedName = encodedName.replace("+", "%20");
+                    final Uri pseudoUri2 = Uri.parse("android://" + activity.getPackageName() + "/binary/" + encodedName);
+                    ContentUtils.addUri(encodedName, pseudoUri2);
+
+                    ContentUtils.addData(pseudoUri, zipFile.getValue());
+                    ContentUtils.addData(pseudoUri2, zipFile.getValue());
+
+                    // detect model
+                    switch (fileExtension.toLowerCase()) {
+                        case ".obj":
+                        case ".stl":
+                        case ".dae":
+                        case ".gltf":
+                        case ".glb":
+                        case ".fbx":
+                            modelFile = pseudoUri;
+                            modelUri = new URI(pseudoUri.toString());
+                            break;
+                    }
+                }
+                if (modelFile == null) {
+                    Log.e(TAG, "Model not found in zip '" + modelUri + "'");
+                    activity.runOnUiThread(() -> Toast.makeText(activity, "Model not found in zip '" + modelUri + "'", Toast.LENGTH_LONG).show());
+                } else {
+                    Log.i(TAG, "Model found in zip: " + modelFile);
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Error loading zip file '" + modelUri + "': " + e.getMessage(), e);
+                activity.runOnUiThread(() -> Toast.makeText(activity, "Error loading zip file '" + modelUri + "': " + e.getMessage(), Toast.LENGTH_LONG).show());
             }
+        }
+
+        if (modelUri.toString().toLowerCase().endsWith(".obj") || "obj".equalsIgnoreCase(modelType)) {
+            activity.runOnUiThread(() -> new WavefrontLoaderTask(activity, modelUri, SceneLoader.this).execute());
+        } else if (modelUri.toString().toLowerCase().endsWith(".stl") || "stl".equalsIgnoreCase(modelType)) {
+            Log.i(TAG, "Loading STL object from: " + modelUri);
+            activity.runOnUiThread(() -> new STLLoaderTask(activity, modelUri, SceneLoader.this).execute());
+        } else if (modelUri.toString().toLowerCase().endsWith(".dae") || "dae".equalsIgnoreCase(modelType)) {
+            Log.i(TAG, "Loading Collada object from: " + modelUri);
+            activity.runOnUiThread(() -> new ColladaLoaderTask(activity, modelUri, SceneLoader.this).execute());
+        } else if (modelUri.toString().toLowerCase().endsWith(".gltf") || modelUri.toString().toLowerCase().endsWith(".glb") || "gltf".equalsIgnoreCase(modelType)) {
+            Log.i(TAG, "Loading GLTF object from: " + modelUri);
+            activity.runOnUiThread(() -> new GltfLoaderTask(activity, modelUri, SceneLoader.this).execute());
+        } else if (modelUri.toString().toLowerCase().endsWith(".fbx")) {
+            activity.runOnUiThread(() -> new FbxLoaderTask(activity, modelUri, SceneLoader.this).execute());
+        }
         // });
     }
 
