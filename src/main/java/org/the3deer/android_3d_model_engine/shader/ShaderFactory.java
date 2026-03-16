@@ -127,7 +127,7 @@ public class ShaderFactory {
         final Shader shader = shadersCache.get(id);
         if (shader == null){
             Log.d("ShaderFactory", "Loading shader... "+ id);
-            final ShaderImplV2 impl = loadShader(id, resIdVertexShader, resIdFragmentShader);
+            final Shader impl = loadShader(id, resIdVertexShader, resIdFragmentShader);
             shadersCache.put(id, impl);
             Log.d("ShaderFactory", "Loaded "+ id);
             return impl;
@@ -136,29 +136,14 @@ public class ShaderFactory {
     }
 
     @NonNull
-    private ShaderImplV2 loadShader(String shaderId, int vertexShaderResourceId, int fragmentShaderResourceId) {
-        ShaderImplV2 renderer;
-        // build drawer
-        String vertexShaderCode = shadersCode.get(vertexShaderResourceId);
-
-        // experimental: inject glPointSize
-        //vertexShaderCode = shadersCode.get(vertexShaderResourceId).replace("void main(){", "void main(){\n\tgl_PointSize = 5.0;");
-
-        // use opengl constant to dynamically set up array size in shaders. That should be >=120
-        //vertexShaderCode = vertexShaderCode.replace("const int MAX_JOINTS = 60;", "const int MAX_JOINTS = gl_MaxVertexUniformVectors > 60 ? 60 : gl_MaxVertexUniformVectors;");
-
-        // create drawer
-        /*Log.v("RendererFactory", "\n---------- Vertex shader ----------\n");
-        Log.v("RendererFactory", vertexShaderCode);
-        Log.v("RendererFactory", "---------- Fragment shader ----------\n");
-        Log.v("RendererFactory", fragmentShaderCode);
-        Log.v("RendererFactory", "-------------------------------------\n");*/
-        renderer = ShaderImplV2.getInstance(shaderId, vertexShaderCode, shadersCode.get(fragmentShaderResourceId));
-        /*renderer.setTexturesEnabled(isTextured);
-        renderer.setLightingEnabled(isLighted);
-        renderer.setAnimationEnabled(isAnimated);*/
-
-        return renderer;
+    private Shader loadShader(String shaderId, int vertexShaderResourceId, int fragmentShaderResourceId) {
+        if (Constants.DEFAULT_SHADER_VERSION == 3){
+            return ShaderImplV3.getInstance(shaderId, shadersCode.get(vertexShaderResourceId), shadersCode.get(fragmentShaderResourceId));
+        } else if (Constants.DEFAULT_SHADER_VERSION == 2) {
+            return ShaderImplV2.getInstance(shaderId, shadersCode.get(vertexShaderResourceId), shadersCode.get(fragmentShaderResourceId));
+        } else {
+            throw new IllegalArgumentException("Unsupported shader version: "+Constants.DEFAULT_SHADER_VERSION);
+        }
     }
 
     public void reset() {
