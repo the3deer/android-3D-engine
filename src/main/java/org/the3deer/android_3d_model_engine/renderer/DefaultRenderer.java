@@ -47,7 +47,11 @@ public class DefaultRenderer implements Renderer, EventListener {
     /**
      * Animator
      */
-    private Animator animator = new Animator();
+    private final Animator animator = new Animator();
+
+    private int width;
+    // height of the screen
+    private int height;
 
     /**
      * Construct a new renderer for the specified surface view
@@ -74,6 +78,10 @@ public class DefaultRenderer implements Renderer, EventListener {
 
     @Override
     public void onSurfaceChanged(int width, int height) {
+
+        // update screen size
+        this.width = width;
+        this.height = height;
 
         // call decorators
         for (int i = 0; i < drawers.size(); i++) {
@@ -107,7 +115,11 @@ public class DefaultRenderer implements Renderer, EventListener {
 
     protected void drawFrame(Drawer.Config config) {
 
-        // configure screen
+        // Default viewport
+        GLES20.glViewport(0, 0, width, height);
+        GLES20.glScissor(0, 0, width, height);
+
+        // override viewport
         if (config != null){
 
             // configure viewport
