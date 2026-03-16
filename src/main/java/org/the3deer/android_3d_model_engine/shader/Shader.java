@@ -17,4 +17,8 @@ public interface Shader {
     void setAutoUseProgram(boolean autoUseProgram);
 
     void reset();
+
+    void setLightingEnabled(boolean on);
+
+    void setTexturesEnabled(boolean on);
 }

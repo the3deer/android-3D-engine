@@ -72,6 +72,10 @@ public class GLRendererImpl implements GLSurfaceView.Renderer, MenuAdapter {
         this.backgroundColor = backgroundColor;
     }
 
+    public float[] getBackgroundColor() {
+        return backgroundColor;
+    }
+
     public void setShaders(List<Renderer> renderers) {
         this.renderers = renderers;
     }

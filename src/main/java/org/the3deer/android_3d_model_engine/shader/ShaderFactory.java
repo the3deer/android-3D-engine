@@ -153,6 +153,6 @@ public class ShaderFactory {
 
     @Deprecated
     public Map<String, Shader> getShaders() {
-        return Collections.emptyMap();
+        return shadersCache;
     }
 }

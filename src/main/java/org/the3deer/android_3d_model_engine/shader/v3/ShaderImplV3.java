@@ -55,6 +55,9 @@ public class ShaderImplV3 implements Shader, PreferenceAdapter {
     private final boolean supportsTextureCube;
 
     private boolean autoUseProgram = true;
+
+    // variables
+    private boolean lightingEnabled = true;
     private boolean texturesEnabled = true;
 
     private final SparseArray<String> jointCache = new SparseArray<>();
@@ -86,6 +89,16 @@ public class ShaderImplV3 implements Shader, PreferenceAdapter {
         int vertexShader = GLUtil.loadShader(GLES30.GL_VERTEX_SHADER, vertexShaderCode);
         int fragmentShader = GLUtil.loadShader(GLES30.GL_FRAGMENT_SHADER, fragmentShaderCode);
         mProgram = GLUtil.createAndLinkProgram(vertexShader, fragmentShader, null);
+    }
+
+    @Override
+    public void setLightingEnabled(boolean lightingEnabled) {
+        this.lightingEnabled = lightingEnabled;
+    }
+
+    @Override
+    public void setTexturesEnabled(boolean texturesEnabled) {
+        this.texturesEnabled = texturesEnabled;
     }
 
     @Override
@@ -129,7 +142,7 @@ public class ShaderImplV3 implements Shader, PreferenceAdapter {
         if (supportsLighting) {
             setUniform3(lightPos, "u_LightPos");
             setUniform3(cameraPos, "u_cameraPos");
-            setFeatureFlag("u_Lighted", lightPos != null);
+            setFeatureFlag("u_Lighted", lightingEnabled && lightPos != null);
         }
 
         // 5. Set Animation Data

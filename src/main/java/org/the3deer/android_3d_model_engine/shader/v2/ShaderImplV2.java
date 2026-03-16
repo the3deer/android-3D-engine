@@ -1211,7 +1211,7 @@ public class ShaderImplV2 implements Shader, PreferenceAdapter {
             });
         }
 
-        if (supportsAnimation) {
+        /*if (supportsAnimation) {
             // Example: SwitchPreference for Animation (if you had a boolean)
             SwitchPreferenceCompat animationPreference = new SwitchPreferenceCompat(context);
             animationPreference.setKey(KEY_SHADER_ANIMATION_ENABLED);
@@ -1226,7 +1226,7 @@ public class ShaderImplV2 implements Shader, PreferenceAdapter {
                 preference.setSummary("Current: " + newAnimationValue);
                 return true;
             });
-        }
+        }*/
 
 
     }

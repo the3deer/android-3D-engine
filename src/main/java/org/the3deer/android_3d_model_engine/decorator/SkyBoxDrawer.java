@@ -116,38 +116,27 @@ public class SkyBoxDrawer implements Drawer, MenuAdapter, PreferenceAdapter {
     public void onCreatePreferences(@Nullable Bundle savedInstanceState, @Nullable String rootKey, Context context, PreferenceGroup screen) {
         PreferenceAdapter.super.onCreatePreferences(savedInstanceState, rootKey, context, screen);
 
-        Preference category = screen.findPreference(this.getClass().getName());
+        PreferenceGroup category = (PreferenceGroup) screen.findPreference("drawers_category");
         if (category == null){
             category = new PreferenceCategory(context);
-            category.setKey(this.getClass().getName());
-            category.setTitle(this.getClass().getSimpleName());
+            category.setKey("drawers_category");
+            category.setTitle("Scene Layers");
             category.setLayoutResource(R.layout.preference_category);
             screen.addPreference(category);
         }
 
         skyboxList = new ListPreference(context);
-        skyboxList.setIconSpaceReserved(screen.isIconSpaceReserved());
+        skyboxList.setIconSpaceReserved(false);
         skyboxList.setKey(this.getClass().getName()+".skyboxId");
-        skyboxList.setTitle(this.getClass().getSimpleName());
+        skyboxList.setTitle("SkyBox Style");
         skyboxList.setEntries(this.skyBoxesNames);
         skyboxList.setEntryValues(new String[]{"0", "1"});
         skyboxList.setDefaultValue(String.valueOf(skyboxId));
         skyboxList.setValue(String.valueOf(skyboxId));
-        skyboxList.setIconSpaceReserved(false);
+        skyboxList.setSummary("%s");
 
-        skyboxList.setSummary(skyboxId >= 0 && skyboxId < skyBoxesNames.length? skyBoxesNames[skyboxId] : "Unknown");
-        ((PreferenceGroup)category).addPreference(skyboxList);
+        category.addPreference(skyboxList);
 
-        skyboxList.setSummaryProvider(new Preference.SummaryProvider(){
-            @Nullable
-            @Override
-            public CharSequence provideSummary(@NonNull Preference preference) {
-                if (skyBoxesNames != null && skyboxId >= 0 && skyboxId < skyBoxesNames.length) {
-                    return skyBoxesNames[skyboxId];
-                }
-                return null;
-            }
-        });
         skyboxList.setOnPreferenceChangeListener((preference, newValue) -> {
             // perform
             Log.i("SkyBoxDrawer","New skybox: "+newValue);

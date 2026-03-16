@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.util.Log;
 
 import androidx.annotation.Nullable;
+import androidx.preference.ListPreference;
 import androidx.preference.PreferenceCategory;
 import androidx.preference.PreferenceGroup;
 import androidx.preference.PreferenceManager;
@@ -81,7 +82,7 @@ public class ShaderPreferences implements PreferenceAdapter {
             }
         }
 
-        /*// Example: ListPreference for Lighting Type
+        // Example: ListPreference for Lighting Type
         ListPreference lightingPreference = new ListPreference(context);
         lightingPreference.setKey(KEY_SHADER_LIGHTING_TYPE);
         lightingPreference.setTitle("Lighting");
@@ -89,6 +90,7 @@ public class ShaderPreferences implements PreferenceAdapter {
         lightingPreference.setEntries(new CharSequence[]{"Simple", "No Lighting"});
         lightingPreference.setEntryValues(new CharSequence[]{"on", "off"});
         lightingPreference.setDefaultValue("on"); // Set a default
+        lightingPreference.setIconSpaceReserved(false);
         category.addPreference(lightingPreference);
 
         // Example: ListPreference for Texture (assuming texture names or paths are strings)
@@ -99,21 +101,21 @@ public class ShaderPreferences implements PreferenceAdapter {
         texturePreference.setEntries(new CharSequence[]{"Textures Enabled", "No Textures"});
         texturePreference.setEntryValues(new CharSequence[]{"on", "off"});
         texturePreference.setDefaultValue("on");
+        texturePreference.setIconSpaceReserved(false);
         category.addPreference(texturePreference);
 
-        // Example: SwitchPreference for Animation (if you had a boolean)
+        /*// Example: SwitchPreference for Animation (if you had a boolean)
         SwitchPreferenceCompat animationPreference = new SwitchPreferenceCompat(context);
         animationPreference.setKey(KEY_SHADER_ANIMATION_ENABLED);
         animationPreference.setTitle("Animation");
         animationPreference.setDefaultValue(true);
-        category.addPreference(animationPreference);
+        category.addPreference(animationPreference);*/
 
 
 
         // Set listeners to react to preference changes immediately
         lightingPreference.setOnPreferenceChangeListener((preference, newValue) -> {
             String newLightingValue = (String) newValue;
-            final Map<String, Shader> shaders = shaderFactory.getShaders();
             for (Map.Entry<String, Shader> entry : shaders.entrySet()) {
                 // You'll need methods in ShaderImpl to set these properties
                 final Shader shader = entry.getValue();
@@ -126,7 +128,6 @@ public class ShaderPreferences implements PreferenceAdapter {
 
         texturePreference.setOnPreferenceChangeListener((preference, newValue) -> {
             String newTextureValue = (String) newValue;
-            final Map<String, Shader> shaders = shaderFactory.getShaders();
             for (Map.Entry<String, Shader> entry : shaders.entrySet()) {
                 // You'll need methods in ShaderImpl to set these properties
                 final Shader shader = entry.getValue();
@@ -134,7 +135,7 @@ public class ShaderPreferences implements PreferenceAdapter {
             }
             preference.setSummary("Current: " + newTextureValue);
             return true;
-        });*/
+        });
 
         // Initialize summaries based on current values
         updatePreferenceSummaries();
