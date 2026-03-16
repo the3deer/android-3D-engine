@@ -52,6 +52,7 @@ public class ShaderImplV3 implements Shader, PreferenceAdapter {
     private final boolean supportsTexturesTransformed;
     private final boolean supportBlending;
     private final boolean supportsColors;
+    private final boolean supportsTextureCube;
 
     private boolean autoUseProgram = true;
     private boolean texturesEnabled = true;
@@ -80,6 +81,7 @@ public class ShaderImplV3 implements Shader, PreferenceAdapter {
         this.supportsTexturesTransformed = fragmentShaderCode.contains("u_TextureTransformed");
         this.supportBlending = fragmentShaderCode.contains("u_AlphaCutoff") && fragmentShaderCode.contains("u_AlphaMode");
         this.supportsColors = vertexShaderCode.contains("a_Color");
+        this.supportsTextureCube = fragmentShaderCode.contains("u_TextureCube");
 
         int vertexShader = GLUtil.loadShader(GLES30.GL_VERTEX_SHADER, vertexShaderCode);
         int fragmentShader = GLUtil.loadShader(GLES30.GL_FRAGMENT_SHADER, fragmentShaderCode);
@@ -244,6 +246,11 @@ public class ShaderImplV3 implements Shader, PreferenceAdapter {
                 setUniform1(material.getThicknessFactor(), "u_TransmissionFactor");
             }
         }
+
+        // Cube Texture
+        if (supportsTextureCube && material != null && material.getColorTexture() != null) {
+            setTextureCube(material.getColorTexture().getId(), "u_TextureCube", 4);
+        }
     }
 
     private void bindTextureTransform(Texture texture) {
@@ -296,6 +303,15 @@ public class ShaderImplV3 implements Shader, PreferenceAdapter {
         if (handle != -1) {
             GLES30.glActiveTexture(GLES30.GL_TEXTURE0 + textureIndex);
             GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, texture.getId());
+            GLES30.glUniform1i(handle, textureIndex);
+        }
+    }
+
+    private void setTextureCube(int textureId, String variableName, int textureIndex) {
+        int handle = GLES30.glGetUniformLocation(mProgram, variableName);
+        if (handle != -1) {
+            GLES30.glActiveTexture(GLES30.GL_TEXTURE0 + textureIndex);
+            GLES30.glBindTexture(GLES30.GL_TEXTURE_CUBE_MAP, textureId);
             GLES30.glUniform1i(handle, textureIndex);
         }
     }

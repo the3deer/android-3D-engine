@@ -2,10 +2,13 @@ package org.the3deer.android_3d_model_engine.shader;
 
 
 import org.the3deer.android_3d_model_engine.R;
+import org.the3deer.android_3d_model_engine.model.Constants;
 
 public enum ShaderResource {
 
-    SKYBOX("skybox", R.raw.shader_v2_skybox_vert, R.raw.shader_v2_skybox_frag),
+    SKYBOX("skybox", 
+            (Constants.DEFAULT_SHADER_VERSION == 3) ? R.raw.shader_v3_skybox_vert : R.raw.shader_v2_skybox_vert, 
+            (Constants.DEFAULT_SHADER_VERSION == 3) ? R.raw.shader_v3_skybox_frag : R.raw.shader_v2_skybox_frag),
     BASIC("basic", R.raw.shader_v2_basic_vert, R.raw.shader_v2_basic_frag),
     STATIC("static", R.raw.shader_v2_static_vert, R.raw.shader_v2_static_frag),
     ANIMATED("animated", R.raw.shader_v2_animated_vert, R.raw.shader_v2_animated_frag),
