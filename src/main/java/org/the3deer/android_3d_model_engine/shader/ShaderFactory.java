@@ -143,7 +143,12 @@ public class ShaderFactory {
     }
 
     public void reset() {
-        for (Shader shader : shadersCache.values()) shader.reset();
+
+        Log.i(TAG, "Resetting shaders... size: "+shadersCache.size());
+
+        for (Shader shader : shadersCache.values())
+            shader.reset();
+
         shadersCache.clear();
     }
 

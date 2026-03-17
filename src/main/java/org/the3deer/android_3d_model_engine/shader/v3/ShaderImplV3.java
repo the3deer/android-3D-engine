@@ -3,6 +3,7 @@ package org.the3deer.android_3d_model_engine.shader.v3;
 import android.content.Context;
 import android.opengl.GLES30;
 import android.os.Bundle;
+import android.util.Log;
 import android.util.SparseArray;
 
 import androidx.annotation.Nullable;
@@ -262,6 +263,7 @@ public class ShaderImplV3 implements Shader, PreferenceAdapter {
 
         // Cube Texture
         if (supportsTextureCube && material != null && material.getColorTexture() != null) {
+            loadTexture(material.getColorTexture());
             setTextureCube(material.getColorTexture().getId(), "u_TextureCube", 4);
         }
     }
@@ -293,7 +295,10 @@ public class ShaderImplV3 implements Shader, PreferenceAdapter {
         if (texture == null || texture.hasId()) return;
 
         final int textureId;
-        if (texture.getBitmap() != null && !texture.getBitmap().isRecycled()) {
+        if (texture.isCubeMap()) {
+            textureId = GLUtil.loadCubeMap(texture.getCubeMap());
+            texture.setId(textureId);
+        } else if (texture.getBitmap() != null && !texture.getBitmap().isRecycled()) {
             textureId = GLUtil.loadTexture(texture.getBitmap());
             texture.setId(textureId);
         } else if (texture.getData() != null) {
@@ -306,6 +311,7 @@ public class ShaderImplV3 implements Shader, PreferenceAdapter {
             return;
         }
 
+        // track texture
         textures.add(texture);
     }
 
@@ -384,13 +390,26 @@ public class ShaderImplV3 implements Shader, PreferenceAdapter {
 
     @Override 
     public void reset() {
-        for (Texture texture : textures) {
-            if (texture.getId() != -1) {
-                GLES30.glDeleteTextures(1, new int[]{texture.getId()}, 0);
-                texture.setId(-1);
+
+        // reset textures if any
+        if (!textures.isEmpty()) {
+
+            // log event
+            Log.i(TAG, "Resetting textures...");
+
+            // loop
+            for (Texture texture : textures) {
+                if (texture.getId() != -1) {
+                    GLES30.glDeleteTextures(1, new int[]{texture.getId()}, 0);
+                    texture.setId(-1);
+                }
             }
         }
+
+        // clear texture cache
         textures.clear();
+
+        // clear GPU cache
         gpuManager.clear();
     }
 

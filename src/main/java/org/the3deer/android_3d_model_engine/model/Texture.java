@@ -2,7 +2,6 @@ package org.the3deer.android_3d_model_engine.model;
 
 import android.graphics.Bitmap;
 
-import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.util.Map;
 
@@ -19,6 +18,8 @@ public class Texture {
     private Bitmap bitmap;
 
     private byte[] data;
+
+    private CubeMap cubeMap;
 
     private Map<String, Object> extensions;
 
@@ -88,6 +89,18 @@ public class Texture {
         return buffer;
     }
 
+    public CubeMap getCubeMap() {
+        return cubeMap;
+    }
+
+    public Texture setCubeMap(CubeMap cubeMap) {
+        this.cubeMap = cubeMap;
+        return this;
+    }
+
+    public boolean isCubeMap() {
+        return cubeMap != null;
+    }
 
     public Texture setExtensions(Map<String, Object> extensions) {
         this.extensions = extensions;
@@ -105,6 +118,7 @@ public class Texture {
                 ", glTextureId=" + id +
                 ", data=" + data +
                 ", bitmap=" + bitmap +
+                ", cubeMap=" + cubeMap +
                 '}';
     }
 

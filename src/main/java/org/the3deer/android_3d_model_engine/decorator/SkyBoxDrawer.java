@@ -9,10 +9,8 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.SubMenu;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.preference.ListPreference;
-import androidx.preference.Preference;
 import androidx.preference.PreferenceCategory;
 import androidx.preference.PreferenceGroup;
 
@@ -29,7 +27,6 @@ import org.the3deer.android_3d_model_engine.shader.ShaderFactory;
 import org.the3deer.android_3d_model_engine.shader.ShaderResource;
 import org.the3deer.android_3d_model_engine.toolbar.MenuAdapter;
 import org.the3deer.android_3d_model_engine.util.Rescaler;
-import org.the3deer.util.android.GLUtil;
 import org.the3deer.util.bean.BeanInit;
 import org.the3deer.util.math.Quaternion;
 
@@ -225,29 +222,17 @@ public class SkyBoxDrawer implements Drawer, MenuAdapter, PreferenceAdapter {
         try {
             // lazy building of the 3d object
             if (skyBoxes3D[skyBoxId] == null) {
-                Log.i("SkyBoxDrawer", "Loading sky box textures to GPU... skybox: " + skyBoxId);
-                int textureIdMap = GLUtil.loadCubeMap(skyBoxes[skyBoxId].getCubeMap());
-                Log.d("SkyBoxDrawer", "Loaded textures to GPU... id: " + textureIdMap);
-                if (textureIdMap != -1) {
-                    skyBoxes3D[skyBoxId] = SkyBox.build(skyBoxes[skyBoxId]);
-                    Rescaler.rescale(skyBoxes3D[skyBoxId], 1f);
-                    final float scale = Constants.SKYBOX_SIZE; //getFar()/skyBoxes3D[skyBoxId].getDimensions().getLargest()/20;
-                    skyBoxes3D[skyBoxId].setScale(scale, scale, scale);
-                    skyBoxes3D[skyBoxId].setColor(Constants.COLOR_BIT_TRANSPARENT);
-                } else {
-                    throw new IllegalArgumentException("Error loading sky box textures to GPU");
-                }
+                Log.i("SkyBoxDrawer", "Building sky box... skybox: " + skyBoxId);
+                skyBoxes3D[skyBoxId] = SkyBox.build(skyBoxes[skyBoxId]);
+                Rescaler.rescale(skyBoxes3D[skyBoxId], 1f);
+                final float scale = Constants.SKYBOX_SIZE;
+                skyBoxes3D[skyBoxId].setScale(scale, scale, scale);
+                skyBoxes3D[skyBoxId].setColor(Constants.COLOR_BIT_TRANSPARENT);
             }
-
-            // get drawer
-            //Shader basicDrawer = ShaderFactory.getInstance().getSkyBoxDrawer();
-
 
             // paint
             GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0);
-            //GLES20.glClearColor(0, 0, 0, 1);
             GLES20.glDisable(GLES20.GL_CULL_FACE);
-            //GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
 
             Shader shader = shaderFactory.getShader(ShaderResource.SKYBOX);
 
@@ -255,14 +240,6 @@ public class SkyBoxDrawer implements Drawer, MenuAdapter, PreferenceAdapter {
             shader.draw(skyBoxes3D[skyboxId], this.projectionMatrix, camera.getViewMatrix(),
                     null, null, camera.getPos(), skyBoxes3D[skyboxId].getDrawMode(), skyBoxes3D[skyboxId].getDrawSize());
 
-            // sensor stuff
-            /*this.orientation.toRotationMatrix(viewMatrixSkyBox);
-            float[] rot = new float[16];
-            Matrix.setRotateM(rot,0,90,1,0,0);
-            float[] mat = new float[16];
-            Matrix.multiplyMM(mat,0,viewMatrixSkyBox,0, rot,0);
-            Renderer basicShader = drawer.getSkyBoxDrawer();
-            basicShader.draw(skyBoxes3D[skyBoxId], projectionMatrixSkyBox, mat, skyBoxes3D[skyBoxId].getMaterial().getTextureId(), null, cameraPosInWorldSpace);*/
         } catch (Throwable ex) {
             Log.e("SkyBoxDrawer", "Error rendering sky box. " + ex.getMessage(), ex);
             enabled = false;

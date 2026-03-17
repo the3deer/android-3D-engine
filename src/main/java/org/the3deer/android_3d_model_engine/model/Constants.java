@@ -10,7 +10,7 @@ public class Constants {
     /**
      * Default shader version. 2 for OpenGL ES 2.0, 3 for OpenGL ES 3.0
      */
-    public static int DEFAULT_SHADER_VERSION = 2;
+    public static int DEFAULT_SHADER_VERSION = 3;
     /**
      * Enable engine to process animations
      */

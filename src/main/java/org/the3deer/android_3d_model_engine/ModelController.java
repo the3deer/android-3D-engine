@@ -1,7 +1,6 @@
 
 package org.the3deer.android_3d_model_engine;
 
-import android.util.Log;
 import android.view.MotionEvent;
 
 import androidx.preference.Preference;
@@ -85,8 +84,6 @@ public class ModelController implements EventManager, GLTouchHandler {
             final GLEvent rev = (GLEvent) event;
             //Log.v(TAG, "propagate. RenderEvent:" + rev.getCode());
             if (rev.getCode() == GLEvent.Code.SURFACE_CREATED) {
-                
-                Log.i(TAG, "GL Surface Created. Resetting GPU assets...");
 
                 // 1. Reset Shaders (Clears Shader Cache and GpuManager VBOs/VAOs)
                 shaderFactory.reset();

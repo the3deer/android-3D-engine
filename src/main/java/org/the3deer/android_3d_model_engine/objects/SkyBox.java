@@ -135,7 +135,7 @@ public class SkyBox {
 
         Object3DData ret = new Object3DData(IOUtils.createFloatBuffer(VERTEX_DATA.length).put(VERTEX_DATA)).setId("skybox");
         ret.setDrawMode(GLES20.GL_TRIANGLES);
-        ret.setMaterial(new Material().setColorTexture(new Texture().setId(skyBox.getCubeMap().getTextureId())));
+        ret.setMaterial(new Material().setColorTexture(new Texture().setCubeMap(skyBox.getCubeMap())));
 
 
         Log.i("SkyBox", "Skybox : " + ret.getDimensions());

@@ -385,6 +385,7 @@ public class ShaderImplV2 implements Shader, PreferenceAdapter {
 
         // pass in the SkyBox texture
         if (obj.getMaterial() != null && obj.getMaterial().getColorTexture() != null && supportsTextureCube) {
+            loadTexture(obj.getMaterial().getColorTexture());
             setTextureCube(obj.getMaterial().getColorTexture().getId(), 3);
         }
 
@@ -519,13 +520,12 @@ public class ShaderImplV2 implements Shader, PreferenceAdapter {
         // check
         if (texture == null || texture.hasId()) return;
 
-        // check
-        if (texture.getData() == null && texture.getBitmap() == null && texture.getBuffer() == null)
-            return;
-
         // load
         final int textureId;
-        if (texture.getBitmap() != null && !texture.getBitmap().isRecycled()) {
+        if (texture.isCubeMap()) {
+            textureId = GLUtil.loadCubeMap(texture.getCubeMap());
+            texture.setId(textureId);
+        } else if (texture.getBitmap() != null && !texture.getBitmap().isRecycled()) {
             textureId = GLUtil.loadTexture(texture.getBitmap());
             texture.setId(textureId);
         } else if (texture.getData() != null) {
