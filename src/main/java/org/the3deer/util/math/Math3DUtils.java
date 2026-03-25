@@ -3,9 +3,6 @@ package org.the3deer.util.math;
 import android.opengl.Matrix;
 import android.util.Log;
 
-import org.the3deer.android_3d_model_engine.animation.JointTransform;
-import org.the3deer.android_3d_model_engine.model.Constants;
-
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
@@ -539,6 +536,15 @@ public class Math3DUtils {
      */
     public static float length(float x, float y, float z) {
         return (float) Math.sqrt(x * x + y * y + z * z);
+    }
+
+    public static void interpolate(org.the3deer.android.engine.animation.JointTransform result, org.the3deer.android.engine.animation.JointTransform start, org.the3deer.android.engine.animation.JointTransform end, float progression) {
+        interpolate(result.getScale(), start.getScale(), end.getScale(), progression);
+        interpolate(result.getLocation(), start.getLocation(), end.getLocation(), progression);
+        /*interpolate(result.getRotation1(), start.getRotation1(), end.getRotation1(), progression);
+        interpolate(result.getRotation2(), start.getRotation2(), end.getRotation2(), progression);
+        interpolate(result.getRotation2Location(), start.getRotation2Location(), end.getRotation2Location(), progression);*/
+        Quaternion.interpolate(result.getQRotation(), start.getQRotation(), end.getQRotation(), progression);
     }
 
     public static void interpolate(JointTransform result, JointTransform start, JointTransform end, float progression) {

@@ -5,8 +5,6 @@ import android.util.Log;
 
 import androidx.annotation.Nullable;
 
-import org.the3deer.android_3d_model_engine.model.Constants;
-
 /**
  * A quaternion simply represents a 3D rotation. The maths behind it is quite
  * complex (literally; it involves complex numbers) so I wont go into it in too

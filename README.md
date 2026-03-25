@@ -7,8 +7,20 @@ As this is my first android library and my first 3D engine and I'm still learnin
 however, I will try to continue improving the library and adding more features. 
 So please send me your comments, suggestions or complains by opening an [issue](https://github.com/the3deer/android-3D-engine/issues).
 
+### Engine Module (`:engine`)
+- **`Model`**: The root container for a 3D asset. Holds multiple `Scene`s.
+- **`Scene`**: A specific 3D environment containing a `Node` hierarchy and `Camera`s.
+- **`Node`**: The building block of the Scene Graph.
+  - Each node has a `localMatrix` for translation, rotation, and scale.
+  - Computes a `worldMatrix` recursively based on its parent.
+  - Can optionally hold a `Mesh` (`Object3D`) to be rendered.
+- **`Camera`**: Manages the View and Projection matrices to define how the 3D scene is projected onto the 2D screen.
+- **`SceneRenderer`**:
+  - Implements `GLSurfaceView.Renderer`.
+  - Performs recursive rendering of the Scene Graph.
+  - Manages GLSL shaders that support MVP transformations.
 
-Features
+Features (not yet migrated)
 ========
 
 - [x] Supports >= Android 5.0 (LOLLIPOP) - Min API Level 21 -> Target API Level 35
@@ -18,25 +30,20 @@ Features
     - [x] STL (STereoLithography)
     - [x] DAE (Collada-BETA)
     - [x] GLTF (GL Transmission Format)
-- [x] Vertex Normals support
-- [x] Transformation support: scaling, rotation, translation, orientation
-- [x] Colors support
-- [x] Textures support
+    - [x] FBX (Filmbox)
+- [x] Normals support, Colors support, Textures support
 - [x] Lighting support
 - [x] Debuggers
     - [x] wireframe
-    - [x] skin
-- [x] skeletal animations (collada dae, gltf)
-- [x] ray collision detection
+    - [x] skeleton
+- [x] Animations (dae, gltf)
 - [x] other:
-    - [x] Polygon with holes
+    - [x] Polygon with holes (dae)
     - [x] Bounding box
     - [x] Skybox
-    - [x] Object picking
-    - [x] file explorer
+    - [x] Object selection - Ray collision detector
     - [x] repository explorer
-    - [x] khronos explorer
-    - [x] lightweight: only 8 Megabyte (3d models excluded)
+    - [x] lightweight: only ¿? Megabytes (3d assets excluded)
 
 
 Usage
@@ -62,13 +69,16 @@ Dependants
 ==========
 
 - android-3D-model-viewer: https://github.com/the3deer/android-3D-model-viewer
-- android-3D-isogame: WIP
   
 
 Documentation
 =============
 
-Not yet available.  You would need to check the android-3D-model-viewer application on how this engine is used. 
+[doc/README.md](./doc/README.md)
+[doc/model/README.md](./src/main/java/org/the3deer/android/engine/model/README.md)
+[doc/renderer/README.md](./src/main/java/org/the3deer/android/engine/renderer/README.md)
+[doc/gltf/README.md](./src/main/java/org/the3deer/android/engine/services/gltf/README.md)
+[doc/collision/README.md](./src/main/java/org/the3deer/android/engine/collision/README.md)
 
 
 Licenses
@@ -86,6 +96,12 @@ copies or substantial portions of the Software.
 ChangeLog
 =========
 
+- 0.3.0 (10/03/2026)
+  - New: FBX support - basic support (no animation - no rigging)
+  - New: DAE & GLTF parser completely rewritten with AI (Gemini) 
+  - Bug fixes and Engine improvement
+  - This release is possible thanks to Gemini AI 
+  - **Not yet published on Play Store!**
 - 0.2.1 (12/12/2024)
   - Fixed rendering issue
   - Fixed content loader to allow mapping content:// type uri

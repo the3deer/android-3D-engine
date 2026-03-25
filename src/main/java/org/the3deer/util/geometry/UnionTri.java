@@ -11,9 +11,8 @@ import org.poly2tri.triangulation.TriangulationPoint;
 import org.poly2tri.triangulation.delaunay.DelaunayTriangle;
 import org.poly2tri.triangulation.point.TPoint;
 import org.poly2tri.triangulation.sets.ConstrainedPointSet;
-import org.the3deer.android_3d_model_engine.collision.CollisionDetection;
-import org.the3deer.android_3d_model_engine.model.Constants;
-import org.the3deer.android_3d_model_engine.model.Object3DData;
+import org.the3deer.android.engine.collision.CollisionDetection;
+import org.the3deer.android.engine.model.Object3D;
 import org.the3deer.util.io.IOUtils;
 import org.the3deer.util.math.Math3DUtils;
 
@@ -31,13 +30,13 @@ public class UnionTri {
      * @param objects game objects
      * @return 1 single mesh
      */
-    public static Object3DData merge(List<Object3DData> objects) {
+    public static Object3D merge(List<Object3D> objects) {
         int newCapacity = 0;
-        for (Object3DData obj : objects) {
+        for (Object3D obj : objects) {
             newCapacity += obj.getVertexBuffer().capacity();
         }
         FloatBuffer vb = IOUtils.createFloatBuffer(newCapacity);
-        for (Object3DData obj : objects) {
+        for (Object3D obj : objects) {
             // every game object is positioned somewhere (modelmatrix)
             FloatBuffer vertexBuffer = obj.getVertexBuffer().asReadOnlyBuffer();
             vertexBuffer.position(0);
@@ -45,10 +44,10 @@ public class UnionTri {
                 vb.put(vertexBuffer.get());
             }
         }
-        return new Object3DData(vb).setDrawMode(GLES20.GL_TRIANGLES);
+        return new Object3D(vb).setDrawMode(GLES20.GL_TRIANGLES);
     }
 
-    public static Object3DData triangulate(Object3DData object) {
+    public static Object3D triangulate(Object3D object) {
 
         List<float[]> newBuffer = new ArrayList<>();
 
@@ -157,7 +156,7 @@ public class UnionTri {
                     final float[] UNormal = Math3DUtils.calculateNormal(U[0], U[1], U[2]);
 
                     // convert to 2D for sending to poly2tri
-                    float[] rotation = Math3DUtils.getRotation(U[0], U[1], U[2], Constants.Z_NORMAL);
+                    float[] rotation = Math3DUtils.getRotation(U[0], U[1], U[2], new float[]{0, 0, 1});
                     float[] rotationInv = new float[16];
                     Matrix.invertM(rotationInv, 0, rotation, 0);
                     points = fixOrientation(U, points);
@@ -187,12 +186,12 @@ public class UnionTri {
         for (int i = 0; i < newBuffer.size(); i++) {
             newVertexBuffer.put(newBuffer.get(i));
         }
-        return new Object3DData(newVertexBuffer).setDrawMode(GLES20.GL_TRIANGLES);
+        return new Object3D(newVertexBuffer).setDrawMode(GLES20.GL_TRIANGLES);
     }
 
     private static List<TriangulationPoint> fixOrientation(float[][] U, List<TriangulationPoint> points) {
         // fix orientation
-        float[] matrix = Math3DUtils.getRotation(U[0], U[1], U[2], Constants.Z_NORMAL);
+        float[] matrix = Math3DUtils.getRotation(U[0], U[1], U[2], new float[]{0, 0, 1});
         if (matrix == Math3DUtils.IDENTITY_MATRIX) {
             return points;
         }
