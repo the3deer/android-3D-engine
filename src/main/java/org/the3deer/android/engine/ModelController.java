@@ -1,7 +1,6 @@
 
 package org.the3deer.android.engine;
 
-import android.util.Log;
 import android.view.MotionEvent;
 
 import org.the3deer.android.engine.camera.CameraController;
@@ -9,7 +8,6 @@ import org.the3deer.android.engine.collision.CollisionController;
 import org.the3deer.android.engine.collision.CollisionEvent;
 import org.the3deer.android.engine.controller.TouchController;
 import org.the3deer.android.engine.controller.TouchEvent;
-import org.the3deer.android.engine.event.SelectedObjectEvent;
 import org.the3deer.android.engine.gui.GUI;
 import org.the3deer.android.engine.gui.GUIDrawer;
 import org.the3deer.android.engine.model.Camera;
@@ -24,8 +22,6 @@ import org.the3deer.android.util.AndroidUtils;
 import org.the3deer.util.bean.BeanFactory;
 import org.the3deer.util.event.EventListener;
 import org.the3deer.util.event.EventManager;
-import org.the3deer.util.math.Math3DUtils;
-import org.the3deer.util.math.Quaternion;
 
 import java.util.EventObject;
 import java.util.List;
@@ -154,87 +150,36 @@ public class ModelController implements EventManager, GLTouchHandler {
                     //surface.onEvent(event);
                 }*/
             }
-        } /*else if (event instanceof CollisionEvent){
+        } else if (event instanceof CollisionEvent) {
 
             // check
-            final Scene scene = sceneManager.getActiveScene();
-            if (scene == null) return false;
+            if (sceneManager.getActiveScene() == null) return false;
 
-            // forward event to current scene
-            return onCollisionEvent(event);
+            // get hit
+            final Object3D hit = ((CollisionEvent) event).getObject();
 
-        }*/ else {
+            // get current selected object
+            final Object3D selected = sceneManager.getActiveScene().getSelectedObject();
+
+            // unselect if needed
+            if (selected != null && selected == hit) {
+
+                // select object
+                sceneManager.getActiveScene().setSelectedObject(null);
+
+            } else {
+
+                // select object
+                sceneManager.getActiveScene().setSelectedObject(hit);
+            }
+
+            AndroidUtils.fireEvent(listeners, event);
+
+        } else {
             AndroidUtils.fireEvent(listeners, event);
         }
         return false;
     }
-    
-    private boolean onCollisionEvent(EventObject event){
-        Object3D selectedObject = sceneManager.getActiveScene().getSelectedObject();
-        if (event instanceof TouchEvent) {
-            Camera camera = sceneManager.getActiveScene().getActiveCamera();
-            float[] right = camera.getRight();
-            float[] up = camera.getUp();
-            float[] pos = camera.getPos().clone();
-            Math3DUtils.normalizeVector(pos);
-            TouchEvent touch = (TouchEvent) event;
-            if (touch.getAction() == TouchEvent.Action.ROTATE && selectedObject != null) {
 
-                float angle = touch.getAngle();
-                float factor = 1f; //1/360f * touch.getLength();
-
-
-                // Log.v(TAG, "Q: Quaternion angle: " + Math.toDegrees(angle) + " ,dx:" + touch.getdX() + ", dy:" + -touch.getdY());
-                Quaternion q0 = Quaternion.getQuaternion(pos, angle * factor);
-                //q0.normalize();
-
-                Quaternion multiply = Quaternion.multiply(selectedObject.getOrientation(), q0);
-                selectedObject.setOrientation(multiply);
-
-                return true;
-            } else if (touch.getAction() == TouchEvent.Action.MOVE && selectedObject != null) {
-
-                float angle = (float) (Math.atan2(-touch.getdY(), touch.getdX()));
-                Log.v(TAG, "Rotating (axis:var): " + Math.toDegrees(angle) + " ,dx:" + touch.getdX() + ", dy:" + -touch.getdY());
-
-                float[] rightd = Math3DUtils.multiply(right, touch.getdY());
-                float[] upd = Math3DUtils.multiply(up, touch.getdX());
-                float[] rot = Math3DUtils.add(rightd, upd);
-                if (Math3DUtils.length(rot) > 0) {
-                    rot = Math3DUtils.normalize2(rot);
-                } else {
-                    rot = new float[]{1, 0, 0};
-                }
-
-                float angle1 = touch.getLength() / 360;
-                Quaternion q1 = Quaternion.getQuaternion(rot, angle1);
-                //q1.normalize();
-
-                Quaternion multiply = Quaternion.multiply(selectedObject.getOrientation(), q1);
-                //multiply.normalize();
-
-                selectedObject.setOrientation(multiply);
-
-                return true;
-            }
-        } else if (event instanceof CollisionEvent) {
-            Log.v(TAG, "Processing collision... " + event);
-            Object3D objectToSelect = ((CollisionEvent) event).getObject();
-
-            if (selectedObject == objectToSelect) {
-                Log.v(TAG, "Unselected object " + objectToSelect);
-                sceneManager.getActiveScene().setSelectedObject((null));
-            } else {
-                Log.i(TAG, "Selected object " + objectToSelect.getId());
-                Log.d(TAG, "Selected object " + objectToSelect);
-                sceneManager.getActiveScene().setSelectedObject(objectToSelect);
-                if (eventManager != null) {
-                    eventManager.propagate(new SelectedObjectEvent(this, objectToSelect));
-                }
-            }
-            return true;
-        }
-        return false;
-    }
 
 }

@@ -92,7 +92,8 @@ public class CollisionDrawer implements Drawer, EventListener {
 
         // check
         if (point == null) {
-            throw new IllegalArgumentException("point cannot be null");
+            // object hit but no triangle hit
+            return false;
         }
 
         // debug

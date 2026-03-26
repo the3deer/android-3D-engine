@@ -18,7 +18,7 @@ import javax.inject.Inject;
 
 /**
  * Collision controller that, based on View settings (width, height and projection matrices)
- * it can detect a collision between an Object and a Ray casted from the screen to the farthest point
+ * it can detect a collision between an Object and the ray cast from the screen to the farthest point
  *
  * Collision controller processes {@link TouchEvent} and fires {@link CollisionEvent}
  */
@@ -64,7 +64,7 @@ public class CollisionController implements EventListener {
 
                 // get objects
                 final List<Object3D> objects = scene.getObjects();
-                if (objects == null || objects.isEmpty()) return false;
+                if (objects.isEmpty()) return false;
 
                 //Log.v("CollisionController", getObjects().get(0).getCurrentDimensions().toString());
                 final float x = touchEvent.getX();
@@ -81,14 +81,10 @@ public class CollisionController implements EventListener {
                     float[] point3D = CollisionDetection.getTriangleIntersection(objectHit, screen.getWidth(), screen.getHeight(),
                             camera.getViewMatrix(), camera.getProjectionMatrix(), x, y);
 
-                    // check
-                    if (point3D == null || eventManager == null) return false;
-
                     // fire event
                     final CollisionEvent collisionEvent = new CollisionEvent(this, objectHit, x, y, point3D);
                     eventManager.propagate(collisionEvent);
 
-                    // acknowledged
                     return true;
                 }
             }
