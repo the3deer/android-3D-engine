@@ -182,8 +182,6 @@ public class ModelEngine {
         beanFactory.add("10.shaderFactory", ShaderFactory.class);
         beanFactory.add("10.sceneLoader", SceneLoader.class);
         beanFactory.add("10.cameraHandler", DefaultCameraHandler.class);
-        beanFactory.add("10.uiSettings", UISettings.class);
-
 
         beanFactory.add("10.touchController", TouchController.class);
 
