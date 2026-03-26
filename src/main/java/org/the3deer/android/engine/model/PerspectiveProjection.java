@@ -4,6 +4,8 @@ import android.opengl.Matrix;
 
 import org.the3deer.util.bean.BeanInit;
 
+import javax.inject.Inject;
+
 /**
  * Regular standard perspective projection.
  */
@@ -12,8 +14,11 @@ public final class PerspectiveProjection implements Projection {
     // projection matrix
     private final float[] matrix = new float[16];
 
+    @Inject
+    private Screen screen;
+
     private float yfov = 60.0f;
-    private float aspectRatio = 1920 / 1080f;
+    private float aspectRatio = 1.0f;
     private float znear = 1;
     private float zfar = 10;
     /**
@@ -49,14 +54,15 @@ public final class PerspectiveProjection implements Projection {
 
     @Override
     public float[] getMatrix(){
+        float ratio = screen != null ? screen.getRatio() : this.aspectRatio;
         if (custom) {
-            Matrix.perspectiveM(matrix, 0, yfov, aspectRatio, znear, zfar);
+            Matrix.perspectiveM(matrix, 0, yfov, ratio, znear, zfar);
         } else {
             // Calculate frustum based on yfov and znear to maintain consistent FOV
             float top = (float) Math.tan(Math.toRadians(yfov / 2.0)) * znear;
             float bottom = -top;
-            float left = bottom * aspectRatio;
-            float right = top * aspectRatio;
+            float left = bottom * ratio;
+            float right = top * ratio;
             Matrix.frustumM(matrix, 0, left, right, bottom, top, znear, zfar);
         }
         return matrix;

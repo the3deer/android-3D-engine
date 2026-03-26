@@ -7,7 +7,7 @@ public final class OrthographicProjection implements Projection {
     // projection matrix
     private final float[] matrix = new float[16];
 
-    private float aspectRatio = 1920 / 1080f;
+    private float aspectRatio = 1.0f;
     private float xmag = 1.0f;
     private float ymag = 1.0f;
     private float znear = Constants.near;
@@ -29,22 +29,22 @@ public final class OrthographicProjection implements Projection {
 
     @Override
     public float getNear() {
-        return 0;
+        return znear;
     }
 
     @Override
     public void setNear(float near) {
-
+        this.znear = near;
     }
 
     @Override
     public float getFar() {
-        return 0;
+        return zfar;
     }
 
     @Override
     public void setFar(float far) {
-
+        this.zfar = far;
     }
 
     @Override
@@ -54,12 +54,12 @@ public final class OrthographicProjection implements Projection {
 
     @Override
     public Projection clone() {
-        return new OrthographicProjection();
+        return new OrthographicProjection(xmag, ymag, znear, zfar);
     }
 
     @Override
-    public void setAspectRatio(float halfRatio) {
-
+    public void setAspectRatio(float aspectRatio) {
+        this.aspectRatio = aspectRatio;
     }
 
     @Override

@@ -109,6 +109,19 @@ public class ModelController implements EventManager, GLTouchHandler {
 
             } else if (rev.getCode() == GLEvent.Code.SURFACE_CHANGED) {
 
+                // update aspect ratio of the default projection
+                if (projection != null) {
+                    projection.setAspectRatio((float) rev.getWidth() / rev.getHeight());
+                }
+
+                // update aspect ratio of all cameras in the scene
+                final Scene scene = sceneManager.getActiveScene();
+                if (scene != null) {
+                    for (Camera camera : scene.getCameras()) {
+                        camera.setProjection(rev.getWidth(), rev.getHeight());
+                    }
+                }
+
                 if (gui != null){
                     gui.onEvent(event);
                 }
