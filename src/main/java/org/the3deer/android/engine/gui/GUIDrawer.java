@@ -39,7 +39,7 @@ public class GUIDrawer implements EventListener, Drawer {
     private final static String TAG = GUIDrawer.class.getSimpleName();
 
     @BeanProperty(description = "Show or hide GUI")
-    private boolean enabled = true;
+    private boolean enabled = false;
 
     @Inject
     private ShaderFactory shaderFactory;
