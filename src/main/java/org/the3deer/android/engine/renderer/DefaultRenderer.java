@@ -6,6 +6,7 @@ import android.util.Log;
 import android.widget.Toast;
 
 import org.the3deer.android.engine.animation.Animator;
+import org.the3deer.android.engine.model.Camera;
 import org.the3deer.android.engine.model.Constants;
 import org.the3deer.android.engine.model.Light;
 import org.the3deer.android.engine.model.Model;
@@ -14,7 +15,6 @@ import org.the3deer.android.engine.model.Scene;
 import org.the3deer.android.engine.model.Screen;
 import org.the3deer.android.engine.model.Skin;
 import org.the3deer.util.bean.Bean;
-import org.the3deer.util.bean.BeanProperty;
 import org.the3deer.util.event.EventListener;
 import org.the3deer.util.math.Math3DUtils;
 
@@ -30,7 +30,6 @@ public class DefaultRenderer implements Renderer, EventListener {
 
     private final static String TAG = DefaultRenderer.class.getSimpleName();
 
-    @BeanProperty
     protected boolean enabled = true;
 
     private boolean traced;
@@ -59,6 +58,14 @@ public class DefaultRenderer implements Renderer, EventListener {
      */
     @Inject
     private Screen screen;
+
+    @Inject
+    private Camera defaultCamera;
+
+    /**
+     * Default drawer configuration
+     */
+    private final Drawer.Config defaultConfig = new Drawer.Config();
 
     /**
      * Construct a new renderer for the specified surface view
@@ -116,8 +123,15 @@ public class DefaultRenderer implements Renderer, EventListener {
             GLES20.glScissor(config.viewPortX, config.viewPortY, config.viewPortWidth, config.viewPortHeigth);
         }
 
+        // debug
         if (!traced){
             Log.d(TAG, "onDrawFrame start... " + drawers);
+        }
+
+        // check configuration
+        if (config == null){
+            config = this.defaultConfig;
+            config.camera = defaultCamera;
         }
 
         // invoke all decorators
@@ -157,9 +171,9 @@ public class DefaultRenderer implements Renderer, EventListener {
         final Scene scene = sceneManager.getActiveScene();
 
         // check
-        if (scene == null || scene.getObjects() == null) return;
+        if (scene == null) return;
 
-        //
+        // process animations (hard-coded debug flag - always true in Production)
         if (Constants.ANIMATIONS_ENABLED) {
 
 
