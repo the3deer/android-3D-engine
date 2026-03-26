@@ -26,7 +26,9 @@ public interface Drawer extends RenderListener {
     /**
      * Called whenever there is a draw event.
      */
-    void onDrawFrame();
+    default void onDrawFrame() {
+        onDrawFrame(null);
+    }
 
     /**
      * Called whenever there is a draw event.
