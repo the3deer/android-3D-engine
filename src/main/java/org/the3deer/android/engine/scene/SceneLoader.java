@@ -194,7 +194,7 @@ public class SceneLoader implements LoadListener {
         //Looper.prepare();
 
         // provide context to allow reading resources
-        ContentUtils.setThreadActivity(activity);
+        //ContentUtils.setContext(activity);
     }
 
     @Override
@@ -210,7 +210,6 @@ public class SceneLoader implements LoadListener {
         activity.runOnUiThread(() -> {
             Toast.makeText(activity, "There was a problem building the model: " + ex.getMessage(),
                     Toast.LENGTH_LONG).show();
-            ContentUtils.setThreadActivity(null);
         });
     }
 
@@ -288,7 +287,6 @@ public class SceneLoader implements LoadListener {
 
     @Override
     public void onLoadComplete() {
-        ContentUtils.setThreadActivity(null);
 
         // initialize model
         if (this.sceneManager.getScenes().isEmpty()) {

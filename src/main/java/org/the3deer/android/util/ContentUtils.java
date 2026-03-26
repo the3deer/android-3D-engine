@@ -11,6 +11,8 @@ import android.os.Build;
 import android.provider.OpenableColumns;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
+
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
@@ -47,12 +49,10 @@ public class ContentUtils {
     private static Context context = null;
     private static File currentDir = null;
 
-    /**
-     * @deprecated Use methods that take Context as argument
-     */
-    @Deprecated
-    public static void setThreadActivity(Context context) {
-        ContentUtils.context = context != null ? context.getApplicationContext() : null;
+    public static void setContext(@NonNull Context context) {
+
+        // register
+        ContentUtils.context = context;
     }
 
     public static void setCurrentDir(File file) {

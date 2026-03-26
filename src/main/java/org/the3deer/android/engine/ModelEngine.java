@@ -11,6 +11,7 @@ import androidx.annotation.NonNull;
 import org.the3deer.android.engine.camera.CameraController;
 import org.the3deer.android.engine.camera.DefaultCameraHandler;
 import org.the3deer.android.engine.collision.CollisionController;
+import org.the3deer.android.engine.collision.CollisionDrawer;
 import org.the3deer.android.engine.controller.TouchController;
 import org.the3deer.android.engine.decorator.BoundingBoxDrawer;
 import org.the3deer.android.engine.decorator.LightBulbDrawer;
@@ -50,7 +51,6 @@ import java.net.URL;
  * It creates all the basic engine components to interact with the model.
  * It relays on the {@link BeanFactory} class to manage all the beans.
  * It propagates the events using {@link java.util.EventListener}.
- * It manages the the state of the {@link androidx.preference.Preference}
  *
  * The engine is designed using different architectural patterns.
  *
@@ -119,7 +119,7 @@ public class ModelEngine {
 
         try {
             // init resources
-            ContentUtils.setThreadActivity(activity);
+            //ContentUtils.setContext(activity);
 
             initEngine();
 
@@ -136,7 +136,6 @@ public class ModelEngine {
 
             // clear resources
             ContentUtils.clearDocumentsProvided();
-            ContentUtils.setThreadActivity(null);
 
             throw ex;
         }
@@ -144,9 +143,6 @@ public class ModelEngine {
 
     public void start(){
         try {
-
-            // init resources
-            ContentUtils.setThreadActivity(activity);
 
             //beanFactory.find(ShaderFactory.class).reset();
 
@@ -161,7 +157,6 @@ public class ModelEngine {
 
             // clear resources
             ContentUtils.clearDocumentsProvided();
-            ContentUtils.setThreadActivity(null);
         }
 
     }
@@ -218,6 +213,7 @@ public class ModelEngine {
         beanFactory.add("40.drawer4.wireframeDrawer", WireframeDrawer.class);
         beanFactory.add("40.drawer5.skeletonDrawer", SkeletonDrawer.class);
         beanFactory.add("40.drawer6.shadowRenderer", ShadowDrawer.class);
+        beanFactory.add("40.drawer7.collisionDrawer", CollisionDrawer.class);
 
         // renderer
         beanFactory.add("50.renderer.defaultRenderer", DefaultRenderer.class);
