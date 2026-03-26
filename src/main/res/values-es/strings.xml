@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="white">Blanco</string>
+    <string name="gray">Gris</string>
+    <string name="black">Negro</string>
+</resources>
