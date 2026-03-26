@@ -8,8 +8,6 @@ import org.the3deer.android.engine.model.Model;
 import org.the3deer.android.engine.model.Object3D;
 import org.the3deer.android.engine.model.Scene;
 import org.the3deer.android.engine.model.Screen;
-import org.the3deer.util.bean.Bean;
-import org.the3deer.util.bean.BeanProperty;
 import org.the3deer.util.event.EventListener;
 import org.the3deer.util.event.EventManager;
 
@@ -24,7 +22,6 @@ import javax.inject.Inject;
  *
  * Collision controller processes {@link TouchEvent} and fires {@link CollisionEvent}
  */
-@Bean(name = "Collision Controller")
 public class CollisionController implements EventListener {
 
     @Inject
@@ -36,7 +33,6 @@ public class CollisionController implements EventListener {
     @Inject
     private EventManager eventManager;
 
-    @BeanProperty
     private boolean enabled = true;
 
     public CollisionController() {
@@ -85,10 +81,14 @@ public class CollisionController implements EventListener {
                     float[] point3D = CollisionDetection.getTriangleIntersection(objectHit, screen.getWidth(), screen.getHeight(),
                             camera.getViewMatrix(), camera.getProjectionMatrix(), x, y);
 
+                    // check
+                    if (point3D == null || eventManager == null) return false;
+
+                    // fire event
                     final CollisionEvent collisionEvent = new CollisionEvent(this, objectHit, x, y, point3D);
-                    if (eventManager != null) {
-                        eventManager.propagate(collisionEvent);
-                    }
+                    eventManager.propagate(collisionEvent);
+
+                    // acknowledged
                     return true;
                 }
             }

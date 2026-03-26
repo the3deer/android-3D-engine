@@ -17,7 +17,6 @@ import org.the3deer.android.engine.model.Model;
 import org.the3deer.android.engine.model.Object3D;
 import org.the3deer.android.engine.model.Projection;
 import org.the3deer.android.engine.model.Scene;
-import org.the3deer.android.engine.objects.Point;
 import org.the3deer.android.engine.renderer.GLEvent;
 import org.the3deer.android.engine.renderer.GLTouchHandler;
 import org.the3deer.android.engine.shader.ShaderFactory;
@@ -28,7 +27,6 @@ import org.the3deer.util.event.EventManager;
 import org.the3deer.util.math.Math3DUtils;
 import org.the3deer.util.math.Quaternion;
 
-import java.util.Arrays;
 import java.util.EventObject;
 import java.util.List;
 
@@ -70,10 +68,6 @@ public class ModelController implements EventManager, GLTouchHandler {
     private ShaderFactory shaderFactory;
     @Inject
     private EventManager eventManager;
-
-    // other variables
-    private long startTime;
-    private boolean immersiveMode;
 
     public ModelController() {
     }
@@ -160,7 +154,7 @@ public class ModelController implements EventManager, GLTouchHandler {
                     //surface.onEvent(event);
                 }*/
             }
-        } else if (event instanceof CollisionEvent){
+        } /*else if (event instanceof CollisionEvent){
 
             // check
             final Scene scene = sceneManager.getActiveScene();
@@ -169,7 +163,7 @@ public class ModelController implements EventManager, GLTouchHandler {
             // forward event to current scene
             return onCollisionEvent(event);
 
-        } else {
+        }*/ else {
             AndroidUtils.fireEvent(listeners, event);
         }
         return false;
@@ -226,37 +220,7 @@ public class ModelController implements EventManager, GLTouchHandler {
         } else if (event instanceof CollisionEvent) {
             Log.v(TAG, "Processing collision... " + event);
             Object3D objectToSelect = ((CollisionEvent) event).getObject();
-            float[] point = ((CollisionEvent) event).getPoint();
-            if (point != null) {
-                Log.d(TAG, "Adding collision point " + Arrays.toString(point));
 
-/*                // Transform collision point from local space to world space
-                // For hierarchical models (GLTF with node structure), use the object's model matrix (which combines node hierarchy transforms)
-                // For simple models (OBJ), use the scene's world matrix
-                float[] transformMatrix = objectToSelect.getModelMatrix();
-                if (transformMatrix == null || Math3DUtils.isIdentity(transformMatrix)) {
-                    // Fallback to world matrix for non-animated objects or OBJ models
-                    transformMatrix = this.worldMatrix;
-                    Log.d(TAG, "Using scene world matrix for collision point");
-                } else {
-                    Log.d(TAG, "Using object's model matrix for collision point");
-                }
-
-                float[] worldPoint = new float[4];
-                Matrix.multiplyMV(worldPoint, 0, transformMatrix, 0, point, 0);
-                Log.d(TAG, "Collision point (world space): " + Arrays.toString(worldPoint));
-
-                // Apply a small depth offset toward the camera (negative Z) to prevent z-fighting
-                // This ensures the collision point is always visible on top of the model surface
-                float depthBias = 0.1f;  // Small offset toward camera
-                worldPoint[2] -= depthBias;*/
-
-
-                Object3D point3D = Point.build(point).setColor(new float[]{1.0f, 0f, 0f, 1f});
-                // Don't set parent node - add directly to scene at world coordinates
-                //point3D.setParentNode(objectToSelect.getParentNode());
-                sceneManager.getActiveScene().getObjects().add(point3D);
-            }
             if (selectedObject == objectToSelect) {
                 Log.v(TAG, "Unselected object " + objectToSelect);
                 sceneManager.getActiveScene().setSelectedObject((null));
