@@ -46,7 +46,6 @@ android {
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
-    implementation(libs.androidx.preference)
     implementation(libs.core.jackson.databind)
 // required by gltf parser
 }

@@ -1,13 +1,8 @@
 package org.the3deer.android.engine.shader.v3;
 
-import android.content.Context;
 import android.opengl.GLES30;
-import android.os.Bundle;
 import android.util.Log;
 import android.util.SparseArray;
-
-import androidx.annotation.Nullable;
-import androidx.preference.PreferenceGroup;
 
 import org.the3deer.android.engine.model.AnimatedModel;
 import org.the3deer.android.engine.model.Constants;
@@ -423,6 +418,4 @@ public class ShaderImplV3 implements Shader {
         // clear GPU cache
         gpuManager.clear();
     }
-
-    public void onCreatePreferences(@Nullable Bundle savedInstanceState, @Nullable String rootKey, Context context, PreferenceGroup screen) {}
 }

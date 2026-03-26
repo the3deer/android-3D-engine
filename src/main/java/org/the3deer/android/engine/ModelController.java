@@ -4,8 +4,6 @@ package org.the3deer.android.engine;
 import android.util.Log;
 import android.view.MotionEvent;
 
-import androidx.preference.Preference;
-
 import org.the3deer.android.engine.camera.CameraController;
 import org.the3deer.android.engine.collision.CollisionController;
 import org.the3deer.android.engine.collision.CollisionEvent;
@@ -43,7 +41,6 @@ import javax.inject.Inject;
  * It creates all the basic engine components to interact with the model.
  * It relays on the {@link BeanFactory} class to manage all the beans.
  * It propagates the events using {@link java.util.EventListener}.
- * It manages the the state of the {@link Preference}
  *
  * The engine is designed using different architectural patterns.
  *
