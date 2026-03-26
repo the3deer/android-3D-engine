@@ -22,7 +22,7 @@ import java.util.Map;
 
 import javax.inject.Inject;
 
-@Bean(name = "Bounding Box Drawer")
+@Bean(name = "Bounding Box Drawer", description = "Draws the bounding box of the selected object")
 public class BoundingBoxDrawer implements Drawer {
 
     private final static String TAG = BoundingBoxDrawer.class.getSimpleName();

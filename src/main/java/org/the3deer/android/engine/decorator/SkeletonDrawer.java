@@ -25,7 +25,7 @@ import java.util.Map;
 import javax.inject.Inject;
 
 @BeanOrder(order = 100)
-@Bean(name = "Skeleton Drawer")
+@Bean(name = "Skeleton Drawer", description = "Draws the skeleton of the object")
 public class SkeletonDrawer implements Drawer {
 
     private final static String TAG = SkeletonDrawer.class.getSimpleName();

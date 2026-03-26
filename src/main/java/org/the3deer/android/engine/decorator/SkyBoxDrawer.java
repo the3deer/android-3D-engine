@@ -24,7 +24,7 @@ import java.util.Map;
 
 import javax.inject.Inject;
 
-@Bean(name = "SkyBox Decorator")
+@Bean(name = "SkyBox Decorator", description = "Draws a 3D Skybox as the scene background")
 public class SkyBoxDrawer implements Drawer {
 
     @Inject

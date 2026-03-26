@@ -119,6 +119,8 @@ public class Object3D {
      */
     private boolean isMovable = false;
 
+    private boolean enabled = true;
+
     /**
      * The minimum thing we can draw in space is a vertex (or point).
      * This drawing mode uses the vertexBuffer
@@ -402,6 +404,13 @@ public class Object3D {
         isDecorator = true;
     }
 
+    public boolean isEnabled() {
+        return this.enabled;
+    }
+
+    public void setEnabled(boolean enable){
+        this.enabled = enable;
+    }
     // ---------------------------- dimensions ----------------------------- //
 
     public void setDimensions(Dimensions dimensions) {

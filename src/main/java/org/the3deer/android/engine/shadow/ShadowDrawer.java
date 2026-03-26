@@ -9,6 +9,7 @@ import org.the3deer.android.engine.model.Model;
 import org.the3deer.android.engine.model.Scene;
 import org.the3deer.android.engine.renderer.Drawer;
 import org.the3deer.android.engine.shader.ShaderFactory;
+import org.the3deer.util.bean.Bean;
 import org.the3deer.util.bean.BeanInit;
 import org.the3deer.util.bean.BeanProperty;
 
@@ -20,6 +21,7 @@ import javax.inject.Inject;
  * Render shadows for the visible objects
  * The light comes from 1 single light source
  */
+@Bean(category = "Decorators", experimental = true, description = "Cast a shadow of the object in a plane on the ground")
 public class ShadowDrawer implements Drawer {
 
     @Inject

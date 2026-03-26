@@ -42,7 +42,7 @@ public class GLRenderer implements GLSurfaceView.Renderer {
     @Inject
     private Map<String,Renderer> renderers;
 
-    @BeanProperty(name = "Renderer", description = "Select the renderer")
+    @BeanProperty(name = "Renderers", description = "Select the renderer")
     private String activeRenderer;
 
     /**

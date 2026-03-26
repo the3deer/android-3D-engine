@@ -75,10 +75,6 @@ Documentation
 =============
 
 [doc/README.md](./doc/README.md)
-[doc/model/README.md](./src/main/java/org/the3deer/android/engine/model/README.md)
-[doc/renderer/README.md](./src/main/java/org/the3deer/android/engine/renderer/README.md)
-[doc/gltf/README.md](./src/main/java/org/the3deer/android/engine/services/gltf/README.md)
-[doc/collision/README.md](./src/main/java/org/the3deer/android/engine/collision/README.md)
 
 
 Licenses

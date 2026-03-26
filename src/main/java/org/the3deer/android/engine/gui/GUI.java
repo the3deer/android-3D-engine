@@ -13,6 +13,7 @@ import org.the3deer.android.engine.model.Scene;
 import org.the3deer.android.engine.model.Screen;
 import org.the3deer.android.engine.renderer.FPSEvent;
 import org.the3deer.android.engine.renderer.GLEvent;
+import org.the3deer.util.bean.Bean;
 import org.the3deer.util.bean.BeanFactory;
 import org.the3deer.util.bean.BeanInit;
 import org.the3deer.util.bean.BeanManaged;
@@ -27,6 +28,7 @@ import java.util.Map;
 
 import javax.inject.Inject;
 
+@Bean(name = "GUI", experimental = true)
 public class GUI extends Widget implements EventListener, BeanManaged {
 
     private final static String TAG = GUI.class.getSimpleName();;

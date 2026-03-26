@@ -13,7 +13,6 @@ import org.the3deer.android.engine.shader.Shader;
 import org.the3deer.android.engine.shader.ShaderFactory;
 import org.the3deer.android.engine.shader.ShaderResource;
 import org.the3deer.android.engine.util.GLUtil;
-import org.the3deer.util.bean.Bean;
 import org.the3deer.util.bean.BeanProperty;
 import org.the3deer.util.math.Math3DUtils;
 
@@ -22,7 +21,6 @@ import java.util.List;
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
-@Bean(name = "Shadows Renderer")
 public class ShadowsRenderer {
 
     private static final String TAG = "ShadowsRenderer";
