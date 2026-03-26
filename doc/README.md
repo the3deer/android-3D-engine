@@ -3,6 +3,7 @@
 The Engine is an aggregate of different features.
 The Engine uses a BeanFactory to register and initialize the different components
 
+
 # Features
 
 - Animator
@@ -15,38 +16,19 @@ The Engine uses a BeanFactory to register and initialize the different component
 - Renderer
 - Shaders
 
-# Model
+# Components
 
-/**
+
 * Application Model - MVC
 *
-* <pre>
-*    Activity
-* </pre>
-*
-* <pre>
 *   ModelViewModel         (Model)
-*   ModelFragment          (View)                  --> GLSurface
-*   PreferenceFragment     (View-Controller)
 *   ModelController        (Controller)
-* </pre>
-*
-* MModelViewModel:
-*
-* <pre>
 *   ModelEngine            (Model)
 *   GLSurfaceView          (View)
 *   GLTouchController      (Controller)
 *   TouchController        (Controller)
-* </pre>
-*
-* Temporary Beans
-*
-* <pre>
 *   GLSurfaceView          (View)
-* </pre>
-*
-*/
+
 
 ## OpenGL customisation
 
@@ -58,4 +40,14 @@ setZOrderMediaOverlay(true): In HomeFragment.kt, I've added this call to the glS
 2.
 android:elevation="10dp": In fragment_home.xml, I've added elevation to the LinearLayout overlay. This provides a hint to the renderer to keep these views on top.
 
+## CDI Manager
+
+[CDI Manager](../src/main/java/org/the3deer/util/bean/README.md)
+
+## Documentation
+
+[Model](../src/main/java/org/the3deer/android/engine/model/README.md)
+[Renderer](../src/main/java/org/the3deer/android/engine/renderer/README.md)
+[Parsers](../src/main/java/org/the3deer/android/engine/services/gltf/README.md)
+[Collision](../src/main/java/org/the3deer/android/engine/collision/README.md)
 

@@ -345,8 +345,8 @@ public class BeanFactory {
         return (T)startBean(id);
     }
 
-    public <T> T addOrReplace(String id, T object) {
-        T old = (T)this.beans.put(id, object);
+    public <T> Object addOrReplace(String id, T object) {
+        Object old = this.beans.put(id, object);
         this.status.put(id, STATUS_INSTANTIATED);
         this.beansUpdated = true;
         if (!initialized) return old;
