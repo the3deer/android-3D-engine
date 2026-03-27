@@ -13,6 +13,7 @@ import org.the3deer.android.engine.renderer.Drawer;
 import org.the3deer.android.engine.shader.Shader;
 import org.the3deer.android.engine.shader.ShaderFactory;
 import org.the3deer.util.bean.Bean;
+import org.the3deer.util.bean.BeanProperty;
 import org.the3deer.util.event.EventListener;
 
 import java.util.Collections;
@@ -23,7 +24,7 @@ import java.util.Map;
 
 import javax.inject.Inject;
 
-@Bean(name = "Wireframe Drawer")
+@Bean(name = "Wireframe Drawer", description = "Draws the wireframe of the models")
 public class WireframeDrawer implements Drawer, EventListener {
 
     private final static String TAG = WireframeDrawer.class.getSimpleName();
@@ -33,6 +34,7 @@ public class WireframeDrawer implements Drawer, EventListener {
      */
     private final Animator animator = new Animator();
 
+    @BeanProperty
     private boolean enabled = false;
     @Inject
     private ShaderFactory shaderFactory;
