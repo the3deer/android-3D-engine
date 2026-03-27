@@ -101,12 +101,12 @@ public class SkyBox {
     public static SkyBox getSkyBox2() {
         try {
             return new SkyBox(new Uri[]{
-                    Uri.parse("android://org.the3deer.dddmodel2/res/drawable/posx.png"),
-                    Uri.parse("android://org.the3deer.dddmodel2/res/drawable/negx.png"),
-                    Uri.parse("android://org.the3deer.dddmodel2/res/drawable/posy.png"),
-                    Uri.parse("android://org.the3deer.dddmodel2/res/drawable/negy.png"),
-                    Uri.parse("android://org.the3deer.dddmodel2/res/drawable/posz.png"),
-                    Uri.parse("android://org.the3deer.dddmodel2/res/drawable/negz.png")});
+                    Uri.parse("android://org.the3deer.android.viewer/res/drawable/posx.png"),
+                    Uri.parse("android://org.the3deer.android.viewer/res/drawable/negx.png"),
+                    Uri.parse("android://org.the3deer.android.viewer/res/drawable/posy.png"),
+                    Uri.parse("android://org.the3deer.android.viewer/res/drawable/negy.png"),
+                    Uri.parse("android://org.the3deer.android.viewer/res/drawable/posz.png"),
+                    Uri.parse("android://org.the3deer.android.viewer/res/drawable/negz.png")});
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -120,12 +120,12 @@ public class SkyBox {
     public static SkyBox getSkyBox1() {
         try {
             return new SkyBox(new Uri[]{
-                    Uri.parse("android://org.the3deer.dddmodel2/res/drawable/right.png"),
-                    Uri.parse("android://org.the3deer.dddmodel2/res/drawable/left.png"),
-                    Uri.parse("android://org.the3deer.dddmodel2/res/drawable/top.png"),
-                    Uri.parse("android://org.the3deer.dddmodel2/res/drawable/bottom.png"),
-                    Uri.parse("android://org.the3deer.dddmodel2/res/drawable/front.png"),
-                    Uri.parse("android://org.the3deer.dddmodel2/res/drawable/back.png")});
+                    Uri.parse("android://org.the3deer.android.viewer/res/drawable/right.png"),
+                    Uri.parse("android://org.the3deer.android.viewer/res/drawable/left.png"),
+                    Uri.parse("android://org.the3deer.android.viewer/res/drawable/top.png"),
+                    Uri.parse("android://org.the3deer.android.viewer/res/drawable/bottom.png"),
+                    Uri.parse("android://org.the3deer.android.viewer/res/drawable/front.png"),
+                    Uri.parse("android://org.the3deer.android.viewer/res/drawable/back.png")});
         } catch (IOException e) {
             Log.e("SkyBox", "Exception: " + e.getMessage(), e);
             throw new RuntimeException(e);
