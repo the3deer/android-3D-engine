@@ -1,6 +1,5 @@
 package org.the3deer.android.engine.services;
 
-import android.app.Activity;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.Looper;
@@ -36,7 +35,7 @@ public abstract class LoaderTask {
 	 * @param uri        the URL pointing to the 3d model
 	 *
 	 */
-	public LoaderTask(Activity parent, Uri uri, LoadListener callback) {
+	public LoaderTask(Uri uri, LoadListener callback) {
 		this.uri = uri;
 		this.callback = callback; }
 

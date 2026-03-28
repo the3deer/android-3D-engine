@@ -1,6 +1,5 @@
 package org.the3deer.android.engine.services.fbx;
 
-import android.app.Activity;
 import android.net.Uri;
 import android.util.Log;
 
@@ -24,8 +23,8 @@ public final class FbxLoaderTask extends LoaderTask {
 
     private FbxLoader loader = new FbxLoader();
 
-    public FbxLoaderTask(Activity parent, Uri uri, LoadListener callback) {
-        super(parent, uri, callback);
+    public FbxLoaderTask(Uri uri, LoadListener callback) {
+        super(uri, callback);
     }
 
     @Override

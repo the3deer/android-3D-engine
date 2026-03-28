@@ -1,6 +1,5 @@
 package org.the3deer.android.engine.services.wavefront;
 
-import android.app.Activity;
 import android.net.Uri;
 import android.opengl.GLES20;
 
@@ -19,8 +18,8 @@ import java.util.List;
 
 public class WavefrontLoaderTask extends LoaderTask {
 
-    public WavefrontLoaderTask(final Activity parent, final Uri uri, final LoadListener callback) {
-        super(parent, uri, callback);
+    public WavefrontLoaderTask(final Uri uri, final LoadListener callback) {
+        super(uri, callback);
     }
 
     @Override

@@ -2,8 +2,12 @@ package org.the3deer.android.engine.model
 
 import android.net.Uri
 import android.util.Log
+import javax.inject.Inject
 
 class Model(val uri: Uri) {
+
+    @Inject
+    var defaultCamera: Camera? = null
 
     val scenes = mutableListOf<Scene>()
     var activeScene: Scene? = null
@@ -24,5 +28,18 @@ class Model(val uri: Uri) {
 
             activeScene = scene
         }
+    }
+
+    fun getCameras() : List<Camera> {
+
+        val cameras = mutableListOf<Camera>()
+
+        if (defaultCamera != null) cameras.add(defaultCamera!!)
+
+        if (activeScene == null) return cameras
+
+        cameras.addAll(activeScene!!.cameras)
+
+        return cameras
     }
 }

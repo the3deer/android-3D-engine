@@ -128,9 +128,13 @@ public class DefaultRenderer implements Renderer, EventListener {
             Log.d(TAG, "onDrawFrame start... " + drawers);
         }
 
-        // check configuration
+        // default config
         if (config == null){
             config = this.defaultConfig;
+        }
+
+        // check
+        if (config.camera == null){
             config.camera = defaultCamera;
         }
 
@@ -139,7 +143,6 @@ public class DefaultRenderer implements Renderer, EventListener {
             if (!drawers.get(i).isEnabled()) {
                 continue;
             }
-
 
             try {
                 drawers.get(i).onDrawFrame(config);

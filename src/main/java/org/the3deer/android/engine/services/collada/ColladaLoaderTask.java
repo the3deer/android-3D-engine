@@ -1,6 +1,5 @@
 package org.the3deer.android.engine.services.collada;
 
-import android.app.Activity;
 import android.net.Uri;
 
 import org.the3deer.android.engine.model.AnimatedModel;
@@ -13,8 +12,8 @@ import java.util.List;
 
 public class ColladaLoaderTask extends LoaderTask {
 
-    public ColladaLoaderTask(Activity parent, Uri uri, LoadListener callback) {
-        super(parent, uri, callback);
+    public ColladaLoaderTask(Uri uri, LoadListener callback) {
+        super(uri, callback);
     }
 
     @Override

@@ -66,11 +66,6 @@ public class SceneDrawer implements Drawer, EventListener {
     }
 
     @Override
-    public void onDrawFrame() {
-        this.onDrawFrame(null);
-    }
-
-    @Override
     public void onDrawFrame(Config config) {
 
         if (!enabled || sceneManager == null || shaderFactory == null) return;
@@ -80,20 +75,10 @@ public class SceneDrawer implements Drawer, EventListener {
 
         // camera selection logic:
         // 1) use config camera if provided (when stereo rendering, for example)
-        Camera camera = config != null ? config.camera : null;
+        Camera activeCamera = scene.getActiveCamera();
         //if (camera == null) camera = cameraManager.getActiveCamera();
-        if (camera == null){
-            // 2) else use scene camera if set
-            camera = scene.getActiveCamera();
-            if (camera == null){
-                // 3) else use default engine camera
-                camera = defaultCamera;
-                if (camera == null) {
-                    // No-op if no camera is active for some reason
-                    Log.e(TAG, "No active camera found!");
-                    return;
-                }
-            }
+        if (activeCamera != null) {
+            config.camera = activeCamera;
         }
 
         List<Object3D> objects = scene.getObjects();
@@ -110,7 +95,7 @@ public class SceneDrawer implements Drawer, EventListener {
 
         // Draw all objects
         for (int i = 0; i < objects.size(); i++) {
-            traced = drawObject(camera, light.getLocation(), null, camera.getPos(), objects, i);
+            traced = drawObject(config.camera, light.getLocation(), null, config.camera.getPos(), objects, i);
         }
     }
 

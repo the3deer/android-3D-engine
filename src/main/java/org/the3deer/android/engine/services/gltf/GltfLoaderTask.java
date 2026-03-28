@@ -1,6 +1,5 @@
 package org.the3deer.android.engine.services.gltf;
 
-import android.app.Activity;
 import android.net.Uri;
 
 import androidx.annotation.NonNull;
@@ -18,8 +17,8 @@ public class GltfLoaderTask extends LoaderTask {
 
     private static final String TAG = GltfLoaderTask.class.getSimpleName();
 
-    public GltfLoaderTask(Activity parent, Uri uri, LoadListener callback) {
-        super(parent, uri, callback);
+    public GltfLoaderTask(Uri uri, LoadListener callback) {
+        super(uri, callback);
     }
 
     @Override

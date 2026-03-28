@@ -1,6 +1,5 @@
 package org.the3deer.android.engine.services.stl;
 
-import android.app.Activity;
 import android.net.Uri;
 import android.opengl.GLES20;
 import android.util.Log;
@@ -28,8 +27,8 @@ public final class STLLoaderTask extends LoaderTask {
 
     private STLFileReader stlFileReader;
 
-    public STLLoaderTask(Activity parent, Uri uri, LoadListener callback) {
-        super(parent, uri, callback);
+    public STLLoaderTask(Uri uri, LoadListener callback) {
+        super(uri, callback);
     }
 
     @Override

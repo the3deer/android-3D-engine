@@ -1,7 +1,7 @@
 
 package org.the3deer.android.engine.scene;
 
-import android.app.Activity;
+import android.content.Context;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.SystemClock;
@@ -59,7 +59,7 @@ public class SceneLoader implements LoadListener {
     @Inject @Named("extras")
     private Bundle extras;
     @Inject
-    private Activity activity;
+    private Context activity;
     @Inject
     private Model sceneManager;
     @Inject
@@ -158,29 +158,29 @@ public class SceneLoader implements LoadListener {
                 }
                 if (modelFile == null) {
                     Log.e(TAG, "Model not found in zip '" + modelUri + "'");
-                    activity.runOnUiThread(() -> Toast.makeText(activity, "Model not found in zip '" + modelUri + "'", Toast.LENGTH_LONG).show());
+                    //activity.runOnUiThread(() -> Toast.makeText(activity, "Model not found in zip '" + modelUri + "'", Toast.LENGTH_LONG).show());
                 } else {
                     Log.i(TAG, "Model found in zip: " + modelFile);
                 }
             } catch (Exception e) {
                 Log.e(TAG, "Error loading zip file '" + modelUri + "': " + e.getMessage(), e);
-                activity.runOnUiThread(() -> Toast.makeText(activity, "Error loading zip file '" + modelUri + "': " + e.getMessage(), Toast.LENGTH_LONG).show());
+                //activity.runOnUiThread(() -> Toast.makeText(activity, "Error loading zip file '" + modelUri + "': " + e.getMessage(), Toast.LENGTH_LONG).show());
             }
         }
 
         if (modelUri.toString().toLowerCase().endsWith(".obj") || "obj".equalsIgnoreCase(modelType)) {
-            new WavefrontLoaderTask(activity, modelUri, SceneLoader.this).execute();
+            new WavefrontLoaderTask(modelUri, SceneLoader.this).execute();
         } else if (modelUri.toString().toLowerCase().endsWith(".stl") || "stl".equalsIgnoreCase(modelType)) {
             Log.i(TAG, "Loading STL object from: " + modelUri);
-            new STLLoaderTask(activity, modelUri, SceneLoader.this).execute();
+            new STLLoaderTask(modelUri, SceneLoader.this).execute();
         } else if (modelUri.toString().toLowerCase().endsWith(".dae") || "dae".equalsIgnoreCase(modelType)) {
             Log.i(TAG, "Loading Collada object from: " + modelUri);
-            new ColladaLoaderTask(activity, modelUri, SceneLoader.this).execute();
+            new ColladaLoaderTask(modelUri, SceneLoader.this).execute();
         } else if (modelUri.toString().toLowerCase().endsWith(".gltf") || modelUri.toString().toLowerCase().endsWith(".glb") || "gltf".equalsIgnoreCase(modelType)) {
             Log.i(TAG, "Loading GLTF object from: " + modelUri);
-            new GltfLoaderTask(activity, modelUri, SceneLoader.this).execute();
+            new GltfLoaderTask(modelUri, SceneLoader.this).execute();
         } else if (modelUri.toString().toLowerCase().endsWith(".fbx")) {
-            new FbxLoaderTask(activity, modelUri, SceneLoader.this).execute();
+            new FbxLoaderTask(modelUri, SceneLoader.this).execute();
         }
         // });
     }
@@ -220,10 +220,10 @@ public class SceneLoader implements LoadListener {
     @Override
     public void onLoadError(Exception ex) {
         Log.e(TAG, ex.getMessage(), ex);
-        activity.runOnUiThread(() -> {
+        /*activity.runOnUiThread(() -> {
             Toast.makeText(activity, "There was a problem building the model: " + ex.getMessage(),
                     Toast.LENGTH_LONG).show();
-        });
+        });*/
     }
 
     @Override
@@ -375,6 +375,6 @@ public class SceneLoader implements LoadListener {
 
     private void makeToastText(final String text, final int toastDuration) {
         if (activity == null) return;
-        activity.runOnUiThread(() -> Toast.makeText(activity.getApplicationContext(), text, toastDuration).show());
+        //activity.runOnUiThread(() -> Toast.makeText(activity.getApplicationContext(), text, toastDuration).show());
     }
 }
