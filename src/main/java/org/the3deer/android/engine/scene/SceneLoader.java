@@ -167,18 +167,18 @@ public class SceneLoader implements LoadListener {
         }
 
         if (modelUri.toString().toLowerCase().endsWith(".obj") || "obj".equalsIgnoreCase(modelType)) {
-            activity.runOnUiThread(() -> new WavefrontLoaderTask(activity, modelUri, SceneLoader.this).execute());
+            new WavefrontLoaderTask(activity, modelUri, SceneLoader.this).execute();
         } else if (modelUri.toString().toLowerCase().endsWith(".stl") || "stl".equalsIgnoreCase(modelType)) {
             Log.i(TAG, "Loading STL object from: " + modelUri);
-            activity.runOnUiThread(() -> new STLLoaderTask(activity, modelUri, SceneLoader.this).execute());
+            new STLLoaderTask(activity, modelUri, SceneLoader.this).execute();
         } else if (modelUri.toString().toLowerCase().endsWith(".dae") || "dae".equalsIgnoreCase(modelType)) {
             Log.i(TAG, "Loading Collada object from: " + modelUri);
-            activity.runOnUiThread(() -> new ColladaLoaderTask(activity, modelUri, SceneLoader.this).execute());
+            new ColladaLoaderTask(activity, modelUri, SceneLoader.this).execute();
         } else if (modelUri.toString().toLowerCase().endsWith(".gltf") || modelUri.toString().toLowerCase().endsWith(".glb") || "gltf".equalsIgnoreCase(modelType)) {
             Log.i(TAG, "Loading GLTF object from: " + modelUri);
-            activity.runOnUiThread(() -> new GltfLoaderTask(activity, modelUri, SceneLoader.this).execute());
+            new GltfLoaderTask(activity, modelUri, SceneLoader.this).execute();
         } else if (modelUri.toString().toLowerCase().endsWith(".fbx")) {
-            activity.runOnUiThread(() -> new FbxLoaderTask(activity, modelUri, SceneLoader.this).execute());
+            new FbxLoaderTask(activity, modelUri, SceneLoader.this).execute();
         }
         // });
     }
