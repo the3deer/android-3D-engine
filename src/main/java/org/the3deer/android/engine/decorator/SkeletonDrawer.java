@@ -36,7 +36,7 @@ public class SkeletonDrawer implements Drawer {
     private final Animator animator = new Animator();
 
     @BeanProperty
-    private boolean enabled = true;
+    private boolean enabled;
     @Inject
     private ShaderFactory shaderFactory;
     @Inject

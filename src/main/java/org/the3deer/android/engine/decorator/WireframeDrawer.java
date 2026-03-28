@@ -35,7 +35,7 @@ public class WireframeDrawer implements Drawer, EventListener {
     private final Animator animator = new Animator();
 
     @BeanProperty
-    private boolean enabled = false;
+    private boolean enabled;
     @Inject
     private ShaderFactory shaderFactory;
     @Inject
