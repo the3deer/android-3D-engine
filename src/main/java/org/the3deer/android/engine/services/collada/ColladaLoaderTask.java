@@ -20,7 +20,7 @@ public class ColladaLoaderTask extends LoaderTask {
     @Override
     protected List<Object3D> build() throws Exception {
 
-        callback.onStart();
+        callback.onLoadStart();
 
         // 1. Load the new model using your new parser
         final Scene scene = new ColladaLoader().load(uri);
@@ -39,10 +39,7 @@ public class ColladaLoaderTask extends LoaderTask {
         }
 
         // invoke the handler
-        callback.onLoad(scene);
-        callback.onLoadComplete(scene);
-
-        callback.onLoadComplete();
+        callback.onLoadScene(scene);
 
         return loadNew;
     }

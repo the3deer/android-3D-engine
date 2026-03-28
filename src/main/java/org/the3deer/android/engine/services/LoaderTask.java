@@ -45,7 +45,7 @@ public abstract class LoaderTask {
 		onPreExecute();
 		executor.execute(() -> {
 			try {
-				handler.post(callback::onStart);
+				handler.post(callback::onLoadStart);
 				final List<Object3D> data = build();
 				handler.post(() -> {
 					onPostExecute(data);

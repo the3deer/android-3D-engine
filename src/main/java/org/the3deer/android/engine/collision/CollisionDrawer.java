@@ -37,7 +37,7 @@ public class CollisionDrawer implements Drawer, EventListener {
     private Light light;
 
     @BeanProperty
-    private boolean enabled = true;
+    private boolean enabled = false;
 
     /**
      * List of 3d points / collisions to draw

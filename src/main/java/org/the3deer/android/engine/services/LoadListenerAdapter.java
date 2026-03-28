@@ -10,36 +10,30 @@ public class LoadListenerAdapter implements LoadListener {
     }
 
     @Override
-    public void onStart() {
+    public void onLoadStart() {
 
     }
 
     @Override
     public void onProgress(String progress) {
-        
+
     }
 
     @Override
-    public void onLoad(Scene scene) {
+    public void onLoadScene(Scene scene) {
     }
 
     @Override
-    public void onLoad(Scene scene, Object3D data) {
+    public void onLoadObject(Scene scene, Object3D data) {
         scene.addObject(data);
     }
 
     @Override
-    public void onLoadComplete(Scene scene) {
-        scene.update();
-    }
-
-    @Override
     public void onLoadError(Exception ex) {
-
     }
 
     @Override
-    public void onLoad(Scene scene, Camera camera) {
+    public void onLoadCamera(Scene scene, Camera camera) {
     }
 
     @Override

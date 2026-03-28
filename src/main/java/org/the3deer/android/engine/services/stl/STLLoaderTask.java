@@ -40,7 +40,7 @@ public final class STLLoaderTask extends LoaderTask {
 
         // scene
         final Scene scene = new Scene();
-        callback.onLoad(scene);
+
 
         try {
 
@@ -100,9 +100,9 @@ public final class STLLoaderTask extends LoaderTask {
             data.setId(uri.toString());
 
             // super.publishProgress("Loading facets... "+counter+"/"+totalFaces);
-            callback.onLoad(scene, data);
+            callback.onLoadObject(scene, data);
 
-            callback.onLoadComplete(scene);
+            callback.onLoadScene(scene);
 
             return Collections.singletonList(data);
         } catch (Exception e) {

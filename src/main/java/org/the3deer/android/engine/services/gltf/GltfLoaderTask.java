@@ -25,7 +25,7 @@ public class GltfLoaderTask extends LoaderTask {
     @Override
     protected List<Object3D> build() throws Exception {
 
-        callback.onStart();
+        callback.onLoadStart();
 
         List<Scene> scenes = buildNew();
 
@@ -35,11 +35,10 @@ public class GltfLoaderTask extends LoaderTask {
         }
 
         for (Scene scene : scenes) {
-            callback.onLoad(scene);
-            callback.onLoadComplete(scene);
+            callback.onLoadScene(scene);
         }
 
-        callback.onLoadComplete();
+        //callback.onLoadComplete();
 
         return loadNew;
     }

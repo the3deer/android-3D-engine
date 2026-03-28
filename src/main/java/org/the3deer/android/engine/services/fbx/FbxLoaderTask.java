@@ -31,15 +31,14 @@ public final class FbxLoaderTask extends LoaderTask {
     @Override
     protected List<Object3D> build() throws Exception {
         try {
-            callback.onStart();
+            callback.onLoadStart();
 
             final List<Object3D> load = loader.load(uri, callback);
 
             final Scene sceneDefault = new Scene();
             sceneDefault.getObjects().addAll(load);
-            callback.onLoad(sceneDefault);
-            callback.onLoadComplete(sceneDefault);
-            callback.onLoadComplete();
+            callback.onLoadScene(sceneDefault);
+            //callback.onLoadComplete();
 
             return load;
         } catch (Exception e) {

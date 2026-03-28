@@ -186,7 +186,7 @@ public class SceneLoader implements LoadListener {
     }
 
     @Override
-    public void onStart() {
+    public void onLoadStart() {
 
         // mark start time
         this.startTime = SystemClock.uptimeMillis();
@@ -211,7 +211,7 @@ public class SceneLoader implements LoadListener {
     }
 
     @Override
-    public void onLoad(Scene scene, Camera camera) {
+    public void onLoadCamera(Scene scene, Camera camera) {
 
         // fix aspect ratio
         camera.getProjection().setAspectRatio(screen.getRatio());
@@ -227,21 +227,17 @@ public class SceneLoader implements LoadListener {
     }
 
     @Override
-    public void onLoad(Scene scene) {
-        //if (this.sceneManager == null) return;
-
-        // configure default camera
-        Log.d(TAG, "Initializing scene... name: " + scene.getName());
-        scene.setActiveCamera(defaultCamera);
-    }
-
-    @Override
-    public void onLoad(Scene scene, Object3D data) {
+    public void onLoadObject(Scene scene, Object3D data) {
         scene.addObject(data);
     }
 
     @Override
-    public void onLoadComplete(Scene scene) {
+    public void onLoadScene(Scene scene) {
+        //if (this.sceneManager == null) return;
+
+        // configure default camera
+        Log.i(TAG, "Initializing scene... name: " + scene.getName());
+        scene.setActiveCamera(defaultCamera);
 
         // get objects
         final List<Object3D> objects = scene.getObjects();
@@ -250,7 +246,7 @@ public class SceneLoader implements LoadListener {
         if (objects.isEmpty()) {
             Log.w(TAG, "No objects were loaded");
         } else {
-            Log.i(TAG, "onLoadComplete: " + scene.getName() + ", Objects: " + objects.size());
+            Log.d(TAG, "onSceneComplete: " + scene.getName() + ", Objects: " + objects.size());
         }
 
         for (int i = 0; i < objects.size(); i++) {
@@ -281,10 +277,6 @@ public class SceneLoader implements LoadListener {
             makeToastText(allErrors.toString(), Toast.LENGTH_LONG);
         }
 
-        // notify user
-        final String elapsed = (SystemClock.uptimeMillis() - startTime) / 1000 + " secs";
-        makeToastText("Load complete (" + elapsed + ")", Toast.LENGTH_SHORT);
-
         // Ensure all objects have a parent node to unify the rendering pipeline.
         if (scene.getRootNodes() == null || scene.getRootNodes().isEmpty()) {
             Log.i(TAG, "Scene has no root nodes. Creating default nodes for all objects.");
@@ -306,6 +298,10 @@ public class SceneLoader implements LoadListener {
 
         // register scene
         this.sceneManager.addScene(scene);
+
+        // notify user
+        final String elapsed = (SystemClock.uptimeMillis() - startTime) / 1000 + " secs";
+        makeToastText("Load complete (" + elapsed + ")", Toast.LENGTH_SHORT);
     }
 
     @Override
@@ -318,11 +314,12 @@ public class SceneLoader implements LoadListener {
             Log.i(TAG, "No active scene. Setting first scene as active.");
             this.sceneManager.setActiveScene(this.sceneManager.getScenes().get(0));
             this.sceneManager.getActiveScene().update();
-        } else {
-            Log.i(TAG, "Scene loaded: " + this);
         }
 
         this.sceneManager.update();
+
+        // debug
+        Log.i(TAG, "Load complete");
 
         if (eventManager != null) {
             eventManager.propagate(new ModelEvent(this, ModelEvent.Code.LOADED));

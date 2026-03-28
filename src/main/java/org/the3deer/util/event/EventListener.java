@@ -8,7 +8,7 @@ public interface EventListener extends java.util.EventListener {
      * Process the event notification on the System
      *
      * @param event the event
-     * @return <code>true</code> if the event was handled (stop propagation)
+     * @return <code>false</code> if the event must be propagated, <code>true</code> to stop it
      */
     boolean onEvent(EventObject event);
 }

@@ -6,17 +6,15 @@ import org.the3deer.android.engine.model.Scene;
 
 public interface LoadListener {
 
-    void onStart();
+    void onLoadStart();
 
     void onProgress(String progress);
 
-    void onLoad(Scene scene, Camera camera);
+    void onLoadCamera(Scene scene, Camera camera);
 
-    void onLoad(Scene scene);
+    void onLoadScene(Scene scene);
 
-    void onLoad(Scene scene, Object3D data);
-
-    void onLoadComplete(Scene scene);
+    void onLoadObject(Scene scene, Object3D data);
 
     void onLoadError(Exception ex);
 

@@ -119,8 +119,6 @@ public class WavefrontLoader {
             // scene
             final Scene scene = new Scene("default");
 
-            callback.onLoad(scene);
-
             // proces all meshes
             for (int i=0; i< meshes.size(); i++) {
 
@@ -149,7 +147,7 @@ public class WavefrontLoader {
                 data3D.setDrawMode(GLES20.GL_TRIANGLES);
 
                 // add model to scene
-                callback.onLoad(scene, data3D);
+                callback.onLoadObject(scene, data3D);
 
                 // notify listener
                 callback.onProgress("Loading materials...");
@@ -157,13 +155,13 @@ public class WavefrontLoader {
                 // load colors and textures
                 loadMaterials(meshData);
 
-                ret.add(data3D);
+                callback.onLoadObject(scene, data3D);
 
+                // add model to scene
+                ret.add(data3D);
             }
 
-            callback.onLoadComplete(scene);
-
-            callback.onLoadComplete();
+            callback.onLoadScene(scene);
 
             // log event
             Log.d("WavefrontLoader", "Loaded geometries: " + ret.size());Log.i("WavefrontLoader", "Parsing geometries... ");
