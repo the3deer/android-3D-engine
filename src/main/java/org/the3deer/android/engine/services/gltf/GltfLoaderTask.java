@@ -27,7 +27,6 @@ public class GltfLoaderTask extends LoaderTask {
 
         callback.onStart();
 
-
         List<Scene> scenes = buildNew();
 
         List<Object3D> loadNew = new ArrayList<>();
@@ -39,6 +38,8 @@ public class GltfLoaderTask extends LoaderTask {
             callback.onLoad(scene);
             callback.onLoadComplete(scene);
         }
+
+        callback.onLoadComplete();
 
         return loadNew;
     }
