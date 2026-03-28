@@ -1,8 +1,5 @@
 package org.the3deer.android.engine.gui;
 
-/**
- * @author Gemini & Andre
- */
 import android.opengl.GLES20;
 import android.os.SystemClock;
 import android.util.Log;
@@ -457,33 +454,39 @@ public class Widget extends Object3D implements EventListener {
 
         float x = 0, y = 0, z = parentDim.getMin()[2];
 
-        // Safe area calculation (normalize insets to OpenGL coordinates -1 to 1)
-        float topInset = 0;
-        float bottomInset = 0;
+        // Safe area calculation (normalize insets/UI heights to OpenGL coordinates -1 to 1)
+        float topOffset = 0;
+        float bottomOffset = 0;
         if (parent instanceof GUI) {
-            topInset = (float) screen.getTop() / screen.getHeight() * 2.0f;
-            bottomInset = (float) screen.getBottom() / screen.getHeight() * 2.0f;
+            if (screen != null) {
+                // We respect both the system safe area and the explicit Toolbar/BottomBar heights
+                int totalTop = screen.getTop() + screen.getToolbarHeight();
+                int totalBottom = screen.getBottom() + screen.getBottomBarHeight();
+                
+                topOffset = (float) totalTop / screen.getHeight() * 2.0f;
+                bottomOffset = (float) totalBottom / screen.getHeight() * 2.0f;
+            }
         }
 
 
         // debug
         if (Constants.DEBUG_UI){
-            Log.v("Widget", "Refreshing location... id: "+getId()+", relative location: "+relativeLocation+", topInset: "+topInset+", bottomInset: "+bottomInset);
+            Log.v("Widget", "Refreshing location... id: "+getId()+", relative location: "+relativeLocation+", topOffset: "+topOffset+", bottomOffset: "+bottomOffset);
         }
 
 
         switch (relativeLocation) {
             case POSITION_TOP_LEFT:
                 x = parentDim.getMin()[0] - widgetDim.getMin()[0];
-                y = parentDim.getMax()[1] - widgetDim.getMax()[1] - topInset;
+                y = parentDim.getMax()[1] - widgetDim.getMax()[1] - topOffset;
                 break;
             case POSITION_TOP:
                 x = parentDim.getCenter()[0] - widgetDim.getCenter()[0];
-                y = parentDim.getMax()[1] - widgetDim.getMax()[1] - topInset;
+                y = parentDim.getMax()[1] - widgetDim.getMax()[1] - topOffset;
                 break;
             case POSITION_TOP_RIGHT:
                 x = parentDim.getMax()[0] - widgetDim.getMax()[0];
-                y = parentDim.getMax()[1] - widgetDim.getMax()[1] - topInset;
+                y = parentDim.getMax()[1] - widgetDim.getMax()[1] - topOffset;
                 break;
             case POSITION_MIDDLE:
                 x = parentDim.getCenter()[0] - widgetDim.getCenter()[0];
@@ -499,11 +502,11 @@ public class Widget extends Object3D implements EventListener {
                 break;
             case POSITION_BOTTOM:
                 x = parentDim.getCenter()[0] - widgetDim.getCenter()[0];
-                y = parentDim.getMin()[1] - widgetDim.getMin()[1] + bottomInset;
+                y = parentDim.getMin()[1] - widgetDim.getMin()[1] + bottomOffset;
                 break;
             case POSITION_BOTTOM_LEFT:
                 x = parentDim.getMin()[0] - widgetDim.getMin()[0];
-                y = -1 + widgetDim.getHeight() / 2 - widgetDim.getCenter()[1] - bottomInset;
+                y = parentDim.getMin()[1] - widgetDim.getMin()[1] + bottomOffset;
                 break;
             case POSITION_CHILD_LEFT:
                 x = parentDim.getMin()[0] - widgetDim.getMax()[0];

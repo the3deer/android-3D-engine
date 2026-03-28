@@ -20,6 +20,10 @@ public class Screen {
     public int left;
     public int right;
 
+    // UI elements size
+    public int toolbarHeight;
+    public int bottomBarHeight;
+
     public Screen(int width, int height) {
         this.setSize(width, height);
     }
@@ -39,6 +43,16 @@ public class Screen {
         this.right = right;
         this.bottom = bottom;
         Log.i("Screen", "Screen insets set: left=" + left + ", top=" + top + ", right=" + right + ", bottom=" + bottom);
+    }
+
+    public void setToolbarHeight(int toolbarHeight) {
+        this.toolbarHeight = toolbarHeight;
+        Log.i("Screen", "Toolbar height set: " + toolbarHeight);
+    }
+
+    public void setBottomBarHeight(int bottomBarHeight) {
+        this.bottomBarHeight = bottomBarHeight;
+        Log.i("Screen", "Bottom bar height set: " + bottomBarHeight);
     }
 
     public int getWidth() {
@@ -69,6 +83,14 @@ public class Screen {
         return right;
     }
 
+    public int getToolbarHeight() {
+        return toolbarHeight;
+    }
+
+    public int getBottomBarHeight() {
+        return bottomBarHeight;
+    }
+
     /**
      * Returns the height of the screen minus the top and bottom insets.
      * This represents the "safe" height for UI elements.
@@ -92,6 +114,8 @@ public class Screen {
                 ", height=" + height +
                 ", ratio=" + ratio +
                 ", insets={left=" + left + ", top=" + top + ", right=" + right + ", bottom=" + bottom + "}" +
+                ", toolbarHeight=" + toolbarHeight +
+                ", bottomBarHeight=" + bottomBarHeight +
                 '}';
     }
 }
