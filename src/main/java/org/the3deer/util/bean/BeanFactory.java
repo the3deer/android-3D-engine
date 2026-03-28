@@ -184,6 +184,12 @@ public class BeanFactory {
         return bean;
     }
 
+    /**
+     * Configure a bean. That is, injecting all dependencies
+     *
+     * @param bean the bean to configure
+     * @return the bean ready to be used
+     */
     public <T> T configure(T bean) {
         return (T)configureBean("no-id", bean);
     }
@@ -236,20 +242,47 @@ public class BeanFactory {
     }
 
     private Object setUpBean(String id) {
+
+        // check
         if (id == null || !beans.containsKey(id))
             throw new IllegalArgumentException("id or bean not found: " + id);
+
+        // get bean
         final Object bean = beans.get(id);
+        if (bean == null) throw new IllegalStateException("bean not found: " + id);
+
+        // check current status
         final Integer status = this.status.get(id);
         if (status != null && status >= STATUS_INITIALIZED) {
             return bean;
         }
+
+        // update status
         this.status.put(id, STATUS_INITIALIZED);
-        if (bean == null) return null;
+
+        // invoke
+        return setUpBean(bean);
+    }
+
+    /**
+     * Set up a bean. That is, calling the @BeanInit method
+     *
+     * @param bean the bean to set up
+     * @return the bean already setup
+     */
+    public Object setUpBean(Object bean) {
+
+        // check
+        if (bean == null) throw new IllegalArgumentException("bean cannot be null");
+
+        // invoke
         try {
             for (Method method : bean.getClass().getDeclaredMethods()){
+                method.setAccessible(true);
                 if (method.getAnnotation(BeanInit.class) != null){
                     return method.invoke(bean);
                 }
+                method.setAccessible(false);
             }
             return null;
         } catch (InvocationTargetException | IllegalAccessException e) {
@@ -258,8 +291,19 @@ public class BeanFactory {
     }
 
     public void init() {
+
         if (initialized) return;
         initialized = true;
+
+        definitionsUpdated = false;
+        for (Map.Entry<String, Class<?>> entry : definitions.entrySet()) {
+            String id = entry.getKey();
+            if (!status.containsKey(id)) instantiateBean(id);
+        }
+    }
+
+    public void start() {
+
         int max = 3;
         do {
             definitionsUpdated = false;

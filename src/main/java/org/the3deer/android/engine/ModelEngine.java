@@ -125,10 +125,11 @@ public class ModelEngine {
 
             initGUI();
 
+            // init engine
+            beanFactory.init();
+
             initialized = true;
 
-            // start
-            //beanFactory.init();
             Log.d(TAG, "BeanFactory initialized");
 
         } catch (Exception ex) {
@@ -147,7 +148,7 @@ public class ModelEngine {
             //beanFactory.find(ShaderFactory.class).reset();
 
             // start
-            beanFactory.init();
+            beanFactory.start();
 
             // log
             Log.d(TAG, "BeanFactory initialized");
