@@ -223,18 +223,18 @@ public class ModelEngine {
     private void initGUI() {
 
         // visualization
-        beanFactory.add("80.gui.projection", OrthographicProjection.class);
-        beanFactory.add("80.gui.camera", new Camera("gui", new float[]{0, 0, 10}));
+        beanFactory.add("gui.projection", OrthographicProjection.class);
+        beanFactory.add("gui.camera", new Camera("gui", new float[]{0, 0, 10}));
 
         final GUIDrawer guiDrawer = new GUIDrawer();
         guiDrawer.setEnabled(true);
-        beanFactory.add("80.gui.renderer", guiDrawer);
+        beanFactory.add("gui.renderer", guiDrawer);
 
         final FontFactory fontFactory = FontFactory.getInstance();
         fontFactory.setScreen(beanFactory.find(Screen.class));
-        beanFactory.add("80.gui.font_factory", fontFactory);
-        beanFactory.add("80.gui.default", GUI.class);
-        beanFactory.add("80.gui.axis", Axis.class);
+        beanFactory.add("gui.font_factory", fontFactory);
+        beanFactory.add("gui.default", GUI.class);
+        beanFactory.add("gui.axis", Axis.class);
     }
 
     @Override
