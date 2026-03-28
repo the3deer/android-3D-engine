@@ -5,8 +5,8 @@ import android.opengl.GLSurfaceView;
 import android.os.SystemClock;
 import android.util.Log;
 
+import org.the3deer.android.engine.ModelEngineViewModel;
 import org.the3deer.android.engine.model.Constants;
-import org.the3deer.android.engine.model.Model;
 import org.the3deer.android.engine.model.Screen;
 import org.the3deer.util.bean.Bean;
 import org.the3deer.util.bean.BeanInit;
@@ -31,8 +31,8 @@ public class GLRenderer implements GLSurfaceView.Renderer {
 
     private final static String TAG = GLRenderer.class.getSimpleName();
 
-    @Inject
-    private Model model;
+    private final ModelEngineViewModel viewModel;
+
     @Inject
     private Screen screen;
     @Inject
@@ -72,8 +72,9 @@ public class GLRenderer implements GLSurfaceView.Renderer {
     /**
      * Construct a new renderer for the specified surface view
      */
-    public GLRenderer() {
+    public GLRenderer(ModelEngineViewModel viewModel) {
         Log.i(TAG, "GLRenderer instantiated: " + System.identityHashCode(this));
+        this.viewModel = viewModel;
     }
 
     @BeanInit
@@ -84,17 +85,9 @@ public class GLRenderer implements GLSurfaceView.Renderer {
             throw new IllegalArgumentException("No renderers found");
         }
 
-        if (screen == null) {
-            throw new IllegalArgumentException("Screen not found");
-        }
-
         if (activeRenderer == null) {
             activeRenderer = renderers.keySet().toArray(new String[0])[0];
         }
-    }
-
-    public Screen getScreen() {
-        return screen;
     }
 
     @BeanProperty
@@ -119,14 +112,6 @@ public class GLRenderer implements GLSurfaceView.Renderer {
     public List<String> getActiveRendererValues() {
         return new ArrayList<>(renderers.keySet());
     }
-
-    public void updateModel(Model model) {
-        this.model = model;
-    }
-
-    public void updateColor(float[] color) {
-    }
-
 
     public void setShaders(Map<String, Renderer> renderers) {
         this.renderers = renderers;
@@ -203,13 +188,7 @@ public class GLRenderer implements GLSurfaceView.Renderer {
         this.height = height;
 
         // log event
-        Log.i(TAG, "onSurfaceChanged. with: " + width + ", height: " + height);
-
-        // update model
-        if (this.screen != null) {
-            this.screen.setSize(width, height);
-            this.screenInitialized = true;
-        }
+        Log.i(TAG, "onSurfaceChanged. width: " + width + ", height: " + height);
 
         // fire event
         if (renderers != null) {
@@ -227,10 +206,33 @@ public class GLRenderer implements GLSurfaceView.Renderer {
             eventManager.propagate(new GLEvent(this, GLEvent.Code.SURFACE_CHANGED,
                     width, height));
         }
+
+        // forward event
+        viewModel.onSurfaceChanged(width, height);
+    }
+
+    public int getWidth() {
+        return width;
+    }
+
+
+    public int getHeight() {
+        return height;
     }
 
     @Override
     public void onDrawFrame(GL10 unused) {
+
+        // update screen
+        /*if (!screenInitialized && screen != null && eventManager != null) {
+            screen.setSize(this.width, this.height);
+            // fire event
+            if (eventManager != null) {
+                eventManager.propagate(new GLEvent(this, GLEvent.Code.SURFACE_CHANGED,
+                        width, height));
+            }
+            screenInitialized = true;
+        }*/
 
         // check
         if (activeRenderer == null) return;
@@ -245,21 +247,6 @@ public class GLRenderer implements GLSurfaceView.Renderer {
         // scene not ready
         if (!traced) {
             Log.d(TAG, "onDrawFrame. First draw...");
-        }
-
-        // initialize screen in case this bean was initialized lately
-        if (!this.screenInitialized && this.screen != null) {
-
-            // update model
-            this.screen.setSize(width, height);
-            this.screenInitialized = true;
-
-            // fire late events
-            if (eventManager != null) {
-                eventManager.propagate(new GLEvent(this, GLEvent.Code.SURFACE_CREATED));
-                eventManager.propagate(new GLEvent(this, GLEvent.Code.SURFACE_CHANGED,
-                        width, height));
-            }
         }
 
         // Default viewport

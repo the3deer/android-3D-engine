@@ -1,7 +1,7 @@
 
 package org.the3deer.android.engine;
 
-import android.app.Activity;
+import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
@@ -70,11 +70,11 @@ public class ModelEngine {
     }
 
     // attributes
-    private final String id;
+    public final String id;
 
     // Model
     private final Model model;
-    private Activity activity;
+    private Context activity;
 
     // variables
     private final Handler handler;
@@ -83,7 +83,7 @@ public class ModelEngine {
     private boolean initialized = false;
 
 
-    public ModelEngine(String id, Model model, Activity activity) {
+    public ModelEngine(String id, Model model, Context activity) {
         this.id = id;
         this.model = model;
         this.activity = activity;
@@ -93,15 +93,6 @@ public class ModelEngine {
         // Android UI thread
         this.handler = new Handler(Looper.getMainLooper());
         //init();
-    }
-
-    @NonNull
-    public BeanFactory getBeanFactory() {
-        return beanFactory;
-    }
-
-    public boolean isInitialized() {
-        return initialized;
     }
 
     /**
@@ -114,8 +105,11 @@ public class ModelEngine {
         // check
         if (initialized) return;
 
+        // debug
+        Log.i(TAG, "Initializing Engine... "+id);
+
         // check
-        if (activity == null) throw new Exception("Activity is null");
+        //if (activity == null) throw new Exception("Activity is null");
 
         try {
             // init resources
@@ -142,8 +136,20 @@ public class ModelEngine {
         }
     }
 
+    @NonNull
+    public BeanFactory getBeanFactory() {
+        return beanFactory;
+    }
+
+    public boolean isInitialized() {
+        return initialized;
+    }
+
     public void start(){
         try {
+
+            // debug
+            Log.d(TAG, "Starting up Engine...");
 
             //beanFactory.find(ShaderFactory.class).reset();
 
@@ -151,15 +157,14 @@ public class ModelEngine {
             beanFactory.start();
 
             // log
-            Log.d(TAG, "BeanFactory initialized");
+            Log.i(TAG, "Engine started successfully");
 
         } catch (Exception ex) {
             Log.e(TAG, "BeanFactory refresh issue", ex);
 
             // clear resources
-            ContentUtils.clearDocumentsProvided();
+            //ContentUtils.clearDocumentsProvided();
         }
-
     }
 
     private void initEngine() {
@@ -174,7 +179,9 @@ public class ModelEngine {
         beanFactory.add("handler", this.handler);
 
         // core
-        beanFactory.add(Constants.BEAN_ID_SCREEN, new Screen(640, 480));
+        /*if (beanFactory.get(Constants.BEAN_ID_SCREEN) == null) {
+            beanFactory.add(Constants.BEAN_ID_SCREEN, new Screen(640, 480));
+        }*/
         beanFactory.add("engine", ModelEngine.this);
         beanFactory.add("controller", ModelController.class);
 

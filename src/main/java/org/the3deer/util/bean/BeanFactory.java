@@ -390,10 +390,21 @@ public class BeanFactory {
     }
 
     public <T> Object addOrReplace(String id, T object) {
+
+        // check
+        if (id == null || object == null) throw new IllegalArgumentException("id or object cannot be null");
+
+        // get current
         Object old = this.beans.put(id, object);
+
+        // update model
         this.status.put(id, STATUS_INSTANTIATED);
         this.beansUpdated = true;
+
+        // check
         if (!initialized) return old;
+
+        // setup bean
         configureBean(id);
         setUpBean(id);
         onBeanUpdate(id);
