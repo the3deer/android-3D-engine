@@ -1,8 +1,12 @@
 package org.the3deer.util.bean;
 
 import android.content.Context;
+
+import androidx.annotation.NonNull;
+
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.Arrays;
 
 /**
  * Information about a bean property.
@@ -135,6 +139,17 @@ public class BeanPropertyInfo {
         return valuesMethod;
     }
 
+    public String[] getValues(Object bean) {
+        if (valuesMethod != null) {
+            try {
+                return (String[]) valuesMethod.invoke(bean);
+            } catch (Exception e) {
+                return values;
+            }
+        }
+        return values;
+    }
+
     public Object getValue(Object bean) throws Exception {
         if (getter != null) {
             return getter.invoke(bean);
@@ -152,5 +167,21 @@ public class BeanPropertyInfo {
             field.setAccessible(true);
             field.set(bean, value);
         }
+    }
+
+    @NonNull
+    @Override
+    public String toString() {
+        return "BeanPropertyInfo{" +
+                "id='" + id + '\'' +
+                ", beanName='" + beanName + '\'' +
+                ", name='" + name + '\'' +
+                ", values=" + Arrays.toString(values) +
+                ", type=" + type +
+                ", field=" + field +
+                ", getter=" + getter +
+                ", setter=" + setter +
+                ", valuesMethod=" + valuesMethod +
+                '}';
     }
 }

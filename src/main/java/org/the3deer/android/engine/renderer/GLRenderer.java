@@ -14,7 +14,6 @@ import org.the3deer.util.bean.BeanProperty;
 import org.the3deer.util.event.EventManager;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -41,15 +40,15 @@ public class GLRenderer implements GLSurfaceView.Renderer {
     @Inject
     private List<RenderListener> listeners;
     @Inject
-    private Map<String,Renderer> renderers;
+    private Map<String, Renderer> renderers;
 
-    @BeanProperty
+    @BeanProperty(name = "renderer", values = {"Default", "Anaglyph", "Stereoscopic"})
     private String activeRenderer;
 
     /**
      * Background GL clear color. Default is light gray
      */
-    @BeanProperty
+    @BeanProperty(name = "backgroundColor", values = {"white", "gray", "black"})
     private float[] backgroundColor = Constants.COLOR_GRAY;
     /**
      * GL Screen width
@@ -74,12 +73,12 @@ public class GLRenderer implements GLSurfaceView.Renderer {
      * Construct a new renderer for the specified surface view
      */
     public GLRenderer() {
-        Log.i(TAG,"GLRenderer instantiated: " + System.identityHashCode(this));
+        Log.i(TAG, "GLRenderer instantiated: " + System.identityHashCode(this));
     }
 
     @BeanInit
-    public void setUp(){
-        Log.i(TAG,"GLRenderer setUp: " + System.identityHashCode(this));
+    public void setUp() {
+        Log.i(TAG, "GLRenderer setUp: " + System.identityHashCode(this));
 
         if (renderers == null || renderers.isEmpty()) {
             throw new IllegalArgumentException("No renderers found");
@@ -89,7 +88,7 @@ public class GLRenderer implements GLSurfaceView.Renderer {
             throw new IllegalArgumentException("Screen not found");
         }
 
-        if (activeRenderer == null){
+        if (activeRenderer == null) {
             activeRenderer = renderers.keySet().toArray(new String[0])[0];
         }
     }
@@ -98,17 +97,22 @@ public class GLRenderer implements GLSurfaceView.Renderer {
         return screen;
     }
 
-    public void setBackgroundColor(float[] backgroundColor) {
-        this.backgroundColor = backgroundColor;
-    }
-
-    public float[] getBackgroundColor() {
-        return backgroundColor;
-    }
-
-    @BeanProperty(name = "backgroundColor")
-    public List<float[]> getBackgroundColorValues() {
-        return Arrays.asList(Constants.COLOR_WHITE.clone(), Constants.COLOR_GRAY.clone(), Constants.COLOR_BLACK.clone());
+    @BeanProperty
+    public void setBackgroundColor(String color) {
+        if (color == null) return;
+        switch (color) {
+            case "gray":
+                this.backgroundColor = Constants.COLOR_GRAY;
+                break;
+            case "white":
+                this.backgroundColor = Constants.COLOR_WHITE;
+                break;
+            case "black":
+                this.backgroundColor = Constants.COLOR_BLACK;
+                break;
+            default:
+                throw new IllegalArgumentException("Unknown color: " + color);
+        }
     }
 
     @BeanProperty(name = "activeRenderer")
@@ -116,15 +120,15 @@ public class GLRenderer implements GLSurfaceView.Renderer {
         return new ArrayList<>(renderers.keySet());
     }
 
-    public void updateModel(Model model){
+    public void updateModel(Model model) {
         this.model = model;
     }
 
-    public void updateColor(float[] color){
+    public void updateColor(float[] color) {
     }
 
 
-    public void setShaders(Map<String,Renderer> renderers) {
+    public void setShaders(Map<String, Renderer> renderers) {
         this.renderers = renderers;
     }
 
@@ -136,11 +140,26 @@ public class GLRenderer implements GLSurfaceView.Renderer {
         return Constants.far;
     }
 
-    public void setActiveRenderer(String rendererId){
+    @BeanProperty
+    public void setRenderer(String rendererId) {
 
         // check
-        if (!renderers.containsKey(rendererId))
-            throw new IllegalArgumentException("Renderer not found: " + rendererId);
+        if (rendererId == null) throw new IllegalArgumentException("Renderer id cannot be null");
+
+        // process
+        switch (rendererId) {
+            case "Default":
+                rendererId = "renderer.defaultRenderer";
+                break;
+            case "Anaglyph":
+                rendererId = "renderer.anaglyphRenderer";
+                break;
+            case "Stereoscopic":
+                rendererId = "renderer.stereoscopiRenderer";
+                break;
+            default:
+                throw new IllegalArgumentException("Unknown renderer: " + rendererId);
+        }
 
         // enable
         Objects.requireNonNull(this.renderers.get(rendererId)).setEnabled(true);
@@ -266,7 +285,7 @@ public class GLRenderer implements GLSurfaceView.Renderer {
 
             // scene not ready
             if (!traced) {
-                Log.v(TAG, "onDrawFrame. Invoking listeners... "+ listeners.size());
+                Log.v(TAG, "onDrawFrame. Invoking listeners... " + listeners.size());
             }
 
             for (int i = 0; i < listeners.size(); i++) {
@@ -283,7 +302,7 @@ public class GLRenderer implements GLSurfaceView.Renderer {
 
         // debug
         if (!traced) {
-            Log.v(TAG, "onDrawFrame. Invoking renderers... "+ renderers);
+            Log.v(TAG, "onDrawFrame. Invoking renderers... " + renderers);
         }
 
         try {
@@ -308,7 +327,7 @@ public class GLRenderer implements GLSurfaceView.Renderer {
                     framesPerSecondCounter++;
                 }
             } catch (Exception e) {
-                Log.e(TAG, "Exception on fps: "+e.getMessage(), e);
+                Log.e(TAG, "Exception on fps: " + e.getMessage(), e);
             }
         }
 

@@ -40,7 +40,7 @@ public class SkyboxDrawer implements Drawer {
     private boolean enabled = true;
 
     // data
-    @BeanProperty(name = "skybox", values = {"None", "Sea", "Sand"})
+    @BeanProperty(name = "skybox", values = {"none", "sea", "sand"})
     private String activeSkyBox;
     private Map<String, Object3D> skyboxes3D = new HashMap<>();
 
@@ -93,14 +93,14 @@ public class SkyboxDrawer implements Drawer {
             // lazy initialization of the skybox
             final Skybox skybox;
             switch (skyboxId) {
-                case "Sea":
+                case "sea":
                     skybox = Skybox.getSkybox1();
                     break;
-                case "Sand":
+                case "sand":
                     skybox = Skybox.getSkybox2();
                     break;
                 default:
-                    return;
+                    throw new IllegalArgumentException("Skybox '" + skyboxId + "' not found");
             }
 
             // debug

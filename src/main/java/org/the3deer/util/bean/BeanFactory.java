@@ -74,7 +74,7 @@ public class BeanFactory {
                     
                     // find setter/getter if they exist
                     String capitalized = id.substring(0, 1).toUpperCase() + id.substring(1);
-                    Method setter = findMethod(bean.getClass(), "set" + capitalized, field.getType());
+                    Method setter = findMethod(bean.getClass(), "set" + capitalized, String.class);
                     Method getter = findMethod(bean.getClass(), "get" + capitalized);
                     if (getter == null && (field.getType() == boolean.class || field.getType() == Boolean.class)) {
                         getter = findMethod(bean.getClass(), "is" + capitalized);

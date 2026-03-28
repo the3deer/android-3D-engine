@@ -214,9 +214,9 @@ public class ModelEngine {
         beanFactory.add("40.drawer7.collisionDrawer", CollisionDrawer.class);
 
         // renderer
-        beanFactory.add("50.renderer.defaultRenderer", DefaultRenderer.class);
-        beanFactory.add("50.renderer.anaglyphRenderer", AnaglyphRenderer.class);
-        beanFactory.add("50.renderer.stereoscopicRenderer", StereoscopicRenderer.class);
+        beanFactory.add("renderer.default", DefaultRenderer.class);
+        beanFactory.add("renderer.anaglyph", AnaglyphRenderer.class);
+        beanFactory.add("renderer.stereoscopic", StereoscopicRenderer.class);
     }
 
     private void initGUI() {
