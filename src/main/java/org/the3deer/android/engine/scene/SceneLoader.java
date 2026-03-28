@@ -206,7 +206,7 @@ public class SceneLoader implements LoadListener {
     @Override
     public void onProgress(String progress) {
         if (eventManager != null) {
-            eventManager.propagate(new ModelEvent(this, ModelEvent.Code.LOADING, Collections.singletonMap("message", progress)));
+            eventManager.propagate(new ModelEvent(this, ModelEvent.Code.PROGRESS, Collections.singletonMap("message", progress)));
         }
     }
 
