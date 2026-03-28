@@ -341,13 +341,28 @@ public class SceneLoader implements LoadListener {
         if (texture.getFile() == null) return;
 
         // get file
-        final String textureFile = texture.getFile();
+        final String textureFile = texture.getFile().replace('\\','/').replace(' ', '+');
+
+        // Resolve texture URI relative to the model's location
+        // Extracting the parent path manually from the model's URI
+        final String modelPath = modelUri.toString();
+        int lastSlash = modelPath.lastIndexOf('/');
+        final String parentPath = (lastSlash != -1) ? modelPath.substring(0, lastSlash + 1) : "";
+
+        // Create the full texture URI
+        final Uri textureUri = Uri.parse(parentPath + textureFile);
+
+        // update model
+        texture.setUri(textureUri);
+
+        // debug
+        Log.d(TAG, "Downloading texture... file: " + textureFile + ", uri: " + textureUri);
 
         // debug
         Log.i(TAG, "Loading texture file: " + textureFile);
 
         // download texture
-        try (InputStream stream = ContentUtils.getInputStream(textureFile)) {
+        try (InputStream stream = ContentUtils.getInputStream(textureUri)) {
 
             // update model
             texture.setData(IOUtils.read(stream));
