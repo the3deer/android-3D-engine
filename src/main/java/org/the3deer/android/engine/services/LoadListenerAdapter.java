@@ -15,6 +15,11 @@ public class LoadListenerAdapter implements LoadListener {
     }
 
     @Override
+    public void onProgress(String progress) {
+        
+    }
+
+    @Override
     public void onLoad(Scene scene) {
     }
 

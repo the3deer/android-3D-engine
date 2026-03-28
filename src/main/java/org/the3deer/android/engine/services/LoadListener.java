@@ -8,7 +8,7 @@ public interface LoadListener {
 
     void onStart();
 
-    default void onProgress(String progress){};
+    void onProgress(String progress);
 
     void onLoad(Scene scene, Camera camera);
 

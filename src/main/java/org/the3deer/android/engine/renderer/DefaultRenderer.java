@@ -167,6 +167,9 @@ public class DefaultRenderer implements Renderer, EventListener {
 
     protected void prepareFrame(Drawer.Config config) {
 
+        // check
+        if (sceneManager == null) return;
+
         // get current scene
         final Scene scene = sceneManager.getActiveScene();
 

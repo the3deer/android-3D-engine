@@ -74,7 +74,7 @@ public class ModelEngine {
 
     // Model
     private final Model model;
-    private final Activity activity;
+    private Activity activity;
 
     // variables
     private final Handler handler;

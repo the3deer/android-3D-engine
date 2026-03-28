@@ -43,6 +43,7 @@ public class BeanFactory {
     private boolean definitionsUpdated;
     private boolean beansUpdated;
     private boolean initialized;
+    private boolean started;
 
     private BeanFactory() {
     }
@@ -303,6 +304,8 @@ public class BeanFactory {
     }
 
     public void start() {
+        if (started) return;
+        started = true;
 
         int max = 3;
         do {

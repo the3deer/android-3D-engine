@@ -17,6 +17,7 @@ import org.the3deer.android.engine.model.Node;
 import org.the3deer.android.engine.model.Object3D;
 import org.the3deer.android.engine.model.Scene;
 import org.the3deer.android.engine.model.Screen;
+import org.the3deer.android.engine.model.Texture;
 import org.the3deer.android.engine.services.LoadListener;
 import org.the3deer.android.engine.services.collada.ColladaLoaderTask;
 import org.the3deer.android.engine.services.fbx.FbxLoaderTask;
@@ -34,6 +35,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -195,6 +197,17 @@ public class SceneLoader implements LoadListener {
 
         // provide context to allow reading resources
         //ContentUtils.setContext(activity);
+
+        if (eventManager != null) {
+            eventManager.propagate(new ModelEvent(this, ModelEvent.Code.LOADING));
+        }
+    }
+
+    @Override
+    public void onProgress(String progress) {
+        if (eventManager != null) {
+            eventManager.propagate(new ModelEvent(this, ModelEvent.Code.LOADING, Collections.singletonMap("message", progress)));
+        }
     }
 
     @Override
@@ -242,7 +255,17 @@ public class SceneLoader implements LoadListener {
 
         for (int i = 0; i < objects.size(); i++) {
             for (int m = 0; m < objects.size(); m++) {
-                loadTextureDatas(objects.get(m).getMaterial());
+
+                // get material
+                final Material material = objects.get(m).getMaterial();
+                if (material == null) continue;
+
+                // init color texture
+                final Texture colorTexture = material.getColorTexture();
+                if (colorTexture != null) loadTextureDatas(colorTexture);
+
+                final Texture normalTexture = material.getNormalTexture();
+                if (normalTexture != null) loadTextureDatas(normalTexture);
             }
         }
 
@@ -306,19 +329,35 @@ public class SceneLoader implements LoadListener {
         }
     }
 
-    private void loadTextureDatas(Material mat) {
-        if (mat == null) return;
-        if (mat.getColorTexture() != null && mat.getColorTexture().getFile() != null) {
-            String textureFile = mat.getColorTexture().getFile();
-            Log.i(TAG, "Loading texture file: " + textureFile);
-            try (InputStream stream = ContentUtils.getInputStream(textureFile)) {
-                mat.getColorTexture().setData(IOUtils.read(stream));
-                Log.i(TAG, "Texture successfully loaded: " + textureFile);
-            } catch (Exception ex) {
-                Log.e(TAG, "Error loading texture file '" + textureFile + "': " + ex.getMessage(), ex);
-                makeToastText("Error loading texture file '" + textureFile + "': " + ex.getMessage(), Toast.LENGTH_LONG);
-            }
+    private void loadTextureDatas(Texture texture) {
 
+        // check texture
+        if(texture == null) throw new IllegalArgumentException("Texture cannot be null");;
+
+        // check texture data
+        if(texture.getData() != null) return; // already loaded
+
+        // check file
+        if (texture.getFile() == null) return;
+
+        // get file
+        final String textureFile = texture.getFile();
+
+        // debug
+        Log.i(TAG, "Loading texture file: " + textureFile);
+
+        // download texture
+        try (InputStream stream = ContentUtils.getInputStream(textureFile)) {
+
+            // update model
+            texture.setData(IOUtils.read(stream));
+
+            // debug
+            Log.i(TAG, "Texture successfully loaded: " + textureFile);
+
+        } catch (Exception ex) {
+            Log.e(TAG, "Error loading texture file '" + textureFile + "': " + ex.getMessage(), ex);
+            makeToastText("Error loading texture file '" + textureFile + "': " + ex.getMessage(), Toast.LENGTH_LONG);
         }
     }
 

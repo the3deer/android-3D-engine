@@ -85,6 +85,11 @@ public final class PerspectiveProjection implements Projection {
 
     @Override
     public void setFar(float far) {
+
+        // check
+        if (far <= 0) throw new IllegalArgumentException("far must be greater than 0");
+
+        // update
         this.zfar = far;
     }
 

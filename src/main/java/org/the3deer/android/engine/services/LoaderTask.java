@@ -1,21 +1,26 @@
 package org.the3deer.android.engine.services;
 
 import android.app.Activity;
-import android.app.ProgressDialog;
 import android.net.Uri;
-import android.os.AsyncTask;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 
 import org.the3deer.android.engine.model.Object3D;
 
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * This component allows loading the model without blocking the UI.
  *
  * @author andresoviedo
  */
-public abstract class LoaderTask extends AsyncTask<Void, String, List<Object3D>> {
+public abstract class LoaderTask {
+
+	private static final ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+	private final Handler handler = new Handler(Looper.getMainLooper());
 
 	/**
 	 * URL to the 3D model
@@ -25,10 +30,6 @@ public abstract class LoaderTask extends AsyncTask<Void, String, List<Object3D>>
 	 * Callback to notify of events
 	 */
 	protected final LoadListener callback;
-	/**
-	 * The dialog that will show the progress of the loading
-	 */
-	private final ProgressDialog dialog;
 
 	/**
 	 * Build a new progress dialog for loading the data model asynchronously
@@ -37,57 +38,47 @@ public abstract class LoaderTask extends AsyncTask<Void, String, List<Object3D>>
 	 */
 	public LoaderTask(Activity parent, Uri uri, LoadListener callback) {
 		this.uri = uri;
-		this.dialog = new ProgressDialog(parent);
 		this.callback = callback; }
 
 
-	@Override
-	protected void onPreExecute() {
-		super.onPreExecute();
-		this.dialog.setMessage("Loading...");
-		this.dialog.setCancelable(false);
-		//this.dialog.getWindow().setGravity(Gravity.BOTTOM);
-		this.dialog.show();
+	public void execute() {
+		onPreExecute();
+		executor.execute(() -> {
+			try {
+				handler.post(callback::onStart);
+				final List<Object3D> data = build();
+				handler.post(() -> {
+					onPostExecute(data);
+					callback.onLoadComplete();
+				});
+			} catch (final Exception ex) {
+				Log.e("LoaderTask", ex.getMessage(), ex);
+				handler.post(() -> callback.onLoadError(ex));
+			} catch (final OutOfMemoryError err) {
+				handler.post(() -> callback.onLoadError(new RuntimeException("Out Of Memory Error", err)));
+			}
+		});
 	}
 
-
-
-	@Override
-	protected List<Object3D> doInBackground(Void... params) {
-		try {
-			//ContentUtils.setThreadActivity(dialog.getContext());
-			callback.onStart();
-			List<Object3D> data = build();
-			callback.onLoadComplete();
-			//ContentUtils.setThreadActivity(null);
-			return  data;
-		} catch (Exception ex) {
-			Log.e("LoaderTask",ex.getMessage(),ex);
-			callback.onLoadError(ex);
-			return null;
-		} catch (OutOfMemoryError err){
-			callback.onLoadError(new RuntimeException("Out Of Memory Error",err));
-			return null;
-		}
+	protected void onPreExecute() {
 	}
 
 	protected abstract List<Object3D> build() throws Exception;
 
-	@Override
 	protected void onProgressUpdate(String... values) {
-		super.onProgressUpdate(values);
-		this.dialog.setMessage(values[0]);
-	}
-
-	@Override
-	protected void onPostExecute(List<Object3D> data) {
-		super.onPostExecute(data);
-		if (dialog.isShowing()) {
-			dialog.dismiss();
+		if (values.length > 0) {
+			callback.onProgress(values[0]);
 		}
 	}
 
+	protected void onPostExecute(List<Object3D> data) {
+	}
+
 	protected void onProgress(String progress) {
-		super.publishProgress(progress);
+		publishProgress(progress);
+	}
+
+	protected final void publishProgress(String... values) {
+		handler.post(() -> onProgressUpdate(values));
 	}
 }

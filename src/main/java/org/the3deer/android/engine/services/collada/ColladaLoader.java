@@ -369,9 +369,24 @@ public class ColladaLoader {
             if (mat.getColorTexture() != null && mat.getColorTexture().getFile() != null) {
                 String textureFile = mat.getColorTexture().getFile();
                 try {
-                    Uri textureUri = Uri.withAppendedPath(modelUri, textureFile);
+                    // Resolve texture URI relative to the model's location
+                    // Extracting the parent path manually from the model's URI
+                    String modelPath = modelUri.toString();
+                    int lastSlash = modelPath.lastIndexOf('/');
+                    String parentPath = (lastSlash != -1) ? modelPath.substring(0, lastSlash + 1) : "";
+
+                    // Create the full texture URI
+                    Uri textureUri = Uri.parse(parentPath + textureFile);
+
+                    // update model
+                    mat.getColorTexture().setUri(textureUri);
+
+                    // debug
+                    Log.d(TAG, "Downloading texture... file: " + textureFile + ", uri: " + textureUri);
+
                     try (InputStream stream = ContentUtils.getInputStream(textureUri)) {
                         mat.getColorTexture().setData(IOUtils.read(stream));
+
                         Log.i(TAG, "Texture linked and data loaded for file: " + textureFile);
                     }
                 } catch (Exception ex) {
