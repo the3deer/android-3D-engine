@@ -8,7 +8,7 @@ import org.the3deer.android.engine.model.Camera;
 import org.the3deer.android.engine.model.Constants;
 import org.the3deer.android.engine.model.Object3D;
 import org.the3deer.android.engine.model.Screen;
-import org.the3deer.android.engine.objects.SkyBox;
+import org.the3deer.android.engine.objects.Skybox;
 import org.the3deer.android.engine.renderer.Drawer;
 import org.the3deer.android.engine.shader.Shader;
 import org.the3deer.android.engine.shader.ShaderFactory;
@@ -24,8 +24,8 @@ import java.util.Map;
 
 import javax.inject.Inject;
 
-@Bean(name = "SkyBox Decorator", description = "Draws a 3D Skybox as the scene background")
-public class SkyBoxDrawer implements Drawer {
+@Bean
+public class SkyboxDrawer implements Drawer {
 
     @Inject
     private ShaderFactory shaderFactory;
@@ -40,9 +40,9 @@ public class SkyBoxDrawer implements Drawer {
     private boolean enabled = true;
 
     // data
-    @BeanProperty(name = "SkyBox", description = "Select the environment background", values = {"None", "Sea", "Sand"}, valueNames = {"None", "Sea", "Sand"})
+    @BeanProperty(name = "skybox", values = {"None", "Sea", "Sand"})
     private String activeSkyBox;
-    private Map<String, Object3D> skyBoxes3D = new HashMap<>();
+    private Map<String, Object3D> skyboxes3D = new HashMap<>();
 
     public float[] projectionMatrix = new float[16];
 
@@ -59,7 +59,7 @@ public class SkyBoxDrawer implements Drawer {
     public void setActiveSkyBox(String id) {
 
         // debug
-        Log.i("SkyBoxDrawer", "Setting active sky box to '" + id + "'");
+        Log.i("SkyboxDrawer", "Setting active sky box to '" + id + "'");
 
         // lazy building of the 3d object
         loadSkyBox(id);
@@ -69,10 +69,10 @@ public class SkyBoxDrawer implements Drawer {
 
 /*    @Override
     public List<? extends Object3D> getObjects() {
-        if (this.skyboxId < 0 || skyBoxes3D == null || this.skyboxId >= skyBoxes.length) {
+        if (this.skyboxId < 0 || skyboxes3D == null || this.skyboxId >= skyboxes.length) {
             return Collections.emptyList();
         }
-        return Collections.singletonList(skyBoxes3D[skyboxId]);
+        return Collections.singletonList(skyboxes3D[skyboxId]);
     }*/
 
     @BeanInit
@@ -84,30 +84,30 @@ public class SkyBoxDrawer implements Drawer {
     private void loadSkyBox(String skyboxId) {
 
         // get skybox 3d
-        Object3D skybox3D = skyBoxes3D.get(skyboxId);
+        Object3D skybox3D = skyboxes3D.get(skyboxId);
 
         // return
         if (skybox3D != null) return;
 
         try {
             // lazy initialization of the skybox
-            final SkyBox skybox;
+            final Skybox skybox;
             switch (skyboxId) {
                 case "Sea":
-                    skybox = SkyBox.getSkyBox1();
+                    skybox = Skybox.getSkybox1();
                     break;
                 case "Sand":
-                    skybox = SkyBox.getSkyBox2();
+                    skybox = Skybox.getSkybox2();
                     break;
                 default:
                     return;
             }
 
             // debug
-            Log.i("SkyBoxDrawer", "Building sky box... skybox: " + skyboxId);
+            Log.i("SkyboxDrawer", "Building sky box... skybox: " + skyboxId);
 
             // build skybox
-            skybox3D = SkyBox.build(skybox);
+            skybox3D = Skybox.build(skybox);
 
             // rescale
             Rescaler.rescale(skybox3D, 1f);
@@ -118,9 +118,9 @@ public class SkyBoxDrawer implements Drawer {
             skybox3D.setColor(Constants.COLOR_BIT_TRANSPARENT);
 
             // register skybox
-            skyBoxes3D.put(skyboxId, skybox3D);
+            skyboxes3D.put(skyboxId, skybox3D);
         } catch (IOException e) {
-            Log.e("SkyBoxDrawer", "Error building sky box '" + skyboxId + "'. " + e.getMessage(), e);
+            Log.e("SkyboxDrawer", "Error building sky box '" + skyboxId + "'. " + e.getMessage(), e);
             enabled = false;
             return;
         }
@@ -146,11 +146,11 @@ public class SkyBoxDrawer implements Drawer {
         if (this.activeSkyBox == null) return;
 
         // get skybox 3d
-        final Object3D skybox3D = skyBoxes3D.get(this.activeSkyBox);
+        final Object3D skybox3D = skyboxes3D.get(this.activeSkyBox);
 
         // check
         if (skybox3D == null) {
-            Log.e("SkyBoxDrawer", "Skybox '" + this.activeSkyBox + "' not found");
+            Log.e("SkyboxDrawer", "Skybox '" + this.activeSkyBox + "' not found");
             enabled = false;
             return;
         }
@@ -160,7 +160,7 @@ public class SkyBoxDrawer implements Drawer {
 
             // debug
             if (!traced) {
-                Log.i("SkyBoxDrawer", "Drawing sky box... id: " + activeSkyBox);
+                Log.i("SkyboxDrawer", "Drawing sky box... id: " + activeSkyBox);
             }
 
             // paint
@@ -175,12 +175,12 @@ public class SkyBoxDrawer implements Drawer {
 
             // debug
             if (!traced) {
-                Log.i("SkyBoxDrawer", "Sky box first draw finished. id: " + activeSkyBox);
+                Log.i("SkyboxDrawer", "Sky box first draw finished. id: " + activeSkyBox);
                 traced = true;
             }
 
         } catch (Throwable ex) {
-            Log.e("SkyBoxDrawer", "Error rendering sky box. " + ex.getMessage(), ex);
+            Log.e("SkyboxDrawer", "Error rendering sky box. " + ex.getMessage(), ex);
             enabled = false;
         }
     }

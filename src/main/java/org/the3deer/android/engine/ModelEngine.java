@@ -16,7 +16,7 @@ import org.the3deer.android.engine.controller.TouchController;
 import org.the3deer.android.engine.decorator.BoundingBoxDrawer;
 import org.the3deer.android.engine.decorator.LightBulbDrawer;
 import org.the3deer.android.engine.decorator.SkeletonDrawer;
-import org.the3deer.android.engine.decorator.SkyBoxDrawer;
+import org.the3deer.android.engine.decorator.SkyboxDrawer;
 import org.the3deer.android.engine.decorator.WireframeDrawer;
 import org.the3deer.android.engine.gui.Axis;
 import org.the3deer.android.engine.gui.FontFactory;
@@ -202,7 +202,7 @@ public class ModelEngine {
         beanFactory.add("30.controller.collisionController", CollisionController.class);
 
         // drawers
-        beanFactory.add("40.drawer0.SkyBoxDrawer", SkyBoxDrawer.class);
+        beanFactory.add("40.drawer0.SkyboxDrawer", SkyboxDrawer.class);
         beanFactory.add("40.drawer1.SceneDrawer", SceneDrawer.class);
         beanFactory.add("40.drawer2.boundingBoxDrawer", BoundingBoxDrawer.class);
         beanFactory.add("40.drawer3.lightBulb", Point.build(Constants.VECTOR_ZERO)

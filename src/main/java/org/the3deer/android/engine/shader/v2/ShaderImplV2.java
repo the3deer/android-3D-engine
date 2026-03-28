@@ -382,7 +382,7 @@ public class ShaderImplV2 implements Shader {
             }
         }
 
-        // pass in the SkyBox texture
+        // pass in the Skybox texture
         if (obj.getMaterial() != null && obj.getMaterial().getColorTexture() != null && supportsTextureCube) {
             loadTexture(obj.getMaterial().getColorTexture());
             setTextureCube(obj.getMaterial().getColorTexture().getId(), 3);

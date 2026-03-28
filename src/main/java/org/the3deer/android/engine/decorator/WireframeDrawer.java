@@ -24,7 +24,7 @@ import java.util.Map;
 
 import javax.inject.Inject;
 
-@Bean(name = "Wireframe Drawer", description = "Draws the wireframe of the models")
+@Bean
 public class WireframeDrawer implements Drawer, EventListener {
 
     private final static String TAG = WireframeDrawer.class.getSimpleName();

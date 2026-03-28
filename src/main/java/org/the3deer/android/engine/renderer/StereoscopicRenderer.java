@@ -20,7 +20,7 @@ import javax.inject.Inject;
  * the viewer sees a 3D image
  */
 //public class AnaglyphRenderer implements Renderer, EventListener {
-@Bean(name = "Stereoscopic Renderer")
+@Bean
 public class StereoscopicRenderer extends DefaultRenderer {
 
     private final static String TAG = StereoscopicRenderer.class.getSimpleName();

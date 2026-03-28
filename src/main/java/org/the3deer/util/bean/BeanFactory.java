@@ -61,45 +61,47 @@ public class BeanFactory {
     public Map<String, BeanPropertyInfo> getProperties(Object bean) {
         Map<String, BeanPropertyInfo> ret = new TreeMap<>();
         Class<?> currentClass = bean.getClass();
+        
+        Bean beanAnn = currentClass.getAnnotation(Bean.class);
+        String beanName = (beanAnn != null && !beanAnn.name().isEmpty()) ? beanAnn.name() : BeanUtils.getSnakeCase(currentClass);
+
         while (currentClass != null) {
             for (Field field : currentClass.getDeclaredFields()) {
                 if (field.isAnnotationPresent(BeanProperty.class)) {
                     BeanProperty ann = field.getAnnotation(BeanProperty.class);
-                    String name = field.getName();
-                    Method valuesMethod = findBeanValuesMethod(bean.getClass(), name);
+                    String id = field.getName();
+                    Method valuesMethod = findBeanValuesMethod(bean.getClass(), id);
                     
                     // find setter/getter if they exist
-                    String capitalized = name.substring(0, 1).toUpperCase() + name.substring(1);
+                    String capitalized = id.substring(0, 1).toUpperCase() + id.substring(1);
                     Method setter = findMethod(bean.getClass(), "set" + capitalized, field.getType());
                     Method getter = findMethod(bean.getClass(), "get" + capitalized);
                     if (getter == null && (field.getType() == boolean.class || field.getType() == Boolean.class)) {
                         getter = findMethod(bean.getClass(), "is" + capitalized);
                     }
 
-                    ret.put(name, new BeanPropertyInfo(name, ann.description(), ann.values(), ann.valueNames(), field.getType(), field, getter, setter, valuesMethod));
+                    ret.put(id, new BeanPropertyInfo(id, beanName, ann.name(), ann.values(), field.getType(), field, getter, setter, valuesMethod));
                 }
             }
             for (Method method : currentClass.getDeclaredMethods()) {
                 if (method.isAnnotationPresent(BeanProperty.class)) {
                     BeanProperty ann = method.getAnnotation(BeanProperty.class);
                     String methodName = method.getName();
-                    String name = ann.name().isEmpty() ? 
-                        (methodName.startsWith("get") || methodName.startsWith("set") ? 
+                    String id = (methodName.startsWith("get") || methodName.startsWith("set")) ? 
                             methodName.substring(3, 4).toLowerCase() + methodName.substring(4) : 
-                            (methodName.startsWith("is") ? methodName.substring(2, 3).toLowerCase() + methodName.substring(3) : methodName)) 
-                        : ann.name();
+                            (methodName.startsWith("is") ? methodName.substring(2, 3).toLowerCase() + methodName.substring(3) : methodName);
 
-                    if (ret.containsKey(name)) continue;
+                    if (ret.containsKey(id)) continue;
 
-                    String capitalized = name.substring(0, 1).toUpperCase() + name.substring(1);
+                    String capitalized = id.substring(0, 1).toUpperCase() + id.substring(1);
                     Method getter = findMethod(bean.getClass(), "get" + capitalized);
                     if (getter == null) getter = findMethod(bean.getClass(), "is" + capitalized);
                     
                     Class<?> type = getter != null ? getter.getReturnType() : method.getParameterTypes().length > 0 ? method.getParameterTypes()[0] : void.class;
                     Method setter = findMethod(bean.getClass(), "set" + capitalized, type);
-                    Method valuesMethod = findBeanValuesMethod(bean.getClass(), name);
+                    Method valuesMethod = findBeanValuesMethod(bean.getClass(), id);
 
-                    ret.put(name, new BeanPropertyInfo(name, ann.description(), ann.values(), ann.valueNames(), type, null, getter, setter, valuesMethod));
+                    ret.put(id, new BeanPropertyInfo(id, beanName, ann.name(), ann.values(), type, null, getter, setter, valuesMethod));
                 }
             }
             currentClass = currentClass.getSuperclass();
@@ -117,11 +119,6 @@ public class BeanFactory {
 
     private Method findBeanValuesMethod(Class<?> clazz, String propertyName) {
         for (Method method : clazz.getMethods()) {
-            // Check merged BeanProperty annotation first
-            BeanProperty propertyAnnotation = method.getAnnotation(BeanProperty.class);
-            if (propertyAnnotation != null && propertyAnnotation.name().equals(propertyName + "Values")) {
-                return method;
-            }
             // Naming convention fallback
             if (method.getName().equals(propertyName + "Values") ||
                 method.getName().equals("get" + propertyName.substring(0, 1).toUpperCase() + propertyName.substring(1) + "Values")) {

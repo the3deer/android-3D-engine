@@ -33,12 +33,12 @@ import java.util.Set;
 import javax.inject.Inject;
 
 @BeanOrder(order = 101)
-@Bean(name = "Graphical User Interface")
+@Bean
 public class GUIDrawer implements EventListener, Drawer {
 
     private final static String TAG = GUIDrawer.class.getSimpleName();
 
-    @BeanProperty(description = "Show or hide GUI")
+    @BeanProperty
     private boolean enabled = false;
 
     @Inject
@@ -185,14 +185,14 @@ public class GUIDrawer implements EventListener, Drawer {
         }*/
     }
 
-    @BeanProperty(description = "Show or hide FPS counter")
-    public void setEnableFPS(boolean enabled){
-        if (gui != null) gui.setEnableFPS(enabled);
+    @BeanProperty
+    public void setShowFPS(boolean enabled){
+        if (gui != null) gui.setShowFPS(enabled);
     }
 
-    @BeanProperty(description = "Show or hide FPS counter")
-    public boolean isEnableFPS(){
-        if (gui != null) return gui.isEnableFPS();
+    @BeanProperty
+    public boolean isShowFPS(){
+        if (gui != null) return gui.isShowFPS();
         return false;
     }
 

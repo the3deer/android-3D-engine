@@ -21,7 +21,7 @@ import javax.inject.Inject;
  * Render shadows for the visible objects
  * The light comes from 1 single light source
  */
-@Bean(category = "Decorators", experimental = true, description = "Cast a shadow of the object in a plane on the ground")
+@Bean(category = "decorators", experimental = true)
 public class ShadowDrawer implements Drawer {
 
     @Inject
@@ -36,7 +36,7 @@ public class ShadowDrawer implements Drawer {
     private Light light;
 
     // shadowing
-    @BeanProperty(description = "Enable or disable shadows rendering")
+    @BeanProperty
     private boolean enabled = false;
     private ShadowsRenderer shadowsRenderer;
     private final float[] lightViewMatrix = new float[16];

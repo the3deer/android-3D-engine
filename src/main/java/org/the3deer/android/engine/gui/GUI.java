@@ -28,13 +28,13 @@ import java.util.Map;
 
 import javax.inject.Inject;
 
-@Bean(name = "GUI", experimental = true)
+@Bean(name="gui", experimental = true)
 public class GUI extends Widget implements EventListener, BeanManaged {
 
     private final static String TAG = GUI.class.getSimpleName();;
 
     private Label icon;
-    private boolean enableFPS = true;
+    private boolean showFPS = true;
 
     private Label fps;
     private Text info;
@@ -113,20 +113,20 @@ public class GUI extends Widget implements EventListener, BeanManaged {
         }
     }
 
-    public void setEnableFPS(boolean enable){
-        this.enableFPS = enable;
+    public void setShowFPS(boolean enable){
+        this.showFPS = enable;
         initFPS();
         propagate(new ChangeEvent(this));
     }
 
-    public boolean isEnableFPS(){
-        return this.enableFPS;
+    public boolean isShowFPS(){
+        return this.showFPS;
     }
 
     private void initFPS() {
 
         // frame-per-second
-        if (enableFPS) {
+        if (showFPS) {
             if (fps == null) {
                 fps = new Label(FontFactory.getInstance(), 7, 1);
                 fps.setId("fps");
@@ -307,7 +307,7 @@ public class GUI extends Widget implements EventListener, BeanManaged {
                         @Override
                         public boolean onEvent(EventObject event) {
                             if (event instanceof ChangeEvent && event.getSource() == GUI.this)
-                                setText(String.valueOf(GUI.this.enableFPS));
+                                setText(String.valueOf(GUI.this.showFPS));
                             return super.onEvent(event);
                         }
                     };

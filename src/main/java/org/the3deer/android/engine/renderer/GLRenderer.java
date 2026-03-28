@@ -13,6 +13,7 @@ import org.the3deer.util.bean.BeanInit;
 import org.the3deer.util.bean.BeanProperty;
 import org.the3deer.util.event.EventManager;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -26,7 +27,7 @@ import javax.microedition.khronos.opengles.GL10;
  * GL renderer
  * It calls all the @{@link Renderer#onDrawFrame()} in the list
  */
-@Bean(name = "OpenGL Settings")
+@Bean
 public class GLRenderer implements GLSurfaceView.Renderer {
 
     private final static String TAG = GLRenderer.class.getSimpleName();
@@ -42,13 +43,13 @@ public class GLRenderer implements GLSurfaceView.Renderer {
     @Inject
     private Map<String,Renderer> renderers;
 
-    @BeanProperty(name = "Renderers", description = "Select the renderer")
+    @BeanProperty
     private String activeRenderer;
 
     /**
      * Background GL clear color. Default is light gray
      */
-    @BeanProperty(name = "Background Color", description = "Select the default color for 3D models", valueNames = {"White", "Gray", "Black"})
+    @BeanProperty
     private float[] backgroundColor = Constants.COLOR_GRAY;
     /**
      * GL Screen width
@@ -105,14 +106,14 @@ public class GLRenderer implements GLSurfaceView.Renderer {
         return backgroundColor;
     }
 
-    @BeanProperty(name = "backgroundColor", valueNames = {"White", "Gray", "Black"})
+    @BeanProperty(name = "backgroundColor")
     public List<float[]> getBackgroundColorValues() {
         return Arrays.asList(Constants.COLOR_WHITE.clone(), Constants.COLOR_GRAY.clone(), Constants.COLOR_BLACK.clone());
     }
 
     @BeanProperty(name = "activeRenderer")
     public List<String> getActiveRendererValues() {
-        return Arrays.asList(this.renderers.keySet().toArray(new String[0]));
+        return new ArrayList<>(renderers.keySet());
     }
 
     public void updateModel(Model model){

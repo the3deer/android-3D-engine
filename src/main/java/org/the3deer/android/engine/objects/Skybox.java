@@ -19,7 +19,7 @@ import java.io.IOException;
  * https://learnopengl.com/Advanced-OpenGL/Cubemaps
  * https://github.com/mobialia/jmini3d
  */
-public class SkyBox {
+public class Skybox {
 
     private final static float VERTEX_DATA[] = {
             // positions
@@ -70,7 +70,7 @@ public class SkyBox {
 
     private CubeMap cubeMap = null;
 
-    public SkyBox(Uri[] images) throws IOException {
+    public Skybox(Uri[] images) throws IOException {
         if (images == null || images.length != 6)
             throw new IllegalArgumentException("skybox must contain exactly 6 faces");
         this.images = images;
@@ -98,9 +98,9 @@ public class SkyBox {
      *
      * @return
      */
-    public static SkyBox getSkyBox2() {
+    public static Skybox getSkybox2() {
         try {
-            return new SkyBox(new Uri[]{
+            return new Skybox(new Uri[]{
                     Uri.parse("android://org.the3deer.android.viewer/res/drawable/posx.png"),
                     Uri.parse("android://org.the3deer.android.viewer/res/drawable/negx.png"),
                     Uri.parse("android://org.the3deer.android.viewer/res/drawable/posy.png"),
@@ -117,9 +117,9 @@ public class SkyBox {
      *
      * @return
      */
-    public static SkyBox getSkyBox1() {
+    public static Skybox getSkybox1() {
         try {
-            return new SkyBox(new Uri[]{
+            return new Skybox(new Uri[]{
                     Uri.parse("android://org.the3deer.android.viewer/res/drawable/right.png"),
                     Uri.parse("android://org.the3deer.android.viewer/res/drawable/left.png"),
                     Uri.parse("android://org.the3deer.android.viewer/res/drawable/top.png"),
@@ -127,19 +127,19 @@ public class SkyBox {
                     Uri.parse("android://org.the3deer.android.viewer/res/drawable/front.png"),
                     Uri.parse("android://org.the3deer.android.viewer/res/drawable/back.png")});
         } catch (IOException e) {
-            Log.e("SkyBox", "Exception: " + e.getMessage(), e);
+            Log.e("Skybox", "Exception: " + e.getMessage(), e);
             throw new RuntimeException(e);
         }
     }
 
-    public static Object3D build(SkyBox skyBox) throws IOException {
+    public static Object3D build(Skybox skybox) throws IOException {
 
         Object3D ret = new Object3D(IOUtils.createFloatBuffer(VERTEX_DATA.length).put(VERTEX_DATA)).setId("skybox");
         ret.setDrawMode(GLES20.GL_TRIANGLES);
-        ret.setMaterial(new Material().setColorTexture(new Texture().setCubeMap(skyBox.getCubeMap())));
+        ret.setMaterial(new Material().setColorTexture(new Texture().setCubeMap(skybox.getCubeMap())));
 
 
-        Log.i("SkyBox", "Skybox : " + ret.getDimensions());
+        Log.i("Skybox", "Skybox : " + ret.getDimensions());
 
         return ret;
     }

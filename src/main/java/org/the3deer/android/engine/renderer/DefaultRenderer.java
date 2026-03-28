@@ -25,7 +25,7 @@ import java.util.List;
 
 import javax.inject.Inject;
 
-@Bean(name = "Default Renderer")
+@Bean
 public class DefaultRenderer implements Renderer, EventListener {
 
     private final static String TAG = DefaultRenderer.class.getSimpleName();

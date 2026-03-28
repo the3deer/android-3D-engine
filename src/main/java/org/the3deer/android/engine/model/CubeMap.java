@@ -1,7 +1,7 @@
 package org.the3deer.android.engine.model;
 
 /**
- * Cube with six textures used to implement the SkyBox
+ * Cube with six textures used to implement the Skybox
  */
 public final class CubeMap {
 

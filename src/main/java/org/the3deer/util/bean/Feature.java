@@ -11,8 +11,16 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.TYPE, ElementType.PACKAGE})
 public @interface Feature {
-    String category() default "";
+    /**
+     * @return the unique identifier of the feature.
+     */
     String name() default "";
-    String description() default "";
+    /**
+     * @return the category of the feature.
+     */
+    String category() default "";
+    /**
+     * @return true if the feature is experimental.
+     */
     boolean experimental() default false;
 }

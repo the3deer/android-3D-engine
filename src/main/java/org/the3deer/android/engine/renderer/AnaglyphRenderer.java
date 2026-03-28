@@ -23,7 +23,7 @@ import javax.inject.Inject;
  * the viewer sees a 3D image
  */
 //public class AnaglyphRenderer implements Renderer, EventListener {
-@Bean(name = "Anaglyph Renderer")
+@Bean
 public class AnaglyphRenderer extends DefaultRenderer {
 
     private final static String TAG = AnaglyphRenderer.class.getSimpleName();

@@ -19,7 +19,7 @@ import java.util.List;
 import javax.inject.Inject;
 import javax.inject.Named;
 
-@Bean(name = "Light Bulb Drawer", description = "Draws the light bulb")
+@Bean
 public class LightBulbDrawer implements Drawer, EventListener {
 
     private final static String TAG = LightBulbDrawer.class.getSimpleName();

@@ -24,7 +24,7 @@ import java.util.Map;
 
 import javax.inject.Inject;
 
-@Bean(name="Collision Points Drawer", description = "Draw points where the ray-object collisions take place")
+@Bean(category = "decorators")
 public class CollisionDrawer implements Drawer, EventListener {
 
     public static final String TAG = CollisionDrawer.class.getSimpleName();

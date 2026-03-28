@@ -11,15 +11,12 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.FIELD, ElementType.METHOD})
 public @interface BeanProperty {
-    String name() default "";
-
-    String description() default "";
-
-    String[] values() default {};
-
     /**
-     * Human-readable names for the values. 
-     * If used with a method providing dynamic values, these will be the display labels.
+     * @return the name (id) of the property.
      */
-    String[] valueNames() default {};
+    String name() default "";
+    /**
+     * @return an array with the list of allowed String values
+     */
+    String[] values() default {};
 }
