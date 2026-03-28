@@ -1,15 +1,24 @@
 package org.the3deer.android.engine.model;
 
 import android.util.Log;
-
 import androidx.annotation.NonNull;
 
+/**
+ * @author Andres Oviedo
+ * @author Gemini AI
+ */
 public class Screen {
 
     public int width;
     public int height;
 
     public float ratio;
+
+    // Window insets (safe area)
+    public int top;
+    public int bottom;
+    public int left;
+    public int right;
 
     public Screen(int width, int height) {
         this.setSize(width, height);
@@ -24,6 +33,14 @@ public class Screen {
         Log.i("Screen", "Screen size is width: "+ width + ", height: " + height + ", ratio: "+ratio);
     }
 
+    public void setInsets(int left, int top, int right, int bottom) {
+        this.left = left;
+        this.top = top;
+        this.right = right;
+        this.bottom = bottom;
+        Log.i("Screen", "Screen insets set: left=" + left + ", top=" + top + ", right=" + right + ", bottom=" + bottom);
+    }
+
     public int getWidth() {
         return width;
     }
@@ -36,6 +53,37 @@ public class Screen {
         return ratio;
     }
 
+    public int getTop() {
+        return top;
+    }
+
+    public int getBottom() {
+        return bottom;
+    }
+
+    public int getLeft() {
+        return left;
+    }
+
+    public int getRight() {
+        return right;
+    }
+
+    /**
+     * Returns the height of the screen minus the top and bottom insets.
+     * This represents the "safe" height for UI elements.
+     */
+    public int getSafeHeight() {
+        return height - top - bottom;
+    }
+
+    /**
+     * Returns the width of the screen minus the left and right insets.
+     */
+    public int getSafeWidth() {
+        return width - left - right;
+    }
+
     @NonNull
     @Override
     public String toString() {
@@ -43,6 +91,7 @@ public class Screen {
                 "width=" + width +
                 ", height=" + height +
                 ", ratio=" + ratio +
+                ", insets={left=" + left + ", top=" + top + ", right=" + right + ", bottom=" + bottom + "}" +
                 '}';
     }
 }

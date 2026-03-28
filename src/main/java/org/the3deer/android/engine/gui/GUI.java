@@ -8,6 +8,7 @@ import org.the3deer.android.engine.event.SelectedObjectEvent;
 import org.the3deer.android.engine.model.Camera;
 import org.the3deer.android.engine.model.Constants;
 import org.the3deer.android.engine.model.Dimensions;
+import org.the3deer.android.engine.model.ModelEvent;
 import org.the3deer.android.engine.model.Object3D;
 import org.the3deer.android.engine.model.Scene;
 import org.the3deer.android.engine.model.Screen;
@@ -89,6 +90,7 @@ public class GUI extends Widget implements EventListener, BeanManaged {
                 axis.setRelativeLocation(Widget.POSITION_TOP_RIGHT);
                 axis.setRelativeScale(new float[]{0.1f, 0.1f, 0.1f});
                 axis.setVisible(true);
+                axis.setScreen(screen);
             }
 
             initFPS();
@@ -133,6 +135,7 @@ public class GUI extends Widget implements EventListener, BeanManaged {
                 //fps.setPadding(1);
                 fps.setText("0 fps");
                 fps.setVisible(true);
+                fps.setScreen(screen);
                 addChild(fps);
             }
             fps.setRelativeScale(new float[]{0.10f, 0.10f, 0.10f});
@@ -149,6 +152,7 @@ public class GUI extends Widget implements EventListener, BeanManaged {
             info = Text.allocate(this, 15, 3, Text.PADDING_01);
             info.setId("info");
             info.setVisible(true);
+            info.setScreen(screen);
             //info.setParent(this);
             addChild(info);
         }
@@ -160,7 +164,15 @@ public class GUI extends Widget implements EventListener, BeanManaged {
 
     @Override
     public boolean onEvent(EventObject event) {
-        if (event instanceof GLEvent) {
+        if (event instanceof ModelEvent) {
+            final ModelEvent rev = (ModelEvent) event;
+            if (rev.getCode() == ModelEvent.Code.SCREEN_CHANGED) {
+                Log.v(TAG, "onEvent. SCREEN_CHANGED. Screen: "+this.screen);
+                setDimensions(calculateScreenDimensions());
+                refresh();
+                Log.v(TAG, "onEvent. SCREEN_CHANGED. Refreshed...");
+            }
+        } if (event instanceof GLEvent) {
             final GLEvent rev = (GLEvent) event;
             if (rev.getCode() == GLEvent.Code.SURFACE_CHANGED) {
                 Log.v(TAG, "onEvent. SURFACE_CHANGED. Screen: "+this.screen);
@@ -178,7 +190,7 @@ public class GUI extends Widget implements EventListener, BeanManaged {
             }
         } else if (event instanceof SelectedObjectEvent) {
             Log.v(TAG, "onEvent. SelectedObjectEvent: "+((SelectedObjectEvent) event).getSelected());
-            if (this.info != null && this.info.isVisible()) {
+            if (this.info != null) {
                 final Object3D selected = ((SelectedObjectEvent) event).getSelected();
                 if (selected != null) {
                     final StringBuilder info = new StringBuilder();
@@ -203,6 +215,9 @@ public class GUI extends Widget implements EventListener, BeanManaged {
 
                     Log.v("GUI", "Selected object info: " + info);
                     this.info.update(info.toString().toLowerCase());
+                   this.info.setVisible(true);
+                } else {
+                   this.info.setVisible(false);
                 }
             }
         } else if (event instanceof Window.WindowClosed) {

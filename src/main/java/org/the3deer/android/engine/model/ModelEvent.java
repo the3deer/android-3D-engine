@@ -4,7 +4,10 @@ import java.util.EventObject;
 
 public class ModelEvent extends EventObject {
 
-    public enum Code { LOADED }
+    public enum Code {
+        LOADED,
+        SCREEN_CHANGED
+    }
 
     private final Code code;
 

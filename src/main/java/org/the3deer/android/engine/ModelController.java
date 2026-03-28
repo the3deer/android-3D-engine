@@ -8,6 +8,7 @@ import org.the3deer.android.engine.collision.CollisionController;
 import org.the3deer.android.engine.collision.CollisionEvent;
 import org.the3deer.android.engine.controller.TouchController;
 import org.the3deer.android.engine.controller.TouchEvent;
+import org.the3deer.android.engine.event.SelectedObjectEvent;
 import org.the3deer.android.engine.gui.GUI;
 import org.the3deer.android.engine.gui.GUIDrawer;
 import org.the3deer.android.engine.model.Camera;
@@ -167,10 +168,18 @@ public class ModelController implements EventManager, GLTouchHandler {
                 // select object
                 sceneManager.getActiveScene().setSelectedObject(null);
 
+                // fire event
+                AndroidUtils.fireEvent(listeners, new SelectedObjectEvent(this, null));
+
+
             } else {
 
                 // select object
                 sceneManager.getActiveScene().setSelectedObject(hit);
+
+                // fire event
+                AndroidUtils.fireEvent(listeners, new SelectedObjectEvent(this, hit));
+
             }
 
             AndroidUtils.fireEvent(listeners, event);
