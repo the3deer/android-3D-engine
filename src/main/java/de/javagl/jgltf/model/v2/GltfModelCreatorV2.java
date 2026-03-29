@@ -26,7 +26,7 @@
  */
 package de.javagl.jgltf.model.v2;
 
-import org.the3deer.util.android.AndroidUtils;
+import org.the3deer.android.util.AndroidUtils;
 
 import java.nio.ByteBuffer;
 import java.util.LinkedHashMap;
@@ -800,7 +800,7 @@ public class GltfModelCreatorV2
         }
         String path = animationChannelTarget.getPath();
         
-        AnimationModel.Channel channel = 
+        Channel channel =
             new DefaultChannel(sampler, nodeModel, path);
         return channel;
     }
@@ -1070,6 +1070,10 @@ public class GltfModelCreatorV2
             AccessorModel inverseBindMatrices = 
                 gltfModel.getAccessorModel(inverseBindMatricesIndex);
             skinModel.setInverseBindMatrices(inverseBindMatrices);
+            Integer skeleton = skin.getSkeleton();
+            if (skeleton != null) {
+                skinModel.setSkeleton(gltfModel.getNodeModel(skeleton));
+            }
         }
     }
     

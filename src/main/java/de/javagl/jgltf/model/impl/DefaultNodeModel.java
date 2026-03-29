@@ -208,7 +208,16 @@ public class DefaultNodeModel extends AbstractNamedModelElement
     {
         return Collections.unmodifiableList(meshModels);
     }
-    
+
+    @Override
+    public MeshModel getMeshModel() {
+        if (meshModels == null || meshModels.isEmpty()) {
+            return null;
+        }
+        return meshModels.get(0);
+    }
+
+
     @Override
     public SkinModel getSkinModel()
     {

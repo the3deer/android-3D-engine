@@ -3,9 +3,6 @@ package org.the3deer.util.math;
 import android.opengl.Matrix;
 import android.util.Log;
 
-import org.the3deer.android_3d_model_engine.animation.JointTransform;
-import org.the3deer.android_3d_model_engine.model.Constants;
-
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
@@ -32,6 +29,16 @@ public class Math3DUtils {
         matrix = new float[16];
         Matrix.setIdentityM(matrix, 0);
         return matrix;
+    }
+
+    public static boolean isIdentity(float[] matrix) {
+        if (matrix == null) return false;
+        for (int i = 0; i < 16; i++) {
+            if (matrix[i] != ((i % 5 == 0) ? 1.0f : 0.0f)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**
@@ -257,48 +264,6 @@ public class Math3DUtils {
 
     public static float[] calculateFaceCenter(float[] v0, float[] v1, float[] v2) {
         return new float[]{(v0[0] + v1[0] + v2[0]) / 3, (v0[1] + v1[1] + v2[1]) / 3, (v0[2] + v1[2] + v2[2]) / 3};
-    }
-
-    /**
-     * Calculates the distance of the intersection between the specified ray and the target, or return -1 if the ray
-     * doesn't intersect the target
-     *
-     * @param rayPoint1 where the ray starts
-     * @param rayPoint2 where the ray ends
-     * @param target    where is the object to intersect
-     * @param precision the radius to test for intersection
-     * @return the distance of intersection
-     * @deprecated
-     */
-    public static float calculateDistanceOfIntersection(float[] rayPoint1, float[] rayPoint2, float[] target,
-                                                        float precision) {
-        float raySteps = 100f;
-        float objHalfWidth = precision / 2;
-
-        float length = Matrix.length(rayPoint2[0] - rayPoint1[0], rayPoint2[1] - rayPoint1[1],
-                rayPoint2[2] - rayPoint1[2]);
-        float lengthDiff = length / raySteps;
-
-        float xDif = (rayPoint2[0] - rayPoint1[0]) / raySteps;
-        float yDif = (rayPoint2[1] - rayPoint1[1]) / raySteps;
-        float zDif = (rayPoint2[2] - rayPoint1[2]) / raySteps;
-
-        for (int i = 0; i < raySteps; i++) {
-            // @formatter:off
-            if ((rayPoint1[0] + (xDif * i)) > target[0] - objHalfWidth
-                    && (rayPoint1[0] + (xDif * i)) < target[0] + objHalfWidth
-                    && (rayPoint1[1] + (yDif * i)) > target[1] - objHalfWidth
-                    && (rayPoint1[1] + (yDif * i)) < target[1] + objHalfWidth
-                    && (rayPoint1[2] + (zDif * i)) > target[2] - objHalfWidth
-                    && (rayPoint1[2] + (zDif * i)) < target[2] + objHalfWidth) {
-                // @formatter:on
-                // Log.v(TouchController.TAG, "HIT: i[" + i + "] wz[" + (rayPoint1[2] + (zDif * i)) + "]");
-                // return new Object[] { i * lengthDiff, new float[] { rayPoint1[0] + (xDif * i),
-                // rayPoint1[1] + (yDif * i), rayPoint1[2] + (zDif * i) } };
-                return i * lengthDiff;
-            }
-        }
-        return -1;
     }
 
     /**
@@ -573,6 +538,15 @@ public class Math3DUtils {
         return (float) Math.sqrt(x * x + y * y + z * z);
     }
 
+    public static void interpolate(org.the3deer.android.engine.animation.JointTransform result, org.the3deer.android.engine.animation.JointTransform start, org.the3deer.android.engine.animation.JointTransform end, float progression) {
+        interpolate(result.getScale(), start.getScale(), end.getScale(), progression);
+        interpolate(result.getLocation(), start.getLocation(), end.getLocation(), progression);
+        /*interpolate(result.getRotation1(), start.getRotation1(), end.getRotation1(), progression);
+        interpolate(result.getRotation2(), start.getRotation2(), end.getRotation2(), progression);
+        interpolate(result.getRotation2Location(), start.getRotation2Location(), end.getRotation2Location(), progression);*/
+        Quaternion.interpolate(result.getQRotation(), start.getQRotation(), end.getQRotation(), progression);
+    }
+
     public static void interpolate(JointTransform result, JointTransform start, JointTransform end, float progression) {
         interpolate(result.getScale(), start.getScale(), end.getScale(), progression);
         interpolate(result.getLocation(), start.getLocation(), end.getLocation(), progression);
@@ -828,7 +802,7 @@ public class Math3DUtils {
         //cross[2] = 0;
         float[] rotationMatrix = Math3DUtils.createRotationMatrixAroundVector(angle, cross[0], cross[1], cross[2]);
 
-        Log.i("HoleCutter", "normal: " + Arrays.toString(normal) + ", angle: " + angle + ", axis: " + Arrays.toString(cross));
+        Log.v("HoleCutter", "normal: " + Arrays.toString(normal) + ", angle: " + angle + ", axis: " + Arrays.toString(cross));
         return rotationMatrix;
     }
 
@@ -964,6 +938,31 @@ public class Math3DUtils {
     public static boolean equals(float[] v1, float[] v2, float factor) {
         return v1 == v2 || v1[0]*factor/factor == v2[0]*factor/factor  && v1[1]*factor/factor  == v2[1]*factor/factor
                 && v1[2]*factor/factor  == v2[2]*factor/factor ;
+    }
+
+    /**
+     * Normalize a vector using double precision for improved accuracy.
+     * @param a the vector to normalize
+     */
+    public static void normalizeVectorHighPrecision(float[] a) {
+        double length = Math.sqrt(a[0]*a[0] + a[1]*a[1] + a[2]*a[2]);
+        if (length == 0) return;
+        a[0] = (float)(a[0] / length);
+        a[1] = (float)(a[1] / length);
+        a[2] = (float)(a[2] / length);
+    }
+
+    /**
+     * Normalize a 4D vector using double precision for improved accuracy.
+     * @param a the vector to normalize
+     */
+    public static void normalizeVector4HighPrecision(float[] a) {
+        double length = Math.sqrt(a[0]*a[0] + a[1]*a[1] + a[2]*a[2] + a[3]*a[3]);
+        if (length == 0) return;
+        a[0] = (float)(a[0] / length);
+        a[1] = (float)(a[1] / length);
+        a[2] = (float)(a[2] / length);
+        a[3] = (float)(a[3] / length);
     }
 }
 

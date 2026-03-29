@@ -1,3 +1,4 @@
+package de.javagl.jgltf.model.image;
 /*
  * www.javagl.de - JglTF
  *

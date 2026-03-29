@@ -53,6 +53,15 @@ public interface AccessorData
      * @return The component type
      */
     Class<?> getComponentType();
+
+     /**
+     * Returns the GL constant for the component type of the data of this
+     * accessor. This may be GL_UNSIGNED_BYTE, GL_UNSIGNED_SHORT,
+     * GL_UNSIGNED_INT or GL_FLOAT.
+     *
+     * @return The GL component type.
+     */
+    int getGlComponentType();
     
     /**
      * Returns the number of elements in this data (for example, the number

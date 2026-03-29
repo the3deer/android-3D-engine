@@ -40,6 +40,10 @@ public final class IOUtils {
         return buffer.toByteArray();
     }
 
+    public static FloatBuffer createFloatBuffer(float[] floats) {
+        return createNativeByteBuffer(floats.length * 4).asFloatBuffer().put(floats);
+    }
+
     public static FloatBuffer createFloatBuffer(int floats) {
         return createNativeByteBuffer(floats * 4).asFloatBuffer();
     }
@@ -52,8 +56,16 @@ public final class IOUtils {
         return floatBuffer;
     }
 
+    public static IntBuffer createIntBuffer(int[] integers) {
+        return createNativeByteBuffer(integers.length * 4).asIntBuffer().put(integers);
+    }
+
     public static IntBuffer createIntBuffer(int integers) {
         return createNativeByteBuffer(integers * 4).asIntBuffer();
+    }
+
+    public static ShortBuffer createShortBuffer(short[] shorts) {
+        return createNativeByteBuffer(shorts.length * 2).asShortBuffer().put(shorts);
     }
 
     public static ShortBuffer createShortBuffer(int shorts) {
@@ -90,5 +102,17 @@ public final class IOUtils {
                 }
             }
         }
+    }
+
+    public static int getIntBufferValue(Buffer indexBuffer, int i) {
+        int ret = -1;
+        if (indexBuffer instanceof IntBuffer) {
+            ret = ((IntBuffer) indexBuffer).get(i);
+        } else if (indexBuffer instanceof ShortBuffer) {
+            ret = Short.toUnsignedInt(((ShortBuffer) indexBuffer).get(i));
+        } else if (indexBuffer instanceof ByteBuffer) {
+            ret = Byte.toUnsignedInt(((ByteBuffer) indexBuffer).get(i));
+        }
+        return ret;
     }
 }

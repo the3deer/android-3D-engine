@@ -5,8 +5,6 @@ import android.util.Log;
 
 import androidx.annotation.Nullable;
 
-import org.the3deer.android_3d_model_engine.model.Constants;
-
 /**
  * A quaternion simply represents a 3D rotation. The maths behind it is quite
  * complex (literally; it involves complex numbers) so I wont go into it in too
@@ -32,8 +30,8 @@ public class Quaternion {
     private float x, y, z, w;
     private boolean normalized;
 
-    public Quaternion(float[] matrix) {
-        this.matrix = matrix;
+    public Quaternion(float[] rotation) {
+        this(rotation[0], rotation[1], rotation[2], rotation[3]);
     }
 
     public Quaternion() {
@@ -55,24 +53,47 @@ public class Quaternion {
         this.w = w;
     }
 
+    /**
+     * Convert an euler rotation to a quaternion
+     *
+     * @param roll x in degrees
+     * @param pitch y in degrees
+     * @param yaw z in degrees
+     * @return the corresponding quaternion
+     */
+    public static Quaternion fromEulerD(double roll, double pitch, double yaw) {
+        return fromEuler(Math.toRadians(roll), Math.toRadians(pitch), Math.toRadians(yaw));
+    }
+    /**
+     * Convert an euler rotation to a quaternion
+     *
+     * @param roll x in radians
+     * @param pitch y in radians
+     * @param yaw z in radians
+     * @return the corresponding quaternion
+     */
     public static Quaternion fromEuler(double roll, double pitch, double yaw) {
         // This is not in game format, it is in mathematical format.
-            // Abbreviations for the various angular functions
+        // Abbreviations for the various angular functions
 
-            double cr = Math.cos(roll * 0.5);
-            double sr = Math.sin(roll * 0.5);
-            double cp = Math.cos(pitch * 0.5);
-            double sp = Math.sin(pitch * 0.5);
-            double cy = Math.cos(yaw * 0.5);
-            double sy = Math.sin(yaw * 0.5);
+        if (roll == 0 && pitch == 0 && yaw == 0) {
+            return new Quaternion();
+        }
 
-            Quaternion q = new Quaternion();
-            q.w = (float) (cr * cp * cy + sr * sp * sy);
-            q.x = (float) (sr * cp * cy - cr * sp * sy);
-            q.y = (float) (cr * sp * cy + sr * cp * sy);
-            q.z = (float) (cr * cp * sy - sr * sp * cy);
+        double cr = Math.cos(roll * 0.5);
+        double sr = Math.sin(roll * 0.5);
+        double cp = Math.cos(pitch * 0.5);
+        double sp = Math.sin(pitch * 0.5);
+        double cy = Math.cos(yaw * 0.5);
+        double sy = Math.sin(yaw * 0.5);
 
-            return q;
+        Quaternion q = new Quaternion();
+        q.w = (float) (cr * cp * cy + sr * sp * sy);
+        q.x = (float) (sr * cp * cy - cr * sp * sy);
+        q.y = (float) (cr * sp * cy + sr * cp * sy);
+        q.z = (float) (cr * cp * sy - sr * sp * cy);
+
+        return q;
     }
 
     private void fixWeight() {
@@ -93,7 +114,7 @@ public class Quaternion {
      * @return the corresponding quaternion rotation
      */
     public static Quaternion fromMatrix(float[] matrix) {
-        if (Constants.STRATEGY_NEW) {
+        if (Constants.STRATEGY_QUATERNION_NEW) {
             return fromRotationMatrix(matrix);
         } else {
             return fromMatrix1(matrix);
@@ -102,7 +123,7 @@ public class Quaternion {
 
     // FIXME
     private float[] toRotationMatrix(float[] matrix) {
-        if (Constants.STRATEGY_NEW) {
+        if (Constants.STRATEGY_QUATERNION_NEW) {
             //return toRotationMatrixWikipedia(matrix);
             return toRotationMatrixPy(matrix);
             //return toRotationMatrix2(matrix);
@@ -142,7 +163,7 @@ public class Quaternion {
      */
     public static Quaternion fromMatrix1(float[] matrix) {
 
-    // check
+        // check
         if (matrix == null) return null;
 
         float w, x, y, z;
@@ -193,7 +214,7 @@ public class Quaternion {
      * @return the (modified) current instance (for chaining)
      */
     private static Quaternion fromRotationMatrix(float m00, float m01, float m02,
-                                         float m10, float m11, float m12, float m20, float m21, float m22) {
+                                                 float m10, float m11, float m12, float m20, float m21, float m22) {
         // first normalize the forward (F), up (U) and side (S) vectors of the rotation matrix
         // so that positive scaling does not affect the rotation
         double lengthSquared = m00 * m00 + m10 * m10 + m20 * m20;
@@ -274,13 +295,13 @@ public class Quaternion {
         return this.x == 0 && this.y == 0 && this.z == 0 && w == 1;
     }
 
-    private Quaternion setMatrix(float[] matrix) {
+    public Quaternion setMatrix(float[] matrix) {
         this.matrix = matrix;
         return this;
     }
 
-    public float[] getMatrix(){
-        if (matrix == null){
+    public float[] getMatrix() {
+        if (matrix == null) {
             matrix = toRotationMatrix(null);
         }
         return matrix;
@@ -313,7 +334,7 @@ public class Quaternion {
         float sqy = y * y;
         float sqz = z * z;
         float checksum = sqx + sqy + sqz + sqw; // if normalized is one, otherwise
-        if (checksum == 1){
+        if (checksum == 1) {
             normalized = true;
             return this;
         }
@@ -332,8 +353,8 @@ public class Quaternion {
         sqz = z * z;
         checksum = sqx + sqy + sqz + sqw; // if normalized is one, otherwise
 
-        if (Math.abs(1 - checksum) > 0.00001){
-            Log.e("Quaternion", "Unexpected checksum '"+checksum+"',  "+this);
+        if (Math.abs(1 - checksum) > 0.00001) {
+            Log.e("Quaternion", "Unexpected checksum '" + checksum + "',  " + this);
         }
 
         //fixWeight();
@@ -349,7 +370,7 @@ public class Quaternion {
      * when post-multiplying with a column vector is given by a 3x3 matrix
      * </p>
      * <p>
- * An efficient calculation in which the quaternion does not need to be unit normalized is given by
+     * An efficient calculation in which the quaternion does not need to be unit normalized is given by
      *
      * <pre>
      * 1 - cc - dd  bc - ad      bd + ac
@@ -403,6 +424,7 @@ public class Quaternion {
     /**
      * This has a problem. when x=0.7, y=0, z=0, w=0.7 (that is +180 degrees)
      * the returned matrix contains a negative angle.
+     *
      * @param matrix the data buffer
      * @return the corresponding matrix
      */
@@ -460,54 +482,54 @@ public class Quaternion {
     }
 
     /**
-     *  """
-     *         Covert a quaternion into a full three-dimensional rotation matrix.
+     * """
+     * Covert a quaternion into a full three-dimensional rotation matrix.
+     * <p>
+     * Input
+     * :param Q: A 4 element array representing the quaternion (q0,q1,q2,q3)
+     * <p>
+     * Output
+     * :return: A 3x3 element matrix representing the full 3D rotation matrix.
+     * This rotation matrix converts a point in the local reference
+     * frame to a point in the global reference frame.
+     * """
      *
-     *         Input
-     *         :param Q: A 4 element array representing the quaternion (q0,q1,q2,q3)
-     *
-     *         Output
-     *         :return: A 3x3 element matrix representing the full 3D rotation matrix.
-     *                  This rotation matrix converts a point in the local reference
-     *                  frame to a point in the global reference frame.
-     *         """
      * @param matrix
      */
-    public float[] toRotationMatrixPy(float[] matrix){
+    public float[] toRotationMatrixPy(float[] matrix) {
 
         if (matrix == null) {
             matrix = new float[16];
         }
-        Matrix.setIdentityM(matrix,0);
+        Matrix.setIdentityM(matrix, 0);
 
         // check
         if (x == 0 && y == 0 && z == 0 && w == 1) return matrix;
 
-    // Extract the values from Q
+        // Extract the values from Q
         float q0 = w;
         float q1 = x;
         float q2 = y;
         float q3 = z;
 
-    // First row of the rotation matrix
+        // First row of the rotation matrix
         float r00 = 2 * (q0 * q0 + q1 * q1) - 1;
         float r01 = 2 * (q1 * q2 - q0 * q3);
         float r02 = 2 * (q1 * q3 + q0 * q2);
 
-    // Second row of the rotation matrix
+        // Second row of the rotation matrix
         float r10 = 2 * (q1 * q2 + q0 * q3);
         float r11 = 2 * (q0 * q0 + q2 * q2) - 1;
         float r12 = 2 * (q2 * q3 - q0 * q1);
 
-    // Third row of the rotation matrix
+        // Third row of the rotation matrix
         float r20 = 2 * (q1 * q3 - q0 * q2);
         float r21 = 2 * (q2 * q3 + q0 * q1);
         float r22 = 2 * (q0 * q0 + q3 * q3) - 1;
 
 
-
         // 3x3 rotation matrix
-                //rot_matrix = np.array([[r00, r01, r02],
+        //rot_matrix = np.array([[r00, r01, r02],
 //                           [r10, r11, r12],
 //                           [r20, r21, r22]])
 
@@ -527,6 +549,7 @@ public class Quaternion {
     /**
      * This has a problem. when x=0.7, y=0, z=0, w=0.7 (that is +180 degrees)
      * the returned matrix contains a negative angle.
+     *
      * @param matrix the data buffer
      * @return the corresponding matrix
      */
@@ -658,18 +681,30 @@ public class Quaternion {
 
     /**
      * Return the corresponding euler angles in radians
+     *
+     * @return the corresponding euler angles in radians
+     */
+    public float[] toAngles() {
+        float[] angles = new float[3];
+        return toAngles(angles);
+    }
+
+    /**
+     * Return the corresponding euler angles in radians
+     *
      * @param angles buffer data
      * @return the corresponding euler angles in radians
      */
     public float[] toAngles(float[] angles) {
-        if (angles == null){
+        if (angles == null) {
             angles = new float[3];
         }
-        if (Constants.STRATEGY_NEW) {
-            if (getDefaultAngle(angles) != null){
+        if (Constants.STRATEGY_QUATERNION_NEW) {
+            if (getDefaultAngle(angles) != null) {
+                //Log.v("Quaternion", "getDefaultAngle: "+ Arrays.toString(angles)+" => "+getDefaultAngle(angles));
                 return angles;
             } else {
-                return toEulerAnglesWikipedia(angles);
+                return toEulerAnglesGemini(angles);
                 //return toEulerAnglesES(angles);
                 //return toAngles1(angles);
             }
@@ -679,7 +714,6 @@ public class Quaternion {
     }
 
     /**
-     *
      * Heading – ψ: rotation about the Z-axis
      * Pitch –   θ: rotation about the new Y-axis
      * Bank – ϕ: rotation about the new X-axis
@@ -691,25 +725,25 @@ public class Quaternion {
      * @param angles
      * @return
      */
-    private float[] toEulerAnglesES(float[] angles){
+    private float[] toEulerAnglesES(float[] angles) {
 
-        if (angles == null){
+        if (angles == null) {
             angles = new float[3];
         }
 
         Quaternion q1 = this;
 
-        if (getDefaultAngle(angles) != null){
+        if (getDefaultAngle(angles) != null) {
             return angles;
         }
 
-        float sqw = q1.w*q1.w;
-        float sqx = q1.x*q1.x;
-        float sqy = q1.y*q1.y;
-        float sqz = q1.z*q1.z;
-        double heading = Math.atan2(2.0 * (q1.x*q1.y + q1.z*q1.w),(sqx - sqy - sqz + sqw));
-        double bank = Math.atan2(2.0 * (q1.y*q1.z + q1.x*q1.w),(-sqx - sqy + sqz + sqw));
-        double attitude = Math.asin(-2.0 * (q1.x*q1.z - q1.y*q1.w)/sqx + sqy + sqz + sqw);
+        float sqw = q1.w * q1.w;
+        float sqx = q1.x * q1.x;
+        float sqy = q1.y * q1.y;
+        float sqz = q1.z * q1.z;
+        double heading = Math.atan2(2.0 * (q1.x * q1.y + q1.z * q1.w), (sqx - sqy - sqz + sqw));
+        double bank = Math.atan2(2.0 * (q1.y * q1.z + q1.x * q1.w), (-sqx - sqy + sqz + sqw));
+        double attitude = Math.asin(-2.0 * (q1.x * q1.z - q1.y * q1.w) / sqx + sqy + sqz + sqw);
 
         if (Double.isNaN(heading) || Double.isNaN(bank) || Double.isNaN(attitude)) {
             //Log.e("Quaternion", "NaN: "+this);
@@ -724,8 +758,51 @@ public class Quaternion {
         return angles;
     }
 
-    private float[] toEulerAnglesWikipedia(float[] angles){
-        if (angles == null){
+    /**
+     * Converts this quaternion into a set of Euler angles (roll, pitch, yaw).
+     * This implementation is robust against Gimbal Lock. The rotation order
+     * is assumed to be Z-Y-X (yaw, pitch, roll).
+     *
+     * @param angles an array of 3 floats to store the results (roll, pitch, yaw).
+     *               If null, a new array will be allocated.
+     * @return a float array containing the Euler angles in degrees:
+     *         angles[0] = roll (X-axis rotation)
+     *         angles[1] = pitch (Y-axis rotation)
+     *         angles[2] = yaw (Z-axis rotation)
+     */
+    public float[] toEulerAnglesGemini(@Nullable float[] angles) {
+        if (angles == null) {
+            angles = new float[3];
+        }
+
+        // Ensure the quaternion is normalized before conversion
+        this.normalize();
+
+        // Pre-calculate products for efficiency
+        double y_sq = y * y;
+
+        // Roll (X-axis rotation)
+        double t0 = 2.0 * (w * x + y * z);
+        double t1 = 1.0 - 2.0 * (x * x + y_sq);
+        angles[0] = (float) Math.toDegrees(Math.atan2(t0, t1));
+
+        // Pitch (Y-axis rotation)
+        double t2 = 2.0 * (w * y - z * x);
+        // Clamp t2 to the range [-1, 1] to handle floating point errors
+        t2 = Math.max(-1.0, Math.min(1.0, t2));
+        angles[1] = (float) Math.toDegrees(Math.asin(t2));
+
+        // Yaw (Z-axis rotation)
+        double t3 = 2.0 * (w * z + x * y);
+        double t4 = 1.0 - 2.0 * (y_sq + z * z);
+        angles[2] = (float) Math.toDegrees(Math.atan2(t3, t4));
+
+        return angles;
+    }
+
+
+    private float[] toEulerAnglesWikipedia(float[] angles) {
+        if (angles == null) {
             angles = new float[3];
         }
 
@@ -746,13 +823,13 @@ public class Quaternion {
         double cosy_cosp = 1 - 2 * (q.y * q.y + q.z * q.z);
         angles[2] = (float) Math.atan2(siny_cosp, cosy_cosp);
 
-        if (Float.isNaN(angles[0])){
+        if (Float.isNaN(angles[0])) {
             angles[0] = 0f;
         }
-        if (Float.isNaN(angles[1])){
+        if (Float.isNaN(angles[1])) {
             angles[1] = 0f;
         }
-        if (Float.isNaN(angles[2])){
+        if (Float.isNaN(angles[2])) {
             angles[2] = 0f;
         }
 
@@ -760,6 +837,10 @@ public class Quaternion {
         angles[0] = (float) Math.toDegrees(angles[0]);
         angles[1] = (float) Math.toDegrees(angles[1]);
         angles[2] = (float) Math.toDegrees(angles[2]);
+
+        for(int i=0; i<3; i++) {
+            if (Math.abs(angles[i]) < 0.0001) angles[i] = 0.0f;
+        }
 
         return angles;
     }
@@ -770,44 +851,42 @@ public class Quaternion {
      * @param angles
      * @return
      */
-    public float[] toEulerAngles3(float[] angles){
-            if (angles == null){
-                angles = new float[3];
-            }
+    public float[] toEulerAngles3(float[] angles) {
+        if (angles == null) {
+            angles = new float[3];
+        }
 
-            Quaternion q = this;
+        Quaternion q = this;
 
-            // roll / x
-            double sinr_cosp = 2 * (q.w * q.x + q.y * q.z);
-            double cosr_cosp = 1 - 2 * (q.x * q.x + q.y * q.y);
-            angles[0] = (float)Math.atan2(sinr_cosp, cosr_cosp);
+        // roll / x
+        double sinr_cosp = 2 * (q.w * q.x + q.y * q.z);
+        double cosr_cosp = 1 - 2 * (q.x * q.x + q.y * q.y);
+        angles[0] = (float) Math.atan2(sinr_cosp, cosr_cosp);
 
-            // pitch / y
-            double sinp = 2 * (q.w * q.y - q.z * q.x);
-            if (Math.abs(sinp) >= 1)
-            {
-                angles[1] = (float)Math.copySign(Math.PI / 2, sinp);
-            }
-            else
-            {
-                angles[1] = (float)Math.asin(sinp);
-            }
+        // pitch / y
+        double sinp = 2 * (q.w * q.y - q.z * q.x);
+        if (Math.abs(sinp) >= 1) {
+            angles[1] = (float) Math.copySign(Math.PI / 2, sinp);
+        } else {
+            angles[1] = (float) Math.asin(sinp);
+        }
 
-            // yaw / z
-            double siny_cosp = 2 * (q.w * q.z + q.x * q.y);
-            double cosy_cosp = 1 - 2 * (q.z * q.y + q.z * q.z);
-            angles[2] = (float)Math.atan2(siny_cosp, cosy_cosp);
+        // yaw / z
+        double siny_cosp = 2 * (q.w * q.z + q.x * q.y);
+        double cosy_cosp = 1 - 2 * (q.z * q.y + q.z * q.z);
+        angles[2] = (float) Math.atan2(siny_cosp, cosy_cosp);
 
-            // conver to degrees
-            angles[0] = (float) Math.toDegrees(angles[0]);
-            angles[1] = (float) Math.toDegrees(angles[1]);
-            angles[2] = (float) Math.toDegrees(angles[2]);
+        // conver to degrees
+        angles[0] = (float) Math.toDegrees(angles[0]);
+        angles[1] = (float) Math.toDegrees(angles[1]);
+        angles[2] = (float) Math.toDegrees(angles[2]);
 
-            return angles;
+        return angles;
     }
 
     /**
      * Return the corresponding euler angles in radians
+     *
      * @param angles buffer data
      * @return the corresponding euler angles in radians
      */
@@ -880,7 +959,7 @@ public class Quaternion {
             angles[1] = 180;
             angles[2] = 0;
             return angles;
-        } else if (z == 1 && x == 0 && y== 0 && w < 0) {
+        } else if (z == 1 && x == 0 && y == 0 && w < 0) {
             angles[0] = 0;
             angles[1] = 0;
             angles[2] = -180;
@@ -896,12 +975,23 @@ public class Quaternion {
 
     /**
      * Return the corresponding euler angles (degrees)
+     *
+     * @return the corresponding euler angles (degrees)
+     */
+    public Float[] toAnglesF() {
+        Float[] dest = new Float[3];
+        return toAnglesF(dest);
+    }
+
+    /**
+     * Return the corresponding euler angles (degrees)
+     *
      * @param dest buffer data
      * @return the corresponding euler angles (degrees)
      */
-    public Float[] toAngles2(Float[] dest) {
+    public Float[] toAnglesF(Float[] dest) {
         float[] angles = toAngles(null);
-        if (dest == null){
+        if (dest == null) {
             dest = new Float[3];
         }
         dest[0] = angles[0];
@@ -917,6 +1007,10 @@ public class Quaternion {
      */
     public Quaternion getConjugate() {
         return new Quaternion(-this.x, -this.y, -this.z, this.w);
+    }
+
+    public Quaternion multiply(final Quaternion q2) {
+        return multiply(this, q2);
     }
 
     /**
@@ -1012,6 +1106,14 @@ public class Quaternion {
         return new Quaternion(-this.x, -this.y, -this.z, this.w);
     }
 
-
-
+    @Override
+    public boolean equals(@Nullable Object obj) {
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+        Quaternion that = (Quaternion) obj;
+        return Float.compare(that.x, x) == 0 &&
+                Float.compare(that.y, y) == 0 &&
+                Float.compare(that.z, z) == 0 &&
+                Float.compare(that.w, w) == 0;
+    }
 }

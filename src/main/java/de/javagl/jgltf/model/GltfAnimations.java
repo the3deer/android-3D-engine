@@ -92,12 +92,12 @@ public class GltfAnimations
     }
     
     /**
-     * Create one {@link Animation} for each {@link AnimationModel.Channel}.
+     * Create one {@link Animation} for each {@link Channel}.
      * If there is any error or inconsistency in the given data, then a 
      * warning will be printed and the respective animation will be
      * skipped.
      * 
-     * @param channels The {@link AnimationModel.Channel} list
+     * @param channels The {@link Channel} list
      * @return The list of model animations
      */
     private static List<Animation> createModelAnimationsForChannels(
@@ -118,11 +118,11 @@ public class GltfAnimations
     
     /**
      * Create the {@link Animation} for the given 
-     * {@link AnimationModel.Channel}. If there is any error or inconsistency 
+     * {@link Channel}. If there is any error or inconsistency
      * in the given data, then a warning will be printed and <code>null</code> 
      * will be returned.
      * 
-     * @param channel The {@link AnimationModel.Channel}
+     * @param channel The {@link Channel}
      * @return The {@link Animation}, or <code>null</code>.
      */
     private static Animation createModelAnimation(Channel channel)
