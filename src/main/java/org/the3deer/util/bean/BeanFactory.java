@@ -343,13 +343,13 @@ public class BeanFactory {
                         if (field.getType().isAssignableFrom(beanUpdated.getClass())) {
                             if (id.equals(named) || duplicates.size() == 1 || beanIdx == 0) {
                                 field.set(bean, beanUpdated);
-                                onBeanUpdateCallback(bean, id, beanUpdated);
+                                onBeanUpdateCallback(id, bean, beanUpdated);
                             }
                         } else if (field.getType().isAssignableFrom(List.class) && field.getGenericType() instanceof ParameterizedType) {
                             final Class<?> type = (Class<?>) ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[0];
                             if (type.isAssignableFrom(beanUpdated.getClass())) {
                                 field.set(bean, findAll(type, null));
-                                onBeanUpdateCallback(bean, entry.getKey(), beanUpdated);
+                                onBeanUpdateCallback(entry.getKey(), bean, beanUpdated);
                             }
                         }
                     }
@@ -378,9 +378,15 @@ public class BeanFactory {
         this.definitionsUpdated = true;
     }
 
-    public void add(String id, Object object) {
-        if (this.beans.containsKey(id)) throw new IllegalArgumentException("Bean already exists: "+id);
-        this.addOrReplace(id, object);
+    public boolean add(String id, Object object) {
+
+        // check bean exists and it is the same
+        if (this.beans.containsKey(id) && this.beans.get(id) == object) return false;
+
+        // add bean
+        addOrReplace(id, object);
+
+        return true;
     }
 
     public <T> T addAndGet(String id, Class<T> clazz) {
@@ -441,7 +447,7 @@ public class BeanFactory {
             }
         }
         if (!ret.isEmpty()) {
-            Collections.sort(ret, (o1, o2) -> {
+            ret.sort((o1, o2) -> {
                 BeanOrder a1 = o1.getClass().getAnnotation(BeanOrder.class);
                 BeanOrder a2 = o2.getClass().getAnnotation(BeanOrder.class);
                 return (a1 != null ? a1.order() : 0) - (a2 != null ? a2.order() : 0);
@@ -479,19 +485,157 @@ public class BeanFactory {
         return ret;
     }
 
-    private Object onBeanUpdateCallback(Object bean, String id, Object updated) {
+    public boolean contains(String beanId) {
+        return beans.containsKey(beanId);
+    }
+
+    public boolean contains(Object bean) {
+        return beans.containsValue(bean);
+    }
+
+    private static void onBeanUpdateCallback(String beanId, Object bean, Object updated) {
         try {
             for (Method method : bean.getClass().getDeclaredMethods()){
-                if (method.isAnnotationPresent(OnBeanUpdate.class)) return method.invoke(bean, id, updated);
+                if (method.isAnnotationPresent(OnBeanUpdate.class)) {
+                    method.invoke(bean, beanId, updated);
+                    return;
+                }
             }
-            return null;
         } catch (Exception e) { throw new RuntimeException(e); }
     }
 
-    public void remove(String id) {
-        beans.remove(id);
-        definitions.remove(id);
-        status.remove(id);
+    public boolean remove(String beanId, Object bean) {
+
+        // check
+        if (!beans.containsKey(beanId)) return false;
+
+        // remove from dependencies
+        for (Map.Entry<String, Object> entry : beans.entrySet()) {
+
+            // candidate bean to be impacted
+            final Object beanCandidate = entry.getValue();
+
+            // get dependencies
+            final List<Field> fields = getFields(beanCandidate, Inject.class);
+
+            // loop all fields
+            for (Field field : fields) {
+
+                // check field is of bean type
+                if (field.getType().isAssignableFrom(bean.getClass())) {
+
+                    // set field and log error if any
+                    setFieldToNull(beanId, beanCandidate, field);
+                }
+
+                // check fields of type List
+                else if (field.getType().isAssignableFrom(List.class) && field.getGenericType() instanceof ParameterizedType) {
+                    Type actualTypeArgument = ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[0];
+
+                    // check parameterized type is of bean class
+                    if (actualTypeArgument == bean.getClass()) {
+
+                        // assign null value
+                        removeBeanFromList(beanId, beanCandidate, field);
+                    }
+                }
+
+                // check fields of type Map
+                else if (field.getType().isAssignableFrom(Map.class) && field.getGenericType() instanceof ParameterizedType) {
+                    Type actualTypeArgument = ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[1];
+
+                    // check parameterized type is of bean class
+                    if (actualTypeArgument == bean.getClass()) {
+
+                        // assign null value
+                        removeBeanFromMap(beanId, beanCandidate, field);
+                    }
+                }
+            }
+        }
+
+        // remove from factory
+        beans.remove(beanId);
+        definitions.remove(beanId);
+        status.remove(beanId);
+
+        return true;
+    }
+
+    private static boolean setFieldToNull(String beanId, Object bean, Field field) {
+        // assign null value
+        try {
+
+            // notify in advance
+            onBeanUpdateCallback(beanId, bean, null);
+
+            // update bean
+            field.set(bean, null);
+
+            return true;
+
+        } catch (IllegalAccessException e) {
+
+            // log error
+            Log.e("BeanFactory", "Error setting property. field: "+field.getName()+", bean: " + beanId, e);
+
+            return false;
+        }
+    }
+
+    private static boolean removeBeanFromList(String beanId, Object bean, Field field) {
+        // assign null value
+        try {
+
+            // get field value
+            List<?> fieldValue = (List<?>) field.get(bean);
+
+            // check field value is not null
+            if (fieldValue == null) return false;
+
+            // check the bean is in the list
+            if (!fieldValue.contains(bean)) return false;
+
+            // notify in advance
+            onBeanUpdateCallback(beanId, bean, null);
+
+            // remove bean from list
+            return fieldValue.remove(bean);
+
+        } catch (IllegalAccessException e) {
+
+            // log error
+            Log.e("BeanFactory", "Error setting property. field: "+field.getName()+", bean: " + beanId, e);
+
+            // continue;
+            return false;
+        }
+    }
+
+    private static boolean removeBeanFromMap(String beanId, Object bean, Field field) {
+        // assign null value
+        try {
+
+            // get field value
+            Map<String, ?> fieldValue = (Map<String, ?>) field.get(bean);
+
+            // check the bean is in the list
+            if (!fieldValue.containsKey(beanId)) return false;
+
+            // notify in advance
+            onBeanUpdateCallback(beanId, bean, null);
+
+            // remove bean from list
+            return fieldValue.remove(beanId, bean);
+
+        } catch (IllegalAccessException e) {
+
+            // log error
+            Log.e("BeanFactory", "Error setting property. field: "+field.getName()+", bean: " + beanId, e);
+
+            // continue;
+            return false;
+        }
     }
 
     @Retention(RetentionPolicy.RUNTIME)
