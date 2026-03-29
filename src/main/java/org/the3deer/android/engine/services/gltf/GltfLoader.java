@@ -568,7 +568,15 @@ public class GltfLoader {
 
         Log.i(TAG, "Loading animations... Total: " + dto.animations.size());
         final List<Animation> animations = new ArrayList<>();
-        for (GltfAnimationDto animDto : dto.animations) {
+        for (int a=0; a<dto.animations.size(); a++) {
+
+            // get animation
+            final GltfAnimationDto animDto = dto.animations.get(a);
+
+            // animation name
+            final String animName = animDto.name != null ? animDto.name : "Animation " + a;
+
+            // initialize keyframes
             final List<KeyFrame> keyframes = new ArrayList<>();
 
             // check samplers
@@ -643,7 +651,7 @@ public class GltfLoader {
             }
 
             float duration = timestamps.isEmpty() ? 0 : timestamps.last();
-            animations.add(new Animation(animDto.name, duration, keyframes.toArray(new KeyFrame[0])));
+            animations.add(new Animation(animName, duration, keyframes.toArray(new KeyFrame[0])));
         }
         return animations;
     }
