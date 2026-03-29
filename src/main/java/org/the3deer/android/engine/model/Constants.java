@@ -20,7 +20,7 @@ public class Constants {
      */
     public static boolean LIGHTING_ENABLED = true;
     /**
-     * Bean name for Screen
+     * Bean name for the Screen
      */
     public static String BEAN_ID_SCREEN = "screen";
     /**

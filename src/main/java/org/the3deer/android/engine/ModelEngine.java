@@ -74,7 +74,7 @@ public class ModelEngine {
 
     // Model
     private final Model model;
-    private Context activity;
+    private Context context;
 
     // variables
     private final Handler handler;
@@ -83,10 +83,10 @@ public class ModelEngine {
     private boolean initialized = false;
 
 
-    public ModelEngine(String id, Model model, Context activity) {
+    public ModelEngine(String id, Model model, Context context) {
         this.id = id;
         this.model = model;
-        this.activity = activity;
+        this.context = context;
         this.beanFactory = BeanFactory.getInstance();
         //this.surface = new GLSurfaceView(activity);
 
@@ -136,6 +136,10 @@ public class ModelEngine {
         }
     }
 
+    public Model getModel(){
+        return model;
+    }
+
     @NonNull
     public BeanFactory getBeanFactory() {
         return beanFactory;
@@ -174,7 +178,7 @@ public class ModelEngine {
         // model
         beanFactory.add("model", this.model);
         // activity
-        beanFactory.add("activity", this.activity);
+        beanFactory.add(Constants.BEAN_ID_CONTEXT, this.context);
         // FIXME: remove this
         beanFactory.add("handler", this.handler);
 
@@ -244,13 +248,35 @@ public class ModelEngine {
         beanFactory.add("gui.axis", Axis.class);
     }
 
+    /**
+     * Add the specified bean to the engine, adding it to the bean factory and all the managed beans (injected as dependency).
+     *
+     * @param beanId the bean identifier
+     * @param bean the bean to add
+     * @return <code>false</code> if the bean was not added, <code>true</code> otherwise
+     */
+    public boolean add(String beanId, Object bean){
+        return beanFactory.add(beanId, bean);
+    }
+
+    /**
+     * Remove the specified bean from the engine, removing it from the bean factory and all the managed beans (injected as dependency).
+     *
+     * @param bean the bean to be removed
+     * @return <code>true</code> if the bean was removed, <code>false</code> otherwise
+     */
+    public boolean remove(String beanId, Object bean) {
+        return beanFactory.remove(beanId, bean);
+    }
+
     @Override
     public String toString() {
         return "ModelEngine{" +
                 "id='" + id + '\'' +
                 ", model=" + model +
-                ", activity=" + activity +
+                ", activity=" + context +
                 ", beanFactory=" + beanFactory +
                 '}';
     }
+
 }
