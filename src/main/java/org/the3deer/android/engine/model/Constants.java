@@ -23,6 +23,10 @@ public class Constants {
      * Bean name for Screen
      */
     public static String BEAN_ID_SCREEN = "screen";
+    /**
+     * Bean for the Android Context
+     */
+    public static String BEAN_ID_CONTEXT = "context";
 
     /**
      * <p>Debug low level information. Will affect performance, so should be false in production
