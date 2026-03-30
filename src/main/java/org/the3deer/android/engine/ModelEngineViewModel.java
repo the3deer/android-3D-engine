@@ -129,15 +129,21 @@ public class ModelEngineViewModel extends AndroidViewModel {
     }
 
     public void activateEngine(String uriString) {
+        try {
+            // Initialize engine components (Lightweight)
+            final ModelEngine modelEngine = initEngine(uriString);
+            if (modelEngine == null) throw new IllegalArgumentException("Engine not initialized");
 
-        // load engine
-        ModelEngine modelEngine = initEngine(uriString);
+            // Load 3D model data (Heavyweight) - now handled by the engine itself
+            modelEngine.loadAsync(() -> {
+                // Update active engine on the UI thread
+                _activeEngine.setValue(modelEngine);
+            });
 
-        // check
-        if (modelEngine == null) throw new IllegalArgumentException("Engine not initialized");
-
-        // update model
-        _activeEngine.setValue(modelEngine);
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to activate engine for " + uriString, e);
+            // TODO: error handling in UI
+        }
     }
 
     private ModelEngine getOrCreateEngine(String uriString, Model model) {
@@ -238,5 +244,17 @@ public class ModelEngineViewModel extends AndroidViewModel {
 
     public ModelEngine getActiveEngine() {
         return activeEngine.getValue();
+    }
+
+    @Override
+    protected void onCleared() {
+        super.onCleared();
+        // Shut down all engines to release resources
+        Map<String, ModelEngine> engines = _engines.getValue();
+        if (engines != null) {
+            for (ModelEngine engine : engines.values()) {
+                engine.close();
+            }
+        }
     }
 }

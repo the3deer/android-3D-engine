@@ -42,6 +42,8 @@ import org.the3deer.android.util.AndroidURLStreamHandlerFactory;
 import org.the3deer.util.bean.BeanFactory;
 
 import java.net.URL;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * This is the 3D Engine Viewer Model implementation.
@@ -80,7 +82,10 @@ public class ModelEngine {
     private final Handler handler;
     private final BeanFactory beanFactory;
     //private final GLSurfaceView surface;
-    private boolean isLoaded = false;
+    /**
+     * Background executor for heavy loading operations.
+     */
+    private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
     public ModelEngine(String id, Screen screen, Model model, Context context) {
         this.id = id;
@@ -107,7 +112,7 @@ public class ModelEngine {
     }
 
     public boolean isLoaded() {
-        return isLoaded;
+        return beanFactory.isInitialized();
     }
 
     /**
@@ -208,19 +213,32 @@ public class ModelEngine {
      */
     public void load() throws Exception {
 
-        // check
-        if (isLoaded) return;
-
         // debug
         Log.i(TAG, "Loading Engine... " + id);
 
         // init engine
         beanFactory.initialize();
 
-        isLoaded = true;
-
         Log.d(TAG, "Engine loaded");
 
+    }
+
+    /**
+     * Load the engine asynchronously.
+     * @param callback the callback to be invoked when the engine is loaded
+     */
+    public void loadAsync(Runnable callback) {
+
+        executor.execute(() -> {
+            try {
+                load();
+                if (callback != null) {
+                    handler.post(callback);
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to load engine", e);
+            }
+        });
     }
 
 
@@ -257,6 +275,10 @@ public class ModelEngine {
         return beanFactory.remove(beanId, bean);
     }
 
+    public void close() {
+        executor.shutdown();
+    }
+
     @NonNull
     @Override
     public String toString() {
@@ -265,7 +287,6 @@ public class ModelEngine {
                 ", screen=" + screen +
                 ", model=" + model +
                 ", context=" + context +
-                ", isLoaded=" + isLoaded +
                 '}';
     }
 

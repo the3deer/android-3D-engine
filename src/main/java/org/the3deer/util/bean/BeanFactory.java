@@ -42,8 +42,8 @@ public class BeanFactory {
 
     private boolean definitionsUpdated;
     private boolean beansUpdated;
-    private boolean initialized;
-    private boolean started;
+    private boolean isInitialized;
+    private boolean isStarted;
 
     private BeanFactory() {
     }
@@ -57,6 +57,22 @@ public class BeanFactory {
 
     public Map<String, Object> getBeans() {
         return Collections.unmodifiableMap(beans);
+    }
+
+    public boolean isInitialized() {
+        return isInitialized;
+    }
+
+    public void setInitialized(boolean initialized) {
+        isInitialized = initialized;
+    }
+
+    public boolean isStarted() {
+        return isStarted;
+    }
+
+    public void setStarted(boolean started) {
+        isStarted = started;
     }
 
     public Map<String, BeanPropertyInfo> getProperties(Object bean) {
@@ -293,8 +309,8 @@ public class BeanFactory {
 
     public void initialize() {
 
-        if (initialized) return;
-        initialized = true;
+        if (isInitialized) return;
+        isInitialized = true;
 
         definitionsUpdated = false;
         for (Map.Entry<String, Class<?>> entry : definitions.entrySet()) {
@@ -304,8 +320,8 @@ public class BeanFactory {
     }
 
     public void start() {
-        if (started) return;
-        started = true;
+        if (isStarted) return;
+        isStarted = true;
 
         int max = 3;
         do {
@@ -408,7 +424,7 @@ public class BeanFactory {
         this.beansUpdated = true;
 
         // check
-        if (!initialized) return old;
+        if (!isInitialized) return old;
 
         // setup bean
         configureBean(id);
