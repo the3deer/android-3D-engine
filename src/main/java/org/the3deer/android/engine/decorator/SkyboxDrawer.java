@@ -37,7 +37,7 @@ public class SkyboxDrawer implements Drawer {
     private Camera camera;
 
     @BeanProperty
-    private boolean enabled = true;
+    private boolean enabled;
 
     // data
     @BeanProperty(name = "skybox", values = {"none", "sea", "sand"})
