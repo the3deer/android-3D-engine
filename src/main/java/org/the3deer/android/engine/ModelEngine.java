@@ -80,8 +80,7 @@ public class ModelEngine {
     private final Handler handler;
     private final BeanFactory beanFactory;
     //private final GLSurfaceView surface;
-    private boolean initialized = false;
-
+    private boolean isLoaded = false;
 
     public ModelEngine(String id, Screen screen, Model model, Context context) {
         this.id = id;
@@ -93,43 +92,12 @@ public class ModelEngine {
 
         // Android UI thread
         this.handler = new Handler(Looper.getMainLooper());
-        //init();
+
+        initialize();
     }
 
-    /**
-     * Initialize the engine. That is, instantiate all the engine components and invoke the initialization method.
-     *
-     * @throws Exception if initialization fails on any of the components
-     */
-    public void init() throws Exception {
 
-        // check
-        if (initialized) return;
-
-        // debug
-        Log.i(TAG, "Initializing Engine... "+id);
-
-        try {
-
-            initEngine();
-
-            initGUI();
-
-            // init engine
-            beanFactory.init();
-
-            initialized = true;
-
-            Log.d(TAG, "BeanFactory initialized");
-
-        } catch (Exception ex) {
-            Log.e(TAG, "BeanFactory initialization issue", ex);
-
-            throw ex;
-        }
-    }
-
-    public Model getModel(){
+    public Model getModel() {
         return model;
     }
 
@@ -138,30 +106,24 @@ public class ModelEngine {
         return beanFactory;
     }
 
-    public boolean isInitialized() {
-        return initialized;
+    public boolean isLoaded() {
+        return isLoaded;
     }
 
-    public void start(){
-        try {
+    /**
+     * Initialize the engine. That is, add all the engine components to the bean factory
+     */
+    private void initialize() {
 
-            // debug
-            Log.d(TAG, "Starting up Engine...");
+        // debug
+        Log.i(TAG, "Initializing BeanFactory... " + id);
 
-            //beanFactory.find(ShaderFactory.class).reset();
+        initEngine();
 
-            // start
-            beanFactory.start();
+        initUserInterface();
 
-            // log
-            Log.i(TAG, "Engine started successfully");
+        Log.d(TAG, "BeanFactory initialized");
 
-        } catch (Exception ex) {
-            Log.e(TAG, "BeanFactory refresh issue", ex);
-
-            // clear resources
-            //ContentUtils.clearDocumentsProvided();
-        }
     }
 
     private void initEngine() {
@@ -222,7 +184,7 @@ public class ModelEngine {
         beanFactory.add("renderer.stereoscopic", StereoscopicRenderer.class);
     }
 
-    private void initGUI() {
+    private void initUserInterface() {
 
         // visualization
         beanFactory.add("gui.projection", OrthographicProjection.class);
@@ -240,13 +202,48 @@ public class ModelEngine {
     }
 
     /**
+     * Initialize the engine. That is, instantiate all the engine components and invoke the initialization method.
+     *
+     * @throws Exception if initialization fails on any of the components
+     */
+    public void load() throws Exception {
+
+        // check
+        if (isLoaded) return;
+
+        // debug
+        Log.i(TAG, "Loading Engine... " + id);
+
+        // init engine
+        beanFactory.initialize();
+
+        isLoaded = true;
+
+        Log.d(TAG, "Engine loaded");
+
+    }
+
+
+    public void start() {
+
+        // debug
+        Log.d(TAG, "Starting up Engine...");
+
+        // start
+        beanFactory.start();
+
+        // log
+        Log.i(TAG, "Engine started successfully");
+    }
+
+    /**
      * Add the specified bean to the engine, adding it to the bean factory and all the managed beans (injected as dependency).
      *
      * @param beanId the bean identifier
-     * @param bean the bean to add
+     * @param bean   the bean to add
      * @return <code>false</code> if the bean was not added, <code>true</code> otherwise
      */
-    public boolean add(String beanId, Object bean){
+    public boolean add(String beanId, Object bean) {
         return beanFactory.add(beanId, bean);
     }
 
@@ -265,9 +262,10 @@ public class ModelEngine {
     public String toString() {
         return "ModelEngine{" +
                 "id='" + id + '\'' +
+                ", screen=" + screen +
                 ", model=" + model +
-                ", activity=" + context +
-                ", beanFactory=" + beanFactory +
+                ", context=" + context +
+                ", isLoaded=" + isLoaded +
                 '}';
     }
 

@@ -291,7 +291,7 @@ public class BeanFactory {
         }
     }
 
-    public void init() {
+    public void initialize() {
 
         if (initialized) return;
         initialized = true;
