@@ -91,16 +91,26 @@ public class BeanPropertyInfo {
      * @param context The context
      * @return The localized labels or null if not found
      */
-    public String[] resolveValueLabels(Context context) {
+    public String[] resolveValues(Context context) {
         if (beanName != null && !beanName.isEmpty()) {
             String propertyName = (name != null && !name.isEmpty()) ? name : id;
-            int resId = context.getResources().getIdentifier("property_" + beanName + "_" + propertyName + "_values_descriptions", "array", context.getPackageName());
+            int resId = context.getResources().getIdentifier("property_" + beanName + "_" + propertyName + "_values", "array", context.getPackageName());
             if (resId != 0) {
                 return context.getResources().getStringArray(resId);
             }
-            
-            // fallback to the previous naming if descriptions not found
-            resId = context.getResources().getIdentifier("property_" + beanName + "_" + propertyName + "_values", "array", context.getPackageName());
+        }
+        return null;
+    }
+
+    /**
+     * Resolve labels for a list of values.
+     * @param context The context
+     * @return The localized labels or null if not found
+     */
+    public String[] resolveDescriptions(Context context) {
+        if (beanName != null && !beanName.isEmpty()) {
+            String propertyName = (name != null && !name.isEmpty()) ? name : id;
+            int resId = context.getResources().getIdentifier("property_" + beanName + "_" + propertyName + "_values_descriptions", "array", context.getPackageName());
             if (resId != 0) {
                 return context.getResources().getStringArray(resId);
             }

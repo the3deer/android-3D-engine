@@ -42,8 +42,8 @@ public class GLRenderer implements GLSurfaceView.Renderer {
     @Inject
     private Map<String, Renderer> renderers;
 
-    @BeanProperty(name = "renderer", values = {"Default", "Anaglyph", "Stereoscopic"})
-    private String activeRenderer;
+    @BeanProperty(name = "renderer")
+    private Renderer activeRenderer;
 
     /**
      * Background GL clear color. Default is light gray
@@ -86,7 +86,7 @@ public class GLRenderer implements GLSurfaceView.Renderer {
         }
 
         if (activeRenderer == null) {
-            activeRenderer = renderers.keySet().toArray(new String[0])[0];
+            activeRenderer = renderers.get("renderer.default");
         }
     }
 
@@ -108,7 +108,7 @@ public class GLRenderer implements GLSurfaceView.Renderer {
         }
     }
 
-    @BeanProperty(name = "activeRenderer")
+    @BeanProperty(name = "renderer")
     public List<String> getActiveRendererValues() {
         return new ArrayList<>(renderers.keySet());
     }
@@ -126,34 +126,30 @@ public class GLRenderer implements GLSurfaceView.Renderer {
     }
 
     @BeanProperty
-    public void setRenderer(String rendererId) {
+    public void setActiveRenderer(String rendererId) {
 
         // check
         if (rendererId == null) throw new IllegalArgumentException("Renderer id cannot be null");
 
-        // process
-        switch (rendererId) {
-            case "Default":
-                rendererId = "renderer.defaultRenderer";
-                break;
-            case "Anaglyph":
-                rendererId = "renderer.anaglyphRenderer";
-                break;
-            case "Stereoscopic":
-                rendererId = "renderer.stereoscopiRenderer";
-                break;
-            default:
-                throw new IllegalArgumentException("Unknown renderer: " + rendererId);
-        }
+        // get renderer
+        final Renderer renderer = renderers.get(rendererId);
 
-        // enable
-        Objects.requireNonNull(this.renderers.get(rendererId)).setEnabled(true);
+        // check
+        if (renderer == null) throw new IllegalStateException("Renderer not found: " + rendererId +
+                ", available renderers: " + renderers.keySet() +
+                ", active renderer: " + activeRenderer);
 
-        // update
-        this.activeRenderer = rendererId;
+        // disable current renderer
+        if (this.activeRenderer != null) this.activeRenderer.setEnabled(false);
+
+        // enable new renderer
+        renderer.setEnabled(true);
+
+        // update active renderer
+        this.activeRenderer = renderer;
 
         // debug
-        Log.d(TAG, "Active renderer: " + activeRenderer);
+        Log.d(TAG, "Active renderer: " + rendererId);
     }
 
     @Override
@@ -223,31 +219,11 @@ public class GLRenderer implements GLSurfaceView.Renderer {
     @Override
     public void onDrawFrame(GL10 unused) {
 
-        // update screen
-        /*if (!screenInitialized && screen != null && eventManager != null) {
-            screen.setSize(this.width, this.height);
-            // fire event
-            if (eventManager != null) {
-                eventManager.propagate(new GLEvent(this, GLEvent.Code.SURFACE_CHANGED,
-                        width, height));
-            }
-            screenInitialized = true;
-        }*/
+        // get active renderer
+        final Renderer renderer = activeRenderer;
 
         // check
-        if (activeRenderer == null) return;
-
-        // get renderer
-        Renderer renderer = renderers.get(activeRenderer);
-        if (renderer == null) return;
-
-        // check
-        if (!renderer.isEnabled()) return;
-
-        // scene not ready
-        if (!traced) {
-            Log.d(TAG, "onDrawFrame. First draw...");
-        }
+        if (renderer == null || !renderer.isEnabled()) return;
 
         // Default viewport
         GLES20.glViewport(0, 0, width, height);
@@ -267,13 +243,13 @@ public class GLRenderer implements GLSurfaceView.Renderer {
         GLES20.glDepthMask(true);
         GLES20.glEnable(GLES20.GL_DEPTH_TEST);
 
+        // scene not ready
+        if (!traced) {
+            Log.v(TAG, "onDrawFrame. Invoking listeners... " + listeners.size());
+        }
+
         // prepare listeners
         if (listeners != null) {
-
-            // scene not ready
-            if (!traced) {
-                Log.v(TAG, "onDrawFrame. Invoking listeners... " + listeners.size());
-            }
 
             for (int i = 0; i < listeners.size(); i++) {
                 try {
