@@ -39,7 +39,6 @@ import org.the3deer.android.engine.shader.ShaderFactory;
 import org.the3deer.android.engine.shader.v3.GpuManager;
 import org.the3deer.android.engine.shadow.ShadowDrawer;
 import org.the3deer.android.util.AndroidURLStreamHandlerFactory;
-import org.the3deer.android.util.ContentUtils;
 import org.the3deer.util.bean.BeanFactory;
 
 import java.net.URL;
@@ -51,7 +50,7 @@ import java.net.URL;
  * It creates all the basic engine components to interact with the model.
  * It relays on the {@link BeanFactory} class to manage all the beans.
  * It propagates the events using {@link java.util.EventListener}.
- *
+ * <p>
  * The engine is designed using different architectural patterns.
  *
  */
@@ -73,8 +72,9 @@ public class ModelEngine {
     public final String id;
 
     // Model
+    private final Screen screen;
     private final Model model;
-    private Context context;
+    private final Context context;
 
     // variables
     private final Handler handler;
@@ -83,8 +83,9 @@ public class ModelEngine {
     private boolean initialized = false;
 
 
-    public ModelEngine(String id, Model model, Context context) {
+    public ModelEngine(String id, Screen screen, Model model, Context context) {
         this.id = id;
+        this.screen = screen;
         this.model = model;
         this.context = context;
         this.beanFactory = BeanFactory.getInstance();
@@ -108,12 +109,7 @@ public class ModelEngine {
         // debug
         Log.i(TAG, "Initializing Engine... "+id);
 
-        // check
-        //if (activity == null) throw new Exception("Activity is null");
-
         try {
-            // init resources
-            //ContentUtils.setContext(activity);
 
             initEngine();
 
@@ -128,9 +124,6 @@ public class ModelEngine {
 
         } catch (Exception ex) {
             Log.e(TAG, "BeanFactory initialization issue", ex);
-
-            // clear resources
-            ContentUtils.clearDocumentsProvided();
 
             throw ex;
         }
@@ -183,9 +176,7 @@ public class ModelEngine {
         beanFactory.add("handler", this.handler);
 
         // core
-        /*if (beanFactory.get(Constants.BEAN_ID_SCREEN) == null) {
-            beanFactory.add(Constants.BEAN_ID_SCREEN, new Screen(640, 480));
-        }*/
+        beanFactory.add(Constants.BEAN_ID_SCREEN, this.screen);
         beanFactory.add("engine", ModelEngine.this);
         beanFactory.add("controller", ModelController.class);
 
@@ -269,6 +260,7 @@ public class ModelEngine {
         return beanFactory.remove(beanId, bean);
     }
 
+    @NonNull
     @Override
     public String toString() {
         return "ModelEngine{" +

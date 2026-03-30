@@ -1,9 +1,7 @@
 
 package org.the3deer.android.engine.scene;
 
-import android.content.Context;
 import android.net.Uri;
-import android.os.Bundle;
 import android.os.SystemClock;
 import android.util.Log;
 import android.widget.Toast;
@@ -40,7 +38,6 @@ import java.util.List;
 import java.util.Map;
 
 import javax.inject.Inject;
-import javax.inject.Named;
 
 import kotlin.text.Charsets;
 
@@ -53,14 +50,6 @@ public class SceneLoader implements LoadListener {
 
     // dependencies
     @Inject
-    private BeanFactory beanFactory;
-    @Inject @Named("bundle")
-    private Bundle bundle;
-    @Inject @Named("extras")
-    private Bundle extras;
-    @Inject
-    private Context activity;
-    @Inject
     private Model sceneManager;
     @Inject
     private Camera defaultCamera;
@@ -68,24 +57,8 @@ public class SceneLoader implements LoadListener {
     private EventManager eventManager;
     @Inject
     private Screen screen;
-
-    //private Handler handler;
-    /**
-     * Sets whether the Demo Objects should be loaded
-     */
-    private boolean isDemo;
-    /**
-     * The file to load. Passed as input parameter
-     */
-    private Uri modelUri;
-    /**
-     * Type of model if file name has no extension (provided though content provider)
-     */
-    private String modelType;
-    /**
-     * Background GL clear color. Default is light gray
-     */
-    private float[] backgroundColor = new float[]{0.0f, 0.0f, 0.0f, 1.0f};
+    @Inject
+    private Model model;
 
     // other variables
     private long startTime;
@@ -105,8 +78,13 @@ public class SceneLoader implements LoadListener {
     @BeanInit
     public void setUp() throws MalformedURLException {
 
-        //
-        this.modelUri = this.sceneManager.getUri();
+        Log.i(TAG, "Loading model... uri: "+model.getUri()+", type: "+model.getType());
+
+        // default uri
+        Uri modelUri = model.getUri();
+
+        // default type
+        String modelType = model.getType();
 
         // load model
         Log.i(TAG, "Loading model... " + this.sceneManager.getUri());
@@ -133,11 +111,11 @@ public class SceneLoader implements LoadListener {
                     // register all zip entries
 
                     String encodedName = URLEncoder.encode(zipFilename, Charsets.UTF_8.name());
-                    final Uri pseudoUri = Uri.parse("android://" + activity.getPackageName() + "/binary/" + encodedName);
+                    final Uri pseudoUri = Uri.parse("android://org.the3deer.android.engine/binary/" + encodedName);
                     ContentUtils.addUri(encodedName, pseudoUri);
 
                     encodedName = encodedName.replace("+", "%20");
-                    final Uri pseudoUri2 = Uri.parse("android://" + activity.getPackageName() + "/binary/" + encodedName);
+                    final Uri pseudoUri2 = Uri.parse("android://org.the3deer.android.engine/binary/" + encodedName);
                     ContentUtils.addUri(encodedName, pseudoUri2);
 
                     ContentUtils.addData(pseudoUri, zipFile.getValue());
@@ -342,7 +320,7 @@ public class SceneLoader implements LoadListener {
 
         // Resolve texture URI relative to the model's location
         // Extracting the parent path manually from the model's URI
-        final String modelPath = modelUri.toString();
+        final String modelPath = model.getUri().toString();
         int lastSlash = modelPath.lastIndexOf('/');
         final String parentPath = (lastSlash != -1) ? modelPath.substring(0, lastSlash + 1) : "";
 
@@ -374,7 +352,7 @@ public class SceneLoader implements LoadListener {
     }
 
     private void makeToastText(final String text, final int toastDuration) {
-        if (activity == null) return;
+        //if (activity == null) return;
         //activity.runOnUiThread(() -> Toast.makeText(activity.getApplicationContext(), text, toastDuration).show());
     }
 }

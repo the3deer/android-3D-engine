@@ -167,18 +167,18 @@ public class GUI extends Widget implements EventListener, BeanManaged {
         if (event instanceof ModelEvent) {
             final ModelEvent rev = (ModelEvent) event;
             if (rev.getCode() == ModelEvent.Code.SCREEN_CHANGED) {
-                Log.v(TAG, "onEvent. SCREEN_CHANGED. Screen: "+this.screen);
+                Log.i(TAG, "onEvent. SCREEN_CHANGED >> Screen: "+this.screen);
                 setDimensions(calculateScreenDimensions());
                 refresh();
-                Log.v(TAG, "onEvent. SCREEN_CHANGED. Refreshed...");
+                Log.d(TAG, "onEvent. SCREEN_CHANGED << Refreshed");
             }
         } if (event instanceof GLEvent) {
             final GLEvent rev = (GLEvent) event;
             if (rev.getCode() == GLEvent.Code.SURFACE_CHANGED) {
-                Log.v(TAG, "onEvent. SURFACE_CHANGED. Screen: "+this.screen);
+                Log.i(TAG, "onEvent. SURFACE_CHANGED >> Screen: "+this.screen);
                 setDimensions(calculateScreenDimensions());
                 refresh();
-                Log.v(TAG, "onEvent. SURFACE_CHANGED. Refreshed...");
+                Log.d(TAG, "onEvent. SURFACE_CHANGED << Refreshed");
             }
         } else if (super.onEvent(event)) {
             return true;
