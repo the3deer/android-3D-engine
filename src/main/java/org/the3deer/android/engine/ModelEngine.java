@@ -26,8 +26,10 @@ import org.the3deer.android.engine.model.Camera;
 import org.the3deer.android.engine.model.Constants;
 import org.the3deer.android.engine.model.Light;
 import org.the3deer.android.engine.model.Model;
+import org.the3deer.android.engine.model.Object3D;
 import org.the3deer.android.engine.model.OrthographicProjection;
 import org.the3deer.android.engine.model.PerspectiveProjection;
+import org.the3deer.android.engine.model.Scene;
 import org.the3deer.android.engine.model.Screen;
 import org.the3deer.android.engine.objects.Point;
 import org.the3deer.android.engine.renderer.AnaglyphRenderer;
@@ -235,6 +237,9 @@ public class ModelEngine {
                 if (callback != null) {
                     handler.post(callback);
                 }
+            } catch (OutOfMemoryError oom) {
+                Log.e(TAG, "Out of memory while loading engine", oom);
+                // We don't call the callback here to avoid further operations on a failed engine
             } catch (Exception e) {
                 Log.e(TAG, "Failed to load engine", e);
             }
@@ -245,7 +250,7 @@ public class ModelEngine {
     public void start() {
 
         // debug
-        Log.d(TAG, "Starting up Engine...");
+        Log.i(TAG, "Starting up Engine...");
 
         // start
         beanFactory.start();
@@ -277,6 +282,13 @@ public class ModelEngine {
 
     public void close() {
         executor.shutdown();
+        if (model != null) {
+            for (Scene scene : model.getScenes()) {
+                for (Object3D object : scene.getObjects()) {
+                    object.dispose();
+                }
+            }
+        }
     }
 
     @NonNull

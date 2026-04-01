@@ -15,7 +15,10 @@ import org.the3deer.util.math.Quaternion;
 
 import java.net.URI;
 import java.nio.Buffer;
+import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
+import java.nio.IntBuffer;
+import java.nio.ShortBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -1192,6 +1195,35 @@ public class Object3D {
 
         // metadata
         ret.authoringTool = this.authoringTool;
+    }
+
+    public long getMemoryUsage() {
+        long memory = 0;
+        if (vertexArrayBuffer != null) memory += (long) vertexArrayBuffer.capacity() * 4;
+        if (vertexNormalsArrayBuffer != null) memory += (long) vertexNormalsArrayBuffer.capacity() * 4;
+        if (vertexColorsArrayBuffer != null) memory += (long) vertexColorsArrayBuffer.capacity() * (vertexColorsArrayBuffer instanceof FloatBuffer ? 4 : 1);
+        if (textureCoordsArrayBuffer != null) memory += (long) textureCoordsArrayBuffer.capacity() * 4;
+        if (tangentBuffer != null) memory += (long) tangentBuffer.capacity() * 4;
+        if (indexBuffer != null) {
+            if (indexBuffer instanceof IntBuffer) memory += (long) indexBuffer.capacity() * 4;
+            else if (indexBuffer instanceof ShortBuffer) memory += (long) indexBuffer.capacity() * 2;
+            else if (indexBuffer instanceof ByteBuffer) memory += (long) indexBuffer.capacity();
+        }
+        if (elements != null) {
+            for (Element element : elements) {
+                final Buffer buffer = element.getIndexBuffer();
+                if (buffer == null) continue;
+                if (buffer instanceof IntBuffer) memory += (long) buffer.capacity() * 4;
+                else if (buffer instanceof ShortBuffer) memory += (long) buffer.capacity() * 2;
+                else if (buffer instanceof ByteBuffer) memory += (long) buffer.capacity();
+            }
+        }
+        if (getMaterial() != null && getMaterial().getColorTexture() != null) {
+            if (getMaterial().getColorTexture().getData() != null) {
+                memory += getMaterial().getColorTexture().getData().length;
+            }
+        }
+        return memory;
     }
 
     public void dispose() {

@@ -99,6 +99,14 @@ public class Model {
         return cameras;
     }
 
+    public long getMemoryUsage() {
+        long memory = 0;
+        for (Scene scene : scenes) {
+            memory += scene.getMemoryUsage();
+        }
+        return memory;
+    }
+
     public static class Metadata {
         public final String type;
         public final Map<String, Object> extras;

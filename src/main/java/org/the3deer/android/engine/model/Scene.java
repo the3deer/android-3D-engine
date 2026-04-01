@@ -147,4 +147,12 @@ public class Scene {
         // merge animations
         animations.addAll(other.animations);
     }
+
+    public long getMemoryUsage() {
+        long memory = 0;
+        for (Object3D object : objects) {
+            memory += object.getMemoryUsage();
+        }
+        return memory;
+    }
 }

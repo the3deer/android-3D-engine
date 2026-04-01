@@ -1,9 +1,15 @@
 package org.the3deer.android.engine;
 
 import android.app.Application;
+import android.content.ComponentCallbacks2;
+import android.content.res.Configuration;
 import android.net.Uri;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
+import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
@@ -17,12 +23,19 @@ import org.the3deer.android.engine.model.Screen;
 import org.the3deer.util.event.EventListener;
 
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 
-public class ModelEngineViewModel extends AndroidViewModel {
+public class ModelEngineViewModel extends AndroidViewModel implements ComponentCallbacks2 {
 
     private final String TAG = "ModelEngineViewModel";
+
+    public enum MemoryStatus {
+        OK, WARNING, CRITICAL
+    }
 
     /**
      * OpenGL Screen. Shared across all models to ensure consistent UI.
@@ -49,9 +62,37 @@ public class ModelEngineViewModel extends AndroidViewModel {
     private final MutableLiveData<Map<String, String>> _loadingState = new MutableLiveData<>(Collections.emptyMap());
     public final LiveData<Map<String, String>> loadingState = _loadingState;
 
+    /**
+     * Memory info
+     */
+    private final MutableLiveData<String> _memoryInfo = new MutableLiveData<>("Memory info...");
+    public final LiveData<String> memoryInfo = _memoryInfo;
+
+    /**
+     * Memory status for UI feedback (e.g. button color)
+     */
+    private final MutableLiveData<MemoryStatus> _memoryStatus = new MutableLiveData<>(MemoryStatus.OK);
+    public final LiveData<MemoryStatus> memoryStatus = _memoryStatus;
+
+    /**
+     * Periodic memory updater
+     */
+    private final Handler handler = new Handler(Looper.getMainLooper());
+    private final Runnable memoryUpdater = new Runnable() {
+        @Override
+        public void run() {
+            updateMemoryInfo();
+            handler.postDelayed(this, 1000); // Update every second
+        }
+    };
+
     public ModelEngineViewModel(Application application) {
         super(application);
+        application.registerComponentCallbacks(this);
         initTestModels();
+        
+        // Start periodic update
+        handler.post(memoryUpdater);
     }
 
     private void initTestModels() {
@@ -128,8 +169,22 @@ public class ModelEngineViewModel extends AndroidViewModel {
         return engine;
     }
 
-    public void activateEngine(String uriString) {
+    public void activateEngine(String uriString, Runnable callback) {
         try {
+            // Check memory before attempting to load
+            if (!isMemoryAvailable()) {
+
+                // make space
+                freeMemory(uriString);
+
+                if (!isMemoryAvailable()) {
+                    Log.e(TAG, "Critical memory state. Aborting load for: " + uriString);
+                    setLoading(uriString, "Error: Critical memory limit reached");
+                    _memoryStatus.postValue(MemoryStatus.CRITICAL);
+                    return;
+                }
+            }
+
             // Initialize engine components (Lightweight)
             final ModelEngine modelEngine = initEngine(uriString);
             if (modelEngine == null) throw new IllegalArgumentException("Engine not initialized");
@@ -138,11 +193,89 @@ public class ModelEngineViewModel extends AndroidViewModel {
             modelEngine.loadAsync(() -> {
                 // Update active engine on the UI thread
                 _activeEngine.setValue(modelEngine);
+                updateMemoryInfo();
             });
 
+            //
+            if (callback != null) {
+                handler.post(callback);
+            }
+        } catch (OutOfMemoryError e) {
+            // We don't call the callback here to avoid further operations on a failed engine
+            Log.e(TAG, "OutOfMemoryError while activating engine for " + uriString, e);
+            setLoading(uriString, "Error: Out of memory");
+            _memoryStatus.postValue(MemoryStatus.CRITICAL);
+            clearCache();
         } catch (Exception e) {
             Log.e(TAG, "Failed to activate engine for " + uriString, e);
-            // TODO: error handling in UI
+            setLoading(uriString, "Error: " + e.getMessage());
+        }
+    }
+
+    public void startEngine(String uriString, Runnable callback){
+        try {
+
+            ModelEngine active = _activeEngine.getValue();
+            if (active != null) {
+
+                Log.i(TAG, "Starting engine for " + uriString);
+
+                active.start();
+
+                if (callback != null) {
+                    handler.post(callback);
+                }
+            }
+        }catch(Exception ex){
+            Log.e(TAG, "Failed to start engine for " + uriString, ex);
+        }
+    }
+
+    private void freeMemory(String uriString) {
+        Log.w(TAG, "Low memory detected. Unloading other models to proceed with: " + uriString);
+        setLoading(uriString, "Low memory. Unloading other models...");
+
+        handler.post(() ->
+            Toast.makeText(getApplication(), "Unloading inactive models to free memory...", Toast.LENGTH_SHORT).show()
+        );
+
+        // Clear cache and try again
+        clearCache();
+    }
+
+    private boolean isMemoryAvailable() {
+        Runtime runtime = Runtime.getRuntime();
+        long usedMemory = runtime.totalMemory() - runtime.freeMemory();
+        long maxMemory = runtime.maxMemory();
+        long availableMemory = maxMemory - usedMemory;
+
+        // Safety threshold: 32MB
+        return availableMemory > 32 * 1024 * 1024;
+    }
+
+    private void updateMemoryInfo() {
+        Runtime runtime = Runtime.getRuntime();
+        long usedMemory = (runtime.totalMemory() - runtime.freeMemory());
+        long maxMemory = runtime.maxMemory();
+        long availableMemory = maxMemory - usedMemory;
+
+        long modelMemory = 0;
+        ModelEngine active = _activeEngine.getValue();
+        if (active != null && active.getModel() != null) {
+            modelMemory = active.getModel().getMemoryUsage();
+        }
+
+        String info = String.format(Locale.getDefault(), "Memory: %d/%d MB\nModel: %d MB", 
+            usedMemory / 1024 / 1024, maxMemory / 1024 / 1024, modelMemory / 1024 / 1024);
+        _memoryInfo.postValue(info);
+
+        // Update status based on available memory
+        if (availableMemory < 32 * 1024 * 1024) {
+            _memoryStatus.postValue(MemoryStatus.CRITICAL);
+        } else if (availableMemory < 64 * 1024 * 1024) {
+            _memoryStatus.postValue(MemoryStatus.WARNING);
+        } else {
+            _memoryStatus.postValue(MemoryStatus.OK);
         }
     }
 
@@ -168,6 +301,10 @@ public class ModelEngineViewModel extends AndroidViewModel {
                     setLoading(finalUriString, message);
                 } else if (modelEvent.getCode() == ModelEvent.Code.LOADED || modelEvent.getCode() == ModelEvent.Code.LOAD_ERROR) {
                     setLoading(finalUriString, null);
+                    updateMemoryInfo();
+                    if (modelEvent.getCode() == ModelEvent.Code.LOAD_ERROR) {
+                        _memoryStatus.postValue(MemoryStatus.CRITICAL);
+                    }
                 }
             }
             return false;
@@ -176,7 +313,7 @@ public class ModelEngineViewModel extends AndroidViewModel {
         return engine;
     }
 
-    private void setLoading(String uri, String message) {
+    public void setLoading(String uri, String message) {
         Map<String, String> current = new LinkedHashMap<>(_loadingState.getValue());
         if (message == null) {
             current.remove(uri);
@@ -247,9 +384,67 @@ public class ModelEngineViewModel extends AndroidViewModel {
         return activeEngine.getValue();
     }
 
+    public void clearCache() {
+        Log.i(TAG, "Clearing inactive engines and models from cache...");
+        ModelEngine active = _activeEngine.getValue();
+        String activeUri = active != null ? active.id : null;
+
+        Map<String, ModelEngine> engines = _engines.getValue();
+        if (engines != null) {
+            Iterator<Map.Entry<String, ModelEngine>> it = engines.entrySet().iterator();
+            while (it.hasNext()) {
+                Map.Entry<String, ModelEngine> entry = it.next();
+                if (!entry.getKey().equals(activeUri)) {
+                    Log.d(TAG, "Closing engine: " + entry.getKey());
+                    entry.getValue().close();
+                    it.remove();
+                }
+            }
+            _engines.postValue(engines);
+        }
+
+        Map<String, Model> models = _models.getValue();
+        if (models != null) {
+            Iterator<Map.Entry<String, Model>> it = models.entrySet().iterator();
+            while (it.hasNext()) {
+                Map.Entry<String, Model> entry = it.next();
+                if (!entry.getKey().equals(activeUri)) {
+                    Log.d(TAG, "Removing model: " + entry.getKey());
+                    // Note: Object3D.dispose() is called in ModelEngine.close()
+                    it.remove();
+                }
+            }
+            _models.postValue(models);
+        }
+        System.gc();
+        updateMemoryInfo();
+    }
+
+    @Override
+    public void onTrimMemory(int level) {
+        Log.i(TAG, "onTrimMemory level: " + level);
+        if (level >= ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW ||
+                level == ComponentCallbacks2.TRIM_MEMORY_MODERATE ||
+                level == ComponentCallbacks2.TRIM_MEMORY_COMPLETE) {
+            clearCache();
+        }
+    }
+
+    @Override
+    public void onConfigurationChanged(@NonNull Configuration newConfig) {
+    }
+
+    @Override
+    public void onLowMemory() {
+        Log.w(TAG, "onLowMemory received!");
+        clearCache();
+    }
+
     @Override
     protected void onCleared() {
         super.onCleared();
+        handler.removeCallbacks(memoryUpdater);
+        getApplication().unregisterComponentCallbacks(this);
         // Shut down all engines to release resources
         Map<String, ModelEngine> engines = _engines.getValue();
         if (engines != null) {
