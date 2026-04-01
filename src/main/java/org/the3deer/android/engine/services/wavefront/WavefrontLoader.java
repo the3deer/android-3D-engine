@@ -43,7 +43,6 @@ import org.the3deer.android.engine.model.Scene;
 import org.the3deer.android.engine.services.LoadListener;
 import org.the3deer.android.engine.services.collada.entities.MeshData;
 import org.the3deer.android.engine.services.collada.entities.Vertex;
-import org.the3deer.android.util.ContentUtils;
 import org.the3deer.util.io.IOUtils;
 
 import java.io.BufferedReader;
@@ -51,6 +50,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URI;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -78,7 +78,7 @@ public class WavefrontLoader {
 
     @Nullable
     private static String getParameter(Uri uri, String parameter) {
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(ContentUtils.getInputStream(uri)))) {
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(URI.create(uri.toString()).toURL().openStream()))) {
             String line;
             while ((line = br.readLine()) != null) {
                 line = line.trim();
@@ -153,7 +153,7 @@ public class WavefrontLoader {
                 callback.onProgress("Loading materials...");
 
                 // load colors and textures
-                loadMaterials(meshData);
+                loadMaterials(modelURI, meshData);
 
                 callback.onLoadObject(scene, data3D);
 
@@ -173,7 +173,7 @@ public class WavefrontLoader {
         }
     }
 
-    private void loadMaterials(MeshData meshData) {
+    private void loadMaterials(URI modelURI, MeshData meshData) {
 
         // process materials
         if (meshData.getMaterialFile() == null) return;
@@ -184,7 +184,9 @@ public class WavefrontLoader {
         try {
 
             // get materials stream
-            final InputStream inputStream = ContentUtils.getInputStream(meshData.getMaterialFile());
+            final URL materialUrl = modelURI.resolve(URI.create(meshData.getMaterialFile())).toURL();
+
+            final InputStream inputStream = materialUrl.openStream();
 
             // parse materials
             final WavefrontMaterialsParser materialsParser = new WavefrontMaterialsParser();
@@ -222,8 +224,11 @@ public class WavefrontLoader {
                             // log event
                             Log.d("WavefrontLoader", "Reading texture file... " + elementMaterial.getColorTexture().getFile());
 
+                            // build color url
+                            final URL diffuseUrl = modelURI.resolve(URI.create(elementMaterial.getColorTexture().getFile())).toURL();
+
                             // read texture data
-                            try (InputStream stream = ContentUtils.getInputStream(elementMaterial.getColorTexture().getFile())) {
+                            try (InputStream stream = diffuseUrl.openStream()) {
 
                                 // read data
                                 elementMaterial.getColorTexture().setData(IOUtils.read(stream));
@@ -239,7 +244,7 @@ public class WavefrontLoader {
                 }
             }
         } catch (IOException ex) {
-            Log.e("WavefrontLoader", "Error loading materials... " + meshData.getMaterialFile());
+            Log.e("WavefrontLoader", "Error loading materials... file: " + meshData.getMaterialFile()+", error: "+ex.getMessage());
         }
     }
 
@@ -247,6 +252,9 @@ public class WavefrontLoader {
 
         // log event
         Log.i("WavefrontLoader", "Loading model... " + uri);
+
+        // parse Uri
+        final URI modelURI = URI.create(uri);
 
         // String fnm = MODEL_DIR + modelNm + ".obj";
         BufferedReader br = null;
@@ -340,7 +348,7 @@ public class WavefrontLoader {
                     } else if (line.startsWith("f ")) { // face
                         parseFace(verticesAttributes, indicesCurrent, vertexList, normalsList, textureList, line.substring(2), currentSmoothingList);
                     } else if (line.startsWith("mtllib ")) {// build material
-                        mtllib = line.substring(7);
+                        mtllib = modelURI.resolve(line.substring(7)).toString();
                     } else if (line.startsWith("usemtl ")) {// use material
                         if (elementCurrent.getMaterialId() != null) {
 

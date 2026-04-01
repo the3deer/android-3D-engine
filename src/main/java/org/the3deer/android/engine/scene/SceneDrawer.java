@@ -112,7 +112,7 @@ public class SceneDrawer implements Drawer, EventListener {
         if (shader != null) {
 
             if (!traced){
-                Log.d(TAG, "Drawing object " + objData.getId());
+                Log.d(TAG, "Drawing object... id: " + objData.getId()+", vertices: "+objData+", drawMode: "+objData.getDrawMode());
             }
 
             // Use the new high-performance draw call

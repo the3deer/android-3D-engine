@@ -18,6 +18,7 @@ import javax.inject.Inject;
 public class Model {
 
     private final Uri uri;
+    private final String name;
     private final String type;
     private final Map<String, Object> extras;
 
@@ -27,18 +28,22 @@ public class Model {
     private final List<Scene> scenes = new ArrayList<>();
     private Scene activeScene;
 
-    public Model(Uri uri) {
-        this(uri, null, null);
+    public Model(Uri uri, String name, String type) {
+        this(uri, name, type, null);
     }
 
-    public Model(Uri uri, String type) {
-        this(uri, type, null);
-    }
-
-    public Model(Uri uri, String type, Map<String, Object> extras) {
+    public Model(Uri uri, String name, String type, Map<String, Object> extras) {
         this.uri = uri;
+        this.name = name;
         this.type = type;
         this.extras = extras;
+
+        if (this.uri == null) throw new IllegalArgumentException("Model URI cannot be null");
+        if (this.name == null) throw new IllegalArgumentException("Model name cannot be null");
+    }
+
+    public String getName() {
+        return name;
     }
 
     public Uri getUri() {

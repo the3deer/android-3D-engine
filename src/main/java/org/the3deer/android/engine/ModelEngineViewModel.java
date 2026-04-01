@@ -106,17 +106,17 @@ public class ModelEngineViewModel extends AndroidViewModel {
     }
 
     public ModelEngine initEngine(String uriString) {
-        return initEngine(uriString, null);
+        return initEngine(uriString, null, null);
     }
 
-    public ModelEngine initEngine(String uriString, String type) {
+    public ModelEngine initEngine(String uriString, String name, String type) {
 
         // get
         Model model = getModel(uriString);
 
         // init if needed
         if (model == null) {
-            model = createModel(uriString, type);
+            model = createModel(uriString, name, type);
         }
 
         ModelEngine engine = getEngine(uriString);
@@ -191,17 +191,17 @@ public class ModelEngineViewModel extends AndroidViewModel {
     }
 
     public Model createModel(String uriString) {
-        return createModel(uriString, null);
+        return createModel(uriString, null, null);
     }
 
 
-    public Model createModel(String uriString, String type) {
+    public Model createModel(String uriString, String name, String type) {
 
         // debug
         Log.i(TAG, "Building Model... uri: " + uriString);
 
         // create
-        Model model = new Model(Uri.parse(uriString), type);
+        Model model = new Model(Uri.parse(uriString), name, type);
 
         // update
         Map<String, Model> models = _models.getValue();
@@ -214,7 +214,7 @@ public class ModelEngineViewModel extends AndroidViewModel {
     }
 
     public Model createModelForTest(String uriString, float[] vertices) {
-        Model model = new Model(Uri.parse(uriString));
+        Model model = new Model(Uri.parse(uriString), uriString, "bin");
         Scene scene = new Scene("Default_" + uriString);
         Node node = new Node("Root");
         node.setMesh(new Object3D(vertices));

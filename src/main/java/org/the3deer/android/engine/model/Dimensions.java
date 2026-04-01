@@ -206,7 +206,9 @@ public class Dimensions {
     }
 
     public float getRelationTo(Dimensions other) {
-        return this.getLargest() / other.getLargest();
+        float otherLargest = other.getLargest();
+        if (otherLargest == 0) return 1.0f;
+        return this.getLargest() / otherLargest;
     }
 
 

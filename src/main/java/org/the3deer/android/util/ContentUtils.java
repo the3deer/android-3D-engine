@@ -8,6 +8,7 @@ import android.content.DialogInterface;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Looper;
 import android.provider.OpenableColumns;
 import android.util.Log;
 
@@ -27,6 +28,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -42,17 +46,25 @@ public class ContentUtils {
         }
     }
 
+    public interface ContentResolver {
+        Uri resolveUri(Uri uri);
+    }
+
     public static final String MODELS_FOLDER = "models";
     public static final Map<String, Uri> documentsProvided = new HashMap<>();
     private static final Map<Uri, byte[]> binariesProvided = new HashMap<>();
 
     private static Context context = null;
     private static File currentDir = null;
+    private static ContentResolver contentResolver = null;
 
     public static void setContext(@NonNull Context context) {
-
         // register
         ContentUtils.context = context;
+    }
+
+    public static void setContentResolver(ContentResolver contentResolver) {
+        ContentUtils.contentResolver = contentResolver;
     }
 
     public static void setCurrentDir(File file) {
@@ -104,14 +116,21 @@ public class ContentUtils {
         if (context == null){
             throw new IllegalStateException("There is no context configured. Did you call #setContext() before?");
         }
-        if (getData(uri) != null){
+        final byte[] data = getData(uri);
+        if (data != null){
             Log.i("ContentUtils", "Returning binary: " + uri);
-            return new ByteArrayInputStream(getData(uri));
+            return new ByteArrayInputStream(data);
         }
 
         Log.v("ContentUtils", "Opening stream ..." + uri);
         if (uri.getScheme().equals("android")) {
-            if (uri.getPath().startsWith("/assets/")) {
+            if (uri.getPath().startsWith("/binary/")) {
+                final String path = uri.getPath().substring("/binary/".length());
+                byte[] buf = binariesProvided.get(uri);
+                if (buf != null) return new ByteArrayInputStream(buf, 0, buf.length);
+                else throw new FileNotFoundException("File not found: " + path);
+            }
+            else if (uri.getPath().startsWith("/assets/")) {
                 final String path = uri.getPath().substring("/assets/".length());
                 Log.d("ContentUtils", "Opening asset: " + path);
                 return context.getAssets().open(path);
@@ -125,25 +144,52 @@ public class ContentUtils {
                 throw new IllegalArgumentException("unknown android path: "+uri.getPath());
             }
         }
-        if (uri.getScheme().equals("http") || uri.getScheme().equals("https")) {
+        else if (uri.getScheme().equals("http") || uri.getScheme().equals("https")) {
             return new URL(uri.toString()).openStream();
         }
-        if (uri.getScheme().equals("content")) {
 
-            // check for url-2-url mapping (required by gltf parser)
-            if (documentsProvided.containsKey(uri.toString())){
-                uri = documentsProvided.get(uri.toString());
+        // Handle content:// or file://
+        try {
+            Uri finalUri = uri;
+            if (uri.getScheme().equals("content") && documentsProvided.containsKey(uri.toString())) {
+                finalUri = documentsProvided.get(uri.toString());
+            }
+            return context.getContentResolver().openInputStream(finalUri);
+        } catch (FileNotFoundException | SecurityException e) {
+            Log.w(TAG, "Access denied or file not found for " + uri + ". Attempting resolution...");
+
+            // If we have a resolver and we are not on the main thread, we can try to resolve it
+            if (contentResolver != null && Looper.myLooper() != Looper.getMainLooper()) {
+                final CountDownLatch latch = new CountDownLatch(1);
+                final AtomicReference<Uri> resolvedUri = new AtomicReference<>();
+
+                // Ask the resolver to find the file
+                // This usually triggers a UI prompt, so it must return via a callback or similar mechanism
+                // For simplicity, we assume resolveUri might block or trigger an async operation
+                new Thread(() -> {
+                    try {
+                        resolvedUri.set(contentResolver.resolveUri(uri));
+                    } finally {
+                        latch.countDown();
+                    }
+                }).start();
+
+                try {
+                    if (latch.await(60, TimeUnit.SECONDS) && resolvedUri.get() != null) {
+                        Log.i(TAG, "Successfully resolved URI: " + resolvedUri.get());
+                        // Cache the resolution for next time
+                        addUri(uri.toString(), resolvedUri.get());
+                        // Retry opening the stream with the new URI
+                        return context.getContentResolver().openInputStream(resolvedUri.get());
+                    }
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    throw new IOException("Interrupted while waiting for URI resolution", ie);
+                }
             }
 
-            try {
-                return context.getContentResolver().openInputStream(uri);
-            } catch (FileNotFoundException | SecurityException e) {
-                // security issue when not having permission (ACTION_OPEN_DOCUMENT)
-                throw new IOException(e);
-            }
-
+            throw new IOException("Failed to open " + uri, e);
         }
-        return context.getContentResolver().openInputStream(uri);
     }
 
     public static List<String> readLines(String url) {
@@ -215,7 +261,7 @@ public class ContentUtils {
     }
 
     @SuppressLint("Range")
-    public static String getFileName(Context context, Uri uri) {
+    public static String getFileName(Context context, Uri uri) throws IOException {
         if (uri == null) return null;
         String result = null;
         if ("content".equals(uri.getScheme()) && context != null) {
@@ -224,6 +270,45 @@ public class ContentUtils {
                     int index = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
                     if (index != -1) {
                         result = cursor.getString(index);
+                    }
+                }
+            } catch (SecurityException ex){
+                Log.w(TAG, "Access denied or file not found for " + uri + ". Attempting resolution...");
+
+                // If we have a resolver and we are not on the main thread, we can try to resolve it
+                if (contentResolver != null && Looper.myLooper() != Looper.getMainLooper()) {
+                    final CountDownLatch latch = new CountDownLatch(1);
+                    final AtomicReference<Uri> resolvedUri = new AtomicReference<>();
+
+                    // Ask the resolver to find the file
+                    // This usually triggers a UI prompt, so it must return via a callback or similar mechanism
+                    // For simplicity, we assume resolveUri might block or trigger an async operation
+                    new Thread(() -> {
+                        try {
+                            resolvedUri.set(contentResolver.resolveUri(uri));
+                        } finally {
+                            latch.countDown();
+                        }
+                    }).start();
+
+                    try {
+                        if (latch.await(60, TimeUnit.SECONDS) && resolvedUri.get() != null) {
+                            Log.i(TAG, "Successfully resolved URI: " + resolvedUri.get());
+                            // Cache the resolution for next time
+                            addUri(uri.toString(), resolvedUri.get());
+                            // Retry opening the stream with the new URI
+                            try (Cursor cursor = context.getContentResolver().query(uri, null, null, null, null)) {
+                                if (cursor != null && cursor.moveToFirst()) {
+                                    int index = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+                                    if (index != -1) {
+                                        result = cursor.getString(index);
+                                    }
+                                }
+                            }
+                        }
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        throw new IOException("Interrupted while waiting for URI resolution", ie);
                     }
                 }
             } catch (Exception e) {
@@ -244,16 +329,55 @@ public class ContentUtils {
 
 
 
-    public static InputStream getInputStream(String path) throws IOException {
-        path = path.replace('\\','/');
-        Uri uri = getUri(path);
-        if (uri == null) uri = getUri("models/"+path);
-        if (uri == null) uri = getUri("models/"+path.replace(' ', '+'));
+    public static InputStream getInputStream(String uriString) throws IOException {
+        uriString = uriString.replace('\\','/');
+        Uri uri = getUri(uriString);
+        if (uri == null) uri = getUri("models/"+uriString);
+        if (uri == null) uri = getUri("models/"+uriString.replace(' ', '+'));
         if (uri == null && currentDir != null) {
-            uri = Uri.parse("file://" + new File(currentDir, path).getAbsolutePath());
+            uri = Uri.parse("file://" + new File(currentDir, uriString).getAbsolutePath());
         }
         if (uri != null) return getInputStream(uri);
-        throw new FileNotFoundException("File not found: " + path);
+        else {
+            uri = Uri.parse(uriString);
+            InputStream inputStream = getInputStream(uri);
+            if (inputStream != null) return inputStream;
+        }
+
+        // If we have a resolver and we are not on the main thread, we can try to resolve it
+        if (contentResolver != null && Looper.myLooper() != Looper.getMainLooper()) {
+            final CountDownLatch latch = new CountDownLatch(1);
+            final AtomicReference<Uri> resolvedUri = new AtomicReference<>();
+
+            // Ask the resolver to find the file
+            // This usually triggers a UI prompt, so it must return via a callback or similar mechanism
+            // For simplicity, we assume resolveUri might block or trigger an async operation
+            Uri finalUri = uri;
+            StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+            new Thread(() -> {
+                try {
+                    Log.i(TAG, "Resolving URI: " + stackTrace[0].getMethodName());
+                    resolvedUri.set(contentResolver.resolveUri(finalUri));
+                } finally {
+                    latch.countDown();
+                }
+            }).start();
+
+            try {
+                if (latch.await(60, TimeUnit.SECONDS) && resolvedUri.get() != null) {
+                    Log.i(TAG, "Successfully resolved URI: " + resolvedUri.get());
+                    // Cache the resolution for next time
+                    addUri(uri.toString(), resolvedUri.get());
+
+
+                }
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                throw new IOException("Interrupted while waiting for URI resolution", ie);
+            }
+        }
+        Log.e(TAG, "File not found: " + uriString);
+        throw new FileNotFoundException("File not found: " + uriString);
     }
 
     public static Uri getUri(String name) {

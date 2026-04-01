@@ -30,6 +30,7 @@ import org.the3deer.util.io.IOUtils;
 
 import java.io.InputStream;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.util.ArrayList;
@@ -337,7 +338,7 @@ public class SceneLoader implements LoadListener {
         Log.i(TAG, "Loading texture file: " + textureFile);
 
         // download texture
-        try (InputStream stream = ContentUtils.getInputStream(textureUri)) {
+        try (InputStream stream = URI.create(textureUri.toString()).toURL().openStream()) {
 
             // update model
             texture.setData(IOUtils.read(stream));

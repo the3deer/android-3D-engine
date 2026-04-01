@@ -33,7 +33,6 @@ import org.the3deer.android.engine.services.gltf.dto.GltfSceneData;
 import org.the3deer.android.engine.services.gltf.dto.GltfSceneDto;
 import org.the3deer.android.engine.services.gltf.dto.GltfSkinDto;
 import org.the3deer.android.util.AndroidUtils;
-import org.the3deer.android.util.ContentUtils;
 import org.the3deer.util.math.Quaternion;
 
 import java.io.InputStream;
@@ -67,7 +66,7 @@ public class GltfLoader {
 
     public GltfSceneData load(Uri uri, LoadListener callback) throws Exception {
 
-        try (InputStream stream = ContentUtils.getInputStream(uri)) {
+        try (InputStream stream = URI.create(uri.toString()).toURL().openStream()) {
             Log.i(TAG, "Loading and parsing model file... " + uri);
             callback.onProgress("Parsing " + uri);
 

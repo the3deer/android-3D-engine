@@ -10,9 +10,9 @@ import org.the3deer.android.engine.model.Texture;
 import org.the3deer.android.engine.services.LoadListener;
 import org.the3deer.android.engine.services.fbx.dto.FBXMesh;
 import org.the3deer.android.engine.services.fbx.dto.FBXModel;
-import org.the3deer.android.util.ContentUtils;
 
 import java.io.InputStream;
+import java.net.URI;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
@@ -33,7 +33,7 @@ public class FbxLoader {
 
         final List<Object3D> ret = new ArrayList<>();
 
-        try (InputStream stream = ContentUtils.getInputStream(uri)) {
+        try (InputStream stream = URI.create(uri.toString()).toURL().openStream()) {
             Log.i(TAG, "Parsing FBX model... " + uri);
             callback.onProgress("Parsing FBX model... " + uri);
 

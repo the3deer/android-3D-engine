@@ -19,10 +19,10 @@ import org.the3deer.android.engine.services.collada.entities.Geometry;
 import org.the3deer.android.engine.services.collada.entities.MaterialData;
 import org.the3deer.android.engine.services.collada.entities.Mesh;
 import org.the3deer.android.engine.services.collada.entities.Node;
-import org.the3deer.android.util.ContentUtils;
 import org.the3deer.util.io.IOUtils;
 
 import java.io.InputStream;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -39,7 +39,7 @@ public class ColladaLoader {
 
     public Scene load(Uri uri) throws Exception {
         Scene scene = new Scene();
-        try (InputStream stream = ContentUtils.getInputStream(uri)) {
+        try (InputStream stream = URI.create(uri.toString()).toURL().openStream()) {
             // 1. PARSE THE FILE
             ColladaParser parser = new ColladaParser();
             parser.parse(stream);
@@ -384,7 +384,7 @@ public class ColladaLoader {
                     // debug
                     Log.d(TAG, "Downloading texture... file: " + textureFile + ", uri: " + textureUri);
 
-                    try (InputStream stream = ContentUtils.getInputStream(textureUri)) {
+                    try (InputStream stream = URI.create(textureUri.toString()).toURL().openStream()) {
                         mat.getColorTexture().setData(IOUtils.read(stream));
 
                         Log.i(TAG, "Texture linked and data loaded for file: " + textureFile);
