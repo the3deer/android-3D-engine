@@ -16,6 +16,7 @@ import java.util.Arrays;
  */
 public class BeanPropertyInfo {
     private final String id;
+    private final String fieldName;
     private final String beanName;
     private final String name;
     private final String[] values;
@@ -25,8 +26,9 @@ public class BeanPropertyInfo {
     private final Method setter;
     private final Method valuesMethod;
 
-    public BeanPropertyInfo(String id, String beanName, String name, String[] values, Class<?> type, Field field, Method getter, Method setter, Method valuesMethod) {
+    public BeanPropertyInfo(String id, String fieldName, String beanName, String name, String[] values, Class<?> type, Field field, Method getter, Method setter, Method valuesMethod) {
         this.id = id;
+        this.fieldName = fieldName;
         this.beanName = beanName;
         this.name = name;
         this.values = values;
@@ -39,6 +41,10 @@ public class BeanPropertyInfo {
 
     public String getId() {
         return id;
+    }
+
+    public String getFieldName() {
+        return fieldName;
     }
 
     public String getBeanName() {
@@ -56,7 +62,7 @@ public class BeanPropertyInfo {
      */
     public String resolveLabel(Context context) {
         if (beanName != null && !beanName.isEmpty()) {
-            String propertyName = (name != null && !name.isEmpty()) ? name : id;
+            String propertyName = (name != null && !name.isEmpty()) ? name : fieldName;
             int resId = context.getResources().getIdentifier("property_" + beanName + "_" + propertyName + "_label", "string", context.getPackageName());
             if (resId != 0) {
                 return context.getString(resId);
@@ -77,7 +83,7 @@ public class BeanPropertyInfo {
      */
     public String resolveDescription(Context context) {
         if (beanName != null && !beanName.isEmpty()) {
-            String propertyName = (name != null && !name.isEmpty()) ? name : id;
+            String propertyName = (name != null && !name.isEmpty()) ? name : fieldName;
             int resId = context.getResources().getIdentifier("property_" + beanName + "_" + propertyName + "_description", "string", context.getPackageName());
             if (resId != 0) {
                 return context.getString(resId);
@@ -93,8 +99,7 @@ public class BeanPropertyInfo {
      */
     public String[] resolveValues(Context context) {
         if (beanName != null && !beanName.isEmpty()) {
-            String propertyName = (name != null && !name.isEmpty()) ? name : id;
-            int resId = context.getResources().getIdentifier("property_" + beanName + "_" + propertyName + "_values", "array", context.getPackageName());
+            int resId = context.getResources().getIdentifier("property_" + beanName + "_" + name + "_values", "array", context.getPackageName());
             if (resId != 0) {
                 return context.getResources().getStringArray(resId);
             }
@@ -109,7 +114,7 @@ public class BeanPropertyInfo {
      */
     public String[] resolveDescriptions(Context context) {
         if (beanName != null && !beanName.isEmpty()) {
-            String propertyName = (name != null && !name.isEmpty()) ? name : id;
+            String propertyName = (name != null && !name.isEmpty()) ? name : fieldName;
             int resId = context.getResources().getIdentifier("property_" + beanName + "_" + propertyName + "_values_descriptions", "array", context.getPackageName());
             if (resId != 0) {
                 return context.getResources().getStringArray(resId);
@@ -126,7 +131,7 @@ public class BeanPropertyInfo {
      */
     public String resolveValueLabel(Context context, String valueId) {
         if (beanName != null && !beanName.isEmpty()) {
-            String propertyName = (name != null && !name.isEmpty()) ? name : id;
+            String propertyName = (name != null && !name.isEmpty()) ? name : fieldName;
             // sanitize valueId for resource lookup (e.g. default.renderer -> default_renderer)
             String sanitizedValueId = valueId.replace(".", "_");
             int resId = context.getResources().getIdentifier("value_" + beanName + "_" + propertyName + "_" + sanitizedValueId, "string", context.getPackageName());
@@ -184,6 +189,7 @@ public class BeanPropertyInfo {
     public String toString() {
         return "BeanPropertyInfo{" +
                 "id='" + id + '\'' +
+                ", fieldName='" + fieldName + '\'' +
                 ", beanName='" + beanName + '\'' +
                 ", name='" + name + '\'' +
                 ", values=" + Arrays.toString(values) +

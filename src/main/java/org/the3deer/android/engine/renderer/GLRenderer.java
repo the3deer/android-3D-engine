@@ -43,7 +43,9 @@ public class GLRenderer implements GLSurfaceView.Renderer {
     private Map<String, Renderer> renderers;
 
     @BeanProperty(name = "renderer")
-    private Renderer activeRenderer;
+    private String activeRenderer;
+
+    private Renderer renderer;
 
     /**
      * Background GL clear color. Default is light gray
@@ -58,10 +60,6 @@ public class GLRenderer implements GLSurfaceView.Renderer {
      * GL Screen width
      */
     private int height;
-    /**
-     * Toggle feature to initialize the Engine's screen
-     */
-    private boolean screenInitialized;
 
     // frames per second
     private long framesPerSecondTime = -1;
@@ -85,8 +83,8 @@ public class GLRenderer implements GLSurfaceView.Renderer {
             throw new IllegalArgumentException("No renderers found");
         }
 
-        if (activeRenderer == null) {
-            activeRenderer = renderers.get("renderer.default");
+        if (renderer == null) {
+            renderer = renderers.get("renderer.default");
         }
     }
 
@@ -108,7 +106,7 @@ public class GLRenderer implements GLSurfaceView.Renderer {
         }
     }
 
-    @BeanProperty(name = "renderer")
+    @BeanProperty
     public List<String> getActiveRendererValues() {
         return new ArrayList<>(renderers.keySet());
     }
@@ -126,6 +124,11 @@ public class GLRenderer implements GLSurfaceView.Renderer {
     }
 
     @BeanProperty
+    public String getActiveRenderer() {
+        return activeRenderer;
+    }
+
+    @BeanProperty
     public void setActiveRenderer(String rendererId) {
 
         // check
@@ -140,13 +143,13 @@ public class GLRenderer implements GLSurfaceView.Renderer {
                 ", active renderer: " + activeRenderer);
 
         // disable current renderer
-        if (this.activeRenderer != null) this.activeRenderer.setEnabled(false);
+        if (this.renderer != null) this.renderer.setEnabled(false);
 
         // enable new renderer
         renderer.setEnabled(true);
 
         // update active renderer
-        this.activeRenderer = renderer;
+        this.renderer = renderer;
 
         // debug
         Log.d(TAG, "Active renderer: " + rendererId);
@@ -219,9 +222,6 @@ public class GLRenderer implements GLSurfaceView.Renderer {
     @Override
     public void onDrawFrame(GL10 unused) {
 
-        // get active renderer
-        final Renderer renderer = activeRenderer;
-
         // check
         if (renderer == null || !renderer.isEnabled()) return;
 
@@ -256,7 +256,7 @@ public class GLRenderer implements GLSurfaceView.Renderer {
                     //Log.e(TAG, "onPrepareFrame ("+i+"): "+listeners.get(i));
                     listeners.get(i).onPrepareFrame();
                 } catch (Exception ex) {
-                    Log.e(TAG, "Exception on delegate: " + renderers.get(i), ex);
+                    Log.e(TAG, "Exception on delegate: " + renderer, ex);
                     renderer.setEnabled(false);
                     break;
                 }

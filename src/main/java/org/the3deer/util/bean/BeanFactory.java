@@ -76,102 +76,220 @@ public class BeanFactory {
     }
 
     public Map<String, BeanPropertyInfo> getProperties(Object bean) {
-        Map<String, BeanPropertyInfo> ret = new TreeMap<>();
+
+        final Map<String, BeanPropertyInfo> ret = new TreeMap<>();
+
         Class<?> currentClass = bean.getClass();
-        
-        Bean beanAnn = currentClass.getAnnotation(Bean.class);
-        String beanName = (beanAnn != null && !beanAnn.name().isEmpty()) ? beanAnn.name() : BeanUtils.getSnakeCase(currentClass);
+        final String beanId = currentClass.getName();
 
         while (currentClass != null) {
-            for (Field field : currentClass.getDeclaredFields()) {
-                if (field.isAnnotationPresent(BeanProperty.class)) {
-                    BeanProperty ann = field.getAnnotation(BeanProperty.class);
-                    String id = field.getName();
-                    Method valuesMethod = findBeanValuesMethod(bean.getClass(), id);
-                    
-                    // find setter/getter if they exist
-                    String capitalized = id.substring(0, 1).toUpperCase() + id.substring(1);
-                    Method setter = findMethod(bean.getClass(), "set" + capitalized, String.class);
-                    Method getter = findMethod(bean.getClass(), "get" + capitalized);
-                    if (getter == null && (field.getType() == boolean.class || field.getType() == Boolean.class)) {
-                        getter = findMethod(bean.getClass(), "is" + capitalized);
-                    }
 
-                    ret.put(id, new BeanPropertyInfo(id, beanName, ann.name(), ann.values(), field.getType(), field, getter, setter, valuesMethod));
-                }
+            final Bean beanAnn = currentClass.getAnnotation(Bean.class);
+
+            final String beanName = (beanAnn != null && !beanAnn.name().isEmpty()) ? beanAnn.name() : BeanUtils.getSnakeCase(currentClass);
+
+            for (Field field : currentClass.getDeclaredFields()) {
+
+                BeanProperty ann = field.getAnnotation(BeanProperty.class);
+
+                if (ann == null) continue;
+
+                // inputs
+                final String fieldName = field.getName();
+                final String propertyId = currentClass.getName() + "." + fieldName;
+
+                // set property name
+                String propertyName = (ann.name() != null && !ann.name().isEmpty()) ? ann.name() : fieldName;
+
+                // get values method
+                Method valuesMethod = findBeanValuesMethod(bean.getClass(), fieldName, propertyName);
+
+                // get setter/getter
+                Method setter = findSetterMethod(bean.getClass(), fieldName, propertyName, field.getType());
+                Method getter = findGetterMethod(bean.getClass(), fieldName, propertyName, field.getType());
+
+                Log.v("BeanFactory", "Bean Property found. propertyId: "+propertyId + ", propertyName: " + propertyName+", bean: " + beanId + " - " + setter + " - " + getter);
+
+                ret.put(propertyId, new BeanPropertyInfo(propertyId, fieldName, beanName, propertyName, ann.values(), field.getType(), field, getter, setter, valuesMethod));
             }
             for (Method method : currentClass.getDeclaredMethods()) {
-                if (method.isAnnotationPresent(BeanProperty.class)) {
-                    BeanProperty ann = method.getAnnotation(BeanProperty.class);
-                    String methodName = method.getName();
-                    String id = (methodName.startsWith("get") || methodName.startsWith("set")) ? 
-                            methodName.substring(3, 4).toLowerCase() + methodName.substring(4) : 
-                            (methodName.startsWith("is") ? methodName.substring(2, 3).toLowerCase() + methodName.substring(3) : methodName);
 
-                    if (ret.containsKey(id)) continue;
+                // get annotation
+                final BeanProperty ann = method.getAnnotation(BeanProperty.class);
 
-                    String capitalized = id.substring(0, 1).toUpperCase() + id.substring(1);
-                    Method getter = findMethod(bean.getClass(), "get" + capitalized);
-                    if (getter == null) getter = findMethod(bean.getClass(), "is" + capitalized);
-                    
-                    Class<?> type = getter != null ? getter.getReturnType() : method.getParameterTypes().length > 0 ? method.getParameterTypes()[0] : void.class;
-                    Method setter = findMethod(bean.getClass(), "set" + capitalized, type);
-                    Method valuesMethod = findBeanValuesMethod(bean.getClass(), id);
+                // check
+                if (ann == null) continue;
 
-                    ret.put(id, new BeanPropertyInfo(id, beanName, ann.name(), ann.values(), type, null, getter, setter, valuesMethod));
+                // inputs
+                final String annotatedName = ann.name();
+                final String methodName = method.getName();
+
+                // check values method
+                if (methodName.endsWith("Values")){
+                    // ignore. it will be processed later on by the
+                    continue;
                 }
+
+                // build property name
+                final String propertyName = annotatedName != null && !annotatedName.isEmpty()? annotatedName :
+                        (methodName.startsWith("get") || methodName.startsWith("set")) ?
+                                methodName.substring(3, 4).toLowerCase() + methodName.substring(4) :
+                                (methodName.startsWith("is") ? methodName.substring(2, 3).toLowerCase() + methodName.substring(3) : methodName);
+
+                // build property id
+                final String propertyId = beanId + "." + propertyName;
+
+                // check
+                if (ret.containsKey(propertyId)) continue;
+
+                // check if method follows bean naming convention
+                if (!methodName.startsWith("get") && !methodName.startsWith("set") && !methodName.startsWith("is")) {
+                    Log.e("BeanFactory", "Bean Property is not prefixed with set|get|is. bean: " + beanId + ", method: " + methodName);
+                    continue;
+                }
+
+                // find getter/setter methods
+                Method getter = findGetterMethod(bean.getClass(), propertyName, propertyName, Object.class);
+
+                // check
+                if (getter == null){
+                    Log.e("BeanFactory", "Bean Property error. Getter is null. bean: " + beanId + ", method: " + methodName);
+                    continue;
+                }
+
+                // get setter
+                Method setter = findSetterMethod(bean.getClass(), propertyName, propertyName, getter.getReturnType());
+
+                // check
+                if (setter == null){
+                    Log.e("BeanFactory", "Bean Property error. Setter is null. bean: " + beanId + ", method: " + methodName);
+                    continue;
+                }
+
+                // get values method
+                Method valuesMethod = findBeanValuesMethod(bean.getClass(), propertyName, propertyName);
+
+                Log.v("BeanFactory", "Bean Property found. propertyId: " + propertyId + ", propertyName: "+propertyName + ", bean: " + beanId+", setter: " + setter + ", getter: " + getter);
+
+                ret.put(propertyId, new BeanPropertyInfo(propertyId, null, beanName, propertyName, ann.values(), getter.getReturnType(), null, getter, setter, valuesMethod));
             }
             currentClass = currentClass.getSuperclass();
         }
         return ret;
     }
 
-    private Method findMethod(Class<?> clazz, String name, Class<?>... parameterTypes) {
-        try {
-            return clazz.getMethod(name, parameterTypes);
-        } catch (NoSuchMethodException e) {
-            return null;
-        }
-    }
+    /**
+     * Find a getter method with the specified return type
+     *
+     * @param clazz        the bean class
+     * @param propertyName the method name
+     * @param returnType   the return type
+     * @return the method
+     */
+    private Method findGetterMethod(Class<?> clazz, String fieldName, String propertyName, Class<?> returnType) {
 
-    private Method findBeanValuesMethod(Class<?> clazz, String propertyName) {
-        for (Method method : clazz.getMethods()) {
-            // Naming convention fallback
-            if (method.getName().equals(propertyName + "Values") ||
-                method.getName().equals("get" + propertyName.substring(0, 1).toUpperCase() + propertyName.substring(1) + "Values")) {
-                return method;
+            // get all methods
+            final Method[] methods = clazz.getMethods();
+
+            // expected method name
+            final String expectedMethodName1;
+            final String expectedMethodName2;
+            if (Boolean.class.isAssignableFrom(returnType)) {
+                expectedMethodName1 = "is" + fieldName.substring(0, 1).toUpperCase() + fieldName.substring(1);
+                expectedMethodName2 = "is" + propertyName.substring(0, 1).toUpperCase() + propertyName.substring(1);
+            } else {
+                expectedMethodName1 = "get" + fieldName.substring(0, 1).toUpperCase() + fieldName.substring(1);
+                expectedMethodName2 = "get" + propertyName.substring(0, 1).toUpperCase() + propertyName.substring(1);
             }
+
+            // loop all methods
+            for (final Method method : methods) {
+
+                // inputs
+                final String methodName = method.getName();
+                final BeanProperty annotation = method.getAnnotation(BeanProperty.class);
+
+                // check
+                if (annotation == null) continue;
+                if (method.getParameterTypes().length != 0) continue;
+                if (returnType.isAssignableFrom(method.getReturnType())) continue;
+                if (!methodName.startsWith("get") && !methodName.startsWith("is")) continue;
+
+                // match with property
+                if (propertyName.equals(annotation.name())) return method;
+
+                // match capitalized method name
+                if (methodName.equals(expectedMethodName1)) return method;
+            }
+
+        // try with field name
+        try {
+            return clazz.getMethod(expectedMethodName1);
+
+        } catch (NoSuchMethodException ignored) {
         }
+
+        // try with property name
+        try {
+            return clazz.getMethod(expectedMethodName1);
+
+        } catch (NoSuchMethodException ignored) {
+        }
+
         return null;
     }
 
-    public void setProperty(Object bean, String propertyName, Object value) {
-        try {
-            Map<String, BeanPropertyInfo> properties = getProperties(bean);
-            BeanPropertyInfo info = properties.get(propertyName);
-            if (info != null) {
-                info.setValue(bean, value);
-            } else {
-                // Fallback for non-annotated fields?
-                Field field = findField(bean.getClass(), propertyName);
-                if (field != null) {
-                    field.setAccessible(true);
-                    field.set(bean, value);
-                }
+    private Method findSetterMethod(Class<?> clazz, String fieldName, String propertyName, Class<?> parameterType) {
+
+            // get all methods
+            final Method[] methods = clazz.getMethods();
+
+            // loop all methods
+            String expectedMethodName1 = "set" + fieldName.substring(0, 1).toUpperCase() + fieldName.substring(1);
+            String expectedMethodName2 = "set" + propertyName.substring(0, 1).toUpperCase() + propertyName.substring(1);
+            for (int i = 0; i < methods.length; i++) {
+
+                // inputs
+                final Method method = methods[i];
+                final String methodName = method.getName();
+                final BeanProperty annotation = method.getAnnotation(BeanProperty.class);
+
+                // check
+                if (annotation == null) continue;
+                if (method.getParameterTypes().length != 1) continue;
+                if (!method.getParameterTypes()[0].isAssignableFrom(parameterType)) continue;
+                if (!methodName.startsWith("set")) continue;
+
+                // match with property
+                if (propertyName.equals(annotation.name())) return method;
+
+                // match capitalized method name
+                if (methodName.equals(expectedMethodName1)) return method;
             }
-        } catch (Exception e) {
-            Log.e("BeanFactory", "Error setting property " + propertyName, e);
-            throw new RuntimeException(e);
+
+        // try default field name
+        try {
+            return clazz.getMethod(expectedMethodName1, parameterType);
+        } catch (NoSuchMethodException ignored) {
         }
+
+        // try with property name
+        try {
+            return clazz.getMethod(expectedMethodName2, parameterType);
+        } catch (NoSuchMethodException ignored) {
+        }
+
+        return null;
     }
 
-    private Field findField(Class<?> clazz, String propertyName) {
-        Class<?> current = clazz;
-        while (current != null) {
-            try {
-                return current.getDeclaredField(propertyName);
-            } catch (NoSuchFieldException e) {
-                current = current.getSuperclass();
+    private Method findBeanValuesMethod(Class<?> clazz, String fieldName, String propertyName) {
+        for (Method method : clazz.getMethods()) {
+            // Naming convention fallback
+            if (method.getName().equals(propertyName + "Values") ||
+                    method.getName().equals("get" + propertyName.substring(0, 1).toUpperCase() + propertyName.substring(1) + "Values")) {
+                return method;
+            } else if (method.getName().equals("get" + fieldName.substring(0, 1).toUpperCase() + fieldName.substring(1) + "Values")) {
+                return method;
             }
         }
         return null;
@@ -208,7 +326,7 @@ public class BeanFactory {
      * @return the bean ready to be used
      */
     public <T> T configure(T bean) {
-        return (T)configureBean("no-id", bean);
+        return (T) configureBean("no-id", bean);
     }
 
     private Object configureBean(String id) {
@@ -294,9 +412,9 @@ public class BeanFactory {
 
         // invoke
         try {
-            for (Method method : bean.getClass().getDeclaredMethods()){
+            for (Method method : bean.getClass().getDeclaredMethods()) {
                 method.setAccessible(true);
-                if (method.getAnnotation(BeanInit.class) != null){
+                if (method.getAnnotation(BeanInit.class) != null) {
                     return method.invoke(bean);
                 }
                 method.setAccessible(false);
@@ -332,7 +450,8 @@ public class BeanFactory {
             }
             beansUpdated = false;
             for (String id : beans.keySet().toArray(new String[0])) {
-                if (!status.containsKey(id) || status.get(id) < STATUS_CONFIGURED) configureBean(id);
+                if (!status.containsKey(id) || status.get(id) < STATUS_CONFIGURED)
+                    configureBean(id);
             }
             for (String id : beans.keySet().toArray(new String[0])) {
                 if (!status.containsKey(id) || status.get(id) < STATUS_INITIALIZED) setUpBean(id);
@@ -341,12 +460,13 @@ public class BeanFactory {
     }
 
     private void onBeanUpdate(String id) {
-        if (id == null || !beans.containsKey(id)) throw new IllegalArgumentException("id or bean not found: " + id);
+        if (id == null || !beans.containsKey(id))
+            throw new IllegalArgumentException("id or bean not found: " + id);
         final Object beanUpdated = beans.get(id);
         if (beanUpdated == null) return;
         final List<?> duplicates = findAll(beanUpdated.getClass(), null);
         int beanIdx = duplicates.indexOf(beanUpdated);
-        for (Map.Entry<String,Object> entry : beans.entrySet()){
+        for (Map.Entry<String, Object> entry : beans.entrySet()) {
             final Object bean = entry.getValue();
             if (bean == null) continue;
             try {
@@ -371,7 +491,8 @@ public class BeanFactory {
                     }
                     currentClass = currentClass.getSuperclass();
                 }
-            } catch (IllegalAccessException e) {}
+            } catch (IllegalAccessException e) {
+            }
         }
     }
 
@@ -380,7 +501,9 @@ public class BeanFactory {
         if (bean == null) throw new IllegalArgumentException("bean not found: " + id);
         try {
             return bean.getClass().getMethod(methodName).invoke(bean);
-        } catch (Exception e) { throw new RuntimeException(e); }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Nullable
@@ -389,7 +512,8 @@ public class BeanFactory {
     }
 
     public void add(String id, Class<?> clazz) {
-        if (this.definitions.containsKey(id)) throw new IllegalArgumentException("Definition already exists: "+id);
+        if (this.definitions.containsKey(id))
+            throw new IllegalArgumentException("Definition already exists: " + id);
         this.definitions.put(id, clazz);
         this.definitionsUpdated = true;
     }
@@ -408,13 +532,14 @@ public class BeanFactory {
     public <T> T addAndGet(String id, Class<T> clazz) {
         this.definitions.put(id, clazz);
         this.instantiateBean(id);
-        return (T)startBean(id);
+        return (T) startBean(id);
     }
 
     public <T> Object addOrReplace(String id, T object) {
 
         // check
-        if (id == null || object == null) throw new IllegalArgumentException("id or object cannot be null");
+        if (id == null || object == null)
+            throw new IllegalArgumentException("id or object cannot be null");
 
         // get current
         Object old = this.beans.put(id, object);
@@ -441,7 +566,8 @@ public class BeanFactory {
         for (Map.Entry<String, Object> entry : beans.entrySet()) {
             String entryNamespace = getNamespace(entry.getKey());
             if (namespace == null || (entryNamespace != null && namespace.startsWith(entryNamespace))) {
-                if (clazz.isAssignableFrom(entry.getValue().getClass())) return clazz.cast(entry.getValue());
+                if (clazz.isAssignableFrom(entry.getValue().getClass()))
+                    return clazz.cast(entry.getValue());
             }
         }
         if (namespace != null) return find(clazz, getNamespace(namespace));
@@ -459,7 +585,8 @@ public class BeanFactory {
         List<T> ret = new ArrayList<>();
         for (Map.Entry<String, Object> entry : beans.entrySet()) {
             if (parent == null || entry.getKey().startsWith(parent)) {
-                if (clazz.isAssignableFrom(entry.getValue().getClass())) ret.add(clazz.cast(entry.getValue()));
+                if (clazz.isAssignableFrom(entry.getValue().getClass()))
+                    ret.add(clazz.cast(entry.getValue()));
             }
         }
         if (!ret.isEmpty()) {
@@ -472,11 +599,12 @@ public class BeanFactory {
         return ret;
     }
 
-    public <T> Map<String,T> findAll2(Class<T> clazz, String parent) {
-        Map<String,T> ret = new HashMap<>();
+    public <T> Map<String, T> findAll2(Class<T> clazz, String parent) {
+        Map<String, T> ret = new HashMap<>();
         for (Map.Entry<String, Object> entry : beans.entrySet()) {
             if (parent == null || entry.getKey().startsWith(parent)) {
-                if (clazz.isAssignableFrom(entry.getValue().getClass())) ret.put(entry.getKey(), clazz.cast(entry.getValue()));
+                if (clazz.isAssignableFrom(entry.getValue().getClass()))
+                    ret.put(entry.getKey(), clazz.cast(entry.getValue()));
             }
         }
         return ret;
@@ -511,13 +639,15 @@ public class BeanFactory {
 
     private static void onBeanUpdateCallback(String beanId, Object bean, Object updated) {
         try {
-            for (Method method : bean.getClass().getDeclaredMethods()){
+            for (Method method : bean.getClass().getDeclaredMethods()) {
                 if (method.isAnnotationPresent(OnBeanUpdate.class)) {
                     method.invoke(bean, beanId, updated);
                     return;
                 }
             }
-        } catch (Exception e) { throw new RuntimeException(e); }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public boolean remove(String beanId, Object bean) {
@@ -593,7 +723,7 @@ public class BeanFactory {
         } catch (IllegalAccessException e) {
 
             // log error
-            Log.e("BeanFactory", "Error setting property. field: "+field.getName()+", bean: " + beanId, e);
+            Log.e("BeanFactory", "Error setting property. field: " + field.getName() + ", bean: " + beanId, e);
 
             return false;
         }
@@ -621,7 +751,7 @@ public class BeanFactory {
         } catch (IllegalAccessException e) {
 
             // log error
-            Log.e("BeanFactory", "Error setting property. field: "+field.getName()+", bean: " + beanId, e);
+            Log.e("BeanFactory", "Error setting property. field: " + field.getName() + ", bean: " + beanId, e);
 
             // continue;
             return false;
@@ -647,7 +777,7 @@ public class BeanFactory {
         } catch (IllegalAccessException e) {
 
             // log error
-            Log.e("BeanFactory", "Error setting property. field: "+field.getName()+", bean: " + beanId, e);
+            Log.e("BeanFactory", "Error setting property. field: " + field.getName() + ", bean: " + beanId, e);
 
             // continue;
             return false;
