@@ -162,9 +162,10 @@ public class ModelEngineViewModel extends AndroidViewModel {
         final String finalUriString = uriString;
         engine.add("modelEngineViewModelListener", (EventListener) event -> {
             if (event instanceof ModelEvent) {
-                ModelEvent modelEvent = (ModelEvent) event;
+                final ModelEvent modelEvent = (ModelEvent) event;
+                final String message = modelEvent.getData() != null && modelEvent.getData().containsKey("message") ? Objects.requireNonNull(modelEvent.getData().get("message")).toString() : "Loading...";
                 if (modelEvent.getCode() == ModelEvent.Code.LOADING || modelEvent.getCode() == ModelEvent.Code.PROGRESS) {
-                    setLoading(finalUriString, "Loading...");
+                    setLoading(finalUriString, message);
                 } else if (modelEvent.getCode() == ModelEvent.Code.LOADED || modelEvent.getCode() == ModelEvent.Code.LOAD_ERROR) {
                     setLoading(finalUriString, null);
                 }

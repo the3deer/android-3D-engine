@@ -199,10 +199,11 @@ public class SceneLoader implements LoadListener {
     @Override
     public void onLoadError(Exception ex) {
         Log.e(TAG, ex.getMessage(), ex);
-        /*activity.runOnUiThread(() -> {
-            Toast.makeText(activity, "There was a problem building the model: " + ex.getMessage(),
-                    Toast.LENGTH_LONG).show();
-        });*/
+
+        // notify
+        if (eventManager != null){
+            eventManager.propagate(new ModelEvent(this, ModelEvent.Code.LOAD_ERROR, Collections.singletonMap("message", ex.getMessage())));
+        }
     }
 
     @Override
