@@ -32,9 +32,22 @@ public class BeanFactory {
 
     private final Logger LOG = LogManager.getLogManager().getLogger(this.getClass().getName());
 
+    /**
+     * Bean is instantiated
+     */
     private static final Integer STATUS_INSTANTIATED = 0;
+    /**
+     * Beans has all dependencies injected
+     */
     private static final Integer STATUS_CONFIGURED = 1;
+    /**
+     * Beans is initialized
+     */
     private static final Integer STATUS_INITIALIZED = 2;
+    /**
+     * Bean is started
+     */
+    private static final Integer STATUS_STARTED = 3;
 
     private final Map<String, Class<?>> definitions = new TreeMap<>();
     private final Map<String, Object> beans = new TreeMap<>();
@@ -313,10 +326,30 @@ public class BeanFactory {
         }
     }
 
-    private Object startBean(String id) {
-        Object bean = configureBean(id);
-        setUpBean(id);
-        return bean;
+    private boolean startBean(String id) {
+
+        // check
+        if (id == null) throw new IllegalArgumentException("id cannot be null");
+
+        // get bean
+        final Object bean = beans.get(id);
+
+        // check
+        if (bean == null) throw new IllegalStateException("bean not found: " + id);
+
+        // check current status
+        final Integer status = this.status.get(id);
+        if (status != null && status >= STATUS_STARTED) {
+            return false;
+        }
+
+        // update status
+        this.status.put(id, STATUS_STARTED);
+
+        // invoke
+        new Thread(()->invokeAnnotatedMethod(bean, BeanStart.class)).start();
+
+        return true;
     }
 
     /**
@@ -365,7 +398,13 @@ public class BeanFactory {
                     } else {
                         candidate = find(field.getType(), getNamespace(id));
                     }
-                    if (candidate != null) field.set(bean, candidate);
+                    if (candidate != null) {
+                        field.set(bean, candidate);
+                    } else {
+                        if (field.getName().startsWith("_")){
+                            throw new IllegalStateException("Dependency not found. bean: "+bean+", field: "+field.getName());
+                        }
+                    }
                     field.setAccessible(false);
                 }
                 currentClass = currentClass.getSuperclass();
@@ -376,7 +415,7 @@ public class BeanFactory {
         return beans.get(id);
     }
 
-    private Object setUpBean(String id) {
+    private boolean setUpBean(String id) {
 
         // check
         if (id == null || !beans.containsKey(id))
@@ -389,14 +428,14 @@ public class BeanFactory {
         // check current status
         final Integer status = this.status.get(id);
         if (status != null && status >= STATUS_INITIALIZED) {
-            return bean;
+            return false;
         }
 
         // update status
         this.status.put(id, STATUS_INITIALIZED);
 
         // invoke
-        return setUpBean(bean);
+        return invokeAnnotatedMethod(bean, BeanInit.class);
     }
 
     /**
@@ -405,21 +444,24 @@ public class BeanFactory {
      * @param bean the bean to set up
      * @return the bean already setup
      */
-    public Object setUpBean(Object bean) {
+    public boolean invokeAnnotatedMethod(Object bean, Class<? extends Annotation> annotationClass) {
 
         // check
         if (bean == null) throw new IllegalArgumentException("bean cannot be null");
 
         // invoke
         try {
+            boolean status = false;
             for (Method method : bean.getClass().getDeclaredMethods()) {
                 method.setAccessible(true);
-                if (method.getAnnotation(BeanInit.class) != null) {
-                    return method.invoke(bean);
+                if (method.getAnnotation(annotationClass) != null) {
+                    method.invoke(bean);
+                    status = true;
+                    break;
                 }
                 method.setAccessible(false);
             }
-            return null;
+            return status;
         } catch (InvocationTargetException | IllegalAccessException e) {
             throw new RuntimeException(e);
         }
@@ -455,6 +497,9 @@ public class BeanFactory {
             }
             for (String id : beans.keySet().toArray(new String[0])) {
                 if (!status.containsKey(id) || status.get(id) < STATUS_INITIALIZED) setUpBean(id);
+            }
+            for (String id : beans.keySet().toArray(new String[0])) {
+                if (!status.containsKey(id) || status.get(id) < STATUS_STARTED) startBean(id);
             }
         } while ((definitionsUpdated || beansUpdated) && max-- > 0);
     }
@@ -529,11 +574,11 @@ public class BeanFactory {
         return true;
     }
 
-    public <T> T addAndGet(String id, Class<T> clazz) {
+/*    public <T> T addAndGet(String id, Class<T> clazz) {
         this.definitions.put(id, clazz);
         this.instantiateBean(id);
         return (T) startBean(id);
-    }
+    }*/
 
     public <T> Object addOrReplace(String id, T object) {
 
