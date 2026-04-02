@@ -343,6 +343,10 @@ public class BeanFactory {
             return false;
         }
 
+        // get annotated method
+        final Method annotatedMethod = findAnnotatedMethod(bean, BeanStart.class);;
+        if (annotatedMethod == null) return false;
+
         // update status
         this.status.put(id, STATUS_STARTED);
 
@@ -438,16 +442,34 @@ public class BeanFactory {
         return invokeAnnotatedMethod(bean, BeanInit.class);
     }
 
+    public Method findAnnotatedMethod(Object bean, Class<? extends Annotation> annotationClass) {
+
+        // check bean
+        if (bean == null) throw new IllegalArgumentException("bean cannot be null");
+
+        // check annotation
+        if (annotationClass == null) throw new IllegalArgumentException("annotation cannot be null");
+
+        // invoke
+        Method methodFound = null;
+        for (Method method : bean.getClass().getDeclaredMethods()) {
+            method.setAccessible(true);
+            if (method.getAnnotation(annotationClass) != null) {
+                methodFound = method;
+                break;
+            }
+            method.setAccessible(false);
+        }
+        return methodFound;
+    }
+
     /**
      * Set up a bean. That is, calling the @BeanInit method
      *
      * @param bean the bean to set up
      * @return the bean already setup
      */
-    public boolean invokeAnnotatedMethod(Object bean, Class<? extends Annotation> annotationClass) {
-
-        // check
-        if (bean == null) throw new IllegalArgumentException("bean cannot be null");
+    private boolean invokeAnnotatedMethod(Object bean, Class<? extends Annotation> annotationClass) {
 
         // invoke
         try {
