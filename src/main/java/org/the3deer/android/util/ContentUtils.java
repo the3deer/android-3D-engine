@@ -145,7 +145,7 @@ public class ContentUtils {
             }
         }
         else if (uri.getScheme().equals("http") || uri.getScheme().equals("https")) {
-            return new URL(uri.toString()).openStream();
+            return new BufferedInputStream(new URL(uri.toString()).openConnection().getInputStream(),8192);
         }
 
         // Handle content:// or file://
@@ -154,7 +154,7 @@ public class ContentUtils {
             if (uri.getScheme().equals("content") && documentsProvided.containsKey(uri.toString())) {
                 finalUri = documentsProvided.get(uri.toString());
             }
-            return context.getContentResolver().openInputStream(finalUri);
+            return new BufferedInputStream(context.getContentResolver().openInputStream(finalUri), 8192);
         } catch (FileNotFoundException | SecurityException e) {
             Log.w(TAG, "Access denied or file not found for " + uri + ". Attempting resolution...");
 
@@ -180,7 +180,7 @@ public class ContentUtils {
                         // Cache the resolution for next time
                         addUri(uri.toString(), resolvedUri.get());
                         // Retry opening the stream with the new URI
-                        return context.getContentResolver().openInputStream(resolvedUri.get());
+                        return new BufferedInputStream(context.getContentResolver().openInputStream(resolvedUri.get()),8192) ;
                     }
                 } catch (InterruptedException ie) {
                     Thread.currentThread().interrupt();
