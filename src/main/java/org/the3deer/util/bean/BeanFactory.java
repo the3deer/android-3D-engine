@@ -19,6 +19,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.TreeMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
 
@@ -52,6 +54,13 @@ public class BeanFactory {
     private final Map<String, Class<?>> definitions = new TreeMap<>();
     private final Map<String, Object> beans = new TreeMap<>();
     private final Map<String, Integer> status = new HashMap<>();
+
+    private final ExecutorService executorService = Executors.newSingleThreadScheduledExecutor(r -> {
+        Thread thread = new Thread(r);
+        thread.setPriority(Thread.NORM_PRIORITY); // Standard priority
+        thread.setName("BeanFactory");
+        return thread;
+    });
 
     private boolean definitionsUpdated;
     private boolean beansUpdated;
@@ -351,7 +360,7 @@ public class BeanFactory {
         this.status.put(id, STATUS_STARTED);
 
         // invoke
-        new Thread(()->invokeAnnotatedMethod(bean, BeanStart.class)).start();
+        executorService.execute(()->invokeAnnotatedMethod(bean, BeanStart.class));
 
         return true;
     }
