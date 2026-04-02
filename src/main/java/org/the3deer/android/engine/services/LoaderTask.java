@@ -45,17 +45,14 @@ public abstract class LoaderTask {
 		executor.execute(() -> {
 			try {
 				// FIXME: why we need to use a handler here?
-				handler.post(callback::onLoadStart);
-				final List<Object3D> data = build();
-				handler.post(() -> {
-					onPostExecute(data);
-					callback.onLoadComplete();
-				});
+				callback.onLoadStart();
+				build();
+				callback.onLoadComplete();
 			} catch (final Exception ex) {
-				Log.e("LoaderTask", ex.getMessage(), ex);
-				handler.post(() -> callback.onLoadError(ex));
+				Log.e("LoaderTask", "Error loading model: "+ ex.getMessage(), ex);
+				callback.onLoadError(ex);
 			} catch (final OutOfMemoryError err) {
-				handler.post(() -> callback.onLoadError(new RuntimeException("Out Of Memory Error", err)));
+				callback.onLoadError(new RuntimeException("Out Of Memory Error", err));
 			}
 		});
 	}

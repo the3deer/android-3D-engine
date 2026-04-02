@@ -6,6 +6,7 @@ import android.util.Log;
 
 import org.the3deer.android.engine.model.Material;
 import org.the3deer.android.engine.model.Object3D;
+import org.the3deer.android.engine.model.Scene;
 import org.the3deer.android.engine.model.Texture;
 import org.the3deer.android.engine.services.LoadListener;
 import org.the3deer.android.engine.services.fbx.dto.FBXMesh;
@@ -43,6 +44,10 @@ public class FbxLoader {
             final int meshCount = model.getMeshCount();
             Log.i(TAG, "FBX Loaded. Mesh Count: " + meshCount);
 
+            // build scene
+            final Scene scene = new Scene("fbx_scene");
+
+            // build objects
             for (int i = 0; i < meshCount; i++) {
                 final FBXMesh fbxMesh = model.getMesh(i);
                 
@@ -114,7 +119,13 @@ public class FbxLoader {
                 mesh.setMaterial(material);
                 
                 ret.add(mesh);
+
+                callback.onLoadObject(scene, mesh);
             }
+
+            // notify
+            callback.onLoadScene(scene);
+
         }
         return ret;
     }
