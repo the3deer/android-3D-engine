@@ -14,28 +14,23 @@ import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
+import org.jetbrains.annotations.NotNull;
+import org.the3deer.android.engine.event.EngineEvent;
 import org.the3deer.android.engine.model.Model;
 import org.the3deer.android.engine.model.ModelEvent;
-import org.the3deer.android.engine.model.Node;
-import org.the3deer.android.engine.model.Object3D;
-import org.the3deer.android.engine.model.Scene;
 import org.the3deer.android.engine.model.Screen;
 import org.the3deer.util.event.EventListener;
 
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class ModelEngineViewModel extends AndroidViewModel implements ComponentCallbacks2 {
 
     private final String TAG = "ModelEngineViewModel";
-
-    public enum MemoryStatus {
-        OK, WARNING, CRITICAL
-    }
 
     /**
      * OpenGL Screen. Shared across all models to ensure consistent UI.
@@ -57,23 +52,15 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
     public final LiveData<ModelEngine> activeEngine = _activeEngine;
 
     /**
-     * Loading state per URI. Value is the loading message or null if not loading.
-     */
-    private final MutableLiveData<Map<String, String>> _loadingState = new MutableLiveData<>(Collections.emptyMap());
-    public final LiveData<Map<String, String>> loadingState = _loadingState;
-
-    /**
      * Memory info
      */
     private final MutableLiveData<String> _memoryInfo = new MutableLiveData<>("Memory info...");
     public final LiveData<String> memoryInfo = _memoryInfo;
 
     /**
-     * Memory status for UI feedback (e.g. button color)
+     * Background executor for heavy loading operations.
      */
-    private final MutableLiveData<MemoryStatus> _memoryStatus = new MutableLiveData<>(MemoryStatus.OK);
-    public final LiveData<MemoryStatus> memoryStatus = _memoryStatus;
-
+    private final ExecutorService executor = Executors.newSingleThreadExecutor();
     /**
      * Periodic memory updater
      */
@@ -89,68 +76,22 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
     public ModelEngineViewModel(Application application) {
         super(application);
         application.registerComponentCallbacks(this);
-        initTestModels();
-        
+        //initTestModels();
+
         // Start periodic update
         handler.post(memoryUpdater);
     }
 
-    private void initTestModels() {
-        // Simple shapes for testing
-        Model triangle = createModelForTest("triangle", new float[]{
-                0.0f, 0.622008459f, 0.0f,
-                -0.5f, -0.311004243f, 0.0f,
-                0.5f, -0.311004243f, 0.0f
-        });
-
-        Model cube = createModelForTest("cube", new float[]{
-                // Front face
-                -0.3f, 0.3f, 0.3f, -0.3f, -0.3f, 0.3f, 0.3f, -0.3f, 0.3f,
-                -0.3f, 0.3f, 0.3f, 0.3f, -0.3f, 0.3f, 0.3f, 0.3f, 0.3f,
-                // Back face
-                -0.3f, 0.3f, -0.3f, 0.3f, -0.3f, -0.3f, -0.3f, -0.3f, -0.3f,
-                -0.3f, 0.3f, -0.3f, 0.3f, 0.3f, -0.3f, 0.3f, -0.3f, -0.3f,
-                // Top face
-                -0.3f, 0.3f, -0.3f, -0.3f, 0.3f, 0.3f, 0.3f, 0.3f, 0.3f,
-                -0.3f, 0.3f, -0.3f, 0.3f, 0.3f, 0.3f, 0.3f, 0.3f, -0.3f,
-                // Bottom face
-                -0.3f, -0.3f, -0.3f, 0.3f, -0.3f, -0.3f, 0.3f, -0.3f, 0.3f,
-                -0.3f, -0.3f, -0.3f, 0.3f, -0.3f, 0.3f, -0.3f, -0.3f, 0.3f,
-                // Left face
-                -0.3f, 0.3f, -0.3f, -0.3f, -0.3f, -0.3f, -0.3f, -0.3f, 0.3f,
-                -0.3f, 0.3f, -0.3f, -0.3f, -0.3f, 0.3f, -0.3f, 0.3f, 0.3f,
-                // Right face
-                0.3f, 0.3f, -0.3f, 0.3f, -0.3f, 0.3f, 0.3f, -0.3f, -0.3f,
-                0.3f, 0.3f, -0.3f, 0.3f, 0.3f, 0.3f, 0.3f, -0.3f, 0.3f
-        });
-
-        Model square = createModelForTest("square", new float[]{
-                -0.5f, 0.5f, 0.0f,
-                -0.5f, -0.5f, 0.0f,
-                0.5f, -0.5f, 0.0f,
-                -0.5f, 0.5f, 0.0f,
-                0.5f, -0.5f, 0.0f,
-                0.5f, 0.5f, 0.0f
-        });
-
-        Map<String, Model> models = _models.getValue();
-        if (models != null) {
-            models.put("triangle", triangle);
-            models.put("cube", cube);
-            models.put("square", square);
-        }
-    }
-
-    public ModelEngine getEngine(String uri) {
+    public ModelEngine getEngine(@NotNull String uri) {
         Map<String, ModelEngine> engines = _engines.getValue();
         return engines != null ? engines.get(uri) : null;
     }
 
-    public ModelEngine initEngine(String uriString) {
+    public ModelEngine initEngine(@NotNull String uriString) {
         return initEngine(uriString, null, null);
     }
 
-    public ModelEngine initEngine(String uriString, String name, String type) {
+    public ModelEngine initEngine(@NotNull String uriString, String name, String type) {
 
         // get
         Model model = getModel(uriString);
@@ -163,94 +104,127 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
         ModelEngine engine = getEngine(uriString);
         if (engine == null) {
             engine = getOrCreateEngine(uriString, model);
+            Log.i(TAG, "Model Engine Initialized. uri: " + uriString);
         }
 
-        Log.d(TAG, "Model Engine Initialized. uri: " + uriString);
         return engine;
     }
 
-    public void activateEngine(String uriString, Runnable callback) {
-        try {
-            // Check memory before attempting to load
-            if (!isMemoryAvailable()) {
+    public void loadEngine(@NotNull String uriString, Runnable callback) {
 
-                // make space
-                freeMemory(uriString);
+        // Check memory before attempting to load
+        if (isMemoryExhausted()) {
 
-                if (!isMemoryAvailable()) {
+            // make space
+            freeMemory(uriString);
+
+                if (isMemoryExhausted()) {
                     Log.e(TAG, "Critical memory state. Aborting load for: " + uriString);
-                    setLoading(uriString, "Error: Critical memory limit reached");
-                    _memoryStatus.postValue(MemoryStatus.CRITICAL);
+                    updateEngineStatus(uriString, ModelEngine.Status.ERROR, "Error: Critical memory limit reached");
                     return;
                 }
             }
 
-            // Initialize engine components (Lightweight)
-            final ModelEngine modelEngine = initEngine(uriString);
-            if (modelEngine == null) throw new IllegalArgumentException("Engine not initialized");
+        executor.execute(() -> {
 
-            // Load 3D model data (Heavyweight) - now handled by the engine itself
-            modelEngine.loadAsync(() -> {
-                // Update active engine on the UI thread
-                _activeEngine.setValue(modelEngine);
-                updateMemoryInfo();
-            });
+            try {
+                // Initialize engine components (Lightweight)
+                final ModelEngine modelEngine = initEngine(uriString);
+                if (modelEngine == null)
+                    throw new IllegalArgumentException("Engine not initialized");
 
-            //
-            if (callback != null) {
-                handler.post(callback);
-            }
-        } catch (OutOfMemoryError e) {
-            // We don't call the callback here to avoid further operations on a failed engine
-            Log.e(TAG, "OutOfMemoryError while activating engine for " + uriString, e);
-            setLoading(uriString, "Error: Out of memory");
-            _memoryStatus.postValue(MemoryStatus.CRITICAL);
-            clearCache();
-        } catch (Exception e) {
-            Log.e(TAG, "Failed to activate engine for " + uriString, e);
-            setLoading(uriString, "Error: " + e.getMessage());
-        }
-    }
+                // update status
+                updateEngineStatus(uriString, ModelEngine.Status.LOADING, "Info: Loading Engine...");
 
-    public void startEngine(String uriString, Runnable callback){
-        try {
-
-            ModelEngine active = _activeEngine.getValue();
-            if (active != null) {
-
-                Log.i(TAG, "Starting engine for " + uriString);
-
-                active.start();
+                // Load 3D model data (Heavyweight) - now handled by the engine itself
+                modelEngine.load();
 
                 if (callback != null) {
                     handler.post(callback);
                 }
+
+                updateMemoryInfo();
+
+                // log success
+                Log.i(TAG, "Engine loaded. uri: " + uriString);
+
+                // update engine status
+                updateEngineStatus(uriString, ModelEngine.Status.OK, "Info: Engine loaded successfully");
+
+            } catch (OutOfMemoryError e) {
+                // We don't call the callback here to avoid further operations on a failed engine
+                Log.e(TAG, "OutOfMemoryError while activating engine for " + uriString, e);
+                updateEngineStatus(uriString, ModelEngine.Status.ERROR , "Error: Out of memory");
+                clearCache();
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to activate engine for " + uriString, e);
+                updateEngineStatus(uriString, ModelEngine.Status.ERROR, "Error: " + e.getMessage());
             }
-        }catch(Exception ex){
+        });
+    }
+
+    public void startEngine(@NotNull String uriString, Runnable callback) {
+
+        final ModelEngine engine = getEngine(uriString);
+        if (engine == null) throw new IllegalStateException("Info: Engine not initialized");
+
+        try {
+            executor.execute(() -> {
+
+                // start engine
+                engine.start();
+
+                // invoke callback
+                if (callback != null) {
+                    handler.post(callback);
+                }
+
+                // update engine status
+                updateEngineStatus(uriString, ModelEngine.Status.OK, "Info: Engine started successfully");
+
+                Log.i(TAG, "Engine started. uri: " + uriString);
+            });
+        } catch (Exception ex) {
             Log.e(TAG, "Failed to start engine for " + uriString, ex);
+
+            // update engine status
+            updateEngineStatus(uriString, ModelEngine.Status.ERROR, "Error: "+ex.getMessage());
         }
+    }
+
+    public void setActiveEngine(@NotNull String uriString) {
+
+        ModelEngine engine = getEngine(uriString);
+        if (engine == null) throw new IllegalStateException("Engine not initialized");
+
+        // notify observers
+        _activeEngine.postValue(engine);
+
+        // log success
+        Log.i(TAG, "Engine activated. uri: " + uriString);
     }
 
     private void freeMemory(String uriString) {
         Log.w(TAG, "Low memory detected. Unloading other models to proceed with: " + uriString);
-        setLoading(uriString, "Low memory. Unloading other models...");
+        updateEngineStatus(uriString, ModelEngine.Status.ERROR, "Low memory. Unloading other models...");
 
+        // FIXME: make this an EngineEvent
         handler.post(() ->
-            Toast.makeText(getApplication(), "Unloading inactive models to free memory...", Toast.LENGTH_SHORT).show()
+                Toast.makeText(getApplication(), "Unloading inactive models to free memory...", Toast.LENGTH_SHORT).show()
         );
 
         // Clear cache and try again
         clearCache();
     }
 
-    private boolean isMemoryAvailable() {
+    private boolean isMemoryExhausted() {
         Runtime runtime = Runtime.getRuntime();
         long usedMemory = runtime.totalMemory() - runtime.freeMemory();
         long maxMemory = runtime.maxMemory();
         long availableMemory = maxMemory - usedMemory;
 
         // Safety threshold: 32MB
-        return availableMemory > 32 * 1024 * 1024;
+        return availableMemory <= 32 * 1024 * 1024;
     }
 
     private void updateMemoryInfo() {
@@ -263,20 +237,20 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
         ModelEngine active = _activeEngine.getValue();
         if (active != null && active.getModel() != null) {
             modelMemory = active.getModel().getMemoryUsage();
+
+            // Update status based on available memory
+            if (availableMemory < 32 * 1024 * 1024) {
+                active.status = ModelEngine.Status.ERROR;
+            } else if (availableMemory < 64 * 1024 * 1024) {
+                active.status = ModelEngine.Status.WARNING;
+            } else {
+                active.status = ModelEngine.Status.OK;
+            }
         }
 
-        String info = String.format(Locale.getDefault(), "Memory: %d/%d MB\nModel: %d MB", 
-            usedMemory / 1024 / 1024, maxMemory / 1024 / 1024, modelMemory / 1024 / 1024);
+        String info = String.format(Locale.getDefault(), "Memory: %d/%d MB\nModel: %d MB",
+                usedMemory / 1024 / 1024, maxMemory / 1024 / 1024, modelMemory / 1024 / 1024);
         _memoryInfo.postValue(info);
-
-        // Update status based on available memory
-        if (availableMemory < 32 * 1024 * 1024) {
-            _memoryStatus.postValue(MemoryStatus.CRITICAL);
-        } else if (availableMemory < 64 * 1024 * 1024) {
-            _memoryStatus.postValue(MemoryStatus.WARNING);
-        } else {
-            _memoryStatus.postValue(MemoryStatus.OK);
-        }
     }
 
     private ModelEngine getOrCreateEngine(String uriString, Model model) {
@@ -293,17 +267,20 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
         _engines.setValue(engines);
 
         final String finalUriString = uriString;
+
         engine.add("modelEngineViewModelListener", (EventListener) event -> {
             if (event instanceof ModelEvent) {
                 final ModelEvent modelEvent = (ModelEvent) event;
-                final String message = modelEvent.getData() != null && modelEvent.getData().containsKey("message") ? Objects.requireNonNull(modelEvent.getData().get("message")).toString() : "Loading...";
-                if (modelEvent.getCode() == ModelEvent.Code.LOADING || modelEvent.getCode() == ModelEvent.Code.PROGRESS) {
-                    setLoading(finalUriString, message);
-                } else if (modelEvent.getCode() == ModelEvent.Code.LOADED || modelEvent.getCode() == ModelEvent.Code.LOAD_ERROR) {
-                    setLoading(finalUriString, null);
-                    updateMemoryInfo();
-                    if (modelEvent.getCode() == ModelEvent.Code.LOAD_ERROR) {
-                        _memoryStatus.postValue(MemoryStatus.CRITICAL);
+                final Model.Status status = modelEvent.getData("status", Model.Status.class, Model.Status.UNKNOWN);
+                if (modelEvent.getCode() == ModelEvent.Code.STATUS_CHANGED) {
+                    switch (status) {
+                        case LOADING:
+                            notifyStatusChange(finalUriString);
+                            break;
+                        case OK:
+                        case ERROR:
+                            notifyStatusChange(finalUriString);
+                            updateMemoryInfo();
                     }
                 }
             }
@@ -313,14 +290,60 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
         return engine;
     }
 
-    public void setLoading(String uri, String message) {
-        Map<String, String> current = new LinkedHashMap<>(_loadingState.getValue());
-        if (message == null) {
-            current.remove(uri);
-        } else {
-            current.put(uri, message);
+    /**
+     * Update the status of the engine
+     * @param uri
+     * @param status
+     */
+    private void updateEngineStatus(String uri, ModelEngine.Status status, String message) {
+
+        // get engine
+        ModelEngine engine = getEngine(uri);
+        if (engine == null) throw new IllegalArgumentException("Engine not initialized");
+
+        // set status
+        engine.status = status;
+        engine.message = message;
+
+        // notify
+        _engines.postValue(_engines.getValue());
+
+        // notify if active
+        if (engine == _activeEngine.getValue()) {
+            _activeEngine.postValue(engine);
         }
-        _loadingState.postValue(current);
+
+        // fire event
+        engine.controller().propagate(new EngineEvent(this, EngineEvent.Code.STATUS_CHANGED).setData("status", status));
+    }
+
+    /**
+     * Update the status of the model
+     * @param uri
+     */
+    private void notifyStatusChange(String uri) {
+
+        // get engine
+        Model model = getModel(uri);
+        if (model == null) throw new IllegalArgumentException("Engine not initialized");
+
+        // notify
+        _models.postValue(_models.getValue());
+
+        // get engine
+        ModelEngine engine = getEngine(uri);
+
+        // process
+        if (engine != null) {
+
+            // notify observers
+            _engines.postValue(_engines.getValue());
+
+            // notify observers
+            if (engine == _activeEngine.getValue()) {
+                _activeEngine.postValue(engine);
+            }
+        };
     }
 
     public Model getModel(String uriString) {
@@ -348,16 +371,6 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
             _models.setValue(models);
         }
 
-        return model;
-    }
-
-    public Model createModelForTest(String uriString, float[] vertices) {
-        Model model = new Model(Uri.parse(uriString), uriString, "bin");
-        Scene scene = new Scene("Default_" + uriString);
-        Node node = new Node("Root");
-        node.setMesh(new Object3D(vertices));
-        scene.getRootNodes().add(node);
-        model.addScene(scene);
         return model;
     }
 

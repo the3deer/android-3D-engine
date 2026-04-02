@@ -10,7 +10,6 @@ import org.the3deer.android.engine.camera.CameraUtils;
 import org.the3deer.android.engine.model.Camera;
 import org.the3deer.android.engine.model.Material;
 import org.the3deer.android.engine.model.Model;
-import org.the3deer.android.engine.model.ModelEvent;
 import org.the3deer.android.engine.model.Node;
 import org.the3deer.android.engine.model.Object3D;
 import org.the3deer.android.engine.model.Scene;
@@ -23,8 +22,7 @@ import org.the3deer.android.engine.services.gltf.GltfLoaderTask;
 import org.the3deer.android.engine.services.stl.STLLoaderTask;
 import org.the3deer.android.engine.services.wavefront.WavefrontLoaderTask;
 import org.the3deer.android.util.ContentUtils;
-import org.the3deer.util.bean.BeanFactory;
-import org.the3deer.util.bean.BeanInit;
+import org.the3deer.util.bean.BeanStart;
 import org.the3deer.util.event.EventManager;
 import org.the3deer.util.io.IOUtils;
 
@@ -34,7 +32,6 @@ import java.net.URI;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -51,46 +48,33 @@ public class SceneLoader implements LoadListener {
 
     // dependencies
     @Inject
-    private Model sceneManager;
-    @Inject
     private Camera defaultCamera;
     @Inject
     private EventManager eventManager;
     @Inject
     private Screen screen;
     @Inject
-    private Model model;
+    private Model _model;
 
     // other variables
     private long startTime;
 
-    public SceneLoader() {
-    }
+    @BeanStart
+    public void start() throws MalformedURLException {
 
-    @BeanFactory.OnBeanUpdate
-    public boolean onBeanUpdate(String id, Object updated) {
-        Log.v(TAG, "onBeanUpdate: " + id);
-        if ("extras".equals(id)) {
-            //loadFromBundle(extras);
-        }
-        return true;
-    }
-
-    @BeanInit
-    public void setUp() throws MalformedURLException {
-
-        Log.i(TAG, "Loading model... uri: "+model.getUri()+", type: "+model.getType());
+        Log.i(TAG, "Loading model... uri: "+ _model.getUri()+", type: "+ _model.getType());
 
         // default uri
-        Uri modelUri = model.getUri();
+        Uri modelUri = _model.getUri();
 
         // default type
-        String modelType = model.getType();
+        String modelType = _model.getType();
 
         // load model
-        Log.i(TAG, "Loading model... " + this.sceneManager.getUri());
+        Log.i(TAG, "Loading model... " + modelUri);
 
-        // if the model is a zip file, we need to extract it and register the entries as content uris
+        // update model
+        _model.setStatus(Model.Status.LOADING);
 
         // if the model is a zip file, we need to extract it and register the entries as content uris
         if (modelUri.toString().toLowerCase().endsWith(".zip")) {
@@ -148,18 +132,18 @@ public class SceneLoader implements LoadListener {
         }
 
         if (modelUri.toString().toLowerCase().endsWith(".obj") || "obj".equalsIgnoreCase(modelType)) {
-            new WavefrontLoaderTask(modelUri, SceneLoader.this).execute();
+            new WavefrontLoaderTask(modelUri, SceneLoader.this).execute(false);
         } else if (modelUri.toString().toLowerCase().endsWith(".stl") || "stl".equalsIgnoreCase(modelType)) {
             Log.i(TAG, "Loading STL object from: " + modelUri);
-            new STLLoaderTask(modelUri, SceneLoader.this).execute();
+            new STLLoaderTask(modelUri, SceneLoader.this).execute(false);
         } else if (modelUri.toString().toLowerCase().endsWith(".dae") || "dae".equalsIgnoreCase(modelType)) {
             Log.i(TAG, "Loading Collada object from: " + modelUri);
-            new ColladaLoaderTask(modelUri, SceneLoader.this).execute();
+            new ColladaLoaderTask(modelUri, SceneLoader.this).execute(false);
         } else if (modelUri.toString().toLowerCase().endsWith(".gltf") || modelUri.toString().toLowerCase().endsWith(".glb") || "gltf".equalsIgnoreCase(modelType)) {
             Log.i(TAG, "Loading GLTF object from: " + modelUri);
-            new GltfLoaderTask(modelUri, SceneLoader.this).execute();
+            new GltfLoaderTask(modelUri, SceneLoader.this).execute(false);
         } else if (modelUri.toString().toLowerCase().endsWith(".fbx")) {
-            new FbxLoaderTask(modelUri, SceneLoader.this).execute();
+            new FbxLoaderTask(modelUri, SceneLoader.this).execute(false);
         }
         // });
     }
@@ -170,23 +154,13 @@ public class SceneLoader implements LoadListener {
         // mark start time
         this.startTime = SystemClock.uptimeMillis();
 
-        // Android UI thread
-        //this.handler = new Handler(Looper.getMainLooper());
-        //Looper.prepare();
-
-        // provide context to allow reading resources
-        //ContentUtils.setContext(activity);
-
-        if (eventManager != null) {
-            eventManager.propagate(new ModelEvent(this, ModelEvent.Code.LOADING));
-        }
     }
 
     @Override
     public void onProgress(String progress) {
-        if (eventManager != null) {
-            eventManager.propagate(new ModelEvent(this, ModelEvent.Code.PROGRESS, Collections.singletonMap("message", progress)));
-        }
+
+        // update model
+        _model.setStatus(Model.Status.LOADING, progress);
     }
 
     @Override
@@ -200,10 +174,8 @@ public class SceneLoader implements LoadListener {
     public void onLoadError(Exception ex) {
         Log.e(TAG, ex.getMessage(), ex);
 
-        // notify
-        if (eventManager != null){
-            eventManager.propagate(new ModelEvent(this, ModelEvent.Code.LOAD_ERROR, Collections.singletonMap("message", ex.getMessage())));
-        }
+        // update model
+        _model.setStatus(Model.Status.ERROR, ex.getMessage());
     }
 
     @Override
@@ -277,7 +249,7 @@ public class SceneLoader implements LoadListener {
         CameraUtils.frameModel(scene.getActiveCamera(), scene.getObjects());
 
         // register scene
-        this.sceneManager.addScene(scene);
+        this._model.addScene(scene);
 
         // notify user
         final String elapsed = (SystemClock.uptimeMillis() - startTime) / 1000 + " secs";
@@ -288,22 +260,22 @@ public class SceneLoader implements LoadListener {
     public void onLoadComplete() {
 
         // initialize model
-        if (this.sceneManager.getScenes().isEmpty()) {
+        if (this._model.getScenes().isEmpty()) {
             Log.w(TAG, "No scenes available");
-        } else if (this.sceneManager.getActiveScene() == null){
+        } else if (this._model.getActiveScene() == null){
             Log.i(TAG, "No active scene. Setting first scene as active.");
-            this.sceneManager.setActiveScene(this.sceneManager.getScenes().get(0));
-            this.sceneManager.getActiveScene().update();
+            this._model.setActiveScene(this._model.getScenes().get(0));
+            this._model.getActiveScene().update();
         }
 
-        this.sceneManager.update();
+        // update model
+        this._model.update();
 
-        // debug
-        Log.i(TAG, "Load complete");
+        // log success
+        Log.i(TAG, "Model loaded successfully");
 
-        if (eventManager != null) {
-            eventManager.propagate(new ModelEvent(this, ModelEvent.Code.LOADED));
-        }
+        // update model status
+        _model.setStatus(Model.Status.OK);
     }
 
     private void loadTextureDatas(Texture texture) {
@@ -322,7 +294,7 @@ public class SceneLoader implements LoadListener {
 
         // Resolve texture URI relative to the model's location
         // Extracting the parent path manually from the model's URI
-        final String modelPath = model.getUri().toString();
+        final String modelPath = _model.getUri().toString();
         int lastSlash = modelPath.lastIndexOf('/');
         final String parentPath = (lastSlash != -1) ? modelPath.substring(0, lastSlash + 1) : "";
 

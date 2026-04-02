@@ -42,6 +42,7 @@ import org.the3deer.android.engine.shader.v3.GpuManager;
 import org.the3deer.android.engine.shadow.ShadowDrawer;
 import org.the3deer.android.util.AndroidURLStreamHandlerFactory;
 import org.the3deer.util.bean.BeanFactory;
+import org.the3deer.util.event.EventManager;
 
 import java.net.URL;
 import java.util.concurrent.ExecutorService;
@@ -73,7 +74,7 @@ public class ModelEngine {
     }
 
     public enum Status {
-        UNKNOWN, OK, WARNING, ERROR
+        UNKNOWN, LOADING, OK, WARNING, ERROR
     }
 
     // attributes
@@ -90,7 +91,10 @@ public class ModelEngine {
 
     // variables
     private final Handler handler;
-    private final BeanFactory beanFactory;
+    private final BeanFactory beanFactory = BeanFactory.getInstance();;
+
+    private final EventManager eventManager = new ModelController();
+
     //private final GLSurfaceView surface;
     /**
      * Background executor for heavy loading operations.
@@ -102,7 +106,7 @@ public class ModelEngine {
         this.screen = screen;
         this.model = model;
         this.context = context;
-        this.beanFactory = BeanFactory.getInstance();
+
         //this.surface = new GLSurfaceView(activity);
 
         // Android UI thread
@@ -115,6 +119,11 @@ public class ModelEngine {
     @NonNull
     public Model getModel() {
         return model;
+    }
+
+    @NonNull
+    public EventManager controller() {
+        return eventManager;
     }
 
     @NonNull
@@ -165,7 +174,7 @@ public class ModelEngine {
         // core
         beanFactory.add(Constants.BEAN_ID_SCREEN, this.screen);
         beanFactory.add("engine", ModelEngine.this);
-        beanFactory.add("controller", ModelController.class);
+        beanFactory.add(Constants.BEAN_ID_CONTROLLER, eventManager);
 
         // system
         beanFactory.add("10.gpuManager", GpuManager.class);
@@ -241,27 +250,6 @@ public class ModelEngine {
 
         Log.d(TAG, "Engine loaded");
 
-    }
-
-    /**
-     * Load the engine asynchronously.
-     * @param callback the callback to be invoked when the engine is loaded
-     */
-    public void loadAsync(Runnable callback) {
-
-        executor.execute(() -> {
-            try {
-                load();
-                if (callback != null) {
-                    handler.post(callback);
-                }
-            } catch (OutOfMemoryError oom) {
-                Log.e(TAG, "Out of memory while loading engine", oom);
-                // We don't call the callback here to avoid further operations on a failed engine
-            } catch (Exception e) {
-                Log.e(TAG, "Failed to load engine", e);
-            }
-        });
     }
 
 

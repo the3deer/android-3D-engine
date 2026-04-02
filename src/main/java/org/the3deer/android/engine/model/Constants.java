@@ -24,6 +24,10 @@ public class Constants {
      */
     public static String BEAN_ID_SCREEN = "screen";
     /**
+     * Bean name for the Engine Controller
+     */
+    public static String BEAN_ID_CONTROLLER = "controller";
+    /**
      * Bean for the Android Context
      */
     public static String BEAN_ID_CONTEXT = "context";

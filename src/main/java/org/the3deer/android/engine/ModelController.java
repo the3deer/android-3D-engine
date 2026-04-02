@@ -83,17 +83,25 @@ public class ModelController implements EventManager, GLTouchHandler {
             if (rev.getCode() == GLEvent.Code.SURFACE_CREATED) {
 
                 // 1. Reset Shaders (Clears Shader Cache and GpuManager VBOs/VAOs)
-                shaderFactory.reset();
+                if (shaderFactory != null) { // this may be null during engine initialization
+                    shaderFactory.reset();
+                }
 
                 // 2. Reset Textures (Mark them as not uploaded)
-                final Scene currentScene = sceneManager.getActiveScene();
-                if (currentScene != null && currentScene.getObjects() != null) {
-                    for (Object3D obj : currentScene.getObjects()) {
-                        if (obj.getMaterial() != null) {
-                            if (obj.getMaterial().getColorTexture() != null) obj.getMaterial().getColorTexture().setId(-1);
-                            if (obj.getMaterial().getNormalTexture() != null) obj.getMaterial().getNormalTexture().setId(-1);
-                            if (obj.getMaterial().getEmissiveTexture() != null) obj.getMaterial().getEmissiveTexture().setId(-1);
-                            if (obj.getMaterial().getTransmissionTexture() != null) obj.getMaterial().getTransmissionTexture().setId(-1);
+                if (sceneManager != null) {  // it may be null during bean initialization
+                    final Scene currentScene = sceneManager.getActiveScene();
+                    if (currentScene != null && currentScene.getObjects() != null) {
+                        for (Object3D obj : currentScene.getObjects()) {
+                            if (obj.getMaterial() != null) {
+                                if (obj.getMaterial().getColorTexture() != null)
+                                    obj.getMaterial().getColorTexture().setId(-1);
+                                if (obj.getMaterial().getNormalTexture() != null)
+                                    obj.getMaterial().getNormalTexture().setId(-1);
+                                if (obj.getMaterial().getEmissiveTexture() != null)
+                                    obj.getMaterial().getEmissiveTexture().setId(-1);
+                                if (obj.getMaterial().getTransmissionTexture() != null)
+                                    obj.getMaterial().getTransmissionTexture().setId(-1);
+                            }
                         }
                     }
                 }
@@ -106,10 +114,12 @@ public class ModelController implements EventManager, GLTouchHandler {
                 }
 
                 // update aspect ratio of all cameras in the scene
-                final Scene scene = sceneManager.getActiveScene();
-                if (scene != null) {
-                    for (Camera camera : scene.getCameras()) {
-                        camera.setProjection(rev.getWidth(), rev.getHeight());
+                if (sceneManager != null) {
+                    final Scene scene = sceneManager.getActiveScene();
+                    if (scene != null) {
+                        for (Camera camera : scene.getCameras()) {
+                            camera.setProjection(rev.getWidth(), rev.getHeight());
+                        }
                     }
                 }
 
