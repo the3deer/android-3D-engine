@@ -216,7 +216,7 @@ public class SceneLoader implements LoadListener {
         //if (this.sceneManager == null) return;
 
         // configure default camera
-        Log.i(TAG, "Initializing scene... name: " + scene.getName());
+        Log.d(TAG, "Initializing scene... name: " + scene.getName());
         scene.setActiveCamera(defaultCamera);
 
         // get objects
@@ -226,7 +226,7 @@ public class SceneLoader implements LoadListener {
         if (objects.isEmpty()) {
             Log.w(TAG, "No objects were loaded");
         } else {
-            Log.d(TAG, "onSceneComplete: " + scene.getName() + ", Objects: " + objects.size());
+            Log.d(TAG, "onLoadScene: " + scene.getName() + ", Objects: " + objects.size());
         }
 
         for (int i = 0; i < objects.size(); i++) {

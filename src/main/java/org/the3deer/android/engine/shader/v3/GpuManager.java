@@ -58,7 +58,7 @@ public class GpuManager {
     }
 
     private GpuAsset createAsset(Object3D obj) {
-        Log.d(TAG, "Creating GPU Asset for model: " + obj.getId());
+        Log.v(TAG, "Creating GPU Asset for model: " + obj.getId());
 
         // 1. Create and bind a VAO
         int[] vaoIds = new int[1];
