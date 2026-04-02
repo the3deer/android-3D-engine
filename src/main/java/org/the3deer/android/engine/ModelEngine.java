@@ -25,7 +25,6 @@ import org.the3deer.android.engine.gui.GUIDrawer;
 import org.the3deer.android.engine.model.Camera;
 import org.the3deer.android.engine.model.Constants;
 import org.the3deer.android.engine.model.Light;
-import org.the3deer.android.engine.model.Model;
 import org.the3deer.android.engine.model.Object3D;
 import org.the3deer.android.engine.model.OrthographicProjection;
 import org.the3deer.android.engine.model.PerspectiveProjection;
@@ -36,7 +35,6 @@ import org.the3deer.android.engine.renderer.AnaglyphRenderer;
 import org.the3deer.android.engine.renderer.DefaultRenderer;
 import org.the3deer.android.engine.renderer.StereoscopicRenderer;
 import org.the3deer.android.engine.scene.SceneDrawer;
-import org.the3deer.android.engine.scene.SceneLoader;
 import org.the3deer.android.engine.shader.ShaderFactory;
 import org.the3deer.android.engine.shader.v3.GpuManager;
 import org.the3deer.android.engine.shadow.ShadowDrawer;
@@ -179,7 +177,6 @@ public class ModelEngine {
         // system
         beanFactory.add("10.gpuManager", GpuManager.class);
         beanFactory.add("10.shaderFactory", ShaderFactory.class);
-        beanFactory.add("10.sceneLoader", SceneLoader.class);
         beanFactory.add("10.cameraHandler", DefaultCameraHandler.class);
 
         beanFactory.add("10.touchController", TouchController.class);

@@ -3,7 +3,7 @@ package org.the3deer.android.engine.collision;
 import android.util.Log;
 
 import org.the3deer.android.engine.model.Light;
-import org.the3deer.android.engine.model.Model;
+import org.the3deer.android.engine.Model;
 import org.the3deer.android.engine.model.Object3D;
 import org.the3deer.android.engine.model.Scene;
 import org.the3deer.android.engine.objects.Point;

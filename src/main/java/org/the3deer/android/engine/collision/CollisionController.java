@@ -4,7 +4,7 @@ import android.util.Log;
 
 import org.the3deer.android.engine.controller.TouchEvent;
 import org.the3deer.android.engine.model.Camera;
-import org.the3deer.android.engine.model.Model;
+import org.the3deer.android.engine.Model;
 import org.the3deer.android.engine.model.Object3D;
 import org.the3deer.android.engine.model.Scene;
 import org.the3deer.android.engine.model.Screen;

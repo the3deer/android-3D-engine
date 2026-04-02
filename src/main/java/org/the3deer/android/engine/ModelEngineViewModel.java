@@ -16,7 +16,6 @@ import androidx.lifecycle.MutableLiveData;
 
 import org.jetbrains.annotations.NotNull;
 import org.the3deer.android.engine.event.EngineEvent;
-import org.the3deer.android.engine.model.Model;
 import org.the3deer.android.engine.model.ModelEvent;
 import org.the3deer.android.engine.model.Screen;
 import org.the3deer.util.event.EventListener;
@@ -183,6 +182,9 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
                 updateEngineStatus(uriString, ModelEngine.Status.OK, "Info: Engine started successfully");
 
                 Log.i(TAG, "Engine started. uri: " + uriString);
+
+                // Start the model loading process (previously in SceneLoader)
+                engine.getModel().load();
             });
         } catch (Exception ex) {
             Log.e(TAG, "Failed to start engine for " + uriString, ex);

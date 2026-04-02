@@ -12,7 +12,6 @@ import org.the3deer.android.engine.event.SelectedObjectEvent;
 import org.the3deer.android.engine.gui.GUI;
 import org.the3deer.android.engine.gui.GUIDrawer;
 import org.the3deer.android.engine.model.Camera;
-import org.the3deer.android.engine.model.Model;
 import org.the3deer.android.engine.model.Object3D;
 import org.the3deer.android.engine.model.Projection;
 import org.the3deer.android.engine.model.Scene;

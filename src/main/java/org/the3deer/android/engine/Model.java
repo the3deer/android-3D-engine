@@ -1,5 +1,4 @@
-
-package org.the3deer.android.engine.scene;
+package org.the3deer.android.engine;
 
 import android.net.Uri;
 import android.os.SystemClock;
@@ -9,7 +8,7 @@ import android.widget.Toast;
 import org.the3deer.android.engine.camera.CameraUtils;
 import org.the3deer.android.engine.model.Camera;
 import org.the3deer.android.engine.model.Material;
-import org.the3deer.android.engine.model.Model;
+import org.the3deer.android.engine.model.ModelEvent;
 import org.the3deer.android.engine.model.Node;
 import org.the3deer.android.engine.model.Object3D;
 import org.the3deer.android.engine.model.Scene;
@@ -22,12 +21,10 @@ import org.the3deer.android.engine.services.gltf.GltfLoaderTask;
 import org.the3deer.android.engine.services.stl.STLLoaderTask;
 import org.the3deer.android.engine.services.wavefront.WavefrontLoaderTask;
 import org.the3deer.android.util.ContentUtils;
-import org.the3deer.util.bean.BeanStart;
 import org.the3deer.util.event.EventManager;
 import org.the3deer.util.io.IOUtils;
 
 import java.io.InputStream;
-import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLEncoder;
@@ -40,41 +37,161 @@ import javax.inject.Inject;
 import kotlin.text.Charsets;
 
 /**
- * This component loads the model into the engine
+ * <p>Main model class representing a 3D model resource and its environment.</p>
+ * <p>
+ * The model holds the model uri, the arguments and the scene model.  It has also
+ * </p>
  */
-public class SceneLoader implements LoadListener {
+public class Model implements LoadListener {
 
-    private final static String TAG = SceneLoader.class.getSimpleName();
+    private final static String TAG = Model.class.getSimpleName();
 
-    // dependencies
+    public enum Status {
+        UNKNOWN, LOADING, OK, WARNING, ERROR
+    }
+
+    private Status status = Status.UNKNOWN;
+
+    private String message;
+
+    private final Uri uri;
+    private final String name;
+    private final String type;
+    private final Map<String, Object> extras;
+
+    @Inject
+    private EventManager _eventManager;
+
     @Inject
     private Camera defaultCamera;
-    @Inject
-    private EventManager eventManager;
+
     @Inject
     private Screen screen;
-    @Inject
-    private Model _model;
+
+    private final List<Scene> scenes = new ArrayList<>();
+    private Scene activeScene;
 
     // other variables
     private long startTime;
 
-    @BeanStart
-    public void start() throws MalformedURLException {
+    public Model(Uri uri, String name, String type) {
+        this(uri, name, type, null);
+    }
 
-        Log.i(TAG, "Loading model... uri: "+ _model.getUri()+", type: "+ _model.getType());
+    public Model(Uri uri, String name, String type, Map<String, Object> extras) {
+        this.uri = uri;
+        this.name = name;
+        this.type = type;
+        this.extras = extras;
+
+        if (this.uri == null) throw new IllegalArgumentException("Model URI cannot be null");
+        if (this.name == null) throw new IllegalArgumentException("Model name cannot be null");
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public Uri getUri() {
+        return uri;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public Status getStatus() {
+        return status;
+    }
+
+    public void setStatus(Status status) {
+        setStatus(status, null);
+    }
+
+    public void setStatus(Status status, String message) {
+        this.status = status;
+        this.message = message;
+
+        if (_eventManager != null) {
+            _eventManager.propagate(new ModelEvent(this, ModelEvent.Code.STATUS_CHANGED)
+                    .setData("status", status).setData("message", message));
+        }
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public void setMessage(String message) {
+        this.message = message;
+    }
+
+    public Map<String, Object> getExtras() {
+        return extras;
+    }
+
+
+    public List<Scene> getScenes() {
+        return scenes;
+    }
+
+    public Scene getActiveScene() {
+        return activeScene;
+    }
+
+    public void setActiveScene(Scene activeScene) {
+        this.activeScene = activeScene;
+    }
+
+    public void update() {
+        if (activeScene != null) {
+            activeScene.update();
+        }
+    }
+
+    public void addScene(Scene scene) {
+        Log.i(TAG, "addScene: " + scene.getName());
+        scenes.add(scene);
+        if (activeScene == null) {
+            Log.i(TAG, "Activating scene: " + scene.getName());
+            activeScene = scene;
+        }
+    }
+
+    public List<Camera> getCameras() {
+        List<Camera> cameras = new ArrayList<>();
+        if (defaultCamera != null) {
+            cameras.add(defaultCamera);
+        }
+        if (activeScene != null) {
+            cameras.addAll(activeScene.getCameras());
+        }
+        return cameras;
+    }
+
+    public long getMemoryUsage() {
+        long memory = 0;
+        for (Scene scene : scenes) {
+            memory += scene.getMemoryUsage();
+        }
+        return memory;
+    }
+
+    public void load() {
+
+        Log.i(TAG, "Loading model... uri: "+ getUri()+", type: "+ getType());
 
         // default uri
-        Uri modelUri = _model.getUri();
+        Uri modelUri = getUri();
 
         // default type
-        String modelType = _model.getType();
+        String modelType = getType();
 
         // load model
         Log.i(TAG, "Loading model... " + modelUri);
 
         // update model
-        _model.setStatus(Model.Status.LOADING);
+        setStatus(Model.Status.LOADING);
 
         // if the model is a zip file, we need to extract it and register the entries as content uris
         if (modelUri.toString().toLowerCase().endsWith(".zip")) {
@@ -121,61 +238,55 @@ public class SceneLoader implements LoadListener {
                 }
                 if (modelFile == null) {
                     Log.e(TAG, "Model not found in zip '" + modelUri + "'");
-                    //activity.runOnUiThread(() -> Toast.makeText(activity, "Model not found in zip '" + modelUri + "'", Toast.LENGTH_LONG).show());
                 } else {
                     Log.i(TAG, "Model found in zip: " + modelFile);
                 }
             } catch (Exception e) {
                 Log.e(TAG, "Error loading zip file '" + modelUri + "': " + e.getMessage(), e);
-                //activity.runOnUiThread(() -> Toast.makeText(activity, "Error loading zip file '" + modelUri + "': " + e.getMessage(), Toast.LENGTH_LONG).show());
             }
         }
 
         if (modelUri.toString().toLowerCase().endsWith(".obj") || "obj".equalsIgnoreCase(modelType)) {
-            new WavefrontLoaderTask(modelUri, SceneLoader.this).execute(false);
+            new WavefrontLoaderTask(modelUri, this).execute(false);
         } else if (modelUri.toString().toLowerCase().endsWith(".stl") || "stl".equalsIgnoreCase(modelType)) {
             Log.i(TAG, "Loading STL object from: " + modelUri);
-            new STLLoaderTask(modelUri, SceneLoader.this).execute(false);
+            new STLLoaderTask(modelUri, this).execute(false);
         } else if (modelUri.toString().toLowerCase().endsWith(".dae") || "dae".equalsIgnoreCase(modelType)) {
             Log.i(TAG, "Loading Collada object from: " + modelUri);
-            new ColladaLoaderTask(modelUri, SceneLoader.this).execute(false);
+            new ColladaLoaderTask(modelUri, this).execute(false);
         } else if (modelUri.toString().toLowerCase().endsWith(".gltf") || modelUri.toString().toLowerCase().endsWith(".glb") || "gltf".equalsIgnoreCase(modelType)) {
             Log.i(TAG, "Loading GLTF object from: " + modelUri);
-            new GltfLoaderTask(modelUri, SceneLoader.this).execute(false);
+            new GltfLoaderTask(modelUri, this).execute(false);
         } else if (modelUri.toString().toLowerCase().endsWith(".fbx")) {
-            new FbxLoaderTask(modelUri, SceneLoader.this).execute(false);
+            new FbxLoaderTask(modelUri, this).execute(false);
         }
-        // });
     }
 
     @Override
     public void onLoadStart() {
-
         // mark start time
         this.startTime = SystemClock.uptimeMillis();
-
     }
 
     @Override
     public void onProgress(String progress) {
-
         // update model
-        _model.setStatus(Model.Status.LOADING, progress);
+        setStatus(Model.Status.LOADING, progress);
     }
 
     @Override
     public void onLoadCamera(Scene scene, Camera camera) {
-
         // fix aspect ratio
-        camera.getProjection().setAspectRatio(screen.getRatio());
+        if (screen != null) {
+            camera.getProjection().setAspectRatio(screen.getRatio());
+        }
     }
 
     @Override
     public void onLoadError(Exception ex) {
         Log.e(TAG, ex.getMessage(), ex);
-
         // update model
-        _model.setStatus(Model.Status.ERROR, ex.getMessage());
+        setStatus(Model.Status.ERROR, ex.getMessage());
     }
 
     @Override
@@ -185,8 +296,6 @@ public class SceneLoader implements LoadListener {
 
     @Override
     public void onLoadScene(Scene scene) {
-        //if (this.sceneManager == null) return;
-
         // configure default camera
         Log.d(TAG, "Initializing scene... name: " + scene.getName());
         scene.setActiveCamera(defaultCamera);
@@ -249,7 +358,7 @@ public class SceneLoader implements LoadListener {
         CameraUtils.frameModel(scene.getActiveCamera(), scene.getObjects());
 
         // register scene
-        this._model.addScene(scene);
+        this.addScene(scene);
 
         // notify user
         final String elapsed = (SystemClock.uptimeMillis() - startTime) / 1000 + " secs";
@@ -258,24 +367,23 @@ public class SceneLoader implements LoadListener {
 
     @Override
     public void onLoadComplete() {
-
         // initialize model
-        if (this._model.getScenes().isEmpty()) {
+        if (this.getScenes().isEmpty()) {
             Log.w(TAG, "No scenes available");
-        } else if (this._model.getActiveScene() == null){
+        } else if (this.getActiveScene() == null){
             Log.i(TAG, "No active scene. Setting first scene as active.");
-            this._model.setActiveScene(this._model.getScenes().get(0));
-            this._model.getActiveScene().update();
+            this.setActiveScene(this.getScenes().get(0));
+            this.getActiveScene().update();
         }
 
         // update model
-        this._model.update();
+        this.update();
 
         // log success
         Log.i(TAG, "Model loaded successfully");
 
         // update model status
-        _model.setStatus(Model.Status.OK);
+        setStatus(Model.Status.OK);
     }
 
     private void loadTextureDatas(Texture texture) {
@@ -294,7 +402,7 @@ public class SceneLoader implements LoadListener {
 
         // Resolve texture URI relative to the model's location
         // Extracting the parent path manually from the model's URI
-        final String modelPath = _model.getUri().toString();
+        final String modelPath = getUri().toString();
         int lastSlash = modelPath.lastIndexOf('/');
         final String parentPath = (lastSlash != -1) ? modelPath.substring(0, lastSlash + 1) : "";
 
@@ -326,7 +434,16 @@ public class SceneLoader implements LoadListener {
     }
 
     private void makeToastText(final String text, final int toastDuration) {
-        //if (activity == null) return;
-        //activity.runOnUiThread(() -> Toast.makeText(activity.getApplicationContext(), text, toastDuration).show());
+        // FIXME: how to show toast from here?
+    }
+
+    public static class Metadata {
+        public final String type;
+        public final Map<String, Object> extras;
+
+        public Metadata(String type, Map<String, Object> extras) {
+            this.type = type;
+            this.extras = extras;
+        }
     }
 }

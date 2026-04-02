@@ -1,7 +1,7 @@
 package org.the3deer.android.engine.camera;
 
 import org.the3deer.android.engine.model.Camera;
-import org.the3deer.android.engine.model.Model;
+import org.the3deer.android.engine.Model;
 import org.the3deer.android.engine.model.Projection;
 import org.the3deer.util.bean.BeanInit;
 import org.the3deer.util.math.Math3DUtils;
