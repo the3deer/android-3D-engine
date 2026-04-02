@@ -3,6 +3,8 @@ package org.the3deer.android.engine.model;
 import android.net.Uri;
 import android.util.Log;
 
+import org.the3deer.util.event.EventManager;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -17,10 +19,23 @@ import javax.inject.Inject;
  */
 public class Model {
 
+
+
+    public enum Status {
+        UNKNOWN, LOADING, OK, WARNING, ERROR
+    }
+
+    private Status status = Status.UNKNOWN;
+
+    private String message;
+
     private final Uri uri;
     private final String name;
     private final String type;
     private final Map<String, Object> extras;
+
+    @Inject
+    private EventManager _eventManager;
 
     @Inject
     private Camera defaultCamera;
@@ -54,7 +69,29 @@ public class Model {
         return type;
     }
 
+    public Status getStatus() {
+        return status;
+    }
 
+    public void setStatus(Status status) {
+        setStatus(status, null);
+    }
+
+    public void setStatus(Status status, String message) {
+        this.status = status;
+        this.message = message;
+
+        _eventManager.propagate(new ModelEvent(this, ModelEvent.Code.STATUS_CHANGED)
+                    .setData("status", status).setData("message", message));
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public void setMessage(String message) {
+        this.message = message;
+    }
 
     public Map<String, Object> getExtras() {
         return extras;

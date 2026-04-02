@@ -72,8 +72,16 @@ public class ModelEngine {
         }
     }
 
+    public enum Status {
+        UNKNOWN, OK, WARNING, ERROR
+    }
+
     // attributes
     public final String id;
+
+    Status status = Status.UNKNOWN;
+
+    String message;
 
     // Model
     private final Screen screen;
@@ -89,7 +97,7 @@ public class ModelEngine {
      */
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
-    public ModelEngine(String id, Screen screen, Model model, Context context) {
+    public ModelEngine(String id, @NonNull Screen screen, @NonNull Model model, Context context) {
         this.id = id;
         this.screen = screen;
         this.model = model;
@@ -104,6 +112,7 @@ public class ModelEngine {
     }
 
 
+    @NonNull
     public Model getModel() {
         return model;
     }
@@ -115,6 +124,15 @@ public class ModelEngine {
 
     public boolean isLoaded() {
         return beanFactory.isInitialized();
+    }
+
+
+    public Status getStatus() {
+        return status;
+    }
+
+    public String getMessage() {
+        return message;
     }
 
     /**
@@ -255,7 +273,7 @@ public class ModelEngine {
         // start
         beanFactory.start();
 
-        // log
+        // log success
         Log.i(TAG, "Engine started successfully");
     }
 
