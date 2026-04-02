@@ -93,7 +93,7 @@ public class WavefrontLoader {
         return null;
     }
 
-    public List<Object3D> load(URI modelURI) {
+    public List<Object3D> load(URI modelURI) throws IOException {
         try {
 
             // log event
@@ -169,7 +169,8 @@ public class WavefrontLoader {
             return ret;
         } catch (Exception ex) {
             Log.e("WavefrontLoader", ex.getMessage(), ex);
-            throw new RuntimeException(ex);
+            callback.onLoadError(ex);
+            throw ex;
         }
     }
 
@@ -224,8 +225,11 @@ public class WavefrontLoader {
                             // log event
                             Log.d("WavefrontLoader", "Reading texture file... " + elementMaterial.getColorTexture().getFile());
 
+                            // normalize path
+                            String replace = elementMaterial.getColorTexture().getFile().replace('\\', '/');
+
                             // build color url
-                            final URL diffuseUrl = modelURI.resolve(URI.create(elementMaterial.getColorTexture().getFile())).toURL();
+                            final URL diffuseUrl = modelURI.resolve(URI.create(replace)).toURL();
 
                             // read texture data
                             try (InputStream stream = diffuseUrl.openStream()) {
@@ -348,7 +352,11 @@ public class WavefrontLoader {
                     } else if (line.startsWith("f ")) { // face
                         parseFace(verticesAttributes, indicesCurrent, vertexList, normalsList, textureList, line.substring(2), currentSmoothingList);
                     } else if (line.startsWith("mtllib ")) {// build material
-                        mtllib = modelURI.resolve(line.substring(7)).toString();
+                        try {
+                            mtllib = modelURI.resolve(line.substring(7)).toString();
+                        } catch (Exception e) {
+                            Log.e("WavefrontLoader", "Error reading line: " + lineNum + " : " + line, e);
+                        }
                     } else if (line.startsWith("usemtl ")) {// use material
                         if (elementCurrent.getMaterialId() != null) {
 

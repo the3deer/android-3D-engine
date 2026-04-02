@@ -7,6 +7,7 @@ import org.the3deer.android.engine.model.Object3D;
 import org.the3deer.android.engine.services.LoadListener;
 import org.the3deer.android.engine.services.LoaderTask;
 
+import java.io.IOException;
 import java.net.URI;
 import java.util.List;
 
@@ -23,7 +24,7 @@ public class WavefrontLoaderTask extends LoaderTask {
     }
 
     @Override
-    protected List<Object3D> build() {
+    protected List<Object3D> build() throws IOException {
 
         final WavefrontLoader wfl = new WavefrontLoader(GLES20.GL_TRIANGLE_FAN, callback);
 
