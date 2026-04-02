@@ -18,64 +18,77 @@ import java.util.concurrent.Executors;
  */
 public abstract class LoaderTask {
 
-	private static final ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-	private final Handler handler = new Handler(Looper.getMainLooper());
+    private static final ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 
-	/**
-	 * URL to the 3D model
-	 */
-	protected final Uri uri;
-	/**
-	 * Callback to notify of events
-	 */
-	protected final LoadListener callback;
+    private final Handler handler = new Handler(Looper.getMainLooper());
 
-	/**
-	 * Build a new progress dialog for loading the data model asynchronously
-	 * @param uri        the URL pointing to the 3d model
-	 *
-	 */
-	public LoaderTask(Uri uri, LoadListener callback) {
-		this.uri = uri;
-		this.callback = callback; }
+    /**
+     * URL to the 3D model
+     */
+    protected final Uri uri;
+    /**
+     * Callback to notify of events
+     */
+    protected final LoadListener callback;
+
+    /**
+     * Build a new progress dialog for loading the data model asynchronously
+     *
+     * @param uri the URL pointing to the 3d model
+     *
+     */
+    public LoaderTask(Uri uri, LoadListener callback) {
+        this.uri = uri;
+        this.callback = callback;
+    }
 
 
-	public void execute() {
-		onPreExecute();
-		executor.execute(() -> {
-			try {
-				// FIXME: why we need to use a handler here?
-				callback.onLoadStart();
-				build();
-				callback.onLoadComplete();
-			} catch (final Exception ex) {
-				Log.e("LoaderTask", "Error loading model: "+ ex.getMessage(), ex);
-				callback.onLoadError(ex);
-			} catch (final OutOfMemoryError err) {
-				callback.onLoadError(new RuntimeException("Out Of Memory Error", err));
-			}
-		});
-	}
+    public void execute() {
+        this.execute(false);
+    }
 
-	protected void onPreExecute() {
-	}
+    public void execute(boolean async) {
+        onPreExecute();
+        if (async) {
+            executor.execute(this::executeImpl);
+        } else {
+            executeImpl();
+        }
+    }
 
-	protected abstract List<Object3D> build() throws Exception;
+    private void executeImpl() {
+        try {
+            // FIXME: why we need to use a handler here?
+            callback.onLoadStart();
+            build();
+            callback.onLoadComplete();
+        } catch (final Exception ex) {
+            Log.e("LoaderTask", "Error loading model: " + ex.getMessage(), ex);
+            callback.onLoadError(ex);
+        } catch (final OutOfMemoryError err) {
+            callback.onLoadError(new RuntimeException("Out Of Memory Error", err));
+        }
+    }
 
-	protected void onProgressUpdate(String... values) {
-		if (values.length > 0) {
-			callback.onProgress(values[0]);
-		}
-	}
+    protected void onPreExecute() {
+    }
 
-	protected void onPostExecute(List<Object3D> data) {
-	}
+    protected abstract List<Object3D> build() throws Exception;
 
-	protected void onProgress(String progress) {
-		publishProgress(progress);
-	}
+    protected void onProgressUpdate(String... values) {
+        if (values.length > 0) {
+            callback.onProgress(values[0]);
+        }
+    }
 
-	protected final void publishProgress(String... values) {
-		handler.post(() -> onProgressUpdate(values));
-	}
+    protected void onPostExecute(List<Object3D> data) {
+    }
+
+    protected void onProgress(String progress) {
+        publishProgress(progress);
+    }
+
+    protected final void publishProgress(String... values) {
+        handler.post(() -> onProgressUpdate(values));
+    }
 }
