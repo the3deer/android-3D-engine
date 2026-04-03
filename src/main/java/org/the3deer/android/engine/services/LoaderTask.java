@@ -1,8 +1,6 @@
 package org.the3deer.android.engine.services;
 
 import android.net.Uri;
-import android.os.Handler;
-import android.os.Looper;
 import android.util.Log;
 
 import org.the3deer.android.engine.model.Object3D;
@@ -19,8 +17,6 @@ import java.util.concurrent.Executors;
 public abstract class LoaderTask {
 
     private static final ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-
-    private final Handler handler = new Handler(Looper.getMainLooper());
 
     /**
      * URL to the 3D model
@@ -89,6 +85,6 @@ public abstract class LoaderTask {
     }
 
     protected final void publishProgress(String... values) {
-        handler.post(() -> onProgressUpdate(values));
+        onProgressUpdate(values);
     }
 }
