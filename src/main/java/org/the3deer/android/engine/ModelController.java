@@ -81,29 +81,8 @@ public class ModelController implements EventManager, GLTouchHandler {
             //Log.v(TAG, "propagate. RenderEvent:" + rev.getCode());
             if (rev.getCode() == GLEvent.Code.SURFACE_CREATED) {
 
-                // 1. Reset Shaders (Clears Shader Cache and GpuManager VBOs/VAOs)
-                if (shaderFactory != null) { // this may be null during engine initialization
-                    shaderFactory.reset();
-                }
-
-                // 2. Reset Textures (Mark them as not uploaded)
-                if (sceneManager != null) {  // it may be null during bean initialization
-                    final Scene currentScene = sceneManager.getActiveScene();
-                    if (currentScene != null && currentScene.getObjects() != null) {
-                        for (Object3D obj : currentScene.getObjects()) {
-                            if (obj.getMaterial() != null) {
-                                if (obj.getMaterial().getColorTexture() != null)
-                                    obj.getMaterial().getColorTexture().setId(-1);
-                                if (obj.getMaterial().getNormalTexture() != null)
-                                    obj.getMaterial().getNormalTexture().setId(-1);
-                                if (obj.getMaterial().getEmissiveTexture() != null)
-                                    obj.getMaterial().getEmissiveTexture().setId(-1);
-                                if (obj.getMaterial().getTransmissionTexture() != null)
-                                    obj.getMaterial().getTransmissionTexture().setId(-1);
-                            }
-                        }
-                    }
-                }
+                // Note: Shader and Texture reset logic moved to ModelEngine.reset(),
+                // which is called by GLRenderer.onSurfaceCreated on the GL Thread.
 
             } else if (rev.getCode() == GLEvent.Code.SURFACE_CHANGED) {
 

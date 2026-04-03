@@ -5,9 +5,11 @@ import android.opengl.GLSurfaceView;
 import android.os.SystemClock;
 import android.util.Log;
 
+import org.the3deer.android.engine.ModelEngine;
 import org.the3deer.android.engine.ModelEngineViewModel;
 import org.the3deer.android.engine.model.Constants;
 import org.the3deer.android.engine.model.Screen;
+import org.the3deer.android.engine.shader.ShaderFactory;
 import org.the3deer.util.bean.Bean;
 import org.the3deer.util.bean.BeanInit;
 import org.the3deer.util.bean.BeanProperty;
@@ -45,13 +47,17 @@ public class GLRenderer implements GLSurfaceView.Renderer {
     @BeanProperty(name = "renderer")
     private String activeRenderer;
 
+    @Inject
+    private ShaderFactory shaderFactory;
+
     private Renderer renderer;
 
     /**
      * Background GL clear color. Default is light gray
      */
-    @BeanProperty(name = "backgroundColor", values = {"white", "gray", "black"})
-    private float[] backgroundColor = Constants.COLOR_GRAY;
+    @BeanProperty(values = {"white", "gray", "black"})
+    private String backgroundColor = "gray";
+    private float[] backgroundColorSelected = Constants.COLOR_GRAY;
     /**
      * GL Screen width
      */
@@ -93,13 +99,13 @@ public class GLRenderer implements GLSurfaceView.Renderer {
         if (color == null) return;
         switch (color) {
             case "gray":
-                this.backgroundColor = Constants.COLOR_GRAY;
+                this.backgroundColorSelected = Constants.COLOR_GRAY;
                 break;
             case "white":
-                this.backgroundColor = Constants.COLOR_WHITE;
+                this.backgroundColorSelected = Constants.COLOR_WHITE;
                 break;
             case "black":
-                this.backgroundColor = Constants.COLOR_BLACK;
+                this.backgroundColorSelected = Constants.COLOR_BLACK;
                 break;
             default:
                 throw new IllegalArgumentException("Unknown color: " + color);
@@ -145,6 +151,9 @@ public class GLRenderer implements GLSurfaceView.Renderer {
         // disable current renderer
         if (this.renderer != null) this.renderer.setEnabled(false);
 
+        // reset new renderer
+        renderer.reset();
+
         // enable new renderer
         renderer.setEnabled(true);
 
@@ -161,7 +170,7 @@ public class GLRenderer implements GLSurfaceView.Renderer {
         Log.d(TAG, "onSurfaceCreated. config: " + config);
 
         // Set the background frame color
-        GLES20.glClearColor(backgroundColor[0], backgroundColor[1], backgroundColor[2], backgroundColor[3]);
+        GLES20.glClearColor(backgroundColorSelected[0], backgroundColorSelected[1], backgroundColorSelected[2], backgroundColorSelected[3]);
 
         // Use culling to remove back faces.
         // Don't remove back faces so we can see them
@@ -172,6 +181,12 @@ public class GLRenderer implements GLSurfaceView.Renderer {
 
         // Enable not drawing out of view port
         GLES20.glEnable(GLES20.GL_SCISSOR_TEST);
+
+        // Reset Engine (Clears Shader Cache, GPU Buffers, and Texture IDs)
+        final ModelEngine activeEngine = viewModel.getActiveEngine();
+        if (activeEngine != null) {
+            activeEngine.reset();
+        }
 
         if (eventManager != null) {
             eventManager.propagate(new GLEvent(this, GLEvent.Code.SURFACE_CREATED));
@@ -230,7 +245,7 @@ public class GLRenderer implements GLSurfaceView.Renderer {
         GLES20.glScissor(0, 0, width, height);
 
         // Default color
-        GLES20.glClearColor(backgroundColor[0], backgroundColor[1], backgroundColor[2], backgroundColor[3]);
+        GLES20.glClearColor(backgroundColorSelected[0], backgroundColorSelected[1], backgroundColorSelected[2], backgroundColorSelected[3]);
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
         GLES20.glColorMask(true, true, true, true);
         GLES20.glLineWidth((float) Math.PI);

@@ -91,6 +91,11 @@ public class DefaultRenderer implements Renderer, EventListener {
     }
 
     @Override
+    public void reset() {
+        this.traced = false;
+    }
+
+    @Override
     public void onPrepareFrame(){
 
         // check

@@ -391,6 +391,9 @@ public class ShaderImplV3 implements Shader {
     @Override public String getName() { return id; }
     @Override public void setAutoUseProgram(boolean auto) { this.autoUseProgram = auto; }
 
+    /**
+     * Reset the shader program. That includes deleting the textures and clearing the GPU cache.
+     */
     @Override 
     public void reset() {
 

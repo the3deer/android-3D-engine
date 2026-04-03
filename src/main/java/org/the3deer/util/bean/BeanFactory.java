@@ -390,6 +390,7 @@ public class BeanFactory {
     @Nullable
     private Object configureBean(String id, Object bean) {
         if (bean == null) return null;
+        Log.v("BeanFactory", "Configuring bean... id: " + id);
         try {
             Class<?> currentClass = bean.getClass();
             while (currentClass != null) {
@@ -446,6 +447,8 @@ public class BeanFactory {
 
         // update status
         this.status.put(id, STATUS_INITIALIZED);
+
+        Log.v("BeanFactory", "Initializing bean... id: " + id);
 
         // invoke
         return invokeAnnotatedMethod(bean, BeanInit.class);
@@ -627,10 +630,12 @@ public class BeanFactory {
         // check
         if (!isInitialized) return old;
 
-        // setup bean
+        if (!isStarted) return old;
+
         configureBean(id);
         setUpBean(id);
         onBeanUpdate(id);
+
         return old;
     }
 

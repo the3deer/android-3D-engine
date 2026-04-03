@@ -4,6 +4,7 @@ import android.app.Application;
 import android.content.ComponentCallbacks2;
 import android.content.res.Configuration;
 import android.net.Uri;
+import android.opengl.GLSurfaceView;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
@@ -87,10 +88,6 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
         return engines != null ? engines.get(uri) : null;
     }
 
-    public ModelEngine initEngine(@NotNull String uriString) {
-        return initEngine(uriString, null, null, null);
-    }
-
     /**
      * Initialize the engine for the given URI. If <code>callback</code> is <code>null</code>, the engine will be initialized synchronously. Otherwise, it will be initialized asynchronously</code>
      *
@@ -141,7 +138,8 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
 
         // check status
         if (engine.isLoaded()) {
-            Log.v(TAG, "Engine already loaded. uri: " + uriString);
+            Log.i(TAG, "Engine already loaded. uri: " + uriString);
+            handler.post(callback);
             return;
         }
 
@@ -162,7 +160,7 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
 
             try {
                 // Initialize engine components (Lightweight)
-                final ModelEngine modelEngine = initEngine(uriString);
+                final ModelEngine modelEngine = getEngine(uriString);
                 if (modelEngine == null)
                     throw new IllegalArgumentException("Engine not initialized");
 
@@ -206,7 +204,8 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
 
         // check status
         if (engine.isStarted()) {
-            Log.d(TAG, "Info: Engine already started");
+            Log.i(TAG, "Engine already started");
+            handler.post(callback);
             return;
         }
 
@@ -248,6 +247,26 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
 
         // log success
         Log.i(TAG, "Engine activated. uri: " + uriString);
+    }
+
+    /**
+     * Reset the engine resources (GPU and memory).
+     * @param uriString the engine uri
+     */
+    public void resetEngine(@NotNull String uriString) {
+        final ModelEngine engine = getEngine(uriString);
+        if (engine == null) return;
+
+        Log.i(TAG, "Requesting engine reset: " + uriString);
+
+        // Try to reset on GL Thread if surface is available
+        final Object surface = engine.getBeanFactory().get("gl.surfaceView");
+        if (surface instanceof GLSurfaceView) {
+            ((GLSurfaceView) surface).queueEvent(engine::reset);
+        } else {
+            // Fallback to current thread (might miss some GL resource deletion if no context)
+            engine.reset();
+        }
     }
 
     private void freeMemory(String uriString) {

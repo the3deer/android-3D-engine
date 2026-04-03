@@ -289,6 +289,10 @@ public class ModelEngine {
         return beanFactory.add(beanId, bean);
     }
 
+    public boolean addOrReplace(String beanId, Object bean) {
+        return beanFactory.addOrReplace(beanId, bean) != null;
+    }
+
     /**
      * Remove the specified bean from the engine, removing it from the bean factory and all the managed beans (injected as dependency).
      *
@@ -297,6 +301,48 @@ public class ModelEngine {
      */
     public boolean remove(String beanId, Object bean) {
         return beanFactory.remove(beanId, bean);
+    }
+
+    /**
+     * Reset the engine. This method should be called when the GL Surface is recreated.
+     * It must be called from the GL Thread.
+     */
+    public void reset() {
+        Log.i(TAG, "Resetting engine... " + id);
+
+        // 1. Reset Shaders
+        final ShaderFactory shaderFactory = beanFactory.find(ShaderFactory.class);
+        if (shaderFactory != null) {
+            shaderFactory.reset();
+        }
+
+        // 2. Reset GPU Manager (VBOs/VAOs)
+        final GpuManager gpuManager = beanFactory.find(GpuManager.class);
+        if (gpuManager != null) {
+            gpuManager.clear();
+        }
+
+        // 3. Reset Textures and Object IDs
+        if (model != null && model.getScenes() != null) {
+            for (Scene scene : model.getScenes()) {
+                if (scene.getObjects() != null) {
+                    for (Object3D obj : scene.getObjects()) {
+                        if (obj.getMaterial() != null) {
+                            if (obj.getMaterial().getColorTexture() != null)
+                                obj.getMaterial().getColorTexture().setId(-1);
+                            if (obj.getMaterial().getNormalTexture() != null)
+                                obj.getMaterial().getNormalTexture().setId(-1);
+                            if (obj.getMaterial().getEmissiveTexture() != null)
+                                obj.getMaterial().getEmissiveTexture().setId(-1);
+                            if (obj.getMaterial().getTransmissionTexture() != null)
+                                obj.getMaterial().getTransmissionTexture().setId(-1);
+                        }
+                    }
+                }
+            }
+        }
+
+        Log.i(TAG, "Engine reset finished");
     }
 
     public void close() {
