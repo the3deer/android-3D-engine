@@ -1,9 +1,8 @@
 package org.the3deer.engine.services;
 
-import android.net.Uri;
-
 import org.the3deer.engine.model.Object3D;
 
+import java.net.URI;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -22,9 +21,9 @@ public abstract class LoaderTask {
     private static final ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 
     /**
-     * URL to the 3D model
+     * URI to the 3D model
      */
-    protected final Uri uri;
+    protected final URI uri;
     /**
      * Callback to notify of events
      */
@@ -33,10 +32,10 @@ public abstract class LoaderTask {
     /**
      * Build a new progress dialog for loading the data model asynchronously
      *
-     * @param uri the URL pointing to the 3d model
+     * @param uri the URI pointing to the 3d model
      *
      */
-    public LoaderTask(Uri uri, LoadListener callback) {
+    public LoaderTask(URI uri, LoadListener callback) {
         this.uri = uri;
         this.callback = callback;
     }

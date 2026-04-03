@@ -18,6 +18,7 @@ import org.the3deer.util.io.ProgressMonitorInputStream;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.ArrayList;
@@ -80,14 +81,14 @@ class STLBinaryParser extends STLParser
         }
     }
 
-    public boolean parse(URL url)
+    public boolean parse(URI url)
         throws IllegalArgumentException, IOException
     {
         InputStream stream = null;
         int length = -1;
         try
         {
-            URLConnection connection = url.openConnection();
+            URLConnection connection = url.toURL().openConnection();
             stream = connection.getInputStream();
             length = connection.getContentLength();
         }
@@ -102,14 +103,14 @@ class STLBinaryParser extends STLParser
         return parse(length);
     }
 
-    public boolean parse(URL url,  Component parentComponent)
+    public boolean parse(URI url,  Component parentComponent)
         throws IllegalArgumentException, IOException
     {
         InputStream stream = null;
         int length = -1;
         try
         {
-            URLConnection connection = url.openConnection();
+            URLConnection connection = url.toURL().openConnection();
             stream = connection.getInputStream();
             length = connection.getContentLength();
         }

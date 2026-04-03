@@ -13,10 +13,7 @@ import androidx.core.content.ContextCompat;
 
 import org.the3deer.util.event.EventListener;
 
-import java.io.File;
 import java.io.InputStream;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.nio.ByteBuffer;
 import java.util.EventObject;
 import java.util.List;
@@ -55,19 +52,6 @@ public class AndroidUtils {
             // ignore
         }
         return mimeType;
-    }
-
-    @FunctionalInterface
-    public interface Callback {
-        void onClick(File file);
-    }
-
-    public static URL createURL(String url) {
-        try {
-            return new URL(url);
-        } catch(MalformedURLException e){
-            throw new RuntimeException(e);
-        }
     }
 
     public static void logd(String sb){

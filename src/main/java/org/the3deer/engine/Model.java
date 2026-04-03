@@ -1,6 +1,5 @@
 package org.the3deer.engine;
 
-import android.net.Uri;
 import android.os.SystemClock;
 import android.widget.Toast;
 
@@ -25,7 +24,6 @@ import org.the3deer.util.io.IOUtils;
 
 import java.io.InputStream;
 import java.net.URI;
-import java.net.URL;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -69,7 +67,7 @@ public class Model implements LoadListener {
      */
     private final Map<Level, String> messages = new TreeMap<>((l1, l2) -> Integer.compare(l2.intValue(), l1.intValue()));
 
-    private final Uri uri;
+    private final URI uri;
     private final String name;
     private final String type;
     private final Map<String, Object> extras;
@@ -89,11 +87,11 @@ public class Model implements LoadListener {
     // other variables
     private long startTime;
 
-    public Model(Uri uri, String name, String type) {
+    public Model(URI uri, String name, String type) {
         this(uri, name, type, null);
     }
 
-    public Model(Uri uri, String name, String type, Map<String, Object> extras) {
+    public Model(URI uri, String name, String type, Map<String, Object> extras) {
         this.uri = uri;
         this.name = name;
         this.type = type;
@@ -107,7 +105,7 @@ public class Model implements LoadListener {
         return name;
     }
 
-    public Uri getUri() {
+    public URI getUri() {
         return uri;
     }
 
@@ -235,7 +233,7 @@ public class Model implements LoadListener {
         try {
 
             // default uri
-            Uri modelUri = getUri();
+            URI modelUri = getUri();
 
             // default type
             String modelType = getType();
@@ -246,12 +244,12 @@ public class Model implements LoadListener {
             // update model
             setStatus(Model.Status.LOADING, "Loading model: " + modelUri);
 
-            // if the model is a zip file, we need to extract it and register the entries as content uris
+            // if the model is a zip file, we need to extract it and register the entries as content urls
             if (modelUri.toString().toLowerCase().endsWith(".zip")) {
                 final Map<String, byte[]> zipFiles;
                 try {
-                    zipFiles = ContentUtils.readFiles(new URL(modelUri.toString()));
-                    Uri modelFile = null;
+                    zipFiles = ContentUtils.readFiles(modelUri);
+                    URI modelFile = null;
                     for (Map.Entry<String, byte[]> zipFile : zipFiles.entrySet()) {
 
                         final String zipFilename = zipFile.getKey();
@@ -266,11 +264,11 @@ public class Model implements LoadListener {
                         // register all zip entries
 
                         String encodedName = URLEncoder.encode(zipFilename, Charsets.UTF_8.name());
-                        final Uri pseudoUri = Uri.parse("android://org.the3deer.engine/binary/" + encodedName);
+                        final URI pseudoUri = URI.create("android://org.the3deer.engine/binary/" + encodedName);
                         ContentUtils.addUri(encodedName, pseudoUri);
 
                         encodedName = encodedName.replace("+", "%20");
-                        final Uri pseudoUri2 = Uri.parse("android://org.the3deer.engine/binary/" + encodedName);
+                        final URI pseudoUri2 = URI.create("android://org.the3deer.engine/binary/" + encodedName);
                         ContentUtils.addUri(encodedName, pseudoUri2);
 
                         ContentUtils.addData(pseudoUri, zipFile.getValue());
@@ -285,7 +283,7 @@ public class Model implements LoadListener {
                             case ".glb":
                             case ".fbx":
                                 modelFile = pseudoUri;
-                                modelUri = Uri.parse(pseudoUri.toString());
+                                modelUri = pseudoUri;
                                 break;
                         }
                     }
@@ -477,21 +475,19 @@ public class Model implements LoadListener {
         final String parentPath = (lastSlash != -1) ? modelPath.substring(0, lastSlash + 1) : "";
 
         // Create the full texture URI
-        final Uri textureUri = Uri.parse(parentPath + textureFile);
-
-        // update model
-        texture.setUri(textureUri);
+        final String textureUriString = parentPath + textureFile;
 
         // debug
-        logger.fine("Downloading texture... file: " + textureFile + ", uri: " + textureUri);
+        logger.fine("Downloading texture... file: " + textureFile + ", uri: " + textureUriString);
 
         // debug
         logger.info("Loading texture file: " + textureFile);
 
         // download texture
-        try (InputStream stream = URI.create(textureUri.toString()).toURL().openStream()) {
+        try (InputStream stream = ContentUtils.getInputStream(URI.create(textureUriString))) {
 
             // update model
+            texture.setUri(URI.create(textureUriString));
             texture.setData(IOUtils.read(stream));
 
             // debug

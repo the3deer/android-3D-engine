@@ -22,6 +22,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -48,12 +49,12 @@ public class ContentUtils {
     }
 
     public interface ContentResolver {
-        Uri resolveUri(Uri uri);
+        URI resolveUri(URI uri);
     }
 
     public static final String MODELS_FOLDER = "models";
-    public static final Map<String, Uri> documentsProvided = new HashMap<>();
-    private static final Map<Uri, byte[]> binariesProvided = new HashMap<>();
+    public static final Map<String, URI> documentsProvided = new HashMap<>();
+    private static final Map<URI, byte[]> binariesProvided = new HashMap<>();
 
     private static Context context = null;
     private static File currentDir = null;
@@ -90,7 +91,7 @@ public class ContentUtils {
                     final String[] files2 = activity.getAssets().list(directory + "/" + document);
                     if (files2 == null) continue;
                     if (files2.length == 0) {
-                        documentsProvided.put(document, Uri.parse("android://" + activity.getPackageName() + "/assets/models/" + document));
+                        documentsProvided.put(document, URI.create("android://" + activity.getPackageName() + "/assets/models/" + document));
                     }
                 }
             }
@@ -99,19 +100,19 @@ public class ContentUtils {
         }
     }
 
-    public static void addUri(String name, Uri uri) {
+    public static void addUri(String name, URI uri) {
         documentsProvided.put(name, uri);
     }
 
-    public static void addData(Uri uri, byte[] data) {
+    public static void addData(URI uri, byte[] data) {
         binariesProvided.put(uri, data);
     }
 
-    public static byte[] getData(Uri uri) {
+    public static byte[] getData(URI uri) {
         return binariesProvided.get(uri);
     }
 
-    public static InputStream getInputStream(Uri uri) throws IOException {
+    public static InputStream getInputStream(URI uri) throws IOException {
         if (uri == null) throw new IllegalArgumentException("uri cannot be null");
 
         if (context == null){
@@ -124,7 +125,7 @@ public class ContentUtils {
         }
 
         logger.finest("Opening stream ..." + uri);
-        if (uri.getScheme().equals("android")) {
+        if (uri.getScheme() != null && uri.getScheme().equals("android")) {
             if (uri.getPath().startsWith("/binary/")) {
                 final String path = uri.getPath().substring("/binary/".length());
                 byte[] buf = binariesProvided.get(uri);
@@ -145,24 +146,25 @@ public class ContentUtils {
                 throw new IllegalArgumentException("unknown android path: "+uri.getPath());
             }
         }
-        else if (uri.getScheme().equals("http") || uri.getScheme().equals("https")) {
-            return new BufferedInputStream(new URL(uri.toString()).openConnection().getInputStream(),8192);
+        else if (uri.getScheme() != null && (uri.getScheme().equals("http") || uri.getScheme().equals("https"))) {
+            return new BufferedInputStream(uri.toURL().openConnection().getInputStream(),8192);
         }
 
         // Handle content:// or file://
         try {
-            Uri finalUri = uri;
-            if (uri.getScheme().equals("content") && documentsProvided.containsKey(uri.toString())) {
-                finalUri = documentsProvided.get(uri.toString());
+            Uri androidUri = Uri.parse(uri.toString());
+            final URI uriProvided = documentsProvided.get(uri.toString());
+            if (uri.getScheme().equals("content") && uriProvided != null) {
+                androidUri = Uri.parse(uriProvided.toString());
             }
-            return new BufferedInputStream(context.getContentResolver().openInputStream(finalUri), 8192);
+            return new BufferedInputStream(context.getContentResolver().openInputStream(androidUri), 8192);
         } catch (FileNotFoundException | SecurityException e) {
             logger.warning("Access denied or file not found for " + uri + ". Attempting resolution...");
 
             // If we have a resolver and we are not on the main thread, we can try to resolve it
             if (contentResolver != null && Looper.myLooper() != Looper.getMainLooper()) {
                 final CountDownLatch latch = new CountDownLatch(1);
-                final AtomicReference<Uri> resolvedUri = new AtomicReference<>();
+                final AtomicReference<URI> resolvedUri = new AtomicReference<>();
 
                 // Ask the resolver to find the file
                 // This usually triggers a UI prompt, so it must return via a callback or similar mechanism
@@ -179,9 +181,9 @@ public class ContentUtils {
                     if (latch.await(60, TimeUnit.SECONDS) && resolvedUri.get() != null) {
                         logger.info("Successfully resolved URI: " + resolvedUri.get());
                         // Cache the resolution for next time
-                        addUri(uri.toString(), resolvedUri.get());
+                        addUri(uri.toString(), URI.create(resolvedUri.get().toString()));
                         // Retry opening the stream with the new URI
-                        return new BufferedInputStream(context.getContentResolver().openInputStream(resolvedUri.get()),8192) ;
+                        return new BufferedInputStream(context.getContentResolver().openInputStream(Uri.parse(resolvedUri.get().toString())),8192);
                     }
                 } catch (InterruptedException ie) {
                     Thread.currentThread().interrupt();
@@ -193,15 +195,15 @@ public class ContentUtils {
         }
     }
 
-    public static List<String> readLines(String url) {
+    public static List<String> readLines(String uriString) {
         List<String> ret = new ArrayList<>();
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(new URL(url).openStream()))) {
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(URI.create(uriString).toURL().openStream()))) {
             String line;
             while ((line = reader.readLine()) != null) {
                 ret.add(line);
             }
         } catch (IOException e) {
-            logger.log(Level.SEVERE, "Error reading lines from " + url, e);
+            logger.log(Level.SEVERE, "Error reading lines from " + uriString, e);
         }
         return ret;
     }
@@ -217,9 +219,20 @@ public class ContentUtils {
         return sb.toString();
     }
 
-    public static Map<String, byte[]> readFiles(URL url) {
+    public static String read(URI uri) throws IOException {
+        StringBuilder sb = new StringBuilder();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(uri.toURL().openStream()))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                sb.append(line).append("\n");
+            }
+        }
+        return sb.toString();
+    }
+
+    public static Map<String, byte[]> readFiles(URI url) {
         Map<String, byte[]> ret = new HashMap<>();
-        try (ZipInputStream zis = new ZipInputStream(new BufferedInputStream(url.openStream()))) {
+        try (ZipInputStream zis = new ZipInputStream(new BufferedInputStream(url.toURL().openStream()))) {
             ZipEntry ze;
             while ((ze = zis.getNextEntry()) != null) {
                 String name = ze.getName();
@@ -262,11 +275,12 @@ public class ContentUtils {
     }
 
     @SuppressLint("Range")
-    public static String getFileName(Context context, Uri uri) throws IOException {
+    public static String getFileName(Context context, URI uri) throws IOException {
         if (uri == null) return null;
         String result = null;
-        if ("content".equals(uri.getScheme()) && context != null) {
-            try (Cursor cursor = context.getContentResolver().query(uri, null, null, null, null)) {
+        final Uri androidUri = Uri.parse(uri.toString());
+        if ("content".equals(androidUri.getScheme()) && context != null) {
+            try (Cursor cursor = context.getContentResolver().query(androidUri, null, null, null, null)) {
                 if (cursor != null && cursor.moveToFirst()) {
                     int index = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
                     if (index != -1) {
@@ -274,12 +288,12 @@ public class ContentUtils {
                     }
                 }
             } catch (SecurityException ex){
-                logger.warning("Access denied or file not found for " + uri + ". Attempting resolution...");
+                logger.warning("Access denied or file not found for " + androidUri + ". Attempting resolution...");
 
                 // If we have a resolver and we are not on the main thread, we can try to resolve it
                 if (contentResolver != null && Looper.myLooper() != Looper.getMainLooper()) {
                     final CountDownLatch latch = new CountDownLatch(1);
-                    final AtomicReference<Uri> resolvedUri = new AtomicReference<>();
+                    final AtomicReference<URI> resolvedUri = new AtomicReference<>();
 
                     // Ask the resolver to find the file
                     // This usually triggers a UI prompt, so it must return via a callback or similar mechanism
@@ -296,9 +310,9 @@ public class ContentUtils {
                         if (latch.await(60, TimeUnit.SECONDS) && resolvedUri.get() != null) {
                             logger.info("Successfully resolved URI: " + resolvedUri.get());
                             // Cache the resolution for next time
-                            addUri(uri.toString(), resolvedUri.get());
+                            addUri(uri.toString(), URI.create(resolvedUri.get().toString()));
                             // Retry opening the stream with the new URI
-                            try (Cursor cursor = context.getContentResolver().query(uri, null, null, null, null)) {
+                            try (Cursor cursor = context.getContentResolver().query(Uri.parse(resolvedUri.get().toString()), null, null, null, null)) {
                                 if (cursor != null && cursor.moveToFirst()) {
                                     int index = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
                                     if (index != -1) {
@@ -313,11 +327,11 @@ public class ContentUtils {
                     }
                 }
             } catch (Exception e) {
-                logger.log(Level.SEVERE, "Error querying filename for " + uri, e);
+                logger.log(Level.SEVERE, "Error querying filename for " + androidUri, e);
             }
         }
         if (result == null) {
-            result = uri.getPath();
+            result = androidUri.getPath();
             if (result != null) {
                 int cut = result.lastIndexOf('/');
                 if (cut != -1) {
@@ -332,15 +346,15 @@ public class ContentUtils {
 
     public static InputStream getInputStream(String uriString) throws IOException {
         uriString = uriString.replace('\\','/');
-        Uri uri = getUri(uriString);
+        URI uri = getUri(uriString);
         if (uri == null) uri = getUri("models/"+uriString);
         if (uri == null) uri = getUri("models/"+uriString.replace(' ', '+'));
         if (uri == null && currentDir != null) {
-            uri = Uri.parse("file://" + new File(currentDir, uriString).getAbsolutePath());
+            uri = URI.create("file://" + new File(currentDir, uriString).getAbsolutePath());
         }
         if (uri != null) return getInputStream(uri);
         else {
-            uri = Uri.parse(uriString);
+            uri = URI.create(uriString);
             InputStream inputStream = getInputStream(uri);
             if (inputStream != null) return inputStream;
         }
@@ -348,12 +362,12 @@ public class ContentUtils {
         // If we have a resolver and we are not on the main thread, we can try to resolve it
         if (contentResolver != null && Looper.myLooper() != Looper.getMainLooper()) {
             final CountDownLatch latch = new CountDownLatch(1);
-            final AtomicReference<Uri> resolvedUri = new AtomicReference<>();
+            final AtomicReference<URI> resolvedUri = new AtomicReference<>();
 
             // Ask the resolver to find the file
             // This usually triggers a UI prompt, so it must return via a callback or similar mechanism
             // For simplicity, we assume resolveUri might block or trigger an async operation
-            Uri finalUri = uri;
+            final URI finalUri = uri;
             StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
             new Thread(() -> {
                 try {
@@ -368,7 +382,7 @@ public class ContentUtils {
                 if (latch.await(60, TimeUnit.SECONDS) && resolvedUri.get() != null) {
                     logger.info("Successfully resolved URI: " + resolvedUri.get());
                     // Cache the resolution for next time
-                    addUri(uri.toString(), resolvedUri.get());
+                    addUri(finalUri.toString(), URI.create(resolvedUri.get().toString()));
 
 
                 }
@@ -381,8 +395,8 @@ public class ContentUtils {
         throw new FileNotFoundException("File not found: " + uriString);
     }
 
-    public static Uri getUri(String name) {
-        Uri uri = documentsProvided.get(name);
+    public static URI getUri(String name) {
+        URI uri = documentsProvided.get(name);
         if (uri != null) return uri;
         return documentsProvided.get(name.replaceAll("\\\\","/"));
     }

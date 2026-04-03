@@ -29,7 +29,6 @@
 
 package org.the3deer.engine.services.wavefront;
 
-import android.net.Uri;
 import android.opengl.GLES20;
 
 import androidx.annotation.Nullable;
@@ -70,18 +69,18 @@ public class WavefrontLoader {
     }
 
     @Nullable
-    public static String getMaterialLib(Uri uri) {
-        return getParameter(uri, "mtllib ");
+    public static String getMaterialLib(URI url) {
+        return getParameter(url, "mtllib ");
     }
 
     @Nullable
-    public static String getTextureFile(Uri uri) {
-        return getParameter(uri, "map_Kd ");
+    public static String getTextureFile(URI url) {
+        return getParameter(url, "map_Kd ");
     }
 
     @Nullable
-    private static String getParameter(Uri uri, String parameter) {
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(URI.create(uri.toString()).toURL().openStream()))) {
+    private static String getParameter(URI url, String parameter) {
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(url.toURL().openStream()))) {
             String line;
             while ((line = br.readLine()) != null) {
                 line = line.trim();
@@ -90,7 +89,7 @@ public class WavefrontLoader {
                 }
             }
         } catch (IOException e) {
-            logger.log(Level.SEVERE,  "Problem reading file '" + uri + "': " + e.getMessage(), e);
+            logger.log(Level.SEVERE,  "Problem reading file '" + url + "': " + e.getMessage(), e);
             throw new RuntimeException(e);
         }
         return null;

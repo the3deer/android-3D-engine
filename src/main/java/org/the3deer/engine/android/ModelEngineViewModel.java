@@ -3,7 +3,6 @@ package org.the3deer.engine.android;
 import android.app.Application;
 import android.content.ComponentCallbacks2;
 import android.content.res.Configuration;
-import android.net.Uri;
 import android.opengl.GLSurfaceView;
 import android.os.Handler;
 import android.os.Looper;
@@ -23,6 +22,7 @@ import org.the3deer.engine.model.ModelEvent;
 import org.the3deer.engine.model.Screen;
 import org.the3deer.util.event.EventListener;
 
+import java.net.URI;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Locale;
@@ -434,11 +434,16 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
         logger.info("Building Model... uri: " + uriString);
 
         // create
-        Model model = new Model(Uri.parse(uriString), name, type);
+        Model model = null;
+        try {
+            model = new Model(URI.create(uriString), name, type);
+        } catch (Exception e) {
+            logger.log(Level.SEVERE, "Failed to create model from uri: " + uriString, e);
+        }
 
         // update
         Map<String, Model> models = _models.getValue();
-        if (models != null) {
+        if (models != null && model != null) {
             models.put(uriString, model);
             _models.postValue(models);
         }

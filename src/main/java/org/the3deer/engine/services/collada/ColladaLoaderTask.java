@@ -1,19 +1,18 @@
 package org.the3deer.engine.services.collada;
 
-import android.net.Uri;
-
 import org.the3deer.engine.model.AnimatedModel;
 import org.the3deer.engine.model.Object3D;
 import org.the3deer.engine.model.Scene;
 import org.the3deer.engine.services.LoadListener;
 import org.the3deer.engine.services.LoaderTask;
 
+import java.net.URI;
 import java.util.List;
 
 public class ColladaLoaderTask extends LoaderTask {
 
-    public ColladaLoaderTask(Uri uri, LoadListener callback) {
-        super(uri, callback);
+    public ColladaLoaderTask(URI url, LoadListener callback) {
+        super(url, callback);
     }
 
     @Override

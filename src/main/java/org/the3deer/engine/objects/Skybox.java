@@ -1,6 +1,5 @@
 package org.the3deer.engine.objects;
 
-import android.net.Uri;
 import android.opengl.GLES20;
 
 import org.the3deer.engine.android.util.ContentUtils;
@@ -11,6 +10,7 @@ import org.the3deer.engine.model.Texture;
 import org.the3deer.util.io.IOUtils;
 
 import java.io.IOException;
+import java.net.URI;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -69,11 +69,11 @@ public class Skybox {
             1.0f, -1.0f, 1.0f
     };
 
-    public final Uri[] images;
+    public final URI[] images;
 
     private CubeMap cubeMap = null;
 
-    public Skybox(Uri[] images) throws IOException {
+    public Skybox(URI[] images) throws IOException {
         if (images == null || images.length != 6)
             throw new IllegalArgumentException("skybox must contain exactly 6 faces");
         this.images = images;
@@ -103,13 +103,13 @@ public class Skybox {
      */
     public static Skybox getSkybox2() {
         try {
-            return new Skybox(new Uri[]{
-                    Uri.parse("android://org.the3deer.android.viewer/res/drawable/posx.png"),
-                    Uri.parse("android://org.the3deer.android.viewer/res/drawable/negx.png"),
-                    Uri.parse("android://org.the3deer.android.viewer/res/drawable/posy.png"),
-                    Uri.parse("android://org.the3deer.android.viewer/res/drawable/negy.png"),
-                    Uri.parse("android://org.the3deer.android.viewer/res/drawable/posz.png"),
-                    Uri.parse("android://org.the3deer.android.viewer/res/drawable/negz.png")});
+            return new Skybox(new URI[]{
+                    URI.create("android://org.the3deer.android.viewer/res/drawable/posx.png"),
+                    URI.create("android://org.the3deer.android.viewer/res/drawable/negx.png"),
+                    URI.create("android://org.the3deer.android.viewer/res/drawable/posy.png"),
+                    URI.create("android://org.the3deer.android.viewer/res/drawable/negy.png"),
+                    URI.create("android://org.the3deer.android.viewer/res/drawable/posz.png"),
+                    URI.create("android://org.the3deer.android.viewer/res/drawable/negz.png")});
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -122,13 +122,13 @@ public class Skybox {
      */
     public static Skybox getSkybox1() {
         try {
-            return new Skybox(new Uri[]{
-                    Uri.parse("android://org.the3deer.android.viewer/res/drawable/right.png"),
-                    Uri.parse("android://org.the3deer.android.viewer/res/drawable/left.png"),
-                    Uri.parse("android://org.the3deer.android.viewer/res/drawable/top.png"),
-                    Uri.parse("android://org.the3deer.android.viewer/res/drawable/bottom.png"),
-                    Uri.parse("android://org.the3deer.android.viewer/res/drawable/front.png"),
-                    Uri.parse("android://org.the3deer.android.viewer/res/drawable/back.png")});
+            return new Skybox(new URI[]{
+                    URI.create("android://org.the3deer.android.viewer/res/drawable/right.png"),
+                    URI.create("android://org.the3deer.android.viewer/res/drawable/left.png"),
+                    URI.create("android://org.the3deer.android.viewer/res/drawable/top.png"),
+                    URI.create("android://org.the3deer.android.viewer/res/drawable/bottom.png"),
+                    URI.create("android://org.the3deer.android.viewer/res/drawable/front.png"),
+                    URI.create("android://org.the3deer.android.viewer/res/drawable/back.png")});
         } catch (IOException e) {
             logger.log(Level.SEVERE,  "Exception: " + e.getMessage(), e);
             throw new RuntimeException(e);

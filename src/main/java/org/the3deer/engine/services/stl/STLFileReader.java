@@ -15,6 +15,7 @@ package org.the3deer.engine.services.stl;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
 import java.net.URL;
 import java.util.List;
 
@@ -48,7 +49,7 @@ public class STLFileReader
     public STLFileReader(File file)
         throws IllegalArgumentException, IOException
     {
-        this(file.toURL());
+        this(file.toURI());
     }
 
     /**
@@ -60,7 +61,7 @@ public class STLFileReader
     public STLFileReader(String fileName)
         throws IllegalArgumentException, IOException
     {
-        this(new URL(fileName));
+        this(URI.create(fileName));
     }
 
     /**
@@ -74,7 +75,7 @@ public class STLFileReader
     public STLFileReader(String fileName, boolean strict)
         throws IllegalArgumentException, IOException
     {
-        this(new URL(fileName), strict);
+        this(URI.create(fileName), strict);
     }
 
     /**
@@ -83,7 +84,7 @@ public class STLFileReader
      * @param url URL of STL file to read.
      * @throws IllegalArgumentException The file was structurally incorrect
      */
-    public STLFileReader(URL url)
+    public STLFileReader(URI url)
         throws IllegalArgumentException, IOException
     {
         final STLASCIIParser asciiParser = new STLASCIIParser();
@@ -103,25 +104,25 @@ public class STLFileReader
     /**
      * Creates a <code>STLFileReader</code> object to read a STL file from an
      * URL. The data may be in ASCII or binary format.
-     * @param url URL of STL file to read.
+     * @param uri URL of STL file to read.
      * @param strict Attempt to deal with crappy data or short downloads.
      * Will try to return any useable geometry.
      * @throws IllegalArgumentException The file was structurally incorrect
      */
-    public STLFileReader(URL url, boolean strict)
+    public STLFileReader(URI uri, boolean strict)
         throws IllegalArgumentException, IOException
     {
 
         final STLParser asciiParser = new STLASCIIParser(strict);
 
-        if(asciiParser.parse(url))
+        if(asciiParser.parse(uri))
         {
             itsParser = asciiParser;
         }
         else
         {
             final STLBinaryParser binParser = new STLBinaryParser(strict);
-            binParser.parse(url);
+            binParser.parse(uri);
             itsParser = binParser;
         }
     }
@@ -136,7 +137,7 @@ public class STLFileReader
      *      Use <code>null</code> if there is no parent.
      * @throws IllegalArgumentException The file was structurally incorrect
      */
-    public STLFileReader(URL url, Component parentComponent)
+    public STLFileReader(URI url, Component parentComponent)
         throws IllegalArgumentException, IOException
     {
         final STLASCIIParser asciiParser = new STLASCIIParser();
@@ -163,7 +164,7 @@ public class STLFileReader
      * Will try to return any useable geometry.
      * @throws IllegalArgumentException The file was structurally incorrect
      */
-    public STLFileReader(URL url, Component parentComponent, boolean strict)
+    public STLFileReader(URI url, Component parentComponent, boolean strict)
         throws IllegalArgumentException, IOException
     {
         final STLASCIIParser asciiParser = new STLASCIIParser(strict);
@@ -191,7 +192,7 @@ public class STLFileReader
     public STLFileReader(File file, Component parentComponent)
         throws IllegalArgumentException, IOException
     {
-        this(file.toURL(), parentComponent);
+        this(file.toURI(), parentComponent);
     }
 
     /**
@@ -208,7 +209,7 @@ public class STLFileReader
     public STLFileReader(File file, Component parentComponent, boolean strict)
         throws IllegalArgumentException, IOException
     {
-        this(file.toURL(), parentComponent, strict);
+        this(file.toURI(), parentComponent, strict);
     }
 
     /**
@@ -223,7 +224,7 @@ public class STLFileReader
     public STLFileReader (String fileName, Component parentComponent)
         throws IllegalArgumentException, IOException
     {
-        this(new URL(fileName), parentComponent);
+        this(URI.create(fileName), parentComponent);
     }
 
     /**
@@ -240,7 +241,7 @@ public class STLFileReader
     public STLFileReader (String fileName, Component parentComponent, boolean strict)
         throws IllegalArgumentException, IOException
     {
-        this(new URL(fileName), parentComponent, strict);
+        this(URI.create(fileName), parentComponent, strict);
     }
 
     /**

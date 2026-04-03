@@ -1,7 +1,6 @@
 package org.the3deer.engine.services.gltf;
 
 import android.graphics.Bitmap;
-import android.net.Uri;
 import android.opengl.GLES20;
 
 import org.the3deer.engine.android.util.AndroidUtils;
@@ -65,15 +64,15 @@ public class GltfLoader {
     public GltfLoader() {
     }
 
-    public GltfSceneData load(Uri uri, LoadListener callback) throws Exception {
+    public GltfSceneData load(URI url, LoadListener callback) throws Exception {
 
-        try (InputStream stream = URI.create(uri.toString()).toURL().openStream()) {
-            logger.info("Loading and parsing model file... " + uri);
-            callback.onProgress("Parsing " + uri);
+        try (InputStream stream = url.toURL().openStream()) {
+            logger.info("Loading and parsing model file... " + url);
+            callback.onProgress("Parsing " + url);
 
             GltfAssetReader gltfAssetReader = new GltfAssetReader();
             GltfAsset gltfAsset = gltfAssetReader.readWithoutReferences(stream);
-            URI baseUri = IO.getParent(URI.create(uri.toString()));
+            URI baseUri = IO.getParent(URI.create(url.toString()));
             GltfReferenceResolver.resolveAll(gltfAsset.getReferences(), baseUri);
             GltfModel gltfModel = GltfModels.create(gltfAsset);
             GltfParser parser = new GltfParser(gltfAsset, gltfModel);

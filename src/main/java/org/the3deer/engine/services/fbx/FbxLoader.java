@@ -1,6 +1,5 @@
 package org.the3deer.engine.services.fbx;
 
-import android.net.Uri;
 import android.opengl.GLES20;
 
 import org.the3deer.engine.model.Material;
@@ -30,13 +29,13 @@ public class FbxLoader {
         this.parser = new FBXParser();
     }
 
-    public List<Object3D> load(Uri uri, LoadListener callback) throws Exception {
+    public List<Object3D> load(URI url, LoadListener callback) throws Exception {
 
         final List<Object3D> ret = new ArrayList<>();
 
-        try (InputStream stream = URI.create(uri.toString()).toURL().openStream()) {
-            logger.info("Parsing FBX model... " + uri);
-            callback.onProgress("Parsing FBX model... " + uri);
+        try (InputStream stream = url.toURL().openStream()) {
+            logger.info("Parsing FBX model... " + url);
+            callback.onProgress("Parsing FBX model... " + url);
 
             FBXModel model = parser.parseModel(stream);
             if (model == null) return ret;

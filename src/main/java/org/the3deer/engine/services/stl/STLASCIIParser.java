@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.InterruptedIOException;
+import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.StringTokenizer;
@@ -284,13 +285,13 @@ class STLASCIIParser extends STLParser
     /**
      * @throws IllegalArgumentException The file was structurally incorrect
      */
-    public boolean parse(URL url, Component parentComponent)
+    public boolean parse(URI url, Component parentComponent)
         throws InterruptedIOException, IOException
     {
         InputStream stream = null;
         try
         {
-            stream = url.openStream();
+            stream = url.toURL().openStream();
         }
         catch(IOException e)
         {
@@ -322,7 +323,7 @@ class STLASCIIParser extends STLParser
 
         try
         {
-            stream = url.openStream();
+            stream = url.toURL().openStream();
         }
         catch(IOException e)
         {
@@ -344,12 +345,12 @@ class STLASCIIParser extends STLParser
     /**
      * @throws IllegalArgumentException The file was structurally incorrect
      */
-    public boolean parse(URL url)
+    public boolean parse(URI url)
         throws IOException
     {
         InputStream stream = null;
         try {
-            stream = url.openStream();
+            stream = url.toURL().openStream();
         }
         catch(IOException e)
         {
@@ -382,7 +383,7 @@ class STLASCIIParser extends STLParser
 
         try
         {
-            stream = url.openStream();
+            stream = url.toURL().openStream();
         }
         catch(IOException e)
         {

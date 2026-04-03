@@ -1,7 +1,5 @@
 package org.the3deer.engine.services.gltf;
 
-import android.net.Uri;
-
 import androidx.annotation.NonNull;
 
 import org.the3deer.engine.model.Object3D;
@@ -10,13 +8,14 @@ import org.the3deer.engine.services.LoadListener;
 import org.the3deer.engine.services.LoaderTask;
 import org.the3deer.engine.services.gltf.dto.GltfSceneData;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
 public class GltfLoaderTask extends LoaderTask {
 
-    public GltfLoaderTask(Uri uri, LoadListener callback) {
-        super(uri, callback);
+    public GltfLoaderTask(URI url, LoadListener callback) {
+        super(url, callback);
     }
 
     @Override

@@ -14,7 +14,7 @@ package org.the3deer.engine.services.stl;
 // External imports
 
 import java.io.IOException;
-import java.net.URL;
+import java.net.URI;
 import java.util.List;
 
 // Local imports
@@ -110,7 +110,7 @@ abstract class STLParser
      * @return <code>true</code> if file is in ASCII format, <code>false</code>
      *      otherwise. Use the appropriate subclass for reading.
      */
-    abstract boolean parse(URL url)
+    abstract boolean parse(URI url)
         throws IOException;
 
     /**
@@ -123,7 +123,7 @@ abstract class STLParser
      * @return <code>true</code> if file is in ASCII format, <code>false</code>
      *      otherwise. Use the appropriate subclass for reading.
      */
-    abstract boolean parse(URL url, Component parentComponent)
+    abstract boolean parse(URI url, Component parentComponent)
         throws IllegalArgumentException, IOException;
 
     /**

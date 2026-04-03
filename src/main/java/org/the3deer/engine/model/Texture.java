@@ -1,8 +1,8 @@
 package org.the3deer.engine.model;
 
 import android.graphics.Bitmap;
-import android.net.Uri;
 
+import java.net.URI;
 import java.nio.ByteBuffer;
 import java.util.Map;
 
@@ -11,7 +11,7 @@ public class Texture {
     private String name;
 
     private String file;
-    private Uri uri;
+    private URI uri;
 
     private int id = -1;
 
@@ -63,11 +63,11 @@ public class Texture {
         return this;
     }
 
-    public Uri getUri() {
+    public URI getUri() {
         return uri;
     }
 
-    public void setUri(Uri uri) {
+    public void setUri(URI uri) {
         this.uri = uri;
     }
 

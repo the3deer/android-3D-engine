@@ -1,6 +1,5 @@
 package org.the3deer.engine.services.stl;
 
-import android.net.Uri;
 import android.opengl.GLES20;
 
 import org.the3deer.engine.model.Object3D;
@@ -10,6 +9,7 @@ import org.the3deer.engine.services.LoaderTask;
 import org.the3deer.engine.services.collada.entities.MeshData;
 
 import java.io.IOException;
+import java.net.URI;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -27,8 +27,8 @@ public final class STLLoaderTask extends LoaderTask {
 
     private STLFileReader stlFileReader;
 
-    public STLLoaderTask(Uri uri, LoadListener callback) {
-        super(uri, callback);
+    public STLLoaderTask(URI url, LoadListener callback) {
+        super(url, callback);
     }
 
     @Override
@@ -48,7 +48,7 @@ public final class STLLoaderTask extends LoaderTask {
             super.publishProgress("Parsing model...");
 
             // Parse STL
-            this.stlFileReader = new STLFileReader(new URL(uri.toString()));
+            this.stlFileReader = new STLFileReader(uri);
 
             // get total facets
             int totalFaces = stlFileReader.getNumOfFacets()[0];
@@ -109,7 +109,9 @@ public final class STLLoaderTask extends LoaderTask {
             throw e;
         } finally {
             try {
-                stlFileReader.close();
+                if (stlFileReader != null) {
+                    stlFileReader.close();
+                }
             } catch (IOException e) {
                 throw e;
             }

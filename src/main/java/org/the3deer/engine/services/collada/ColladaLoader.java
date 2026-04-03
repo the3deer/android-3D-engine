@@ -1,6 +1,5 @@
 package org.the3deer.engine.services.collada;
 
-import android.net.Uri;
 import android.opengl.GLES20;
 import android.opengl.Matrix;
 
@@ -38,9 +37,9 @@ public class ColladaLoader {
     public ColladaLoader() {
     }
 
-    public Scene load(Uri uri) throws Exception {
+    public Scene load(URI url) throws Exception {
         Scene scene = new Scene();
-        try (InputStream stream = URI.create(uri.toString()).toURL().openStream()) {
+        try (InputStream stream = url.toURL().openStream()) {
             // 1. PARSE THE FILE
             ColladaParser parser = new ColladaParser();
             parser.parse(stream);
@@ -58,7 +57,7 @@ public class ColladaLoader {
 
             // Load the actual texture file data for all materials that have one.
             final Map<String, Material> materials = buildMaterials(materialsLibrary, effectLibrary, imagesLibrary);
-            loadTextureDatas(uri, materials);
+            loadTextureDatas(url, materials);
 
             // 3. BUILD TEMPLATE MODELS
             // Create one "template" object for each geometry, which can be static or animated.
@@ -363,29 +362,29 @@ public class ColladaLoader {
         return ret;
     }
 
-    private void loadTextureDatas(Uri modelUri, Map<String, Material> materials) {
+    private void loadTextureDatas(URI modelUrl, Map<String, Material> materials) {
         if (materials == null) return;
         for (Material mat : materials.values()) {
 
             if (mat.getColorTexture() != null && mat.getColorTexture().getFile() != null) {
                 String textureFile = mat.getColorTexture().getFile();
                 try {
-                    // Resolve texture URI relative to the model's location
-                    // Extracting the parent path manually from the model's URI
-                    String modelPath = modelUri.toString();
+                    // Resolve texture URL relative to the model's location
+                    // Extracting the parent path manually from the model's URL
+                    String modelPath = modelUrl.toString();
                     int lastSlash = modelPath.lastIndexOf('/');
                     String parentPath = (lastSlash != -1) ? modelPath.substring(0, lastSlash + 1) : "";
 
-                    // Create the full texture URI
-                    Uri textureUri = Uri.parse(parentPath + textureFile);
+                    // Create the full texture URL
+                    URI textureUrl = URI.create(parentPath + textureFile);
 
                     // update model
-                    mat.getColorTexture().setUri(textureUri);
+                    mat.getColorTexture().setUri(textureUrl);
 
                     // debug
-                    logger.config("Downloading texture... file: " + textureFile + ", uri: " + textureUri);
+                    logger.config("Downloading texture... file: " + textureFile + ", url: " + textureUrl);
 
-                    try (InputStream stream = URI.create(textureUri.toString()).toURL().openStream()) {
+                    try (InputStream stream = textureUrl.toURL().openStream()) {
                         mat.getColorTexture().setData(IOUtils.read(stream));
 
                         logger.info("Texture linked and data loaded for file: " + textureFile);
