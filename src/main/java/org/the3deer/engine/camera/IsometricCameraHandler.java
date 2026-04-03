@@ -6,7 +6,7 @@ import org.the3deer.engine.model.Constants;
 import org.the3deer.engine.model.Projection;
 import org.the3deer.util.bean.BeanInit;
 import org.the3deer.util.math.Math3DUtils;
-import org.the3deer.util.math.Matrix;
+import org.the3deer.opengl.Matrix;
 
 import java.util.Arrays;
 import java.util.logging.Logger;

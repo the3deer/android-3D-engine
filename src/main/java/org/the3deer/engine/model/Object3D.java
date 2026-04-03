@@ -2,14 +2,14 @@ package org.the3deer.engine.model;
 
 import android.opengl.GLES20;
 
-import org.the3deer.engine.android.shader.ShaderFactory;
-import org.the3deer.engine.android.util.AndroidUtils;
+import org.the3deer.android.engine.shader.ShaderFactory;
+import org.the3deer.android.util.AndroidUtils;
 import org.the3deer.engine.collision.Octree;
 import org.the3deer.engine.services.collada.entities.MeshData;
 import org.the3deer.util.event.EventListener;
 import org.the3deer.util.io.IOUtils;
 import org.the3deer.util.math.Math3DUtils;
-import org.the3deer.util.math.Matrix;
+import org.the3deer.opengl.Matrix;
 import org.the3deer.util.math.Quaternion;
 
 import java.net.URI;

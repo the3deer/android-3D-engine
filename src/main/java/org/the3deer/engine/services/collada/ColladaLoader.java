@@ -17,7 +17,7 @@ import org.the3deer.engine.services.collada.entities.MaterialData;
 import org.the3deer.engine.services.collada.entities.Mesh;
 import org.the3deer.engine.services.collada.entities.Node;
 import org.the3deer.util.io.IOUtils;
-import org.the3deer.util.math.Matrix;
+import org.the3deer.opengl.Matrix;
 
 import java.io.InputStream;
 import java.net.URI;

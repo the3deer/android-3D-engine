@@ -2,6 +2,8 @@ package org.the3deer.util.math;
 
 import androidx.annotation.Nullable;
 
+import org.the3deer.opengl.Matrix;
+
 import java.util.logging.Level;
 import java.util.logging.Logger;
 

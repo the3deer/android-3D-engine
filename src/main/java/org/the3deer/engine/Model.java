@@ -1,8 +1,6 @@
 package org.the3deer.engine;
 
-import android.widget.Toast;
-
-import org.the3deer.engine.android.util.ContentUtils;
+import org.the3deer.android.util.ContentUtils;
 import org.the3deer.engine.camera.CameraUtils;
 import org.the3deer.engine.model.Camera;
 import org.the3deer.engine.model.Material;
@@ -402,7 +400,7 @@ public class Model implements LoadListener {
             allErrors.addAll(data.getErrors());
         }
         if (!allErrors.isEmpty()) {
-            makeToastText(allErrors.toString(), Toast.LENGTH_LONG);
+            //makeToastText(allErrors.toString(), Toast.LENGTH_LONG);
         }
 
         // Ensure all objects have a parent node to unify the rendering pipeline.
@@ -428,8 +426,8 @@ public class Model implements LoadListener {
         this.addScene(scene);
 
         // notify user
-        final String elapsed = (System.nanoTime() - startTime) / 1000000 + " secs";
-        makeToastText("Load complete (" + elapsed + ")", Toast.LENGTH_SHORT);
+        /*final String elapsed = (System.nanoTime() - startTime) / 1000000 + " secs";
+        makeToastText("Load complete (" + elapsed + ")", Toast.LENGTH_SHORT);*/
     }
 
     @Override
@@ -494,7 +492,7 @@ public class Model implements LoadListener {
 
         } catch (Exception ex) {
             logger.log(Level.SEVERE, "Error loading texture file '" + textureFile + "': " + ex.getMessage(), ex);
-            makeToastText("Error loading texture file '" + textureFile + "': " + ex.getMessage(), Toast.LENGTH_LONG);
+            //makeToastText("Error loading texture file '" + textureFile + "': " + ex.getMessage(), Toast.LENGTH_LONG);
         }
     }
 

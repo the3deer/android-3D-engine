@@ -3,8 +3,8 @@ package org.the3deer.engine.decorator;
 import android.opengl.GLES20;
 
 import org.the3deer.engine.Model;
-import org.the3deer.engine.android.shader.Shader;
-import org.the3deer.engine.android.shader.ShaderFactory;
+import org.the3deer.android.engine.shader.Shader;
+import org.the3deer.android.engine.shader.ShaderFactory;
 import org.the3deer.engine.animation.Animator;
 import org.the3deer.engine.model.AnimatedModel;
 import org.the3deer.engine.model.Camera;

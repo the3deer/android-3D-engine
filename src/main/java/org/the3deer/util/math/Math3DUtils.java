@@ -1,5 +1,7 @@
 package org.the3deer.util.math;
 
+import org.the3deer.opengl.Matrix;
+
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;

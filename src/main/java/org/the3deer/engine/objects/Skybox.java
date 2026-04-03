@@ -2,7 +2,7 @@ package org.the3deer.engine.objects;
 
 import android.opengl.GLES20;
 
-import org.the3deer.engine.android.util.ContentUtils;
+import org.the3deer.android.util.ContentUtils;
 import org.the3deer.engine.model.CubeMap;
 import org.the3deer.engine.model.Material;
 import org.the3deer.engine.model.Object3D;

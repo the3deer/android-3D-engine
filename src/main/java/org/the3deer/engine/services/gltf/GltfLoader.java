@@ -3,7 +3,7 @@ package org.the3deer.engine.services.gltf;
 import android.graphics.Bitmap;
 import android.opengl.GLES20;
 
-import org.the3deer.engine.android.util.AndroidUtils;
+import org.the3deer.android.util.AndroidUtils;
 import org.the3deer.engine.animation.Animation;
 import org.the3deer.engine.animation.JointTransform;
 import org.the3deer.engine.animation.KeyFrame;

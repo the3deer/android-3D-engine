@@ -1,9 +1,9 @@
 package org.the3deer.engine.collision;
 
 import org.the3deer.engine.Model;
-import org.the3deer.engine.android.shader.Shader;
-import org.the3deer.engine.android.shader.ShaderFactory;
-import org.the3deer.engine.android.shader.ShaderResource;
+import org.the3deer.android.engine.shader.Shader;
+import org.the3deer.android.engine.shader.ShaderFactory;
+import org.the3deer.android.engine.shader.ShaderResource;
 import org.the3deer.engine.model.Light;
 import org.the3deer.engine.model.Object3D;
 import org.the3deer.engine.model.Scene;

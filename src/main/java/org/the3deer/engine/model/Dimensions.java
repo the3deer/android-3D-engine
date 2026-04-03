@@ -1,6 +1,6 @@
 package org.the3deer.engine.model;
 
-import org.the3deer.util.math.Matrix;
+import org.the3deer.opengl.Matrix;
 
 import java.text.DecimalFormat;
 import java.util.Arrays;

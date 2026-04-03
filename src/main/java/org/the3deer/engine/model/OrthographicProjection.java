@@ -1,6 +1,6 @@
 package org.the3deer.engine.model;
 
-import org.the3deer.util.math.Matrix;
+import org.the3deer.opengl.Matrix;
 
 public final class OrthographicProjection implements Projection {
 

@@ -5,7 +5,7 @@ import android.opengl.GLU;
 import org.the3deer.engine.model.BoundingBox;
 import org.the3deer.engine.model.Object3D;
 import org.the3deer.util.math.Math3DUtils;
-import org.the3deer.util.math.Matrix;
+import org.the3deer.opengl.Matrix;
 
 import java.util.Arrays;
 import java.util.List;

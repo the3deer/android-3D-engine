@@ -5,14 +5,14 @@ import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
 
-import org.the3deer.engine.android.renderer.AnaglyphRenderer;
-import org.the3deer.engine.android.renderer.DefaultRenderer;
-import org.the3deer.engine.android.renderer.StereoscopicRenderer;
-import org.the3deer.engine.android.shader.ShaderFactory;
-import org.the3deer.engine.android.shader.v3.GpuManager;
-import org.the3deer.engine.android.shadow.ShadowDrawer;
-import org.the3deer.engine.android.touch.TouchController;
-import org.the3deer.engine.android.util.AndroidURLStreamHandlerFactory;
+import org.the3deer.android.engine.renderer.AnaglyphRenderer;
+import org.the3deer.android.engine.renderer.DefaultRenderer;
+import org.the3deer.android.engine.renderer.StereoscopicRenderer;
+import org.the3deer.android.engine.shader.ShaderFactory;
+import org.the3deer.android.engine.shader.v3.GpuManager;
+import org.the3deer.android.engine.shadow.ShadowDrawer;
+import org.the3deer.android.engine.touch.TouchController;
+import org.the3deer.android.util.AndroidURLStreamHandlerFactory;
 import org.the3deer.engine.camera.CameraController;
 import org.the3deer.engine.camera.DefaultCameraHandler;
 import org.the3deer.engine.collision.CollisionController;
@@ -64,7 +64,7 @@ public class ModelEngine {
 
     // Custom handler: org/the3deer/util/android/assets/Handler.class
     static {
-        System.setProperty("java.protocol.handler.pkgs", "org.the3deer.engine.android.util");
+        System.setProperty("java.protocol.handler.pkgs", "org.the3deer.android.util");
         try {
             URL.setURLStreamHandlerFactory(new AndroidURLStreamHandlerFactory());
         } catch (Error ex) {

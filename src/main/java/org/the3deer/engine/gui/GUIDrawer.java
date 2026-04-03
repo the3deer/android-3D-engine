@@ -4,8 +4,8 @@ import android.opengl.GLES20;
 
 import androidx.fragment.app.FragmentActivity;
 
-import org.the3deer.engine.android.shader.Shader;
-import org.the3deer.engine.android.shader.ShaderFactory;
+import org.the3deer.android.engine.shader.Shader;
+import org.the3deer.android.engine.shader.ShaderFactory;
 import org.the3deer.engine.collision.Collision;
 import org.the3deer.engine.collision.CollisionDetection;
 import org.the3deer.engine.event.TouchEvent;

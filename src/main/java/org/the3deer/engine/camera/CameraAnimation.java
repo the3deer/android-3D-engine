@@ -3,7 +3,7 @@ package org.the3deer.engine.camera;
 import org.the3deer.engine.model.Animation;
 import org.the3deer.engine.model.Camera;
 import org.the3deer.engine.model.Constants;
-import org.the3deer.util.math.Matrix;
+import org.the3deer.opengl.Matrix;
 
 import java.util.Arrays;
 import java.util.logging.Logger;

@@ -1,8 +1,8 @@
 package org.the3deer.engine.scene;
 
 import org.the3deer.engine.Model;
-import org.the3deer.engine.android.shader.Shader;
-import org.the3deer.engine.android.shader.ShaderFactory;
+import org.the3deer.android.engine.shader.Shader;
+import org.the3deer.android.engine.shader.ShaderFactory;
 import org.the3deer.engine.model.Camera;
 import org.the3deer.engine.model.Light;
 import org.the3deer.engine.model.Object3D;

@@ -3,7 +3,7 @@ package org.the3deer.engine.model;
 import androidx.annotation.NonNull;
 
 import org.the3deer.util.math.Math3DUtils;
-import org.the3deer.util.math.Matrix;
+import org.the3deer.opengl.Matrix;
 
 import java.nio.Buffer;
 import java.nio.FloatBuffer;

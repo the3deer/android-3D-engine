@@ -8,7 +8,7 @@ import org.the3deer.engine.model.Node;
 import org.the3deer.engine.model.Skin;
 import org.the3deer.util.io.IOUtils;
 import org.the3deer.util.math.Math3DUtils;
-import org.the3deer.util.math.Matrix;
+import org.the3deer.opengl.Matrix;
 
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;

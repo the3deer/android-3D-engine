@@ -12,7 +12,7 @@ import android.graphics.BitmapFactory;
 import android.opengl.GLES20;
 import android.opengl.GLUtils;
 
-import org.the3deer.engine.android.util.AndroidUtils;
+import org.the3deer.android.util.AndroidUtils;
 import org.the3deer.engine.model.CubeMap;
 
 import java.io.ByteArrayInputStream;

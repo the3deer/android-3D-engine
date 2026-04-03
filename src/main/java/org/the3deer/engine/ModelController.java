@@ -1,9 +1,9 @@
 
 package org.the3deer.engine;
 
-import org.the3deer.engine.android.shader.ShaderFactory;
-import org.the3deer.engine.android.touch.TouchController;
-import org.the3deer.engine.android.util.AndroidUtils;
+import org.the3deer.android.engine.shader.ShaderFactory;
+import org.the3deer.android.engine.touch.TouchController;
+import org.the3deer.android.util.AndroidUtils;
 import org.the3deer.engine.camera.CameraController;
 import org.the3deer.engine.collision.CollisionController;
 import org.the3deer.engine.collision.CollisionEvent;

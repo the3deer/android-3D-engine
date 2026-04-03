@@ -14,7 +14,7 @@ import org.the3deer.engine.services.collada.entities.Source;
 import org.the3deer.engine.services.collada.entities.Vertex;
 import org.the3deer.engine.services.collada.entities.VertexWeights;
 import org.the3deer.engine.util.HoleCutter;
-import org.the3deer.util.math.Matrix;
+import org.the3deer.opengl.Matrix;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserFactory;
 
