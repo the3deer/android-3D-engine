@@ -2,7 +2,6 @@ package org.the3deer.engine.android.renderer;
 
 import android.app.Activity;
 import android.opengl.GLES20;
-import android.widget.Toast;
 
 import org.the3deer.engine.Model;
 import org.the3deer.engine.animation.Animator;
@@ -161,12 +160,6 @@ public class DefaultRenderer implements Renderer, EventListener {
 
                 // disable drawer
                 drawers.get(i).setEnabled(false);
-
-                // notify user
-                activity.runOnUiThread(() -> {
-                    Toast.makeText(activity, "There was a problem rendering the model: " + e.getMessage(),
-                            Toast.LENGTH_LONG).show();
-                });
             }
         }
 

@@ -1,7 +1,5 @@
 package org.the3deer.engine.animation;
 
-import android.os.SystemClock;
-
 import org.the3deer.engine.model.AnimatedModel;
 import org.the3deer.engine.model.Constants;
 import org.the3deer.engine.model.Node;
@@ -333,7 +331,7 @@ public class Animator {
      * reset, causing the animation to loop.
      */
     private void increaseAnimationTime(Animation animation) {
-        this.animationTime = SystemClock.uptimeMillis() / 1000f * speed;
+        this.animationTime = System.nanoTime() / 1000000000f * speed;
         this.animationTime %= animation.getLength();
     }
 

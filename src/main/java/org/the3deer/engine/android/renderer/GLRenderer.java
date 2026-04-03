@@ -2,7 +2,6 @@ package org.the3deer.engine.android.renderer;
 
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
-import android.os.SystemClock;
 
 import org.the3deer.engine.ModelEngine;
 import org.the3deer.engine.android.ModelEngineViewModel;
@@ -298,12 +297,12 @@ public class GLRenderer implements GLSurfaceView.Renderer {
         if (eventManager != null) {
             try {
                 if (framesPerSecondTime == -1) {
-                    framesPerSecondTime = SystemClock.elapsedRealtime();
+                    framesPerSecondTime = System.currentTimeMillis();
                     framesPerSecondCounter++;
-                } else if (SystemClock.elapsedRealtime() > framesPerSecondTime + 1000) {
+                } else if (System.currentTimeMillis() > framesPerSecondTime + 1000) {
                     int framesPerSecond = framesPerSecondCounter;
                     framesPerSecondCounter = 1;
-                    framesPerSecondTime = SystemClock.elapsedRealtime();
+                    framesPerSecondTime = System.currentTimeMillis();
                     eventManager.propagate(new FPSEvent(this, framesPerSecond));
                     //logger.finest("FPS: " + framesPerSecond);
                 } else {
