@@ -1,27 +1,26 @@
 package org.the3deer.engine.scene;
 
-import android.util.Log;
-
+import org.the3deer.engine.Model;
+import org.the3deer.engine.android.shader.Shader;
+import org.the3deer.engine.android.shader.ShaderFactory;
 import org.the3deer.engine.model.Camera;
 import org.the3deer.engine.model.Light;
-import org.the3deer.engine.Model;
 import org.the3deer.engine.model.Object3D;
 import org.the3deer.engine.model.Scene;
 import org.the3deer.engine.renderer.Drawer;
-import org.the3deer.engine.android.shader.Shader;
-import org.the3deer.engine.android.shader.ShaderFactory;
 import org.the3deer.util.event.EventListener;
 import org.the3deer.util.math.Math3DUtils;
 
 import java.util.Collections;
 import java.util.EventObject;
 import java.util.List;
+import java.util.logging.Logger;
 
 import javax.inject.Inject;
 
 public class SceneDrawer implements Drawer, EventListener {
 
-    public static final String TAG = SceneDrawer.class.getSimpleName();
+    private static final Logger logger = Logger.getLogger(SceneDrawer.class.getSimpleName());
 
     @Inject
     private ShaderFactory shaderFactory;
@@ -86,11 +85,11 @@ public class SceneDrawer implements Drawer, EventListener {
 
         // debug
         if (!traced){
-            Log.v(TAG, "onDrawFrame...");
+           logger.finest("onDrawFrame...");
         }
 
         if (!traced){
-            Log.d(TAG, "Drawing Scene with " + objects.size() + " objects");
+            logger.config("Drawing Scene with " + objects.size() + " objects");
         }
 
         // Draw all objects
@@ -112,7 +111,7 @@ public class SceneDrawer implements Drawer, EventListener {
         if (shader != null) {
 
             if (!traced){
-                Log.d(TAG, "Drawing object... id: " + objData.getId()+", vertices: "+objData+", drawMode: "+objData.getDrawMode());
+                logger.config("Drawing object... id: " + objData.getId()+", vertices: "+objData+", drawMode: "+objData.getDrawMode());
             }
 
             // Use the new high-performance draw call

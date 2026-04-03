@@ -1,15 +1,16 @@
 package org.the3deer.engine.camera;
 
-import android.util.Log;
-
 import org.the3deer.engine.model.Animation;
 import org.the3deer.engine.model.Camera;
 import org.the3deer.engine.model.Constants;
 import org.the3deer.util.math.Math3DUtils;
 
 import java.util.Arrays;
+import java.util.logging.Logger;
 
 public class CameraAnimation extends Animation<Camera> {
+
+    private static final Logger logger = Logger.getLogger(CameraAnimation.class.getSimpleName());
 
     private final Object[] args;
     private int animationCounter;
@@ -21,10 +22,10 @@ public class CameraAnimation extends Animation<Camera> {
 
     public synchronized void animate() {
         if (animationCounter == 0){
-            Log.v("CameraAnimation","Starting animation: "+ Arrays.toString(args));
+            logger.finest("Starting animation: "+ Arrays.toString(args));
         }
         else if (animationCounter == -1 || animationCounter > Constants.TOTAL_ANIMATION_FRAMES) {
-            Log.v("CameraAnimation","Animation finished: "+ Arrays.toString(args));
+            logger.finest("Animation finished: "+ Arrays.toString(args));
             animationCounter = -1;
             finished = true;
             return;

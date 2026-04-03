@@ -10,7 +10,6 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Looper;
 import android.provider.OpenableColumns;
-import android.util.Log;
 
 import androidx.annotation.NonNull;
 
@@ -31,6 +30,8 @@ import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -38,7 +39,7 @@ import dalvik.system.ZipPathValidator;
 
 public class ContentUtils {
 
-    private static final String TAG = ContentUtils.class.getSimpleName();
+    private static final Logger logger = Logger.getLogger(ContentUtils.class.getSimpleName());
 
     static {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
@@ -94,7 +95,7 @@ public class ContentUtils {
                 }
             }
         } catch (IOException e) {
-            Log.e(TAG, e.getMessage(), e);
+            logger.log(Level.SEVERE, e.getMessage(), e);
         }
     }
 
@@ -118,11 +119,11 @@ public class ContentUtils {
         }
         final byte[] data = getData(uri);
         if (data != null){
-            Log.i("ContentUtils", "Returning binary: " + uri);
+            logger.info("Returning binary: " + uri);
             return new ByteArrayInputStream(data);
         }
 
-        Log.v("ContentUtils", "Opening stream ..." + uri);
+        logger.finest("Opening stream ..." + uri);
         if (uri.getScheme().equals("android")) {
             if (uri.getPath().startsWith("/binary/")) {
                 final String path = uri.getPath().substring("/binary/".length());
@@ -132,11 +133,11 @@ public class ContentUtils {
             }
             else if (uri.getPath().startsWith("/assets/")) {
                 final String path = uri.getPath().substring("/assets/".length());
-                Log.d("ContentUtils", "Opening asset: " + path);
+                logger.config("Opening asset: " + path);
                 return context.getAssets().open(path);
             } else if (uri.getPath().startsWith("/res/drawable/")){
                 final String path = uri.getPath().substring("/res/drawable/".length()).replace(".png","");
-                Log.d("ContentUtils", "Opening drawable: " + path);
+                logger.config("Opening drawable: " + path);
                 final int resourceId = context.getResources()
                         .getIdentifier(path, "drawable", context.getPackageName());
                 return context.getResources().openRawResource(resourceId);
@@ -156,7 +157,7 @@ public class ContentUtils {
             }
             return new BufferedInputStream(context.getContentResolver().openInputStream(finalUri), 8192);
         } catch (FileNotFoundException | SecurityException e) {
-            Log.w(TAG, "Access denied or file not found for " + uri + ". Attempting resolution...");
+            logger.warning("Access denied or file not found for " + uri + ". Attempting resolution...");
 
             // If we have a resolver and we are not on the main thread, we can try to resolve it
             if (contentResolver != null && Looper.myLooper() != Looper.getMainLooper()) {
@@ -176,7 +177,7 @@ public class ContentUtils {
 
                 try {
                     if (latch.await(60, TimeUnit.SECONDS) && resolvedUri.get() != null) {
-                        Log.i(TAG, "Successfully resolved URI: " + resolvedUri.get());
+                        logger.info("Successfully resolved URI: " + resolvedUri.get());
                         // Cache the resolution for next time
                         addUri(uri.toString(), resolvedUri.get());
                         // Retry opening the stream with the new URI
@@ -200,7 +201,7 @@ public class ContentUtils {
                 ret.add(line);
             }
         } catch (IOException e) {
-            Log.e(TAG, "Error reading lines from " + url, e);
+            logger.log(Level.SEVERE, "Error reading lines from " + url, e);
         }
         return ret;
     }
@@ -231,7 +232,7 @@ public class ContentUtils {
                 ret.put(name, bos.toByteArray());
             }
         } catch (IOException e) {
-            Log.e(TAG, "Error reading zip from " + url, e);
+            logger.log(Level.SEVERE, "Error reading zip from " + url, e);
         }
         return ret;
     }
@@ -273,7 +274,7 @@ public class ContentUtils {
                     }
                 }
             } catch (SecurityException ex){
-                Log.w(TAG, "Access denied or file not found for " + uri + ". Attempting resolution...");
+                logger.warning("Access denied or file not found for " + uri + ". Attempting resolution...");
 
                 // If we have a resolver and we are not on the main thread, we can try to resolve it
                 if (contentResolver != null && Looper.myLooper() != Looper.getMainLooper()) {
@@ -293,7 +294,7 @@ public class ContentUtils {
 
                     try {
                         if (latch.await(60, TimeUnit.SECONDS) && resolvedUri.get() != null) {
-                            Log.i(TAG, "Successfully resolved URI: " + resolvedUri.get());
+                            logger.info("Successfully resolved URI: " + resolvedUri.get());
                             // Cache the resolution for next time
                             addUri(uri.toString(), resolvedUri.get());
                             // Retry opening the stream with the new URI
@@ -312,7 +313,7 @@ public class ContentUtils {
                     }
                 }
             } catch (Exception e) {
-                Log.e(TAG, "Error querying filename for " + uri, e);
+                logger.log(Level.SEVERE, "Error querying filename for " + uri, e);
             }
         }
         if (result == null) {
@@ -356,7 +357,7 @@ public class ContentUtils {
             StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
             new Thread(() -> {
                 try {
-                    Log.i(TAG, "Resolving URI: " + stackTrace[0].getMethodName());
+                    logger.info("Resolving URI: " + stackTrace[0].getMethodName());
                     resolvedUri.set(contentResolver.resolveUri(finalUri));
                 } finally {
                     latch.countDown();
@@ -365,7 +366,7 @@ public class ContentUtils {
 
             try {
                 if (latch.await(60, TimeUnit.SECONDS) && resolvedUri.get() != null) {
-                    Log.i(TAG, "Successfully resolved URI: " + resolvedUri.get());
+                    logger.info("Successfully resolved URI: " + resolvedUri.get());
                     // Cache the resolution for next time
                     addUri(uri.toString(), resolvedUri.get());
 
@@ -376,7 +377,7 @@ public class ContentUtils {
                 throw new IOException("Interrupted while waiting for URI resolution", ie);
             }
         }
-        Log.e(TAG, "File not found: " + uriString);
+        logger.log(Level.SEVERE, "File not found: " + uriString);
         throw new FileNotFoundException("File not found: " + uriString);
     }
 

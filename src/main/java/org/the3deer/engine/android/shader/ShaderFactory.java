@@ -1,22 +1,23 @@
 package org.the3deer.engine.android.shader;
 
 import android.content.Context;
-import android.util.Log;
 
 import androidx.annotation.NonNull;
 
 import org.the3deer.engine.android.R;
+import org.the3deer.engine.android.shader.v2.ShaderImplV2;
+import org.the3deer.engine.android.shader.v3.ShaderImplV3;
 import org.the3deer.engine.model.AnimatedModel;
 import org.the3deer.engine.model.Constants;
 import org.the3deer.engine.model.Object3D;
-import org.the3deer.engine.android.shader.v2.ShaderImplV2;
-import org.the3deer.engine.android.shader.v3.ShaderImplV3;
 import org.the3deer.util.bean.BeanInit;
 import org.the3deer.util.io.IOUtils;
 
 import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.inject.Inject;
 
@@ -37,7 +38,7 @@ import javax.inject.Inject;
  */
 public class ShaderFactory {
 
-    private static final String TAG = "ShaderFactory";
+    private static final Logger logger = Logger.getLogger(ShaderFactory.class.getSimpleName());
 
     @Inject
     private Context context;
@@ -49,7 +50,7 @@ public class ShaderFactory {
     public void setUp() {
         if (context == null) throw new IllegalStateException("Context is null");
 
-        Log.i(TAG, "Processing "+R.raw.class.getFields().length+" shaders...");
+        logger.info("Processing "+R.raw.class.getFields().length+" shaders...");
         Field[] fields = R.raw.class.getFields();
         for (Field field : fields) {
             try {
@@ -57,7 +58,7 @@ public class ShaderFactory {
                 String code = new String(IOUtils.read(context.getResources().openRawResource(resId)));
                 shadersCode.put(resId, code);
             } catch (Exception e) {
-                Log.e(TAG, "Failed to load shader resource: " + field.getName());
+                logger.log(Level.SEVERE, "Failed to load shader resource: " + field.getName());
             }
         }
     }
@@ -99,12 +100,12 @@ public class ShaderFactory {
 
         // check
         if (vertCode == null || fragCode == null) {
-            Log.v(TAG, "Engine is still loading. Cannot load shader: " + cacheKey);
+           logger.finest("Engine is still loading. Cannot load shader: " + cacheKey);
             return null;
         }
 
         // Instantiate the right implementation
-        Log.i(TAG, "Instantiating Shader: " + cacheKey);
+        logger.info("Instantiating Shader: " + cacheKey);
 
         if (Constants.DEFAULT_SHADER_VERSION == 3) {
             shader = ShaderImplV3.getInstance(cacheKey, vertCode, fragCode);
@@ -115,7 +116,7 @@ public class ShaderFactory {
         shadersCache.put(cacheKey, shader);
 
         // debug
-        Log.i(TAG, "Shader loaded: " + cacheKey);
+        logger.info("Shader loaded: " + cacheKey);
 
         return shader;
     }
@@ -133,10 +134,10 @@ public class ShaderFactory {
         //final String shaderName = shadersCode.get(resIdVertexShader);
         final Shader shader = shadersCache.get(id);
         if (shader == null){
-            Log.d("ShaderFactory", "Loading shader... "+ id);
+            logger.config("Loading shader... "+ id);
             final Shader impl = loadShader(id, resIdVertexShader, resIdFragmentShader);
             shadersCache.put(id, impl);
-            Log.d("ShaderFactory", "Loaded "+ id);
+            logger.config("Loaded "+ id);
             return impl;
         }
         return shader;
@@ -155,7 +156,7 @@ public class ShaderFactory {
 
     public void reset() {
 
-        Log.i(TAG, "Resetting shaders... size: "+shadersCache.size());
+        logger.info("Resetting shaders... size: "+shadersCache.size());
 
         for (Shader shader : shadersCache.values())
             shader.reset();

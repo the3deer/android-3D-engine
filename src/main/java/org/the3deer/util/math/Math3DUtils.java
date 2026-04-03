@@ -1,12 +1,12 @@
 package org.the3deer.util.math;
 
 import android.opengl.Matrix;
-import android.util.Log;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.logging.Logger;
 
 /**
  * Utility class to calculate 3D stuff
@@ -14,6 +14,8 @@ import java.util.Locale;
  * @author andresoviedo
  */
 public class Math3DUtils {
+
+    private static final Logger logger = Logger.getLogger(Math3DUtils.class.getSimpleName());
 
     public static final float IDENTITY_MATRIX[] = new float[16];
     public static final float VECTOR_UNIT_X[] = {1,0,0};
@@ -802,7 +804,7 @@ public class Math3DUtils {
         //cross[2] = 0;
         float[] rotationMatrix = Math3DUtils.createRotationMatrixAroundVector(angle, cross[0], cross[1], cross[2]);
 
-        Log.v("HoleCutter", "normal: " + Arrays.toString(normal) + ", angle: " + angle + ", axis: " + Arrays.toString(cross));
+        logger.finest( "normal: " + Arrays.toString(normal) + ", angle: " + angle + ", axis: " + Arrays.toString(cross));
         return rotationMatrix;
     }
 

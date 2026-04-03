@@ -1,16 +1,14 @@
 package org.the3deer.engine.collision;
 
-import android.util.Log;
-
-import org.the3deer.engine.model.Light;
 import org.the3deer.engine.Model;
+import org.the3deer.engine.android.shader.Shader;
+import org.the3deer.engine.android.shader.ShaderFactory;
+import org.the3deer.engine.android.shader.ShaderResource;
+import org.the3deer.engine.model.Light;
 import org.the3deer.engine.model.Object3D;
 import org.the3deer.engine.model.Scene;
 import org.the3deer.engine.objects.Point;
 import org.the3deer.engine.renderer.Drawer;
-import org.the3deer.engine.android.shader.Shader;
-import org.the3deer.engine.android.shader.ShaderFactory;
-import org.the3deer.engine.android.shader.ShaderResource;
 import org.the3deer.util.bean.Bean;
 import org.the3deer.util.bean.BeanProperty;
 import org.the3deer.util.event.EventListener;
@@ -21,13 +19,14 @@ import java.util.EventObject;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 
 import javax.inject.Inject;
 
 @Bean(category = "decorators")
 public class CollisionDrawer implements Drawer, EventListener {
 
-    public static final String TAG = CollisionDrawer.class.getSimpleName();
+    private static final Logger logger = Logger.getLogger(CollisionDrawer.class.getSimpleName());
 
     @Inject
     private ShaderFactory shaderFactory;
@@ -84,7 +83,7 @@ public class CollisionDrawer implements Drawer, EventListener {
     private boolean onCollisionEvent(Scene scene, CollisionEvent event) {
 
         // debug
-        Log.v(TAG, "Processing collision... " + event);
+       logger.finest("Processing collision... " + event);
 
         // get hit information
         //final Object3D hit = event.getObject();
@@ -97,7 +96,7 @@ public class CollisionDrawer implements Drawer, EventListener {
         }
 
         // debug
-        Log.d(TAG, "Adding collision point " + Arrays.toString(point));
+        logger.config("Adding collision point " + Arrays.toString(point));
 
         // create hit object
         final Object3D point3D = Point.build(point).setColor(new float[]{1.0f, 0f, 0f, 1f});
@@ -140,7 +139,7 @@ public class CollisionDrawer implements Drawer, EventListener {
 
         // debug
         if (!traced) {
-            Log.v(TAG, "Drawing "+collisions.size()+" points... scene: "+scene.getName());
+           logger.finest("Drawing "+collisions.size()+" points... scene: "+scene.getName());
         }
 
         // Draw all objects
@@ -162,7 +161,7 @@ public class CollisionDrawer implements Drawer, EventListener {
         if (shader != null) {
 
             if (!traced) {
-                Log.d(TAG, "Drawing collision point... id: " + objData.getId());
+                logger.config("Drawing collision point... id: " + objData.getId());
             }
 
             // Use the new high-performance draw call
@@ -172,7 +171,7 @@ public class CollisionDrawer implements Drawer, EventListener {
 
             // debug
             if (!traced) {
-                Log.v(TAG, "Drawing "+collisions.size()+" points finished");
+               logger.finest("Drawing "+collisions.size()+" points finished");
                 traced = true;
             }
         }

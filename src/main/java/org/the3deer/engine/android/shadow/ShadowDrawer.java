@@ -3,12 +3,12 @@ package org.the3deer.engine.android.shadow;
 import android.app.Activity;
 import android.opengl.GLES20;
 
+import org.the3deer.engine.Model;
+import org.the3deer.engine.android.shader.ShaderFactory;
 import org.the3deer.engine.model.Camera;
 import org.the3deer.engine.model.Light;
-import org.the3deer.engine.Model;
 import org.the3deer.engine.model.Scene;
 import org.the3deer.engine.renderer.Drawer;
-import org.the3deer.engine.android.shader.ShaderFactory;
 import org.the3deer.util.bean.Bean;
 import org.the3deer.util.bean.BeanInit;
 import org.the3deer.util.bean.BeanProperty;

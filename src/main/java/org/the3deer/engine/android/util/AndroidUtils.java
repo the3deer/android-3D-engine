@@ -6,7 +6,6 @@ import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
-import android.util.Log;
 import android.webkit.MimeTypeMap;
 
 import androidx.core.app.ActivityCompat;
@@ -22,10 +21,13 @@ import java.nio.ByteBuffer;
 import java.util.EventObject;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Logger;
 
 import de.javagl.jgltf.model.io.Buffers;
 
 public class AndroidUtils {
+
+    private static final Logger logger = Logger.getLogger(AndroidUtils.class.getSimpleName());
 
     public static Bitmap decodeBitmap(InputStream is) {
         final BitmapFactory.Options options = new BitmapFactory.Options();
@@ -75,13 +77,13 @@ public class AndroidUtils {
             for (int i = 0; i <= chunkCount; i++) {
                 int max = 4000 * (i + 1);
                 if (max >= sb.length()) {
-                    Log.d("AndroidUtils", sb.substring(4000 * i));
+                    logger.config(sb.substring(4000 * i));
                 } else {
-                    Log.d("AndroidUtils", sb.substring(4000 * i, max));
+                    logger.config(sb.substring(4000 * i, max));
                 }
             }
         } else {
-            Log.d("AndroidUtils", sb);
+            logger.config(sb);
         }
     }
 
@@ -103,9 +105,9 @@ public class AndroidUtils {
     public static boolean fireEvent(List<EventListener> listeners, EventObject eventObject){
         if (listeners != null) {
             for (EventListener listener : listeners) {
-                //Log.v("AndroidUtils", "onEvent -> listener: " + listener+", event: "+eventObject);
+                //logger.finest(event: "+eventObject);
                 if (listener.onEvent(eventObject)) {
-                    //Log.v("AndroidUtils", "onEvent -> event: "+eventObject +", listener: " + listener.getClass());
+                    //logger.finest(listener: " + listener.getClass());
                     return true;
                 }
             }
@@ -117,10 +119,10 @@ public class AndroidUtils {
         boolean ret = false;
         if (packageManager.hasSystemFeature(PackageManager.FEATURE_TOUCHSCREEN_MULTITOUCH)) {
             ret = true;
-            Log.i("utils", "System supports multitouch (2 fingers)");
+            logger.info("System supports multitouch (2 fingers)");
         }
         if (packageManager.hasSystemFeature(PackageManager.FEATURE_TOUCHSCREEN_MULTITOUCH_DISTINCT)) {
-            Log.i("utils", "System supports advanced multitouch (multiple fingers)");
+            logger.info("System supports advanced multitouch (multiple fingers)");
             ret = true;
         }
         return ret;

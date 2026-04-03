@@ -1,9 +1,11 @@
 package org.the3deer.util.math;
 
 import android.opengl.Matrix;
-import android.util.Log;
 
 import androidx.annotation.Nullable;
+
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * A quaternion simply represents a 3D rotation. The maths behind it is quite
@@ -25,6 +27,8 @@ import androidx.annotation.Nullable;
  * @author Karl
  */
 public class Quaternion {
+
+    private static final Logger logger = Logger.getLogger(Quaternion.class.getSimpleName());
 
     private float[] matrix;
     private float x, y, z, w;
@@ -354,7 +358,7 @@ public class Quaternion {
         checksum = sqx + sqy + sqz + sqw; // if normalized is one, otherwise
 
         if (Math.abs(1 - checksum) > 0.00001) {
-            Log.e("Quaternion", "Unexpected checksum '" + checksum + "',  " + this);
+            logger.log(Level.SEVERE,  "Unexpected checksum '" + checksum + "',  " + this);
         }
 
         //fixWeight();
@@ -606,7 +610,7 @@ public class Quaternion {
      */
     public static void interpolate(Quaternion result, Quaternion a, Quaternion b, float blend) {
         if (a == null || b == null) {
-            //Log.v("Quaternion","you passed in a null quaternion");
+            //logger.finest("you passed in a null quaternion");
             return;
         }
 
@@ -701,7 +705,7 @@ public class Quaternion {
         }
         if (Constants.STRATEGY_QUATERNION_NEW) {
             if (getDefaultAngle(angles) != null) {
-                //Log.v("Quaternion", "getDefaultAngle: "+ Arrays.toString(angles)+" => "+getDefaultAngle(angles));
+                //logger.finest("getDefaultAngle: "+ Arrays.toString(angles)+" => "+getDefaultAngle(angles));
                 return angles;
             } else {
                 return toEulerAnglesGemini(angles);
@@ -746,7 +750,7 @@ public class Quaternion {
         double attitude = Math.asin(-2.0 * (q1.x * q1.z - q1.y * q1.w) / sqx + sqy + sqz + sqw);
 
         if (Double.isNaN(heading) || Double.isNaN(bank) || Double.isNaN(attitude)) {
-            //Log.e("Quaternion", "NaN: "+this);
+            //logger.log(Level.SEVERE,  "NaN: "+this);
             angles[0] = angles[1] = angles[2] = 0f;
             return angles;
         }

@@ -1,18 +1,17 @@
 package org.the3deer.engine.decorator;
 
 import android.opengl.GLES20;
-import android.util.Log;
 
+import org.the3deer.engine.Model;
+import org.the3deer.engine.android.shader.Shader;
+import org.the3deer.engine.android.shader.ShaderFactory;
 import org.the3deer.engine.animation.Animator;
 import org.the3deer.engine.model.AnimatedModel;
 import org.the3deer.engine.model.Camera;
-import org.the3deer.engine.Model;
 import org.the3deer.engine.model.Object3D;
 import org.the3deer.engine.model.Scene;
 import org.the3deer.engine.objects.Skeleton;
 import org.the3deer.engine.renderer.Drawer;
-import org.the3deer.engine.android.shader.Shader;
-import org.the3deer.engine.android.shader.ShaderFactory;
 import org.the3deer.util.bean.Bean;
 import org.the3deer.util.bean.BeanOrder;
 import org.the3deer.util.bean.BeanProperty;
@@ -21,6 +20,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.inject.Inject;
 
@@ -28,7 +29,7 @@ import javax.inject.Inject;
 @Bean
 public class SkeletonDrawer implements Drawer {
 
-    private final static String TAG = SkeletonDrawer.class.getSimpleName();
+    private static final Logger logger = Logger.getLogger(SkeletonDrawer.class.getSimpleName());
 
     /**
      * Animator
@@ -60,7 +61,7 @@ public class SkeletonDrawer implements Drawer {
 
     public int toggle() {
         this.enabled = !this.enabled;
-        Log.i(TAG, "Toggled skeleton. enabled: " + this.enabled);
+        logger.info("Toggled skeleton. enabled: " + this.enabled);
         return this.enabled ? 1 : 0;
     }
 
@@ -118,13 +119,13 @@ public class SkeletonDrawer implements Drawer {
                     if (((AnimatedModel) objData).getSkin().getJointCount() == 0) continue;
 
                     // debug
-                    Log.d(TAG,"Building skeleton... object: "+objData.getId());
+                    logger.config("Building skeleton... object: "+objData.getId());
 
                     // build
                     skeletonModel = Skeleton.build((AnimatedModel) objData);
 
                     // debug
-                    Log.d(TAG,"Skeleton built: "+skeletonModel);
+                    logger.config("Skeleton built: "+skeletonModel);
 
                     // register
                     this.skeleton.put(objData.getId(), skeletonModel);
@@ -134,7 +135,7 @@ public class SkeletonDrawer implements Drawer {
                 //Shader drawerObject = shaderFactory.getShader(scene, objData, false, false, false, true, false, false);
                 final Shader shader = shaderFactory.getShader(skeletonModel);
                 if (shader == null) {
-                    Log.e(TAG, "No drawer for " + objData.getId());
+                    logger.log(Level.SEVERE, "No drawer for " + objData.getId());
                     continue;
                 }
 
@@ -143,7 +144,7 @@ public class SkeletonDrawer implements Drawer {
 
             } catch (Exception ex) {
                 this.enabled = false;
-                Log.e(TAG, "There was a problem rendering the skeleton '" + objData.getId() + "':" + ex.getMessage(), ex);
+                logger.log(Level.SEVERE, "There was a problem rendering the skeleton '" + objData.getId() + "':" + ex.getMessage(), ex);
             }
         }
     }

@@ -1,11 +1,9 @@
 package org.the3deer.engine.camera;
 
 
-import android.util.Log;
-
+import org.the3deer.engine.Model;
 import org.the3deer.engine.controller.TouchEvent;
 import org.the3deer.engine.model.Camera;
-import org.the3deer.engine.Model;
 import org.the3deer.engine.model.Projection;
 import org.the3deer.engine.model.Screen;
 import org.the3deer.util.bean.BeanFactory;
@@ -13,6 +11,7 @@ import org.the3deer.util.bean.BeanInit;
 import org.the3deer.util.event.EventListener;
 
 import java.util.EventObject;
+import java.util.logging.Logger;
 
 import javax.inject.Inject;
 
@@ -23,7 +22,7 @@ public final class CameraController implements Camera.Controller, EventListener 
         void enable();
     }
 
-    private final static String TAG = CameraController.class.getSimpleName();
+    private static final Logger logger = Logger.getLogger(CameraController.class.getSimpleName());
 
     // dependencies
     @Inject
@@ -63,12 +62,12 @@ public final class CameraController implements Camera.Controller, EventListener 
 
         // check
         if (defaultCamera == null) {
-            Log.w("CameraController", "No active camera found in the current scene.");
+            logger.warning("No active camera found in the current scene.");
             return false;
         }
 
         if (event instanceof TouchEvent) {
-            //Log.v("CameraController","event: "+event);
+            //logger.finest("event: "+event);
             TouchEvent touchEvent = (TouchEvent) event;
             switch (touchEvent.getAction()) {
                 case MOVE:

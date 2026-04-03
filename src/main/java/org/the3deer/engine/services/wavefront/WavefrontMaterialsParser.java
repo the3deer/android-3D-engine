@@ -1,7 +1,5 @@
 package org.the3deer.engine.services.wavefront;
 
-import android.util.Log;
-
 import org.the3deer.engine.model.Material;
 import org.the3deer.engine.model.Materials;
 import org.the3deer.engine.model.Texture;
@@ -11,15 +9,19 @@ import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Arrays;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 final class WavefrontMaterialsParser {
+
+    private static final Logger logger = Logger.getLogger(WavefrontMaterialsParser.class.getSimpleName());
 
     /*
      * Parse the MTL file line-by-line, building Material objects which are collected in the materials ArrayList.
      */
     Materials parse(String id, InputStream inputStream) {
 
-        Log.v("WavefrontMaterialsParse", "Parsing materials... ");
+        logger.finest("Parsing materials... ");
 
         final Materials materials = new Materials(id);
         try {
@@ -59,7 +61,7 @@ final class WavefrontMaterialsParser {
                     currMaterial.setName(line.substring(6).trim());
 
                     // log event
-                    Log.v("WavefrontMaterialsParse", "New material found: " + currMaterial.getName());
+                    logger.finest("New material found: " + currMaterial.getName());
 
                 } else if (line.startsWith("map_Kd ")) { // texture filename
 
@@ -67,7 +69,7 @@ final class WavefrontMaterialsParser {
                     currMaterial.setColorTexture(new Texture().setFile(line.substring(6).trim()));
 
                     // log event
-                    Log.v("WavefrontMaterialsParse", "Texture found: " + currMaterial.getColorTexture().getFile());
+                    logger.finest("Texture found: " + currMaterial.getColorTexture().getFile());
 
                 } else if (line.startsWith("Ka ")) {
 
@@ -75,21 +77,21 @@ final class WavefrontMaterialsParser {
                     currMaterial.setAmbient(Math3DUtils.parseFloat(line.substring(2).trim().split(" ")));
 
                     // log event
-                    Log.v("WavefrontMaterialsParse", "Ambient color: " + Arrays.toString(currMaterial.getAmbient()));
+                    logger.finest("Ambient color: " + Arrays.toString(currMaterial.getAmbient()));
                 } else if (line.startsWith("Kd ")) {
 
                     // diffuse colour
                     currMaterial.setDiffuse(Math3DUtils.parseFloat(line.substring(2).trim().split(" ")));
 
                     // log event
-                    Log.v("WavefrontMaterialsParse", "Diffuse color: " + Arrays.toString(currMaterial.getDiffuse()));
+                    logger.finest("Diffuse color: " + Arrays.toString(currMaterial.getDiffuse()));
                 } else if (line.startsWith("Ks ")) {
 
                     // specular colour
                     currMaterial.setSpecular(Math3DUtils.parseFloat(line.substring(2).trim().split(" ")));
 
                     // log event
-                    Log.v("WavefrontMaterialsParse", "Specular color: " + Arrays.toString(currMaterial.getSpecular()));
+                    logger.finest("Specular color: " + Arrays.toString(currMaterial.getSpecular()));
                 } else if (line.startsWith("Ns ")) {
 
                     // shininess
@@ -97,7 +99,7 @@ final class WavefrontMaterialsParser {
                     currMaterial.setShininess(val);
 
                     // log event
-                    Log.v("WavefrontMaterialsParse", "Shininess: " + currMaterial.getShininess());
+                    logger.finest("Shininess: " + currMaterial.getShininess());
 
                 } else if (line.charAt(0) == 'd') {
 
@@ -106,7 +108,7 @@ final class WavefrontMaterialsParser {
                     currMaterial.setAlpha(val);
 
                     // log event
-                    Log.v("WavefrontMaterialsParse", "Alpha: " + currMaterial.getAlpha());
+                    logger.finest("Alpha: " + currMaterial.getAlpha());
 
                 } else if (line.startsWith("Tr ")) {
 
@@ -114,22 +116,22 @@ final class WavefrontMaterialsParser {
                     currMaterial.setAlpha(1 - Float.parseFloat(line.substring(3)));
 
                     // log event
-                    Log.v("WavefrontMaterialsParse", "Transparency (1-Alpha): " + currMaterial.getAlpha());
+                    logger.finest("Transparency (1-Alpha): " + currMaterial.getAlpha());
 
                 } else if (line.startsWith("illum ")) {
 
                     // illumination model
-                    Log.v("WavefrontMaterialsParse", "Ignored line: " + line);
+                    logger.finest("Ignored line: " + line);
 
                 } else if (line.charAt(0) == '#') { // comment line
 
                     // log comment
-                    Log.v("WavefrontMaterialsParse", line);
+                    logger.finest(line);
 
                 } else {
 
                     // log event
-                    Log.v("WavefrontMaterialsParse", "Ignoring line: " + line);
+                    logger.finest("Ignoring line: " + line);
                 }
 
             }
@@ -138,11 +140,11 @@ final class WavefrontMaterialsParser {
             materials.add(currMaterial.getName(), currMaterial);
 
         } catch (Exception e) {
-            Log.e("WavefrontMaterialsParse", e.getMessage(), e);
+            logger.log(Level.SEVERE,  e.getMessage(), e);
         }
 
         // log event
-        Log.d("WavefrontMaterialsParse", "Parsed materials: "+materials);
+        logger.config("Parsed materials: "+materials);
 
         return materials;
     }

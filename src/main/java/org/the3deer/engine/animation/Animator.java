@@ -2,7 +2,6 @@ package org.the3deer.engine.animation;
 
 import android.opengl.Matrix;
 import android.os.SystemClock;
-import android.util.Log;
 
 import org.the3deer.engine.model.AnimatedModel;
 import org.the3deer.engine.model.Constants;
@@ -15,6 +14,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 
 /**
@@ -38,6 +39,8 @@ import java.util.Set;
  * @author Karl, andresoviedo
  */
 public class Animator {
+
+    private static final Logger logger = Logger.getLogger(Animator.class.getSimpleName());
 
     private float animationTime = 0;
 
@@ -67,7 +70,7 @@ public class Animator {
 
         // check
         if (rootNodes == null || rootNodes.isEmpty() || currentAnimation == null) {
-            Log.e("Animator", "No animation to play");
+            logger.log(Level.SEVERE,  "No animation to play");
             return;
         }
 
@@ -77,10 +80,10 @@ public class Animator {
         // debug
         if (Constants.DEBUG) {
             if (!log.contains(currentAnimation.getName())) {
-                Log.v("Animator", "DEBUG_POSE: >>" + currentAnimation.getName());
+                logger.finest("DEBUG_POSE: >>" + currentAnimation.getName());
                 int count = 10;
                 for (Map.Entry<String,float[]> entry : currentPose.entrySet()) {
-                    Log.v("Animator", "DEBUG_POSE: " + entry.getKey() + ": " + Arrays.toString(entry.getValue()));
+                    logger.finest("DEBUG_POSE: " + entry.getKey() + ": " + Arrays.toString(entry.getValue()));
                     if (count-- < 0) {
                         break;
                     }
@@ -94,15 +97,15 @@ public class Animator {
         // debug
         if (Constants.DEBUG) {
             if (!log.contains(currentAnimation.getName())) {
-                Log.v("Animator", "DEBUG_POSE: ==" + currentAnimation.getName());
+                logger.finest("DEBUG_POSE: ==" + currentAnimation.getName());
                 int count = 10;
                 for (Map.Entry<String,float[]> entry : currentPose.entrySet()) {
-                    Log.v("Animator", "DEBUG_POSE: " + entry.getKey() + ": " + Arrays.toString(entry.getValue()));
+                    logger.finest("DEBUG_POSE: " + entry.getKey() + ": " + Arrays.toString(entry.getValue()));
                     if (count-- < 0) {
                         break;
                     }
                 }
-                Log.v("Animator", "DEBUG_POSE: <<" + currentAnimation.getName());
+                logger.finest("DEBUG_POSE: <<" + currentAnimation.getName());
                 log.add(currentAnimation.getName());
             }
         }
@@ -133,7 +136,7 @@ public class Animator {
 
 
         final KeyFrame[] keyFrames = animation.getKeyFrames();
-        Log.d("Animator", "Animation '" + animation.getName() + "'. Initializing " + keyFrames.length + " key frames...");
+        logger.config("Animation '" + animation.getName() + "'. Initializing " + keyFrames.length + " key frames...");
 
         // debug
         if (Constants.DEBUG) {
@@ -165,9 +168,9 @@ public class Animator {
                 if (currentTransform != null && i == 0) {
                     Node node = findNode(rootNodes, jointId);
                     if (node != null) {
-                        Log.v("Animator", "Found node: " + node.getId() + ". Animation: " + animation.getName());
+                        logger.finest("Found node: " + node.getId() + ". Animation: " + animation.getName());
                     } else {
-                        Log.w("Animator", "Didn't find node for joint '" + jointId + "'. Animation: " + animation.getName());
+                        logger.warning("Didn't find node for joint '" + jointId + "'. Animation: " + animation.getName());
                     }
                     currentTransform.complete(node);
                     continue;
@@ -316,7 +319,7 @@ public class Animator {
         }
         animation.setInitialized(true);
 
-        Log.i("Animator", "Animation '" + animation.getName() + "' initialized with " + keyFrames.length + " key frames");
+        logger.info("Animation '" + animation.getName() + "' initialized with " + keyFrames.length + " key frames");
 
         // debug
         if (Constants.DEBUG) {
@@ -517,8 +520,8 @@ public class Animator {
 
     private void debugNode(Node node) {
         if (node.getAnimatedLocalTransform() != null) {
-            Log.v("Animator", "DEBUG_NODE: Node[" + node.getId() + "]: Local Transform: " + Arrays.toString(node.getLocalTransform().getTransform()));
-            Log.v("Animator", "DEBUG_NODE: Node[" + node.getId() + "]: Animated Transform: " + Arrays.toString(node.getAnimatedLocalTransform()));
+            logger.finest("DEBUG_NODE: Node[" + node.getId() + "]: Local Transform: " + Arrays.toString(node.getLocalTransform().getTransform()));
+            logger.finest("DEBUG_NODE: Node[" + node.getId() + "]: Animated Transform: " + Arrays.toString(node.getAnimatedLocalTransform()));
         }
     }
 }

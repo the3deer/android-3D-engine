@@ -1,14 +1,15 @@
 package org.the3deer.engine.model;
 
-import android.util.Log;
-
 import org.the3deer.engine.animation.Animation;
 import org.the3deer.util.math.Math3DUtils;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Logger;
 
 public class Scene {
+
+    private final Logger logger = Logger.getLogger(this.getClass().getName());
 
     private String name;
 
@@ -118,7 +119,7 @@ public class Scene {
     }
 
     public void update() {
-        Log.d("Scene", "Updating scene graph");
+        logger.config("Updating scene graph");
         // Recursive update of the scene graph
         for (Node node : rootNodes) {
             node.updateWorldTransform(Math3DUtils.IDENTITY_MATRIX);
@@ -130,7 +131,7 @@ public class Scene {
     }
 
     public void addObject(Object3D data) {
-        Log.d("Scene", "Adding object: " + data.getId());
+        logger.config("Adding object: " + data.getId());
         objects.add(data);
     }
 

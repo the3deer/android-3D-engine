@@ -2,28 +2,29 @@ package org.the3deer.engine.android.shadow;
 
 import android.opengl.GLES20;
 import android.opengl.Matrix;
-import android.util.Log;
 
+import org.the3deer.engine.android.shader.Shader;
+import org.the3deer.engine.android.shader.ShaderFactory;
+import org.the3deer.engine.android.shader.ShaderResource;
 import org.the3deer.engine.model.Camera;
 import org.the3deer.engine.model.Constants;
 import org.the3deer.engine.model.Object3D;
 import org.the3deer.engine.model.Scene;
 import org.the3deer.engine.objects.Plane2;
-import org.the3deer.engine.android.shader.Shader;
-import org.the3deer.engine.android.shader.ShaderFactory;
-import org.the3deer.engine.android.shader.ShaderResource;
 import org.the3deer.engine.util.GLUtil;
 import org.the3deer.util.bean.BeanProperty;
 import org.the3deer.util.math.Math3DUtils;
 
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
 public class ShadowsRenderer {
 
-    private static final String TAG = "ShadowsRenderer";
+    private static final Logger logger = Logger.getLogger(ShadowsRenderer.class.getSimpleName());
 
     /**
      * Handles to vertex and fragment shader programs
@@ -217,7 +218,7 @@ public class ShadowsRenderer {
         GLUtil.checkGlError("glCheckFramebufferStatus");
 
         if(FBOstatus != GLES20.GL_FRAMEBUFFER_COMPLETE) {
-            Log.e(TAG, "GL_FRAMEBUFFER_COMPLETE failed, CANNOT use FBO. code: "+FBOstatus);
+            logger.log(Level.SEVERE, "GL_FRAMEBUFFER_COMPLETE failed, CANNOT use FBO. code: "+FBOstatus);
             enabled = false;
             throw new IllegalStateException("GL_FRAMEBUFFER_COMPLETE failed, CANNOT use FBO. code: "+FBOstatus);
         }
@@ -243,7 +244,7 @@ public class ShadowsRenderer {
 
         if (debugInfo != GLES20.GL_NO_ERROR) {
             String msg = "OpenGL error: " + debugInfo;
-            Log.w(TAG, msg);
+            logger.warning(msg);
         }
 
     }

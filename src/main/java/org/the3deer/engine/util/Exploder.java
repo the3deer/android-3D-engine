@@ -1,20 +1,23 @@
 package org.the3deer.engine.util;
 
 import android.opengl.GLES20;
-import android.util.Log;
 
 import org.the3deer.engine.model.Object3D;
 import org.the3deer.util.io.IOUtils;
 import org.the3deer.util.math.Math3DUtils;
 
 import java.nio.FloatBuffer;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class Exploder {
+
+    private static final Logger logger = Logger.getLogger(Exploder.class.getSimpleName());
 
     public static void centerAndScaleAndExplode(Object3D object3D, float maxSize, float explodeFactor) {
 
         if (object3D.getDrawMode() != GLES20.GL_TRIANGLES) {
-            Log.i("Object3D", "Cant explode '" + object3D.getId() + " because its not made of triangles...");
+            logger.info("Cant explode '" + object3D.getId() + " because its not made of triangles...");
             return;
         }
 
@@ -24,11 +27,11 @@ public class Exploder {
 
         FloatBuffer vertexBuffer = object3D.getVertexBuffer() != null ? object3D.getVertexBuffer() : object3D.getVertexBuffer();
         if (vertexBuffer == null) {
-            Log.v("Object3D", "Scaling for '" + object3D.getId() + "' I found that there is no vertex data");
+            logger.finest("Scaling for '" + object3D.getId() + "' I found that there is no vertex data");
             return;
         }
 
-        Log.v("Object3D", "Calculating dimensions for '" + object3D.getId() + "...");
+        logger.finest("Calculating dimensions for '" + object3D.getId() + "...");
         for (int i = 0; i < vertexBuffer.capacity(); i += 3) {
             if (vertexBuffer.get(i) > rightPt)
                 rightPt = vertexBuffer.get(i);
@@ -64,8 +67,7 @@ public class Exploder {
         float scaleFactor = 1.0f;
         if (largest != 0.0f)
             scaleFactor = (maxSize / largest);
-        Log.v("Object3D",
-                "Exploding '" + object3D.getId() + "' to '" + xc + "," + yc + "," + zc + "' '" + scaleFactor + "'");
+        logger.finest("Exploding '" + object3D.getId() + "' to '" + xc + "," + yc + "," + zc + "' '" + scaleFactor + "'");
 
         // modify the model's vertices
         FloatBuffer vertexBufferNew = IOUtils.createFloatBuffer(vertexBuffer.capacity());
@@ -85,7 +87,7 @@ public class Exploder {
         }
 
         if (object3D.getIndexBuffer() != null) {
-            Log.e("Object3D", "Cant explode object composed of indexes '" + object3D.getId() + "'");
+            logger.log(Level.SEVERE,  "Cant explode object composed of indexes '" + object3D.getId() + "'");
             return;
         }
 

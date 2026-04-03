@@ -1,7 +1,6 @@
 package org.the3deer.engine.android.shader.v3;
 
 import android.opengl.GLES30;
-import android.util.Log;
 
 import org.the3deer.engine.gui.Widget;
 import org.the3deer.engine.model.AnimatedModel;
@@ -18,6 +17,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 
 /**
  * Manager responsible for the lifecycle of GPU assets.
@@ -27,6 +27,7 @@ import java.util.Map;
  */
 public class GpuManager {
 
+    private static final Logger logger = Logger.getLogger(GpuManager.class.getSimpleName());
     private static final String TAG = "GpuManager";
 
     // Attribute Locations (matching #version 300 es layouts)
@@ -58,7 +59,7 @@ public class GpuManager {
     }
 
     private GpuAsset createAsset(Object3D obj) {
-        Log.v(TAG, "Creating GPU Asset for model: " + obj.getId());
+       logger.finest("Creating GPU Asset for model: " + obj.getId());
 
         // 1. Create and bind a VAO
         int[] vaoIds = new int[1];

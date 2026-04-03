@@ -1,11 +1,10 @@
 package org.the3deer.engine.renderer;
 
 import android.opengl.GLES20;
-import android.util.Log;
 
+import org.the3deer.engine.Model;
 import org.the3deer.engine.model.Camera;
 import org.the3deer.engine.model.Constants;
-import org.the3deer.engine.Model;
 import org.the3deer.engine.model.Scene;
 import org.the3deer.util.bean.Bean;
 import org.the3deer.util.event.EventListener;
@@ -13,6 +12,8 @@ import org.the3deer.util.event.EventListener;
 import java.util.ArrayList;
 import java.util.EventObject;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.inject.Inject;
 
@@ -26,7 +27,7 @@ import javax.inject.Inject;
 @Bean
 public class AnaglyphRenderer extends DefaultRenderer {
 
-    private final static String TAG = AnaglyphRenderer.class.getSimpleName();
+    private static final Logger logger = Logger.getLogger(AnaglyphRenderer.class.getSimpleName());
 
     @Inject
     private List<Drawer> drawers;
@@ -87,7 +88,7 @@ public class AnaglyphRenderer extends DefaultRenderer {
             try {
                 drawers.get(i).onDrawFrame(leftConf);
             } catch (Exception e) {
-                Log.e(TAG, e.getMessage(), e);
+                logger.log(Level.SEVERE, e.getMessage(), e);
             }
         }
 
@@ -108,7 +109,7 @@ public class AnaglyphRenderer extends DefaultRenderer {
             try {
                 drawers.get(i).onDrawFrame(rightConf);
             } catch (Exception e) {
-                Log.e(TAG, e.getMessage(), e);
+                logger.log(Level.SEVERE, e.getMessage(), e);
             }
         }
 

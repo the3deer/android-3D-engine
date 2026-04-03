@@ -1,7 +1,6 @@
 package org.the3deer.engine.objects;
 
 import android.opengl.GLES20;
-import android.util.Log;
 
 import androidx.annotation.NonNull;
 
@@ -17,8 +16,12 @@ import java.nio.IntBuffer;
 import java.nio.ShortBuffer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public final class Normals {
+
+    private static final Logger logger = Logger.getLogger(Normals.class.getSimpleName());
 
     private static final int COORDS_PER_VERTEX = 3;
 
@@ -34,11 +37,11 @@ public final class Normals {
         }
 
         if (obj.getVertexBuffer() == null) {
-            Log.i("Normals", "Generating face normals for '" + obj.getId() + "' I found that there is no vertex data");
+            logger.info("Generating face normals for '" + obj.getId() + "' I found that there is no vertex data");
             return null;
         }
 
-        Log.i("Normals", "Generating normals object... " + obj.getId());
+        logger.info("Generating normals object... " + obj.getId());
 
         if (obj instanceof AnimatedModel) {
             if (!obj.isIndexed()) {
@@ -69,7 +72,7 @@ public final class Normals {
 
     @NonNull
     private static Object3D buildNormalLinesByIndices(Object3D obj) {
-        Log.i("Normals", "Building normals for '" + obj.getId() + "' using indices... "+obj);
+        logger.info("Building normals for '" + obj.getId() + "' using indices... "+obj);
 
         final List<float[]> normalsVertexArray = new ArrayList<>();
         final List<float[]> normalsNormalsArray = new ArrayList<>();
@@ -149,7 +152,7 @@ public final class Normals {
         normalsObj.setElements(normalsElements);
         normalsObj.setIndexed(true);
 
-        Log.i("Normals", "Built normals object: '" + normalsObj);
+        logger.info("Built normals object: '" + normalsObj);
 
         return normalsObj;
     }
@@ -157,7 +160,7 @@ public final class Normals {
     private static AnimatedModel buildNormalLinesForElements(AnimatedModel obj) {
 
         // log event
-        Log.i("Normals", "Building animated normals for '" + obj.getId() + "' using indices...");
+        logger.info("Building animated normals for '" + obj.getId() + "' using indices...");
 
 
         // copy original vertex buffer to reuse positions
@@ -172,13 +175,13 @@ public final class Normals {
         }
 
 
-        Log.i("Normals", "Adding additional vertices and normals...");
+        logger.info("Adding additional vertices and normals...");
 
         final List<Element> newElements = new ArrayList<>();
 
         for (Element element : obj.getElements()) {
 
-            Log.i("Normals", "Adding additional vertices and normals... element: "+element.getId());
+            logger.info("Adding additional vertices and normals... element: "+element.getId());
 
             // current triangle indices
             final Buffer indexBuffer = element.getIndexBuffer();
@@ -239,7 +242,7 @@ public final class Normals {
 
             }
 
-            Log.v("Normals", "Added new element element: "+element.getId());
+            logger.finest("Added new element element: "+element.getId());
             newElements.add(new Element(element.getId(), normalsIndices, element.getMaterialId()));
         }
 
@@ -283,14 +286,14 @@ public final class Normals {
             normalsObj.getSkin().setWeights(newVertexWeights);
         }
 
-        Log.i("Normals", "New animated normal lines object created");
+        logger.info("New animated normal lines object created");
 
         return normalsObj;
     }
 
     @NonNull
     private static Object3D calculateNormalsLines(Object3D obj) {
-        Log.d("Normals", "Calculating normals for '" + obj.getId() + "' using array...");
+        logger.config("Calculating normals for '" + obj.getId() + "' using array...");
 
         FloatBuffer normalsLines = IOUtils.createFloatBuffer(obj.getVertexBuffer().capacity() / 3 * 2);
 
@@ -313,13 +316,13 @@ public final class Normals {
         normalsObj.setModelMatrix(obj.getModelMatrix());
         normalsObj.setReadOnly(true);
 
-        Log.i("Normals", "New face normal lines object created");
+        logger.info("New face normal lines object created");
         return normalsObj;
     }
 
     @NonNull
     private static Object3D calculateNormalsLinesByIndices(Object3D obj) {
-        Log.i("Normals", "Calculating normals for '" + obj.getId() + "' using indices...");
+        logger.info("Calculating normals for '" + obj.getId() + "' using indices...");
 
         FloatBuffer normalsLines = IOUtils.createFloatBuffer(obj.getIndexBuffer().capacity() * 3);
 
@@ -357,14 +360,14 @@ public final class Normals {
         normalsObj.setModelMatrix(obj.getModelMatrix());
         normalsObj.setReadOnly(true);
 
-        Log.i("Normals", "New face normal lines object created");
+        logger.info("New face normal lines object created");
 
         return normalsObj;
     }
 
     @NonNull
     private static Object3D buildNormalLines(Object3D obj) {
-        Log.v("Normals", "Building normals for '" + obj.getId() + "'...");
+        logger.finest("Building normals for '" + obj.getId() + "'...");
 
         FloatBuffer normalsLines = IOUtils.createFloatBuffer(obj.getVertexBuffer().capacity() * 2);
 
@@ -380,7 +383,7 @@ public final class Normals {
             float ny = obj.getVertexNormalsArrayBuffer().get(i + 1);
             float nz = obj.getVertexNormalsArrayBuffer().get(i + 2);
             if (nx == 0 && ny == 0 && nz == 0) {
-                Log.e("Normals", "Wrong normal all zeros: " + i);
+                logger.log(Level.SEVERE,  "Wrong normal all zeros: " + i);
             }
 
             // calculate final normal position
@@ -401,7 +404,7 @@ public final class Normals {
         normalsObj.setModelMatrix(obj.getModelMatrix());
         normalsObj.setReadOnly(true);
 
-        Log.v("Normals", "New face normal lines object created. vertices: " + normalsLines.capacity() / 3);
+        logger.finest("New face normal lines object created. vertices: " + normalsLines.capacity() / 3);
         return normalsObj;
     }
 }

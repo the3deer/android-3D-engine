@@ -4,10 +4,13 @@ package org.the3deer.engine;
 import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
-import android.util.Log;
 
 import androidx.annotation.NonNull;
 
+import org.the3deer.engine.android.shader.ShaderFactory;
+import org.the3deer.engine.android.shader.v3.GpuManager;
+import org.the3deer.engine.android.shadow.ShadowDrawer;
+import org.the3deer.engine.android.util.AndroidURLStreamHandlerFactory;
 import org.the3deer.engine.camera.CameraController;
 import org.the3deer.engine.camera.DefaultCameraHandler;
 import org.the3deer.engine.collision.CollisionController;
@@ -22,6 +25,7 @@ import org.the3deer.engine.gui.Axis;
 import org.the3deer.engine.gui.FontFactory;
 import org.the3deer.engine.gui.GUI;
 import org.the3deer.engine.gui.GUIDrawer;
+import org.the3deer.engine.logger.LogInterceptor;
 import org.the3deer.engine.model.Camera;
 import org.the3deer.engine.model.Constants;
 import org.the3deer.engine.model.Light;
@@ -35,16 +39,14 @@ import org.the3deer.engine.renderer.AnaglyphRenderer;
 import org.the3deer.engine.renderer.DefaultRenderer;
 import org.the3deer.engine.renderer.StereoscopicRenderer;
 import org.the3deer.engine.scene.SceneDrawer;
-import org.the3deer.engine.android.shader.ShaderFactory;
-import org.the3deer.engine.android.shader.v3.GpuManager;
-import org.the3deer.engine.android.shadow.ShadowDrawer;
-import org.the3deer.engine.android.util.AndroidURLStreamHandlerFactory;
 import org.the3deer.util.bean.BeanFactory;
 import org.the3deer.util.event.EventManager;
 
 import java.net.URL;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * This is the 3D Engine Viewer Model implementation.
@@ -59,7 +61,8 @@ import java.util.concurrent.Executors;
  */
 public class ModelEngine {
 
-    private final static String TAG = ModelEngine.class.getSimpleName();
+    private static final Logger logger = Logger.getLogger(ModelEngine.class.getSimpleName());
+
 
     // Custom handler: org/the3deer/util/android/assets/Handler.class
     static {
@@ -67,8 +70,12 @@ public class ModelEngine {
         try {
             URL.setURLStreamHandlerFactory(new AndroidURLStreamHandlerFactory());
         } catch (Error ex) {
-            Log.e(TAG, "Exception registering the android:// protocol", ex);
+            logger.log(Level.SEVERE, "Exception registering the android:// protocol", ex);
         }
+
+        // Register the LogInterceptor to intercept java.util.logging and redirect to Logcat + Model.messages
+        final Logger rootLogger = Logger.getLogger("");
+        rootLogger.addHandler(new LogInterceptor());
     }
 
     public void setStatus(Status status) {
@@ -167,19 +174,20 @@ public class ModelEngine {
     private void initialize() {
 
         // debug
-        Log.i(TAG, "Initializing BeanFactory... " + id);
+        logger.info("Initializing BeanFactory... hello tu " + id);
+
 
         initEngine();
 
         initUserInterface();
 
-        Log.d(TAG, "BeanFactory initialized");
+        logger.config("BeanFactory initialized");
 
     }
 
     private void initEngine() {
         // init
-        Log.i(TAG, "Setting up engine...");
+        logger.info("Setting up engine...");
 
         // model
         beanFactory.add("model", this.model);
@@ -259,7 +267,7 @@ public class ModelEngine {
     public void load() throws Exception {
 
         // debug
-        Log.i(TAG, "Loading Engine... " + id);
+        logger.info("Loading Engine... " + id);
 
         // init engine
         beanFactory.initialize();
@@ -267,14 +275,14 @@ public class ModelEngine {
         // update status
         this.initialized = true;
 
-        Log.d(TAG, "Engine loaded");
+        logger.config("Engine loaded");
     }
 
 
     public void start() {
 
         // debug
-        Log.i(TAG, "Starting up Engine...");
+        logger.info("Starting up Engine...");
 
         // start
         beanFactory.start();
@@ -283,7 +291,7 @@ public class ModelEngine {
         this.started = true;
 
         // log success
-        Log.i(TAG, "Engine started successfully");
+        logger.info("Engine started successfully");
     }
 
     /**
@@ -316,7 +324,7 @@ public class ModelEngine {
      * It must be called from the GL Thread.
      */
     public void reset() {
-        Log.i(TAG, "Resetting engine... " + id);
+        logger.info("Resetting engine... " + id);
 
         // 1. Reset Shaders
         final ShaderFactory shaderFactory = beanFactory.find(ShaderFactory.class);
@@ -350,7 +358,7 @@ public class ModelEngine {
             }
         }
 
-        Log.i(TAG, "Engine reset finished");
+        logger.info("Engine reset finished");
     }
 
     public void close() {

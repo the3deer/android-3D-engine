@@ -2,9 +2,9 @@ package org.the3deer.engine.objects;
 
 import android.opengl.GLES20;
 
+import org.the3deer.engine.android.shadow.RenderConstants;
 import org.the3deer.engine.model.Constants;
 import org.the3deer.engine.model.Object3D;
-import org.the3deer.engine.android.shadow.RenderConstants;
 import org.the3deer.engine.util.GLUtil;
 import org.the3deer.util.io.IOUtils;
 

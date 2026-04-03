@@ -7,7 +7,6 @@ import android.net.Uri;
 import android.opengl.GLSurfaceView;
 import android.os.Handler;
 import android.os.Looper;
-import android.util.Log;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -17,11 +16,11 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
 import org.jetbrains.annotations.NotNull;
+import org.the3deer.engine.Model;
+import org.the3deer.engine.ModelEngine;
 import org.the3deer.engine.event.EngineEvent;
 import org.the3deer.engine.model.ModelEvent;
 import org.the3deer.engine.model.Screen;
-import org.the3deer.engine.Model;
-import org.the3deer.engine.ModelEngine;
 import org.the3deer.util.event.EventListener;
 
 import java.util.Iterator;
@@ -30,10 +29,12 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class ModelEngineViewModel extends AndroidViewModel implements ComponentCallbacks2 {
 
-    private final String TAG = "ModelEngineViewModel";
+    private static final Logger logger = Logger.getLogger(ModelEngineViewModel.class.getSimpleName());
 
     /**
      * OpenGL Screen. Shared across all models to ensure consistent UI.
@@ -126,7 +127,7 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
         ModelEngine engine = getEngine(uriString);
         if (engine == null) {
             engine = getOrCreateEngine(uriString, model);
-            Log.i(TAG, "Model Engine Initialized. uri: " + uriString);
+            logger.info("Model Engine Initialized. uri: " + uriString);
         }
 
         return engine;
@@ -140,7 +141,7 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
 
         // check status
         if (engine.isLoaded()) {
-            Log.i(TAG, "Engine already loaded. uri: " + uriString);
+            logger.info("Engine already loaded. uri: " + uriString);
             handler.post(callback);
             return;
         }
@@ -152,7 +153,7 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
             freeMemory(uriString);
 
             if (isMemoryExhausted()) {
-                Log.e(TAG, "Critical memory state. Aborting load for: " + uriString);
+                logger.log(Level.SEVERE, "Critical memory state. Aborting load for: " + uriString);
                 updateEngineStatus(uriString, ModelEngine.Status.ERROR, "Error: Critical memory limit reached");
                 return;
             }
@@ -176,7 +177,7 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
                 updateEngineStatus(uriString, ModelEngine.Status.OK, "Info: Engine loaded successfully");
 
                 // log success
-                Log.i(TAG, "Engine loaded. uri: " + uriString);
+                logger.info("Engine loaded. uri: " + uriString);
 
                 // notify
                 if (callback != null) {
@@ -188,11 +189,11 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
 
             } catch (OutOfMemoryError e) {
                 // We don't call the callback here to avoid further operations on a failed engine
-                Log.e(TAG, "OutOfMemoryError while activating engine for " + uriString, e);
+                logger.log(Level.SEVERE, "OutOfMemoryError while activating engine for " + uriString, e);
                 updateEngineStatus(uriString, ModelEngine.Status.ERROR, "Error: Out of memory");
                 clearCache();
             } catch (Exception e) {
-                Log.e(TAG, "Failed to activate engine for " + uriString, e);
+                logger.log(Level.SEVERE, "Failed to activate engine for " + uriString, e);
                 updateEngineStatus(uriString, ModelEngine.Status.ERROR, "Error: " + e.getMessage());
             }
         });
@@ -206,7 +207,7 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
 
         // check status
         if (engine.isStarted()) {
-            Log.i(TAG, "Engine already started");
+            logger.info("Engine already started");
             handler.post(callback);
             return;
         }
@@ -222,7 +223,7 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
                     handler.post(callback);
                 }
 
-                Log.i(TAG, "Engine started. uri: " + uriString);
+                logger.info("Engine started. uri: " + uriString);
 
                 // update engine status
                 updateEngineStatus(uriString, ModelEngine.Status.OK, "Info: Engine started successfully");
@@ -232,7 +233,7 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
 
             });
         } catch (Exception ex) {
-            Log.e(TAG, "Failed to start engine for " + uriString, ex);
+            logger.log(Level.SEVERE, "Failed to start engine for " + uriString, ex);
 
             // update engine status
             updateEngineStatus(uriString, ModelEngine.Status.ERROR, "Error: " + ex.getMessage());
@@ -248,7 +249,7 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
         _activeEngine.postValue(engine);
 
         // log success
-        Log.i(TAG, "Engine activated. uri: " + uriString);
+        logger.info("Engine activated. uri: " + uriString);
     }
 
     /**
@@ -259,7 +260,7 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
         final ModelEngine engine = getEngine(uriString);
         if (engine == null) return;
 
-        Log.i(TAG, "Requesting engine reset: " + uriString);
+        logger.info("Requesting engine reset: " + uriString);
 
         // Try to reset on GL Thread if surface is available
         final Object surface = engine.getBeanFactory().get("gl.surfaceView");
@@ -272,7 +273,7 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
     }
 
     private void freeMemory(String uriString) {
-        Log.w(TAG, "Low memory detected. Unloading other models to proceed with: " + uriString);
+        logger.warning("Low memory detected. Unloading other models to proceed with: " + uriString);
         updateEngineStatus(uriString, ModelEngine.Status.ERROR, "Low memory. Unloading other models...");
 
         // FIXME: make this an EngineEvent
@@ -324,7 +325,7 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
         Map<String, ModelEngine> engines = _engines.getValue();
         if (engines == null) return null;
 
-        Log.i(TAG, "Building Engine... uri: " + uriString);
+        logger.info("Building Engine... uri: " + uriString);
 
         ModelEngine engine = engines.get(uriString);
         if (engine != null) return engine;
@@ -430,7 +431,7 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
     public Model createModel(String uriString, String name, String type) {
 
         // debug
-        Log.i(TAG, "Building Model... uri: " + uriString);
+        logger.info("Building Model... uri: " + uriString);
 
         // create
         Model model = new Model(Uri.parse(uriString), name, type);
@@ -448,7 +449,7 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
     public void onSurfaceChanged(int width, int height) {
 
         // debug
-        Log.d(TAG, "onSurfaceChanged: " + width + " x " + height);
+        logger.config("onSurfaceChanged: " + width + " x " + height);
 
         // get screen
         Screen screen = _glScreen.getValue();
@@ -469,7 +470,7 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
     }
 
     public void clearCache() {
-        Log.i(TAG, "Clearing inactive engines and models from cache...");
+        logger.info("Clearing inactive engines and models from cache...");
         ModelEngine active = _activeEngine.getValue();
         String activeUri = active != null ? active.id : null;
 
@@ -479,7 +480,7 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
             while (it.hasNext()) {
                 Map.Entry<String, ModelEngine> entry = it.next();
                 if (!entry.getKey().equals(activeUri)) {
-                    Log.d(TAG, "Closing engine: " + entry.getKey());
+                    logger.config("Closing engine: " + entry.getKey());
                     entry.getValue().close();
                     it.remove();
                 }
@@ -493,7 +494,7 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
             while (it.hasNext()) {
                 Map.Entry<String, Model> entry = it.next();
                 if (!entry.getKey().equals(activeUri)) {
-                    Log.d(TAG, "Removing model: " + entry.getKey());
+                    logger.config("Removing model: " + entry.getKey());
                     // Note: Object3D.dispose() is called in ModelEngine.close()
                     it.remove();
                 }
@@ -506,7 +507,7 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
 
     @Override
     public void onTrimMemory(int level) {
-        Log.i(TAG, "onTrimMemory level: " + level);
+        logger.info("onTrimMemory level: " + level);
         if (level >= ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW ||
                 level == ComponentCallbacks2.TRIM_MEMORY_MODERATE ||
                 level == ComponentCallbacks2.TRIM_MEMORY_COMPLETE) {
@@ -520,7 +521,7 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
 
     @Override
     public void onLowMemory() {
-        Log.w(TAG, "onLowMemory received!");
+        logger.warning("onLowMemory received!");
         clearCache();
     }
 

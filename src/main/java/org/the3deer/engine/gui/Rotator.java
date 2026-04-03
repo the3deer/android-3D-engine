@@ -1,7 +1,5 @@
 package org.the3deer.engine.gui;
 
-import android.util.Log;
-
 import org.the3deer.engine.animation.JointTransform;
 import org.the3deer.engine.model.Dimensions;
 import org.the3deer.engine.model.Object3D;
@@ -9,6 +7,7 @@ import org.the3deer.util.io.IOUtils;
 
 import java.nio.FloatBuffer;
 import java.util.EventObject;
+import java.util.logging.Level;
 
 public class Rotator extends Widget {
 
@@ -31,7 +30,7 @@ public class Rotator extends Widget {
 
             widget.addListener(this);
         } catch (Exception e) {
-            Log.e("Glyph", e.getMessage(), e);
+            logger.log(Level.SEVERE,  e.getMessage(), e);
         }
     }
 

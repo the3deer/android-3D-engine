@@ -1,7 +1,6 @@
 package org.the3deer.engine.model;
 
 import android.opengl.Matrix;
-import android.util.Log;
 
 import androidx.annotation.NonNull;
 
@@ -12,8 +11,11 @@ import java.nio.FloatBuffer;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Logger;
 
 public class Skin {
+
+    private static final Logger logger = Logger.getLogger(Skin.class.getSimpleName());
 
     private String name;
     private Node rootJoint;
@@ -300,7 +302,7 @@ public class Skin {
             // This means we didn't find any joints with valid indices during the traversal.
             // This could indicate a problem with the joint indexing or data loading.
             // We can log a warning here for debugging purposes.
-            Log.w("Skin", "Warning: No joints with valid indices were found during skin matrix update. Check joint indexing and data loading.");
+            logger.warning("Warning: No joints with valid indices were found during skin matrix update. Check joint indexing and data loading.");
             // Disable skinning to prevent further updates.
             disabled = true;
         }

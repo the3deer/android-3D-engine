@@ -1,7 +1,6 @@
 package org.the3deer.engine.services.collada;
 
 import android.opengl.Matrix;
-import android.util.Log;
 
 import org.the3deer.engine.animation.Animation;
 import org.the3deer.engine.animation.JointTransform;
@@ -27,10 +26,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeSet;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class ColladaParser {
 
-    private static final String TAG = ColladaParser.class.getSimpleName();
+    private static final Logger logger = Logger.getLogger(ColladaParser.class.getSimpleName());
 
     // This will hold the parsed geometry data, keyed by their ID (e.g., "U3DMesh-GEOMETRY")
     private final Map<String, Geometry> geometryLibrary = new HashMap<>();
@@ -119,40 +120,40 @@ public class ColladaParser {
                 // 3. Act as a dispatcher based on the tag name
                 switch (tagName) {
                     case "asset":
-                        Log.d(TAG, "Found <asset>. Parsing...");
+                        logger.config("Found <asset>. Parsing...");
                         this.authoringTool = parseAsset(parser);
-                        Log.i(TAG, "Authoring tool: " + this.authoringTool);
+                        logger.info("Authoring tool: " + this.authoringTool);
                         break;
                     case "library_geometries":
-                        Log.d(TAG, "Found <library_geometries>. Parsing...");
+                        logger.config("Found <library_geometries>. Parsing...");
                         parseGeometriesLibrary(parser);
-                        Log.d(TAG, "Finished parsing <library_geometries>.");
+                        logger.config("Finished parsing <library_geometries>.");
                         break;
                     // NEW CASE for controllers
                     case "library_controllers":
-                        Log.d(TAG, "Found <library_controllers>. Parsing...");
+                        logger.config("Found <library_controllers>. Parsing...");
                         parseControllersLibrary(parser);
-                        Log.d(TAG, "Finished parsing <library_controllers>.");
+                        logger.config("Finished parsing <library_controllers>.");
                         break;
                     // --- ADD THESE NEW CASES ---
                     case "library_images":
-                        Log.d(TAG, "Found <library_images>. Parsing...");
+                        logger.config("Found <library_images>. Parsing...");
                         parseLibraryImages(parser);
                         break;
                     case "library_effects":
-                        Log.d(TAG, "Found <library_effects>. Parsing...");
+                        logger.config("Found <library_effects>. Parsing...");
                         parseLibraryEffects(parser);
                         break;
                     case "library_materials":
-                        Log.d(TAG, "Found <library_materials>. Parsing...");
+                        logger.config("Found <library_materials>. Parsing...");
                         parseLibraryMaterials(parser);
                         break;
                     case "library_visual_scenes":
-                        Log.d(TAG, "Found <library_visual_scenes>. Parsing...");
+                        logger.config("Found <library_visual_scenes>. Parsing...");
                         parseVisualScenes(parser);
                         break;
                     case "library_animations":
-                        Log.d(TAG, "Found <library_animations>. Parsing...");
+                        logger.config("Found <library_animations>. Parsing...");
                         parseAnimations(parser);
                         break;
                 }
@@ -160,7 +161,7 @@ public class ColladaParser {
             // Move to the next event in the XML file
             eventType = parser.next();
         }
-        Log.i(TAG, "Finished parsing DAE file. Geometries found: " + geometryLibrary.size() + ", Nodes found: " + nodeLibrary.size() +
+        logger.info("Finished parsing DAE file. Geometries found: " + geometryLibrary.size() + ", Nodes found: " + nodeLibrary.size() +
                 ", Controllers found: " + controllerLibrary.size());
     }
 
@@ -252,7 +253,7 @@ public class ColladaParser {
             // We found a tag inside <library_geometries>, we only care about <geometry>
             if (parser.getName().equals("geometry")) {
                 String geometryId = parser.getAttributeValue(null, "id");
-                Log.d(TAG, "Parsing <geometry> with id: " + geometryId);
+                logger.config("Parsing <geometry> with id: " + geometryId);
 
                 // Call the method to parse the contents of this <geometry> tag
                 parseGeometry(parser);
@@ -307,7 +308,7 @@ public class ColladaParser {
                         parsePolygonsPrimitive(parser, sources, verticesLibrary, geometry);
                     } else {
                         // Skip any unhandled tags like <extra> to avoid parsing errors
-                        Log.w(TAG, "Skipping unhandled <mesh> tag: " + meshTagName);
+                        logger.warning("Skipping unhandled <mesh> tag: " + meshTagName);
                         int depth = 1;
                         while (depth != 0) {
                             switch (parser.next()) {
@@ -326,11 +327,11 @@ public class ColladaParser {
 
         // Add the fully populated geometry to our main library
         if (!geometry.getMeshes().isEmpty()) {
-            Log.d(TAG, "Geometry '" + geometryId + "' found. Meshes: " + geometry.getMeshes().size() + ".");
+            logger.config("Geometry '" + geometryId + "' found. Meshes: " + geometry.getMeshes().size() + ".");
             geometry.assemble();
             geometryLibrary.put(geometryId, geometry);
         } else {
-            Log.e(TAG, "Geometry '" + geometryId + "' was parsed but resulted in no vertex data.");
+            logger.log(Level.SEVERE, "Geometry '" + geometryId + "' was parsed but resulted in no vertex data.");
         }
     }
 
@@ -426,7 +427,7 @@ public class ColladaParser {
         int finalStride = (accessor != null) ? accessor.stride : 1;
 
         Source finalSource = new Source(sourceId, floatData, stringData, finalStride);
-        Log.d(TAG, "Parsed <source> '" + finalSource.getId() + "' with stride " + finalSource.getStride());
+        logger.config("Parsed <source> '" + finalSource.getId() + "' with stride " + finalSource.getStride());
         return finalSource;
     }
 
@@ -555,7 +556,7 @@ public class ColladaParser {
         // Add the mesh to the geometry
         geometry.addMesh(mesh);
 
-        Log.d(TAG, "Parsed <polygons> primitive with " + (unrolledPositions.size() / 3) + " vertices.");
+        logger.config("Parsed <polygons> primitive with " + (unrolledPositions.size() / 3) + " vertices.");
     }
 
     private float[] floatListToArray(List<Float> unrolledPositions) {
@@ -591,7 +592,7 @@ public class ColladaParser {
         String materialId = parser.getAttributeValue(null, "material");
         if (materialId != null) {
             mesh.setMaterialId(materialId);
-            Log.d(TAG, "Bound material '" + materialId + "' to geometry '" + mesh.getId() + "'");
+            logger.config("Bound material '" + materialId + "' to geometry '" + mesh.getId() + "'");
         }
 
         // Parse <input> tags and data
@@ -622,7 +623,7 @@ public class ColladaParser {
         }
 
         if (rawIndices == null || inputs.isEmpty()) {
-            Log.e(TAG, "No <p> indices or <input> tags found in mesh primitive");
+            logger.log(Level.SEVERE, "No <p> indices or <input> tags found in mesh primitive");
             return;
         }
 
@@ -658,9 +659,9 @@ public class ColladaParser {
                 if (input.set == 0) {
                     texOffset = input.offset;
                     texCoordSource = sources.get(input.sourceId);
-                    Log.d(TAG, "Using TEXCOORD set=0 for texture mapping");
+                    logger.config("Using TEXCOORD set=0 for texture mapping");
                 } else {
-                    Log.w(TAG, "TEXCOORD set=" + input.set + " found but ignored. Currently only set=0 is supported.");
+                    logger.warning("TEXCOORD set=" + input.set + " found but ignored. Currently only set=0 is supported.");
                 }
             } else if ("COLOR".equals(input.semantic)) {
                 colorOffset = input.offset;
@@ -669,7 +670,7 @@ public class ColladaParser {
         }
 
         if (positionSource == null) {
-            Log.e(TAG, "FATAL: Could not resolve position source for primitive.");
+            logger.log(Level.SEVERE, "FATAL: Could not resolve position source for primitive.");
             return;
         }
 
@@ -761,7 +762,7 @@ public class ColladaParser {
         mesh.setIndicesMap(indicesMap);
 
         geometry.addMesh(mesh);
-        Log.d(TAG, "Assembled geometry '" + mesh.getId() + "' with " + (unrolledPositions.size() / 3) + " vertices.");
+        logger.config("Assembled geometry '" + mesh.getId() + "' with " + (unrolledPositions.size() / 3) + " vertices.");
     }
 
     // Helper to unroll a single vertex with simplified signature for mesh primitive parsing
@@ -874,7 +875,7 @@ public class ColladaParser {
                 Controller controller = parseController(parser);
                 if (controller != null) {
                     controllerLibrary.put(controller.getId(), controller);
-                    Log.d(TAG, "Parsed controller '" + controller.getId() + "'");
+                    logger.config("Parsed controller '" + controller.getId() + "'");
                 }
             }
         }
@@ -1015,7 +1016,7 @@ public class ColladaParser {
         }
 
         if (vcount == null || v == null || jointInput == null || weightInput == null) {
-            Log.e(TAG, "Incomplete <vertex_weights> data.");
+            logger.log(Level.SEVERE, "Incomplete <vertex_weights> data.");
             return null;
         }
 
@@ -1062,7 +1063,7 @@ public class ColladaParser {
             }
         }
 
-        Log.d(TAG, "Assembled vertex weights for " + vertexCount + " vertices.");
+        logger.config("Assembled vertex weights for " + vertexCount + " vertices.");
         return new VertexWeights(finalJointIndices, finalWeights);
     }
 
@@ -1097,7 +1098,7 @@ public class ColladaParser {
 
             if (imageId != null && fileName != null) {
                 imageIdToFileNameMap.put(imageId, fileName);
-                Log.d(TAG, "Mapped Image ID '" + imageId + "' to file '" + fileName + "'");
+                logger.config("Mapped Image ID '" + imageId + "' to file '" + fileName + "'");
             }
         }
     }
@@ -1131,7 +1132,7 @@ public class ColladaParser {
 
             if (effectId != null) {
                 effectLibrary.put(effectId, currentEffect);
-                Log.d(TAG, "Parsed Effect '" + effectId + "' with texture image ID '" + currentEffect.imageId + "'");
+                logger.config("Parsed Effect '" + effectId + "' with texture image ID '" + currentEffect.imageId + "'");
             }
         }
     }
@@ -1196,7 +1197,7 @@ public class ColladaParser {
 
         if (paramSid != null && referencedId != null) {
             links.put(paramSid, referencedId);
-            Log.d(TAG, "Newparam link created: '" + paramSid + "' -> '" + referencedId + "'");
+            logger.config("Newparam link created: '" + paramSid + "' -> '" + referencedId + "'");
         }
     }
 
@@ -1276,7 +1277,7 @@ public class ColladaParser {
                         }
                     }
                 } catch (NumberFormatException e) {
-                    Log.e(TAG, "Failed to parse color string inside <" + propertyName + ">", e);
+                    logger.log(Level.SEVERE, "Failed to parse color string inside <" + propertyName + ">", e);
                 }
                 // parser.nextText() already moved the cursor past the </color> tag
             } else {
@@ -1334,7 +1335,7 @@ public class ColladaParser {
                             float transparency = Float.parseFloat(floatString);
                             currentEffect.transparency = transparency; // Assuming you have a setter for this
                         } catch (Exception e) {
-                            Log.e(TAG, "Failed to parse <float> for transparency", e);
+                            logger.log(Level.SEVERE, "Failed to parse <float> for transparency", e);
                         }
                     } else {
                         skipTag(parser);
@@ -1425,7 +1426,7 @@ public class ColladaParser {
         String setStr = parser.getAttributeValue(null, "set");
         int set = (setStr != null) ? Integer.parseInt(setStr) : 0;
 
-        Log.d(TAG, "Parsed <input> with semantic: " + semantic + ", source: " + sourceId +
+        logger.config("Parsed <input> with semantic: " + semantic + ", source: " + sourceId +
                    ", offset: " + offset + ", set: " + set);
         return new Input(semantic, sourceId, offset, set);
     }
@@ -1446,7 +1447,7 @@ public class ColladaParser {
 
         String[] floatStrings = textData.trim().split("\\s+");
         if (floatStrings.length < 16) {
-            Log.e(TAG, "Matrix data has less than 16 values. Found: " + floatStrings.length);
+            logger.log(Level.SEVERE, "Matrix data has less than 16 values. Found: " + floatStrings.length);
             return null;
         }
 
@@ -1551,16 +1552,16 @@ public class ColladaParser {
                 case "instance_controller": {
                     String url = parser.getAttributeValue(null, "url");
                     if (url == null) {
-                        Log.w(TAG, "Instance tag <" + tagName + "> is missing a 'url' attribute for node '" + currentNode.getId() + "'.");
+                        logger.warning("Instance tag <" + tagName + "> is missing a 'url' attribute for node '" + currentNode.getId() + "'.");
                         skipToEnd(parser, tagName);
                         break;
                     }
 
                     if ("instance_controller".equals(tagName)) {
-                        Log.d(TAG, "Found <instance_controller> for node '" + currentNode.getId() + "' with url: " + url);
+                        logger.config("Found <instance_controller> for node '" + currentNode.getId() + "' with url: " + url);
                         currentNode.setInstanceControllerId(cleanId(url));
                     } else {
-                        Log.d(TAG, "Found <instance_geometry> for node '" + currentNode.getId() + "' with url: " + url);
+                        logger.config("Found <instance_geometry> for node '" + currentNode.getId() + "' with url: " + url);
                         currentNode.setInstanceGeometryId(cleanId(url));
                     }
 
@@ -1572,13 +1573,13 @@ public class ColladaParser {
                         if ("skeleton".equals(innerTagName)) {
                             // Skeleton root ID for skinned meshes
                             String skinRootId = parser.nextText();
-                            Log.d(TAG, "Found <skeleton> tag with root ID: " + skinRootId);
+                            logger.config("Found <skeleton> tag with root ID: " + skinRootId);
                             currentNode.setSkinId(cleanId(skinRootId));
                         } else if ("instance_material".equals(innerTagName)) {
                             // Material binding
                             String target = parser.getAttributeValue(null, "target");
                             if (target != null) {
-                                Log.d(TAG, "Found <instance_material> with target: " + target);
+                                logger.config("Found <instance_material> with target: " + target);
                                 currentNode.setBindMaterialId(cleanId(target));
                             }
                         }
@@ -1627,7 +1628,7 @@ public class ColladaParser {
         }
 
         if (allChannels.isEmpty()) {
-            Log.i(TAG, "No animation channels found.");
+            logger.info("No animation channels found.");
             return; // No animations to build
         }
 
@@ -1675,7 +1676,7 @@ public class ColladaParser {
         Animation animation = new Animation("COLLADA_Animation", duration, keyFrames);
         animations.add(animation); // Assuming you have a `List<Animation> animations` field in the parser
 
-        Log.i(TAG, "Successfully parsed 1 animation clip with " + keyFrames.length + " keyframes.");
+        logger.info("Successfully parsed 1 animation clip with " + keyFrames.length + " keyframes.");
     }
 
     /**
@@ -1807,7 +1808,7 @@ public class ColladaParser {
      */
     private void applyTransform(JointTransform jointTransform, ChannelData channel, int timeIndex) {
         if (channel == null || channel.targetTransform == null || jointTransform == null) {
-            Log.w(TAG, "Skipping applyTransform due to null channel/target/transform");
+            logger.warning("Skipping applyTransform due to null channel/target/transform");
             return;
         }
 
@@ -1872,11 +1873,11 @@ public class ColladaParser {
                     Matrix.transposeM(transposed, 0, matrix, 0);
                     jointTransform.setTransform(transposed); // This will overwrite others, as expected for a matrix.
                 } else {
-                    Log.w(TAG, "Matrix animation channel has unexpected stride/length: stride=" + channel.stride + " valuesLength=" + (channel.values!=null?channel.values.length:0));
+                    logger.warning("Matrix animation channel has unexpected stride/length: stride=" + channel.stride + " valuesLength=" + (channel.values!=null?channel.values.length:0));
                 }
                 break;
             default:
-                Log.w(TAG, "Unsupported animation transform target: " + channel.targetTransform);
+                logger.warning("Unsupported animation transform target: " + channel.targetTransform);
                 break;
         }
     }
@@ -1898,7 +1899,7 @@ public class ColladaParser {
         // For now, we will implement a simple fan triangulation of the main polygon
         // and ignore the holes, just to have a working structure.
         //
-        Log.d(TAG, "Triangulating polygon with " + holes.size() + " holes. (NOTE: Holes are currently ignored)");
+        logger.config("Triangulating polygon with " + holes.size() + " holes. (NOTE: Holes are currently ignored)");
         List<Integer> triangles = new ArrayList<>();
         if (polygonLoop.size() < 3) {
             return triangles; // Not a valid polygon
@@ -2010,7 +2011,7 @@ public class ColladaParser {
             }
 
         } catch (Exception e) {
-            Log.e(TAG, "Triangulation failed", e);
+            logger.log(Level.SEVERE, "Triangulation failed", e);
         }
     }
 

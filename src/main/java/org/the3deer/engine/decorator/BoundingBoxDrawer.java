@@ -1,17 +1,15 @@
 package org.the3deer.engine.decorator;
 
-import android.util.Log;
-
+import org.the3deer.engine.Model;
+import org.the3deer.engine.android.shader.Shader;
+import org.the3deer.engine.android.shader.ShaderFactory;
 import org.the3deer.engine.model.AnimatedModel;
 import org.the3deer.engine.model.Camera;
 import org.the3deer.engine.model.Constants;
-import org.the3deer.engine.Model;
 import org.the3deer.engine.model.Object3D;
 import org.the3deer.engine.model.Scene;
 import org.the3deer.engine.objects.BoundingBox;
 import org.the3deer.engine.renderer.Drawer;
-import org.the3deer.engine.android.shader.Shader;
-import org.the3deer.engine.android.shader.ShaderFactory;
 import org.the3deer.util.bean.Bean;
 import org.the3deer.util.bean.BeanProperty;
 
@@ -19,13 +17,15 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.inject.Inject;
 
 @Bean
 public class BoundingBoxDrawer implements Drawer {
 
-    private final static String TAG = BoundingBoxDrawer.class.getSimpleName();
+    private static final Logger logger = Logger.getLogger(BoundingBoxDrawer.class.getSimpleName());
 
     @Inject
     private ShaderFactory shaderFactory;
@@ -90,7 +90,7 @@ public class BoundingBoxDrawer implements Drawer {
                     final Shader shader = shaderFactory.getShader(boundingBoxData);
                     //final Shader drawerObject = shaderFactory.getShader(R.raw.shader_basic_vert, R.raw.shader_basic_frag);
                     if (shader == null) {
-                        Log.e(TAG, "No drawer for " + objData.getId());
+                        logger.log(Level.SEVERE, "No drawer for " + objData.getId());
                         return;
                     }
 
@@ -108,7 +108,7 @@ public class BoundingBoxDrawer implements Drawer {
                 }
             } catch (Exception ex) {
                 this.enabled = false;
-                Log.e(TAG, "There was a problem rendering the object '" + objData.getId() + "':" + ex.getMessage(), ex);
+                logger.log(Level.SEVERE, "There was a problem rendering the object '" + objData.getId() + "':" + ex.getMessage(), ex);
             }
         }
     }

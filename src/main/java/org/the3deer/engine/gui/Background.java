@@ -99,7 +99,7 @@ public class Background extends Widget {
             return;
         }
 
-        //Log.v("Background", "Refreshing...");
+        //logger.finest("Refreshing...");
 
         final Dimensions dimensions = parent.getDimensions();
         float[] min = dimensions.getMin();

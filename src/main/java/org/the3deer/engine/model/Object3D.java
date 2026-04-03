@@ -2,12 +2,11 @@ package org.the3deer.engine.model;
 
 import android.opengl.GLES20;
 import android.opengl.Matrix;
-import android.util.Log;
 
-import org.the3deer.engine.collision.Octree;
-import org.the3deer.engine.services.collada.entities.MeshData;
 import org.the3deer.engine.android.shader.ShaderFactory;
 import org.the3deer.engine.android.util.AndroidUtils;
+import org.the3deer.engine.collision.Octree;
+import org.the3deer.engine.services.collada.entities.MeshData;
 import org.the3deer.util.event.EventListener;
 import org.the3deer.util.io.IOUtils;
 import org.the3deer.util.math.Math3DUtils;
@@ -26,6 +25,8 @@ import java.util.EventObject;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * This is the basic 3D data necessary to build the 3D object
@@ -37,6 +38,8 @@ import java.util.Set;
  * @author andresoviedo
  */
 public class Object3D {
+
+    private static final Logger logger = Logger.getLogger(Object3D.class.getSimpleName());
 
     public Object3D(String id, FloatBuffer positions, FloatBuffer normals, FloatBuffer texCoords, FloatBuffer colors, Material material) {
         this.id = id;
@@ -422,13 +425,13 @@ public class Object3D {
 
     public void setDimensions(Dimensions dimensions) {
         this.dimensions = dimensions;
-        //Log.d("Object3D", "New fixed dimensions for " + getId() + ": " + this.dimensions);
+        //logger.config("New fixed dimensions for " + getId() + ": " + this.dimensions);
     }
 
     public Dimensions getDimensions() {
         if (dimensions == null) {
             refreshDimensions();
-            Log.v("Object3D", "New dimensions for '" + getId() + "': " + this.dimensions);
+            logger.finest("New dimensions for '" + getId() + "': " + this.dimensions);
         }
         return dimensions;
     }
@@ -469,7 +472,7 @@ public class Object3D {
                             }
 
                             if (idx < 0 || idx >= vertexArrayBuffer.capacity() / 3) {
-                                Log.w("Object3D", "Wrong index '" + idx + "' while getting dimensions for '" + getId() + "'");
+                                logger.warning("Wrong index '" + idx + "' while getting dimensions for '" + getId() + "'");
                                 continue;
                             }
 
@@ -486,7 +489,7 @@ public class Object3D {
                     final int idx = IOUtils.getIntBufferValue(indexBuffer, i);
 
                     if (idx < 0 || idx >= vertexArrayBuffer.capacity() / 3) {
-                        Log.w("Object3D", "Wrong index '" + idx + "' while getting dimensions for '" + getId() + "'");
+                        logger.warning("Wrong index '" + idx + "' while getting dimensions for '" + getId() + "'");
                         continue;
                     }
 
@@ -506,7 +509,7 @@ public class Object3D {
 
         // --- ENHANCEMENT: Handle 0-size reports for non-empty buffers ---
         if (dimensions.getWidth() == 0 && dimensions.getHeight() == 0 && dimensions.getDepth() == 0 && vertexArrayBuffer.capacity() > 0) {
-            Log.w("Object3D", "Dimensions calculated as zero for non-empty buffer (" + getId() + "). Buffer capacity: " + vertexArrayBuffer.capacity());
+            logger.warning("Dimensions calculated as zero for non-empty buffer (" + getId() + "). Buffer capacity: " + vertexArrayBuffer.capacity());
             // If it's literally a single vertex, the math is correct but framing will be hard.
         }
 
@@ -524,7 +527,7 @@ public class Object3D {
             // That is, -1+1 is 100% parent dimension
             Dimensions parentDim = getParent().getCurrentDimensions();
             float relScale = parentDim.getRelationTo(getCurrentDimensions());
-            Log.v("Object3D", "Relative scale for '" + getId() + "': " + relScale);
+            logger.finest("Relative scale for '" + getId() + "': " + relScale);
             float[] newScale = Math3DUtils.multiply(relativeScale, relScale);
 
             setScale(newScale);
@@ -549,15 +552,15 @@ public class Object3D {
         // recalculate based on parent
         // That is, -1+1 is 100% parent dimension
         Dimensions parentDim = getParent().getCurrentDimensions();
-        //Log.v("Widget", "Relative scale. Parent dim (" + parentDim + ")");
-        //Log.v("Widget", "Relative scale. Current dim (" + getDimensions() + ")");
+        //logger.finest("Relative scale. Parent dim (" + parentDim + ")");
+        //logger.finest("Relative scale. Current dim (" + getDimensions() + ")");
         float realScale = getDimensions().getRelationTo(parentDim);
-        //Log.v("Widget", "Real scale (" + getId() + "): " + realScale);
-        //Log.v("Widget", "Current scale (" + getId() + "): " + Arrays.toString(getScale()));
+        //logger.finest("Real scale (" + getId() + "): " + realScale);
+        //logger.finest("Current scale (" + getId() + "): " + Arrays.toString(getScale()));
         float[] newScale = Math3DUtils.divide(relativeScale, realScale);
-        //Log.v("Widget", "New scale (" + getId() + "): " + Arrays.toString(newScale));
+        //logger.finest("New scale (" + getId() + "): " + Arrays.toString(newScale));
         setScale(newScale);
-        //Log.v("Widget", "New dim (" + getId() + "): " + getCurrentDimensions());
+        //logger.finest("New dim (" + getId() + "): " + getCurrentDimensions());
     }
 
     public Dimensions getCurrentDimensions() {
@@ -711,7 +714,7 @@ public class Object3D {
     }
 
     /*public void setTextureData(byte[] textureData) {
-        Log.i("Object3D","New texture: "+textureData.length+" (bytes)");
+        logger.info("New texture: "+textureData.length+" (bytes)");
         this.getMaterial().setTextureData(textureData);
         if (this.getElements() != null && this.getElements().size() == 1){
             // TODO: let user pick object and/or element to update texture
@@ -720,7 +723,7 @@ public class Object3D {
                 if (getElements().get(i).getMaterial() == null) continue;
                 if (getElements().get(i).getMaterial().getTextureData() == null) continue;
                 this.getElements().get(i).getMaterial().setTextureData(textureData);
-                Log.i("Object3D","New texture for element ("+i+"): "+getElements().get(i).getMaterial());
+                logger.info("New texture for element ("+i+"): "+getElements().get(i).getMaterial());
             }
         }
     }*/
@@ -1227,7 +1230,7 @@ public class Object3D {
     }
 
     public void dispose() {
-        //Log.v("Object3D","Disposing object... "+getId());
+        //logger.finest("Disposing object... "+getId());
         this.listeners.clear();
         this.parent = null;
 
@@ -1249,7 +1252,7 @@ public class Object3D {
         // loop indices
         if (vertexNormalsArrayBuffer == null && vertexArrayBuffer != null) {
 
-            Log.v("Object3D", "Generating normals... " + getId());
+            logger.finest("Generating normals... " + getId());
 
             // init normal buffer
             vertexNormalsArrayBuffer = IOUtils.createFloatBuffer(getVertexBuffer().capacity());
@@ -1269,7 +1272,7 @@ public class Object3D {
                 vertexNormalsArrayBuffer.put(calculatedNormal);
             }
 
-            Log.v("Object3D", "Generating normals finished. " + getId());
+            logger.finest("Generating normals finished. " + getId());
         }
     }
 
@@ -1300,11 +1303,11 @@ public class Object3D {
     public void debug() {
         try {
             // --- EXPANDED LOGGING ---
-            Log.d("MODEL_DEBUG", "--- MODEL DATA --- " + getId());
+            logger.config("--- MODEL DATA --- " + getId());
 // Print first 30 floats (10 vertices)
             if (modelMatrix != null) {
                 StringBuilder pos_sb = new StringBuilder("modelMatrix: ").append(Arrays.toString(modelMatrix));
-                Log.d("MODEL_DEBUG", pos_sb.toString());
+                logger.config(pos_sb.toString());
             }
 
             if (vertexArrayBuffer != null) {
@@ -1312,7 +1315,7 @@ public class Object3D {
                 for (int i = 0; i < 16 && i < vertexArrayBuffer.capacity(); i++) {
                     pos_sb.append(vertexArrayBuffer.get(i)).append(" ");
                 }
-                Log.d("MODEL_DEBUG", pos_sb.toString());
+                logger.config(pos_sb.toString());
             }
 
 // Print first 30 floats (10 normals)
@@ -1323,9 +1326,9 @@ public class Object3D {
                 for (int i = 0; i < 16 && i < vertexNormalsArrayBuffer.capacity(); i++) {
                     norm_sb.append(vertexNormalsArrayBuffer.get(i)).append(" ");
                 }
-                Log.d("MODEL_DEBUG", norm_sb.toString());
+                logger.config(norm_sb.toString());
             } else {
-                Log.d("MODEL_DEBUG", "Normals: null or too short.");
+                logger.config("Normals: null or too short.");
             }
 
             // Print first 15 indices
@@ -1337,7 +1340,7 @@ public class Object3D {
                 for (int i = 0; i < 16 && i < indexBuffer.capacity(); i++) {
                     idx_sb.append(IOUtils.getIntBufferValue(indexBuffer, i)).append(" ");
                 }
-                Log.d("MODEL_DEBUG", idx_sb.toString());
+                logger.config(idx_sb.toString());
             }
 
             if (textureCoordsArrayBuffer != null) {
@@ -1346,14 +1349,14 @@ public class Object3D {
                 for (int i = 0; i < 16 && i < textureCoordsArrayBuffer.capacity(); i++) {
                     norm_sb.append(textureCoordsArrayBuffer.get(i)).append(" ");
                 }
-                Log.d("MODEL_DEBUG", norm_sb.toString());
+                logger.config(norm_sb.toString());
             } else {
-                Log.d("MODEL_DEBUG", "Textures: null or too short.");
+                logger.config("Textures: null or too short.");
             }
 
             // --- END LOGGING ---
         } catch (Exception e) {
-            Log.e("MODEL_DEBUG", e.getMessage(), e);
+            logger.log(Level.SEVERE,  e.getMessage(), e);
         }
     }
 }

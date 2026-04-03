@@ -1,7 +1,6 @@
 package org.the3deer.engine.model;
 
 import android.opengl.Matrix;
-import android.util.Log;
 
 import org.the3deer.util.math.Math3DUtils;
 import org.the3deer.util.math.Quaternion;
@@ -10,6 +9,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 
 /**
@@ -20,6 +21,8 @@ import java.util.Map;
  *
  */
 public class Node {
+
+	private static final Logger logger = Logger.getLogger(Node.class.getSimpleName());
 
 	// attributes
 	private String id;
@@ -188,7 +191,7 @@ public class Node {
 
 	public void addMesh(Object3D mesh) {
 		if (mesh == null){
-			Log.e("Node", "Cannot add null mesh to node "+getId());
+			logger.log(Level.SEVERE,  "Cannot add null mesh to node "+getId());
 			return;
 		}
 		if (this.meshes == null){

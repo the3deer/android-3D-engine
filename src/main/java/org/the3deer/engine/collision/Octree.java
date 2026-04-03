@@ -1,7 +1,5 @@
 package org.the3deer.engine.collision;
 
-import android.util.Log;
-
 import org.the3deer.engine.model.BoundingBox;
 import org.the3deer.engine.model.Object3D;
 import org.the3deer.util.math.Math3DUtils;
@@ -13,12 +11,15 @@ import java.nio.ShortBuffer;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.logging.Logger;
 
 /**
  * Created by Andres on 21/12/2017.
  */
 
 public class Octree {
+
+    private static final Logger logger = Logger.getLogger(Octree.class.getSimpleName());
 
     // The minimum size of the 3D space for individual boxes
     public static final double BOX_SIZE = 10;
@@ -48,7 +49,7 @@ public class Octree {
     }
 
     private void subdivide(){
-        Log.v("Octree", "Subdividing octree...");
+        logger.finest("Subdividing octree...");
         for (Octree child : children){
             if (child != null){
                 subdivide(child);
@@ -57,7 +58,7 @@ public class Octree {
     }
 
     static Octree build(Object3D object){
-        Log.d("Octree", "Building octree for "+object.getId());
+        logger.config("Building octree for "+object.getId());
         final Octree ret = new Octree(object.getBoundingBox());
         final FloatBuffer buffer = object.getVertexBuffer().asReadOnlyBuffer();
         
@@ -104,7 +105,7 @@ public class Octree {
     }
 
     private static void subdivide(Octree octree){
-        Log.d("Octree", "Subdividing octree ("+octree.boundingBox+"): "+octree.pending.size());
+        logger.config("Subdividing octree ("+octree.boundingBox+"): "+octree.pending.size());
         float[] min = octree.boundingBox.getMin();
         float[] max = octree.boundingBox.getMax();
         float[] mid = Math3DUtils.divide(Math3DUtils.add(max,min),2);

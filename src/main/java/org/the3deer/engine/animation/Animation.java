@@ -1,10 +1,10 @@
 package org.the3deer.engine.animation;
 
 
-import android.util.Log;
-
 import org.the3deer.engine.model.AnimatedModel;
 import org.the3deer.engine.model.Node;
+
+import java.util.logging.Logger;
 
 /**
  * 
@@ -17,6 +17,8 @@ import org.the3deer.engine.model.Node;
  *
  */
 public class Animation {
+
+	private static final Logger logger = Logger.getLogger(Animation.class.getSimpleName());
 
 	private final String name;//in seconds
 	private final float length;//in seconds
@@ -77,7 +79,7 @@ public class Animation {
 
 		for (int i=0; i<keyFrames.length; i++){
 			if (i<10) {
-				Log.v("Animation", "Keyframe["+i+"] : " + keyFrames[i]);
+				logger.finest("Keyframe["+i+"] : " + keyFrames[i]);
 			}
 		}
 	}

@@ -1,8 +1,8 @@
 package org.the3deer.engine.renderer;
 
+import org.the3deer.engine.Model;
 import org.the3deer.engine.model.Camera;
 import org.the3deer.engine.model.Constants;
-import org.the3deer.engine.Model;
 import org.the3deer.engine.model.Scene;
 import org.the3deer.engine.model.Screen;
 import org.the3deer.util.bean.Bean;
@@ -22,8 +22,6 @@ import javax.inject.Inject;
 //public class AnaglyphRenderer implements Renderer, EventListener {
 @Bean
 public class StereoscopicRenderer extends DefaultRenderer {
-
-    private final static String TAG = StereoscopicRenderer.class.getSimpleName();
 
     @Inject
     private Screen screen;

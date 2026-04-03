@@ -1,17 +1,16 @@
 package org.the3deer.engine.decorator;
 
 import android.opengl.GLES20;
-import android.util.Log;
 
+import org.the3deer.engine.Model;
+import org.the3deer.engine.android.shader.Shader;
+import org.the3deer.engine.android.shader.ShaderFactory;
 import org.the3deer.engine.animation.Animator;
 import org.the3deer.engine.model.Camera;
-import org.the3deer.engine.Model;
 import org.the3deer.engine.model.Object3D;
 import org.the3deer.engine.model.Scene;
 import org.the3deer.engine.objects.Wireframe;
 import org.the3deer.engine.renderer.Drawer;
-import org.the3deer.engine.android.shader.Shader;
-import org.the3deer.engine.android.shader.ShaderFactory;
 import org.the3deer.util.bean.Bean;
 import org.the3deer.util.bean.BeanProperty;
 import org.the3deer.util.event.EventListener;
@@ -21,13 +20,15 @@ import java.util.EventObject;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.inject.Inject;
 
 @Bean
 public class WireframeDrawer implements Drawer, EventListener {
 
-    private final static String TAG = WireframeDrawer.class.getSimpleName();
+    private static final Logger logger = Logger.getLogger(WireframeDrawer.class.getSimpleName());
 
     /**
      * Animator
@@ -59,7 +60,7 @@ public class WireframeDrawer implements Drawer, EventListener {
 
     public int toggle(){
         this.enabled = !this.enabled;
-        Log.i("WireframeDrawer", "Toggled wireframe. enabled: " + this.enabled);
+        logger.info("Toggled wireframe. enabled: " + this.enabled);
         return this.enabled? 1 : 0;
     }
 
@@ -111,16 +112,16 @@ public class WireframeDrawer implements Drawer, EventListener {
                     // Only draw wireframes for objects having faces (triangles)
                     Object3D wireframe = wireframes.get(objData.getId());
                     if (wireframe == null) {
-                        Log.i("WireframeDrawer", "Building wireframe model... object: "+objData.getId());
+                        logger.info("Building wireframe model... object: "+objData.getId());
                         wireframe = Wireframe.build(objData);
                         wireframes.put(objData.getId(), wireframe);
-                        Log.i("WireframeDrawer", "Wireframe built: " + wireframe);
+                        logger.info("Wireframe built: " + wireframe);
                     }
 
                     //Shader drawerObject = shaderFactory.getShader(scene, objData, false, false, false, true, false, false);
                     final Shader shader = shaderFactory.getShader(wireframe);
                     if (shader == null) {
-                        Log.e(TAG, "No drawer for " + objData.getId());
+                        logger.log(Level.SEVERE, "No drawer for " + objData.getId());
                         return;
                     }
 
@@ -128,11 +129,11 @@ public class WireframeDrawer implements Drawer, EventListener {
                     //animator.update(scene.getRootNodes(), scene.getCurrentAnimation(), false);
                     shader.draw(wireframe, camera.getProjectionMatrix(), camera.getViewMatrix(), null, null, camera.getPos(), wireframe.getDrawMode(), wireframe.getDrawSize());
                 } catch (Error e) {
-                    Log.e("WireframeDrawer", e.getMessage(), e);
+                    logger.log(Level.SEVERE,  e.getMessage(), e);
                 }
             }
         } catch (Exception ex) {
-            Log.e(TAG, "There was a problem rendering the object '" + objData.getId() + "':" + ex.getMessage(), ex);
+            logger.log(Level.SEVERE, "There was a problem rendering the object '" + objData.getId() + "':" + ex.getMessage(), ex);
         }
     }
 

@@ -1,7 +1,5 @@
 package org.the3deer.engine.camera;
 
-import android.util.Log;
-
 import org.the3deer.engine.model.Camera;
 import org.the3deer.engine.model.Constants;
 import org.the3deer.engine.model.Projection;
@@ -9,11 +7,14 @@ import org.the3deer.util.bean.BeanInit;
 import org.the3deer.util.math.Math3DUtils;
 
 import java.util.Arrays;
+import java.util.logging.Logger;
 
 import javax.inject.Inject;
 import javax.inject.Named;
 
 public class OrthographicCameraHandler implements CameraController.CameraHandler {
+
+    private static final Logger logger = Logger.getLogger(OrthographicCameraHandler.class.getSimpleName());
 
     /**
      * The distance between the origin and the orthographic coordinate
@@ -60,7 +61,7 @@ public class OrthographicCameraHandler implements CameraController.CameraHandler
 
     @Override
     public void enable() {
-        Log.i("OrthographicCamera", "Enabling...");
+        logger.info("Enabling...");
         init();
         camera.setController(this);
         camera.setProjection(projection);
@@ -71,7 +72,7 @@ public class OrthographicCameraHandler implements CameraController.CameraHandler
     @Override
     public synchronized void move(float dX, float dY) {
 
-        Log.v("OrthographicCamera","translating..");
+        logger.finest("translating..");
         float dXabs = Math.abs(dX);
         float dYabs = Math.abs(dY);
         if (dX < 0 && dXabs > dYabs) {  // right
@@ -100,13 +101,13 @@ public class OrthographicCameraHandler implements CameraController.CameraHandler
             float[] right = Math3DUtils.crossProduct(-savePos[0], -savePos[1], -savePos[2], saveUp[0], saveUp[1], saveUp[2]);
             Math3DUtils.normalizeVector(right);
             Math3DUtils.snapToGrid(right);
-            Log.v("OrthographicCamera", "Rotating 90 right: " + Arrays.toString(right));
+            logger.finest("Rotating 90 right: " + Arrays.toString(right));
             saveAndAnimate(savePos[0], savePos[1], savePos[2], right[0], right[1], right[2]);
         } else {
             float[] left = Math3DUtils.crossProduct(saveUp[0], saveUp[1], saveUp[2], -savePos[0], -savePos[1], -savePos[2]);
             Math3DUtils.normalizeVector(left);
             Math3DUtils.snapToGrid(left);
-            Log.v("OrthographicCamera", "Rotating 90 left: " + Arrays.toString(left));
+            logger.finest("Rotating 90 left: " + Arrays.toString(left));
             saveAndAnimate(savePos[0], savePos[1], savePos[2], left[0], left[1], left[2]);
         }
     }
@@ -135,7 +136,7 @@ public class OrthographicCameraHandler implements CameraController.CameraHandler
 
     private void saveAndAnimate(boolean force, float xp, float yp, float zp, float xu, float yu, float zu) {
 
-        Log.v("OrthographicCamera","saveAndAnimate..."+ camera);
+        logger.finest("saveAndAnimate..."+ camera);
 
         synchronized (camera) {
             //if (camera.getAnimation() == null || camera.getAnimation().isFinished() || force) {

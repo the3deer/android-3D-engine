@@ -2,7 +2,6 @@ package org.the3deer.engine.services.stl;
 
 import android.net.Uri;
 import android.opengl.GLES20;
-import android.util.Log;
 
 import org.the3deer.engine.model.Object3D;
 import org.the3deer.engine.model.Scene;
@@ -17,6 +16,7 @@ import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.logging.Level;
 
 /**
  * + STL loader supported by the org.j3d STL parser
@@ -44,7 +44,7 @@ public final class STLLoaderTask extends LoaderTask {
         try {
 
             // log event
-            Log.i("STLLoaderTask", "Parsing model...");
+            logger.info("Parsing model...");
             super.publishProgress("Parsing model...");
 
             // Parse STL
@@ -54,9 +54,9 @@ public final class STLLoaderTask extends LoaderTask {
             int totalFaces = stlFileReader.getNumOfFacets()[0];
 
             // log event
-            Log.i("STLLoaderTask", "Num of objects found: " + stlFileReader.getNumOfObjects());
-            Log.i("STLLoaderTask", "Num facets found '" + totalFaces + "' facets");
-            Log.i("STLLoaderTask", "Parsing messages: " + stlFileReader.getParsingMessages());
+            logger.info("Num of objects found: " + stlFileReader.getNumOfObjects());
+            logger.info("Num facets found '" + totalFaces + "' facets");
+            logger.info("Parsing messages: " + stlFileReader.getParsingMessages());
 
             // primitive data
             final List<float[]> vertices = new ArrayList<>();
@@ -82,7 +82,7 @@ public final class STLLoaderTask extends LoaderTask {
             }
 
             // log event
-            Log.i("STLLoaderTask", "Loaded model. Facets: " + counter + ", vertices:" +vertices.size()+", normals: "+normals.size());
+            logger.info("Loaded model. Facets: " + counter + ", vertices:" +vertices.size()+", normals: "+normals.size());
 
             // build data
             final MeshData mesh = new MeshData.Builder().vertices(vertices).normals(normals).build();
@@ -105,7 +105,7 @@ public final class STLLoaderTask extends LoaderTask {
 
             return Collections.singletonList(data);
         } catch (Exception e) {
-            Log.e("STLLoaderTask", "Face '" + counter + "'" + e.getMessage(), e);
+            logger.log(Level.SEVERE,  "Face '" + counter + "'" + e.getMessage(), e);
             throw e;
         } finally {
             try {

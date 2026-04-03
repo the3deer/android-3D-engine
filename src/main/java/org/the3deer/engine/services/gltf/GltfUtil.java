@@ -1,15 +1,17 @@
 package org.the3deer.engine.services.gltf;
 
-import android.util.Log;
-
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import de.javagl.jgltf.model.AccessorData;
 import de.javagl.jgltf.model.AccessorModel;
 
 public final class GltfUtil {
+
+    private static final Logger logger = Logger.getLogger(GltfUtil.class.getSimpleName());
 
     /**
      * Creates a new NIO Buffer for vertex indices from the given glTF AccessorModel.
@@ -31,7 +33,7 @@ public final class GltfUtil {
             case 5125: // GL_UNSIGNED_INT
                 return byteBuffer.asIntBuffer();
             default:
-                Log.e("GltfUtil", "Invalid component type for indices: " + glComponentType);
+                logger.log(Level.SEVERE,  "Invalid component type for indices: " + glComponentType);
                 throw new IllegalArgumentException("Invalid component type for indices: " + glComponentType);
         }
     }
@@ -80,7 +82,7 @@ public final class GltfUtil {
             case 5123: // GL_UNSIGNED_SHORT
                 return byteBuffer.asShortBuffer();
             default:
-                Log.e("GltfUtil", "Invalid component type for joints: " + glComponentType);
+                logger.log(Level.SEVERE,  "Invalid component type for joints: " + glComponentType);
                 throw new IllegalArgumentException("Invalid component type for joints: " + glComponentType);
         }
     }
@@ -103,7 +105,7 @@ public final class GltfUtil {
             case 5126: // GL_FLOAT
                 return byteBuffer.asFloatBuffer();
             default:
-                Log.e("GltfUtil", "Invalid component type for colors: " + glComponentType);
+                logger.log(Level.SEVERE,  "Invalid component type for colors: " + glComponentType);
                 throw new IllegalArgumentException("Invalid component type for colors: " + glComponentType);
         }
     }
@@ -120,7 +122,7 @@ public final class GltfUtil {
             case 5126: // FLOAT
                 return byteBuffer.asFloatBuffer();
             default:
-                Log.e("GltfUtil", "Invalid component type for weights: " + glComponentType);
+                logger.log(Level.SEVERE,  "Invalid component type for weights: " + glComponentType);
                 throw new IllegalArgumentException("Invalid component type for weights: " + glComponentType);
         }
     }

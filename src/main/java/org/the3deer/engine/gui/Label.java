@@ -1,7 +1,5 @@
 package org.the3deer.engine.gui;
 
-import android.util.Log;
-
 import org.the3deer.engine.model.Dimensions;
 import org.the3deer.util.io.IOUtils;
 
@@ -59,7 +57,7 @@ public class Label extends Widget {
         // dimensions initialized because there isn't any vertex yet
         setDimensions(new Dimensions(0,
                 columns * fontFactory.getCharWidth(), rows * fontFactory.getCharHeight(), 0, 0, 0));
-        Log.d("Label", "Created text: " + getDimensions());
+        logger.config("Created text: " + getDimensions());
     }
 
     public static Label forSymbol(FontFactory fontFactory) {
@@ -71,7 +69,7 @@ public class Label extends Widget {
 
         float[] data = fontFactory.getSymbol(symbol);
 
-        Log.v("Label","About to paint symbol");
+        logger.finest("About to paint symbol");
         int idx = Glyph.build(getVertexBuffer(), 0, getColorsBuffer(), 0, 0, data, getColor());
         IOUtils.fill(getVertexBuffer(), idx, getVertexBuffer().capacity(), 0);
         IOUtils.fill(getColorsBuffer(), idx/3*4, getColorsBuffer().capacity(), 0);

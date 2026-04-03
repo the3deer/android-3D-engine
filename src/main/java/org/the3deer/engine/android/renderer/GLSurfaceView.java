@@ -2,10 +2,11 @@ package org.the3deer.engine.android.renderer;
 
 import android.content.Context;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.MotionEvent;
 
 import org.the3deer.engine.renderer.TouchHandler;
+
+import java.util.logging.Logger;
 
 import javax.inject.Inject;
 
@@ -16,7 +17,7 @@ import javax.inject.Inject;
  */
 public class GLSurfaceView extends android.opengl.GLSurfaceView {
 
-    private final static String TAG = GLSurfaceView.class.getSimpleName();
+    private static final Logger logger = Logger.getLogger(GLSurfaceView.class.getSimpleName());
 
     @Inject
     private TouchHandler touchHandler;
@@ -27,20 +28,20 @@ public class GLSurfaceView extends android.opengl.GLSurfaceView {
         super(context);
 
         // debug
-        Log.i(TAG,"GLSurfaceView created: " + System.identityHashCode(this));
+        logger.info("GLSurfaceView created: " + System.identityHashCode(this));
     }
 
     public GLSurfaceView(Context context, AttributeSet attrs) {
         super(context, attrs);
 
         // debug
-        Log.i(TAG,"GLSurfaceView created: " + System.identityHashCode(this));
+        logger.info("GLSurfaceView created: " + System.identityHashCode(this));
     }
 
     @Override
     public void setRenderer(Renderer renderer) {
 
-        Log.i(TAG,"GLSurfaceView setRenderer: " + System.identityHashCode(renderer));
+        logger.info("GLSurfaceView setRenderer: " + System.identityHashCode(renderer));
 
         this.renderer = renderer;
         super.setRenderer(renderer);

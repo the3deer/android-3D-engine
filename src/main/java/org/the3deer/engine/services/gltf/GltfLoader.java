@@ -3,8 +3,8 @@ package org.the3deer.engine.services.gltf;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.opengl.GLES20;
-import android.util.Log;
 
+import org.the3deer.engine.android.util.AndroidUtils;
 import org.the3deer.engine.animation.Animation;
 import org.the3deer.engine.animation.JointTransform;
 import org.the3deer.engine.animation.KeyFrame;
@@ -32,7 +32,6 @@ import org.the3deer.engine.services.gltf.dto.GltfSamplerDto;
 import org.the3deer.engine.services.gltf.dto.GltfSceneData;
 import org.the3deer.engine.services.gltf.dto.GltfSceneDto;
 import org.the3deer.engine.services.gltf.dto.GltfSkinDto;
-import org.the3deer.engine.android.util.AndroidUtils;
 import org.the3deer.util.math.Quaternion;
 
 import java.io.InputStream;
@@ -48,6 +47,8 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import de.javagl.jgltf.model.GltfModel;
 import de.javagl.jgltf.model.GltfModels;
@@ -59,7 +60,7 @@ import de.javagl.jgltf.model.io.IO;
 
 public class GltfLoader {
 
-    private static final String TAG = GltfLoader.class.getSimpleName();
+    private static final Logger logger = Logger.getLogger(GltfLoader.class.getSimpleName());
 
     public GltfLoader() {
     }
@@ -67,7 +68,7 @@ public class GltfLoader {
     public GltfSceneData load(Uri uri, LoadListener callback) throws Exception {
 
         try (InputStream stream = URI.create(uri.toString()).toURL().openStream()) {
-            Log.i(TAG, "Loading and parsing model file... " + uri);
+            logger.info("Loading and parsing model file... " + uri);
             callback.onProgress("Parsing " + uri);
 
             GltfAssetReader gltfAssetReader = new GltfAssetReader();
@@ -78,7 +79,7 @@ public class GltfLoader {
             GltfParser parser = new GltfParser(gltfAsset, gltfModel);
             GltfDto dto = parser.parse();
 
-            Log.i(TAG, "Building engine objects from DTO...");
+            logger.info("Building engine objects from DTO...");
             callback.onProgress("Building objects");
 
 
@@ -88,7 +89,7 @@ public class GltfLoader {
             // meshes / primitives mapping
             Map<Integer, List<Object3D>> originalMeshes = buildMeshesFromDto(dto, materials);
             if (originalMeshes.isEmpty()){
-                Log.w(TAG, "No meshes found in the DTO.");
+                logger.warning("No meshes found in the DTO.");
                 throw new Exception("No meshes found in the DTO.");
             }
 
@@ -98,7 +99,7 @@ public class GltfLoader {
             // node to mesh mapping
             Map<Integer, List<Object3D>> meshInstances = buildMeshInstances(dto, originalMeshes);
             if (meshInstances.isEmpty()){
-                Log.w(TAG, "No meshes were linked in the DTO. No mesh instances were created.");
+                logger.warning("No meshes were linked in the DTO. No mesh instances were created.");
                 throw new Exception("No meshes were linked in the DTO. No mesh instances were created.");
             }
 
@@ -148,7 +149,7 @@ public class GltfLoader {
                     material.setAlphaMode(Material.AlphaMode.valueOf(materialDto.alphaMode));
                 }
             } catch (Exception e) {
-                Log.w(TAG, "Failed to set alpha mode: " + materialDto.alphaMode);
+                logger.warning("Failed to set alpha mode: " + materialDto.alphaMode);
             }
 
             // Base color texture
@@ -157,7 +158,7 @@ public class GltfLoader {
                     Bitmap bitmap = AndroidUtils.decodeBitmap(Buffers.createByteBufferInputStream(materialDto.baseColorTexture));
                     material.setColorTexture(new Texture(materialDto.name + "_color", bitmap));
                 } catch (Exception e) {
-                    Log.e(TAG, "Failed to decode base color texture for material: " + materialDto.name, e);
+                    logger.log(Level.SEVERE, "Failed to decode base color texture for material: " + materialDto.name, e);
                 }
             }
 
@@ -167,7 +168,7 @@ public class GltfLoader {
                     Bitmap bitmap = AndroidUtils.decodeBitmap(Buffers.createByteBufferInputStream(materialDto.normalTexture));
                     material.setNormalTexture(new Texture(materialDto.name + "_normal", bitmap));
                 } catch (Exception e) {
-                    Log.e(TAG, "Failed to decode normal texture for material: " + materialDto.name, e);
+                    logger.log(Level.SEVERE, "Failed to decode normal texture for material: " + materialDto.name, e);
                 }
             }
 
@@ -178,7 +179,7 @@ public class GltfLoader {
                     Bitmap bitmap = AndroidUtils.decodeBitmap(Buffers.createByteBufferInputStream(materialDto.emissiveTexture));
                     material.setEmissiveTexture(new Texture(materialDto.name + "_emissive", bitmap));
                 } catch (Exception e) {
-                    Log.e(TAG, "Failed to decode emissive texture for material: " + materialDto.name, e);
+                    logger.log(Level.SEVERE, "Failed to decode emissive texture for material: " + materialDto.name, e);
                 }
             }
 
@@ -191,7 +192,7 @@ public class GltfLoader {
                     Bitmap bitmap = AndroidUtils.decodeBitmap(Buffers.createByteBufferInputStream(materialDto.thicknessTexture));
                     material.setTransmissionTexture(new Texture(materialDto.name + "_thickness", bitmap));
                 } catch (Exception e) {
-                    Log.e(TAG, "Failed to decode thickness texture for material: " + materialDto.name, e);
+                    logger.log(Level.SEVERE, "Failed to decode thickness texture for material: " + materialDto.name, e);
                 }
             }
 
@@ -279,9 +280,9 @@ public class GltfLoader {
 
             if (nodeDto.meshIndex != null) {
                 if (meshInstancesMap == null || !meshInstancesMap.containsKey(i)) {
-                    Log.w(TAG, "Node " + i + " has mesh index but no mesh instances were registered for this node. This may indicate a mismatch between nodes and meshes in the DTO.");
+                    logger.warning("Node " + i + " has mesh index but no mesh instances were registered for this node. This may indicate a mismatch between nodes and meshes in the DTO.");
                 } else if (meshInstancesMap.get(i).isEmpty()) {
-                    Log.w(TAG, "Node " + i + " has mesh index but no mesh instances were found for this node. This may indicate a mismatch between nodes and meshes in the DTO.");
+                    logger.warning("Node " + i + " has mesh index but no mesh instances were found for this node. This may indicate a mismatch between nodes and meshes in the DTO.");
                 } else{
                     final List<Object3D> meshInstances = meshInstancesMap.get(i);
                     node.setMeshes(meshInstances);
@@ -310,7 +311,7 @@ public class GltfLoader {
 
         // check if there are any nodes to process
         if (dto.nodes == null || dto.nodes.isEmpty()) {
-            Log.w(TAG, "No nodes found in the DTO. No mesh instances will be created.");
+            logger.warning("No nodes found in the DTO. No mesh instances will be created.");
             return Collections.emptyMap();
         }
 
@@ -330,7 +331,7 @@ public class GltfLoader {
             // This is crucial for models like the chess set where multiple nodes use the same mesh.
             final List<Object3D> meshTemplates = originalMeshes.get(nodeDto.meshIndex);
             if (meshTemplates == null || meshTemplates.isEmpty()) {
-                Log.w(TAG, "Node " + i + " references mesh index " + nodeDto.meshIndex +
+                logger.warning( "Node " + i + " references mesh index " + nodeDto.meshIndex +
                         " but no meshes were loaded for this index. Skipping mesh assignment.");
                 continue;
             }
@@ -387,7 +388,7 @@ public class GltfLoader {
 
                 if (primitiveDto.materialIndex != null) {
                     if (materials == null || primitiveDto.materialIndex >= materials.size()) {
-                        Log.e(TAG, "Material index " + primitiveDto.materialIndex + " is out of bounds.");
+                        logger.log(Level.SEVERE, "Material index " + primitiveDto.materialIndex + " is out of bounds.");
                     } else{
                         model.setMaterial(materials.get(primitiveDto.materialIndex));
                     }
@@ -395,7 +396,7 @@ public class GltfLoader {
 
                 // If no normals were provided, generate them (facet normals for low-poly models)
                 if (primitiveDto.normals == null && primitiveDto.positions != null) {
-                    Log.i(TAG, "Generating normals for primitive of mesh: " + model.getId());
+                    logger.info("Generating normals for primitive of mesh: " + model.getId());
                     model.initNormals();
                 }
 
@@ -424,7 +425,7 @@ public class GltfLoader {
                 try {
                     ((FloatBuffer) skinDto.inverseBindMatrices).get(ibmArray);
                 } catch (Exception e) {
-                    Log.e(TAG, "Failed to read inverse bind matrix for skin " + skinDto.name, e);
+                    logger.log(Level.SEVERE, "Failed to read inverse bind matrix for skin " + skinDto.name, e);
                 }
             }
 
@@ -461,7 +462,7 @@ public class GltfLoader {
             // get the Skin(s) corresponding to this skinDto
             final Skin skin = skins.get(i);
             if (skin == null) {
-                Log.e(TAG, "Skin " + i + " is null. Skipping index assignment for this skin.");
+                logger.log(Level.SEVERE, "Skin " + i + " is null. Skipping index assignment for this skin.");
                 continue;
             }
 
@@ -492,14 +493,14 @@ public class GltfLoader {
 
                 // check if meshes are assigned to this node, if not skip skin assignment for this node
                 if (node.getMeshes() == null || node.getMeshes().isEmpty() || meshInstancesMap == null || meshInstancesMap.isEmpty()) {
-                    Log.w(TAG, "Node " + i + " references skin index " + nodeDto.skinIndex +
+                    logger.warning("Node " + i + " references skin index " + nodeDto.skinIndex +
                             " but no meshes we loaded for this node. Skipping skin assignment for this node.");
                     continue;
                 }
 
                 // check if skins are available for this skin index
                 if (skins == null || skins.isEmpty()) {
-                    Log.e(TAG, "Node " + i + " references skin index " + nodeDto.skinIndex +
+                    logger.log(Level.SEVERE, "Node " + i + " references skin index " + nodeDto.skinIndex +
                             " but no skins were loaded. Skipping skin assignment for this node.");
                     continue;
                 }
@@ -507,7 +508,7 @@ public class GltfLoader {
                 // get the corresponding skin for this skin index
                 final Skin skinTemplate = skins.get(nodeDto.skinIndex);
                 if (skinTemplate == null) {
-                    Log.e(TAG, "Node " + i + " references skin index " + nodeDto.skinIndex +
+                    logger.log(Level.SEVERE,"Node " + i + " references skin index " + nodeDto.skinIndex +
                             " but no skin was found for this index. Skipping skin assignment for this node.");
                     continue;
                 }
@@ -517,7 +518,7 @@ public class GltfLoader {
 
                 // check if mesh instances are available for this node
                 if (meshInstances == null || meshInstances.isEmpty()) {
-                    Log.e(TAG, "Node " + i + " references skin index " + nodeDto.skinIndex +
+                    logger.log(Level.SEVERE,"Node " + i + " references skin index " + nodeDto.skinIndex +
                             " but no mesh instances were found for this node. Skipping skin assignment for this node.");
                     continue;
                 }
@@ -525,13 +526,13 @@ public class GltfLoader {
                 // get mesh primitive
                 GltfMeshDto meshDto = dto.meshes.get(nodeDto.meshIndex);
                 if (meshDto.primitives == null || meshDto.primitives.isEmpty()) {
-                    Log.w(TAG, "Mesh index " + nodeDto.meshIndex + " has no primitives defined. Skipping skin assignment for meshes of this node.");
+                    logger.warning("Mesh index " + nodeDto.meshIndex + " has no primitives defined. Skipping skin assignment for meshes of this node.");
                     continue;
                 }
 
                 // check coherence between gltf meshes and mesh instances for this node
                 if (meshInstances.size() != meshDto.primitives.size()){
-                    Log.e(TAG, "Mesh instance count mismatch for node " + i + ". Expected " + meshDto.primitives.size() + " but found " + meshInstances.size() + ". Skipping skin assignment.");
+                    logger.log(Level.SEVERE, "Mesh instance count mismatch for node " + i + ". Expected " + meshDto.primitives.size() + " but found " + meshInstances.size() + ". Skipping skin assignment.");
                     continue;
                 }
 
@@ -565,7 +566,7 @@ public class GltfLoader {
             return Collections.emptyList();
         }
 
-        Log.i(TAG, "Loading animations... Total: " + dto.animations.size());
+        logger.info("Loading animations... Total: " + dto.animations.size());
         final List<Animation> animations = new ArrayList<>();
         for (int a=0; a<dto.animations.size(); a++) {
 
@@ -580,7 +581,7 @@ public class GltfLoader {
 
             // check samplers
             if (animDto.samplers == null || animDto.samplers.isEmpty()){
-                Log.w(TAG, "Animation " + animDto.name + " has no samplers.");
+                logger.warning("Animation " + animDto.name + " has no samplers.");
                 continue;
             }
 
@@ -661,7 +662,7 @@ public class GltfLoader {
         final var allNodes = sceneData.nodes;
 
         if (dto.scenes != null && !dto.scenes.isEmpty()) {
-            Log.i(TAG, "Found " + dto.scenes.size() + " scene(s) defined in the file.");
+            logger.info("Found " + dto.scenes.size() + " scene(s) defined in the file.");
             for (GltfSceneDto sceneDto : dto.scenes) {
                 Scene scene = new Scene();
                 if (sceneDto.name != null) {
@@ -688,7 +689,7 @@ public class GltfLoader {
                 if (defaultCamera != null) {
                     scene.setCamera(defaultCamera);
                 } else {
-                    Log.i(TAG, "No camera found in the scene. Using default camera.");
+                    logger.info("No camera found in the scene. Using default camera.");
                 }*/
 
                 List<Object3D> sceneObjects = collectMeshes(rootNodes);
@@ -718,7 +719,7 @@ public class GltfLoader {
                                 for (String jointId : firstPose.keySet()) {
                                     if (sceneNodeIds.contains(jointId)) {
                                         belongsToScene = true;
-                                        Log.d(TAG, "Found animation belonging to the scene.");
+                                        logger.config("Found animation belonging to the scene.");
                                         break;
                                     }
                                 }
@@ -740,7 +741,7 @@ public class GltfLoader {
                 scene.update();
             }
         } else {
-            Log.w(TAG, "Gltf file has no scenes defined. Creating a default scene.");
+            logger.warning("Gltf file has no scenes defined. Creating a default scene.");
             Scene defaultScene = new Scene();
             defaultScene.setName("Default Scene");
 

@@ -2,7 +2,6 @@ package org.the3deer.engine.gui;
 
 import android.opengl.GLES20;
 import android.os.SystemClock;
-import android.util.Log;
 
 import org.the3deer.engine.animation.JointTransform;
 import org.the3deer.engine.collision.Collision;
@@ -24,13 +23,15 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EventObject;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.inject.Inject;
 
 public class Widget extends Object3D implements EventListener {
 
 
-    private static final String TAG = Widget.class.getSimpleName();
+    protected static final Logger logger = Logger.getLogger(Widget.class.getSimpleName());
 
     public static abstract class Event extends EventObject {
 
@@ -344,7 +345,7 @@ public class Widget extends Object3D implements EventListener {
 
     public void setBackground(Widget background) {
         this.background = background;
-        Log.v("Widget", "New background: " + background);
+        logger.finest("New background: " + background);
     }
 
     public Widget getBackground() {
@@ -443,7 +444,7 @@ public class Widget extends Object3D implements EventListener {
 
             // debug
             if (Constants.DEBUG_UI){
-                Log.v("Widget", "id: "+getId()+", relative location is null");
+                logger.finest("id: "+getId()+", relative location is null");
             }
 
             return;
@@ -471,7 +472,7 @@ public class Widget extends Object3D implements EventListener {
 
         // debug
         if (Constants.DEBUG_UI){
-            Log.v("Widget", "Refreshing location... id: "+getId()+", relative location: "+relativeLocation+", topOffset: "+topOffset+", bottomOffset: "+bottomOffset);
+            logger.finest( "Refreshing location... id: "+getId()+", relative location: "+relativeLocation+", topOffset: "+topOffset+", bottomOffset: "+bottomOffset);
         }
 
 
@@ -517,15 +518,15 @@ public class Widget extends Object3D implements EventListener {
                 y = parentDim.getMin()[1] - widgetDim.getMax()[1];
                 break;
             default:
-                Log.e("Widget", "invalid relative location");
+                logger.log(Level.SEVERE,  "invalid relative location");
         }
         float[] newLocation = new float[]{x, y, z};
         this.setLocation(newLocation);
 
         // debug
         if (Constants.DEBUG_UI){
-            Log.v(TAG, "id: "+getId()+", relative location: "+relativeLocation+", new location: "+Arrays.toString(newLocation));
-            Log.v(TAG, "id: " + getId() + " parent (" + parent.getId() + ") : " + parentDim + ", child: " + widgetDim);
+           logger.finest("id: "+getId()+", relative location: "+relativeLocation+", new location: "+Arrays.toString(newLocation));
+           logger.finest("id: " + getId() + " parent (" + parent.getId() + ") : " + parentDim + ", child: " + widgetDim);
         }
     }
 
@@ -620,7 +621,7 @@ public class Widget extends Object3D implements EventListener {
         if (animation != null) return;
 
         if (isVisible()) {
-            Log.v("Widget", "Hiding widget...");
+            logger.finest("Hiding widget...");
 
             JointTransform start = new JointTransform(new Float[3], null, new Float[3]);
             start.setVisible(true);
@@ -634,19 +635,19 @@ public class Widget extends Object3D implements EventListener {
 
             animate(this, start, end, 250);
         } else {
-            Log.v("Widget", "Showing widget... this:" + this);
+            logger.finest("Showing widget... this:" + this);
 
             JointTransform start = new JointTransform(new Float[3], null, new Float[3]);
             start.setVisible(true);
             start.setScale(new float[]{0, 0, 0});
             start.setLocation(getBindLocation());
-            Log.v("Widget", "Showing widget... bind location:" + Arrays.toString(getBindLocation()));
+            logger.finest("Showing widget... bind location:" + Arrays.toString(getBindLocation()));
 
             JointTransform end = new JointTransform(new Float[3], (Float[]) null, new Float[3]);
             end.setVisible(true);
             end.setScale(getBindScale());
             end.setLocation(getUserLocation());
-            Log.v("Widget", "Showing widget... target location:" + Arrays.toString(getUserLocation()));
+            logger.finest("Showing widget... target location:" + Arrays.toString(getUserLocation()));
 
             animate(this, start, end, 250);
         }
@@ -660,13 +661,13 @@ public class Widget extends Object3D implements EventListener {
     public void toggleLocation(float[] newLocation) {
         if (animation != null) return;
 
-        //Log.v("Widget", "Moving widget... this:" + this);
+        //logger.finest("Moving widget... this:" + this);
         JointTransform start = new JointTransform(null, null, new Float[3]);
         start.setLocation(getLocation());
 
         JointTransform end = new JointTransform(null, null, new Float[3]);
         end.setLocation(newLocation);
-        Log.v("Widget", "Showing widget... target location:" + Arrays.toString(newLocation));
+        logger.finest("Showing widget... target location:" + Arrays.toString(newLocation));
 
         animate(this, start, end, 250);
     }
@@ -776,7 +777,7 @@ public class Widget extends Object3D implements EventListener {
             return false;
         }
         if (parent instanceof Widget) {
-            //Log.v(TAG, "Propagate from "+this.getId()+"->"+parent.getId());
+            //logger.finest("Propagate from "+this.getId()+"->"+parent.getId());
             if (parent == this) {
                 throw new IllegalStateException("parent==this: "+parent);
             }
@@ -795,7 +796,7 @@ public class Widget extends Object3D implements EventListener {
     @Override
     public boolean onEvent(EventObject event) {
         if (event instanceof ChildAdded) {
-            //Log.v(TAG,"onEvent ("+getId()+"): "+event);
+            //logger.finest("onEvent ("+getId()+"): "+event);
             //refresh();
             /*if (event.getSource() == this ||
                     widgets.contains(((ChildAdded) event).getWidget())) {
@@ -895,7 +896,7 @@ public class Widget extends Object3D implements EventListener {
 
     protected boolean move(MoveEvent event) {
         if (isMovable()) {
-            //Log.v("Widget","Moving widget... "+getId());
+            //logger.finest("Moving widget... "+getId());
             float[] newPosition = event.getWidget().getLocation().clone();
             newPosition[0] += event.getDx();
             newPosition[1] += event.getDy();
@@ -956,7 +957,7 @@ public class Widget extends Object3D implements EventListener {
 
         //propagate(new Widget.ChildAdded(child));
 
-        //Log.d("Widget", "new child for " + getId() + ". child: " + child.getId());
+        //logger.config("new child for " + getId() + ". child: " + child.getId());
         // });
     }
 
@@ -1028,7 +1029,7 @@ public class Widget extends Object3D implements EventListener {
             float dx = point2[0] - point[0];
             float dy = point2[1] - point[1];
 
-            // Log.v("Widget", "Collision ! "+getId());
+            // logger.finest("Collision ! "+getId());
             return new Collision(this, point, dx, dy);
         }
         return null;
@@ -1067,7 +1068,7 @@ public class Widget extends Object3D implements EventListener {
 
         float[] intersection = CollisionDetection.getBoxIntersection(nearHit, direction, widget.getCurrentBoundingBox());
         if (intersection[0] >= 0 && intersection[0] <= intersection[1]) {
-            Log.d("Widget", "Clicked! " + widget.getId());
+            logger.config("Clicked! " + widget.getId());
             return Math3DUtils.add(nearHit, Math3DUtils.multiply(direction, intersection[0]));
         }
         return null;

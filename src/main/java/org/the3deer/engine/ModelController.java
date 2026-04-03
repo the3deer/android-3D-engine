@@ -3,11 +3,14 @@ package org.the3deer.engine;
 
 import android.view.MotionEvent;
 
+import org.the3deer.engine.android.shader.ShaderFactory;
+import org.the3deer.engine.android.util.AndroidUtils;
 import org.the3deer.engine.camera.CameraController;
 import org.the3deer.engine.collision.CollisionController;
 import org.the3deer.engine.collision.CollisionEvent;
 import org.the3deer.engine.controller.TouchController;
 import org.the3deer.engine.controller.TouchEvent;
+import org.the3deer.engine.event.GLEvent;
 import org.the3deer.engine.event.SelectedObjectEvent;
 import org.the3deer.engine.gui.GUI;
 import org.the3deer.engine.gui.GUIDrawer;
@@ -15,10 +18,7 @@ import org.the3deer.engine.model.Camera;
 import org.the3deer.engine.model.Object3D;
 import org.the3deer.engine.model.Projection;
 import org.the3deer.engine.model.Scene;
-import org.the3deer.engine.event.GLEvent;
 import org.the3deer.engine.renderer.TouchHandler;
-import org.the3deer.engine.android.shader.ShaderFactory;
-import org.the3deer.engine.android.util.AndroidUtils;
 import org.the3deer.util.bean.BeanFactory;
 import org.the3deer.util.event.EventListener;
 import org.the3deer.util.event.EventManager;
@@ -40,8 +40,6 @@ import javax.inject.Inject;
  *
  */
 public class ModelController implements EventManager, TouchHandler {
-
-    private final static String TAG = ModelController.class.getSimpleName();
 
     // dependencies
     @Inject
@@ -78,7 +76,7 @@ public class ModelController implements EventManager, TouchHandler {
     public boolean propagate(EventObject event) {
         if (event instanceof GLEvent) {
             final GLEvent rev = (GLEvent) event;
-            //Log.v(TAG, "propagate. RenderEvent:" + rev.getCode());
+            //logger.finest("propagate. RenderEvent:" + rev.getCode());
             if (rev.getCode() == GLEvent.Code.SURFACE_CREATED) {
 
                 // Note: Shader and Texture reset logic moved to ModelEngine.reset(),
@@ -105,16 +103,16 @@ public class ModelController implements EventManager, TouchHandler {
                     gui.onEvent(event);
                 }
             }
-            //Log.v(TAG, "onEvent. RenderEvent: listeners: " + listeners);
+            //logger.finest("onEvent. RenderEvent: listeners: " + listeners);
             AndroidUtils.fireEvent(listeners, event);
-            //Log.v(TAG, "onEvent. RenderEvent: finished");
+            //logger.finest("onEvent. RenderEvent: finished");
         } else if (event.getSource() instanceof MotionEvent) {
             if (touchController != null) {  // event coming from glview
                 return touchController.onEvent(event);
             }
         } else if (event instanceof TouchEvent) {
 
-            //Log.v(TAG,"Processing event... "+event);
+            //logger.finest("Processing event... "+event);
 
 /*            if (gui.onEvent(event)) {
                 return true;

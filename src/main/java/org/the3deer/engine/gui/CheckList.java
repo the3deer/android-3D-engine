@@ -1,7 +1,5 @@
 package org.the3deer.engine.gui;
 
-import android.util.Log;
-
 import org.the3deer.engine.model.Constants;
 import org.the3deer.util.io.IOUtils;
 
@@ -10,8 +8,13 @@ import java.nio.FloatBuffer;
 import java.util.ArrayList;
 import java.util.EventObject;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class CheckList extends Widget {
+
+    private static final Logger logger = Logger.getLogger(CheckList.class.getSimpleName());
+
 
     // bytes reserved per glyph
     private final static short GLYPH_BYTES = 18;
@@ -153,15 +156,15 @@ public class CheckList extends Widget {
 
     /*@Override
     public void toggleVisible() {
-        Log.i("CheckList", "Toggling menu...");
+        logger.info("Toggling menu...");
 
         // float[] finalPosition = calculatePosition(this, 4);
         float[] finalPosition = getLocation().clone();
-        Log.i("CheckList", "Final position: " + Arrays.toString(finalPosition));
+        logger.info("Final position: " + Arrays.toString(finalPosition));
 
         if (isVisible()) {
 
-            Log.i("CheckList", "Hiding menu...");
+            logger.info("Hiding menu...");
 
             JointTransform start = new JointTransform(new float[16]);
             start.setScale(new float[]{0.1f, 0.1f, 0.1f});
@@ -175,7 +178,7 @@ public class CheckList extends Widget {
 
             animate(start, end, 250);
         } else {
-            Log.i("CheckList", "Showing menu...");
+            logger.info("Showing menu...");
 
             JointTransform start = new JointTransform(new float[16]);
             start.setScale(0f, 0f, 0f);
@@ -242,7 +245,7 @@ public class CheckList extends Widget {
 
             float totalWidth = cols * GLYPH_SIZE + GLYPH_SIZE;
             float height = rows * GLYPH_SIZE;
-            Log.v("CheckList", "Size. width:" + totalWidth + ", height:" + height + ", depth:" + totalWidth);
+            logger.finest("Size. width:" + totalWidth + ", height:" + height + ", depth:" + totalWidth);
 
             // draw border
             vertexBuffer.put(0);
@@ -265,7 +268,7 @@ public class CheckList extends Widget {
             setVertexBuffer(vertexBuffer);
             setVertexColorsArrayBuffer(colorBuffer);
         } catch (Exception e) {
-            Log.e("CheckList", e.getMessage(), e);
+            logger.log(Level.SEVERE,  e.getMessage(), e);
         }
     }
 

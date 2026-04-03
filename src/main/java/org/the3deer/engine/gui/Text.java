@@ -1,7 +1,5 @@
 package org.the3deer.engine.gui;
 
-import android.util.Log;
-
 import org.the3deer.engine.model.Dimensions;
 import org.the3deer.util.io.IOUtils;
 
@@ -45,7 +43,7 @@ public final class Text extends Widget {
         // dimensions after because there isn't any vertex yet
         setDimensions(new Dimensions(0,
                 columns * (0.5f + padding * 2), rows * (0.7f + padding * 2), 0, 0, 0));
-        Log.d("Text", "Created text: " + getDimensions());
+        logger.config("Created text: " + getDimensions());
     }
 
     public static Text allocate(Widget parent, int columns, int rows) {

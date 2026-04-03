@@ -2,7 +2,6 @@ package org.the3deer.engine.services.fbx;
 
 import android.net.Uri;
 import android.opengl.GLES20;
-import android.util.Log;
 
 import org.the3deer.engine.model.Material;
 import org.the3deer.engine.model.Object3D;
@@ -19,10 +18,11 @@ import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Logger;
 
 public class FbxLoader {
 
-    private static final String TAG = FbxLoader.class.getSimpleName();
+    private static final Logger logger = Logger.getLogger(FbxLoader.class.getSimpleName());
 
     final FBXParser parser;
 
@@ -35,14 +35,14 @@ public class FbxLoader {
         final List<Object3D> ret = new ArrayList<>();
 
         try (InputStream stream = URI.create(uri.toString()).toURL().openStream()) {
-            Log.i(TAG, "Parsing FBX model... " + uri);
+            logger.info("Parsing FBX model... " + uri);
             callback.onProgress("Parsing FBX model... " + uri);
 
             FBXModel model = parser.parseModel(stream);
             if (model == null) return ret;
 
             final int meshCount = model.getMeshCount();
-            Log.i(TAG, "FBX Loaded. Mesh Count: " + meshCount);
+            logger.info("FBX Loaded. Mesh Count: " + meshCount);
 
             // build scene
             final Scene scene = new Scene("fbx_scene");
@@ -88,11 +88,11 @@ public class FbxLoader {
                 final byte[] textureEmbeddedData = parser.fbxGetTextureEmbeddedData(model.getNativeHandler(), i);
 
                 if (textureEmbeddedData != null) {
-                    Log.i(TAG, "Embedded Texture found for mesh: " + i);
+                    logger.info("Embedded Texture found for mesh: " + i);
                     material = new Material();
                     material.setColorTexture(new Texture().setData(textureEmbeddedData));
                 } else if (texturePath != null && !texturePath.isEmpty()) {
-                    Log.i(TAG, "External Texture Path: " + texturePath);
+                    logger.info("External Texture Path: " + texturePath);
                     material = new Material();
                     material.setColorTexture(new Texture().setFile(texturePath));
                 }

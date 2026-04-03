@@ -1,13 +1,16 @@
 package org.the3deer.engine.model;
 
-import android.util.Log;
 import androidx.annotation.NonNull;
+
+import java.util.logging.Logger;
 
 /**
  * @author Andres Oviedo
  * @author Gemini AI
  */
 public class Screen {
+
+    private static final Logger logger = Logger.getLogger(Screen.class.getSimpleName());
 
     public int width;
     public int height;
@@ -34,7 +37,7 @@ public class Screen {
         // derived
         this.ratio = (float) width / height;
 
-        Log.i("Screen", "Screen size is width: "+ width + ", height: " + height + ", ratio: "+ratio);
+        logger.info("Screen size is width: "+ width + ", height: " + height + ", ratio: "+ratio);
     }
 
     public void setInsets(int left, int top, int right, int bottom) {
@@ -42,17 +45,17 @@ public class Screen {
         this.top = top;
         this.right = right;
         this.bottom = bottom;
-        Log.i("Screen", "Screen insets set: left=" + left + ", top=" + top + ", right=" + right + ", bottom=" + bottom);
+        logger.info("Screen insets set: left=" + left + ", top=" + top + ", right=" + right + ", bottom=" + bottom);
     }
 
     public void setToolbarHeight(int toolbarHeight) {
         this.toolbarHeight = toolbarHeight;
-        Log.i("Screen", "Toolbar height set: " + toolbarHeight);
+        logger.info("Toolbar height set: " + toolbarHeight);
     }
 
     public void setBottomBarHeight(int bottomBarHeight) {
         this.bottomBarHeight = bottomBarHeight;
-        Log.i("Screen", "Bottom bar height set: " + bottomBarHeight);
+        logger.info("Bottom bar height set: " + bottomBarHeight);
     }
 
     public int getWidth() {

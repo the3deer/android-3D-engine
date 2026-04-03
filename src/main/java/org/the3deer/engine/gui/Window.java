@@ -1,7 +1,5 @@
 package org.the3deer.engine.gui;
 
-import android.util.Log;
-
 import org.the3deer.engine.model.Constants;
 import org.the3deer.engine.model.Dimensions;
 import org.the3deer.engine.model.Object3D;
@@ -10,6 +8,7 @@ import org.the3deer.util.io.IOUtils;
 import java.nio.Buffer;
 import java.nio.FloatBuffer;
 import java.util.EventObject;
+import java.util.logging.Level;
 
 public class Window extends Widget {
 
@@ -68,7 +67,7 @@ public class Window extends Widget {
             IOUtils.fill(colorBuffer, voffset / 3 * 4, colorBuffer.capacity(), 0);
 
         } catch (Exception e) {
-            Log.e("Window", e.getMessage(), e);
+            logger.log(Level.SEVERE,  e.getMessage(), e);
         }
     }
 
@@ -170,9 +169,9 @@ public class Window extends Widget {
             y /= FontFactory.getInstance().getCharHeight();
             int idxY = (int) (height / FontFactory.getInstance().getCharHeight()) - 1 - (int) y;
 
-            Log.v("Window", "x:" + idxX + ", y:" + idxY + ", last:" + last);
+            logger.finest( "x:" + idxX + ", y:" + idxY + ", last:" + last);
             if (idxY == 0 && idxX == last) {
-                Log.v("Window", "window closing...");
+                logger.finest("window closing...");
                 propagate(new WindowClosed(this));
                 return true;
             }
@@ -205,7 +204,7 @@ public class Window extends Widget {
             y /= Glyph.SIZE_V;
             int idxY = (int) (height / Glyph.SIZE_V) - 1 - (int) y;
 
-            // Log.v("Window", "can handle: x:" + idxX + ", y:" + idxY + ", last:" + last + ", can handle: " + (idxY == 0 && idxX == last));
+            // logger.finest(can handle: " + (idxY == 0 && idxX == last));
             if (idxY == 0 && idxX == last) {
                 return true;
             }
@@ -216,7 +215,7 @@ public class Window extends Widget {
             y /= getScaleY();
             y /= FontFactory.getInstance().getCharHeight();
             int idxY = (int) (height / FontFactory.getInstance().getCharHeight()) - 1 - (int) y;
-            // Log.v("Window", "can handle: y:" + idxY);
+            // logger.finest("can handle: y:" + idxY);
             if (idxY == 0) {
                 return true;
             }

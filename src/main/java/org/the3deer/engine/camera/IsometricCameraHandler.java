@@ -1,7 +1,6 @@
 package org.the3deer.engine.camera;
 
 import android.opengl.Matrix;
-import android.util.Log;
 
 import org.the3deer.engine.animation.AnimationController;
 import org.the3deer.engine.model.Camera;
@@ -11,6 +10,7 @@ import org.the3deer.util.bean.BeanInit;
 import org.the3deer.util.math.Math3DUtils;
 
 import java.util.Arrays;
+import java.util.logging.Logger;
 
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -29,6 +29,8 @@ import javax.inject.Named;
  *
  */
 public class IsometricCameraHandler implements CameraController.CameraHandler {
+
+    private static final Logger logger = Logger.getLogger(IsometricCameraHandler.class.getSimpleName());
 
     /**
      * The distance between the origin and the isometric coordinate
@@ -160,7 +162,7 @@ public class IsometricCameraHandler implements CameraController.CameraHandler {
             axis = Math3DUtils.VECTOR_UNIT_Z;
         } else {
             // this should never happen
-            Log.w("IsometricCamera", "rotateWithMatrix() coding issue. ignoring action...");
+            logger.warning("rotateWithMatrix() coding issue. ignoring action...");
             return;
         }
 
@@ -190,7 +192,7 @@ public class IsometricCameraHandler implements CameraController.CameraHandler {
 
         saveAndAnimate(newPos[0], newPos[1], newPos[2], newUp[0], newUp[1], newUp[2]);
 
-        //Log.v("IsometricCamera", "Rotating... action: " + delegate.getAnimation());
+        //logger.finest("Rotating... action: " + delegate.getAnimation());
     }
 
     private void saveAndAnimate(float xp, float yp, float zp, float xu, float yu, float zu) {
@@ -221,7 +223,7 @@ public class IsometricCameraHandler implements CameraController.CameraHandler {
                         camera.getxView(), camera.getyView(), camera.getzView(),
                         saveView[0], saveView[1], saveView[2]};
                 if (animationController != null && (animation == null || animation.isFinished())) {
-                    Log.v("IsometricCamera", "New animation: " + Arrays.toString(args));
+                    logger.finest("New animation: " + Arrays.toString(args));
                     animation = new CameraAnimation(camera, args);
                     animationController.add(animation);
                 }

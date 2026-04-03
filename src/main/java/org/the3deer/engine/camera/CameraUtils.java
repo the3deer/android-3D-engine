@@ -1,19 +1,18 @@
 package org.the3deer.engine.camera;
 
-import android.util.Log;
-
 import org.the3deer.engine.model.Camera;
 import org.the3deer.engine.model.Object3D;
 import org.the3deer.engine.model.Projection;
 
 import java.util.List;
+import java.util.logging.Logger;
 
 /**
  * @author Gemini AI
  */
 public class CameraUtils {
 
-    private static final String TAG = CameraUtils.class.getSimpleName();
+    private static final Logger logger = Logger.getLogger(CameraUtils.class.getSimpleName());
 
     /**
      * Frames the model(s) in the camera's view.
@@ -56,7 +55,7 @@ public class CameraUtils {
         }
 
         if (minX == Float.MAX_VALUE) {
-            Log.w(TAG, "Could not calculate bounding box for framing.");
+            logger.warning("Could not calculate bounding box for framing.");
             return;
         }
 
@@ -109,10 +108,10 @@ public class CameraUtils {
             projection.setNear(suggestedNear);
             projection.setFar(suggestedFar);
             
-            Log.i(TAG, "Dynamic projection: near=" + suggestedNear + ", far=" + suggestedFar + " (Ratio: " + (suggestedFar/suggestedNear) + ")");
+            logger.info("Dynamic projection: near=" + suggestedNear + ", far=" + suggestedFar + " (Ratio: " + (suggestedFar/suggestedNear) + ")");
         }
 
-        Log.i(TAG, "Framing model: center=(" + centerX + "," + centerY + "," + centerZ + "), distance=" + distance);
+        logger.info("Framing model: center=(" + centerX + "," + centerY + "," + centerZ + "), distance=" + distance);
 
         // 4. Position the camera
         float[] lookDir = new float[]{

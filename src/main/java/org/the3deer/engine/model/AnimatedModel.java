@@ -1,7 +1,6 @@
 package org.the3deer.engine.model;
 
 import android.opengl.Matrix;
-import android.util.Log;
 
 import org.the3deer.engine.animation.Animator;
 import org.the3deer.util.io.IOUtils;
@@ -9,6 +8,8 @@ import org.the3deer.util.io.IOUtils;
 import java.nio.Buffer;
 import java.nio.FloatBuffer;
 import java.util.Arrays;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * This class represents an entity in the world that can be animated. It
@@ -21,6 +22,8 @@ import java.util.Arrays;
  * @author andresoviedo
  */
 public class AnimatedModel extends Object3D {
+
+    private static final Logger logger = Logger.getLogger(AnimatedModel.class.getSimpleName());
 
     // skeleton
     private Skin skin;
@@ -136,11 +139,11 @@ public class AnimatedModel extends Object3D {
     public void debug() {
         try {
             // --- EXPANDED LOGGING ---
-            Log.d("MODEL_DEBUG", "--- MODEL DATA --- " + getId());
+            logger.config("--- MODEL DATA --- " + getId());
 
             if (modelMatrix != null) {
                 StringBuilder pos_sb = new StringBuilder("modelMatrix: ").append(Arrays.toString(modelMatrix));
-                Log.d("MODEL_DEBUG", pos_sb.toString());
+                logger.config(pos_sb.toString());
             }
 
 // Print first 30 floats (10 vertices)
@@ -149,7 +152,7 @@ public class AnimatedModel extends Object3D {
                 for (int i = 0; i < 16 && i < vertexArrayBuffer.capacity(); i++) {
                     pos_sb.append(vertexArrayBuffer.get(i)).append(" ");
                 }
-                Log.d("MODEL_DEBUG", pos_sb.toString());
+                logger.config(pos_sb.toString());
             }
 
 // Print first 30 floats (10 normals)
@@ -159,9 +162,9 @@ public class AnimatedModel extends Object3D {
                 for (int i = 0; i < 16 && i < vertexNormalsArrayBuffer.capacity(); i++) {
                     norm_sb.append(vertexNormalsArrayBuffer.get(i)).append(" ");
                 }
-                Log.d("MODEL_DEBUG", norm_sb.toString());
+                logger.config(norm_sb.toString());
             } else {
-                Log.d("MODEL_DEBUG", "Normals: null or too short.");
+                logger.config("Normals: null or too short.");
             }
 
             // Print first 15 indices
@@ -172,7 +175,7 @@ public class AnimatedModel extends Object3D {
                 for (int i = 0; i < 16 && i < indexBuffer.capacity(); i++) {
                     idx_sb.append(IOUtils.getIntBufferValue(indexBuffer, i)).append(" ");
                 }
-                Log.d("MODEL_DEBUG", idx_sb.toString());
+                logger.config(idx_sb.toString());
             }
 
             if (textureCoordsArrayBuffer != null) {
@@ -180,14 +183,14 @@ public class AnimatedModel extends Object3D {
                 for (int i = 0; i < 16 && i < textureCoordsArrayBuffer.capacity(); i++) {
                     norm_sb.append(textureCoordsArrayBuffer.get(i)).append(" ");
                 }
-                Log.d("MODEL_DEBUG", norm_sb.toString());
+                logger.config(norm_sb.toString());
             } else {
-                Log.d("MODEL_DEBUG", "Textures: null or too short.");
+                logger.config("Textures: null or too short.");
             }
 
             // --- END LOGGING ---
         } catch (Exception e) {
-            Log.e("MODEL_DEBUG", e.getMessage(), e);
+            logger.log(Level.SEVERE,  e.getMessage(), e);
         }
     }
 }

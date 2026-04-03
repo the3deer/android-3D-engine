@@ -1,13 +1,14 @@
 package org.the3deer.engine.services;
 
 import android.net.Uri;
-import android.util.Log;
 
 import org.the3deer.engine.model.Object3D;
 
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * This component allows loading the model without blocking the UI.
@@ -15,6 +16,8 @@ import java.util.concurrent.Executors;
  * @author andresoviedo
  */
 public abstract class LoaderTask {
+
+    protected static final Logger logger = Logger.getLogger(LoaderTask.class.getSimpleName());
 
     private static final ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 
@@ -59,7 +62,7 @@ public abstract class LoaderTask {
             build();
             callback.onLoadComplete();
         } catch (final Exception ex) {
-            Log.e("LoaderTask", "Error loading model: " + ex.getMessage(), ex);
+            logger.log(Level.SEVERE,  "Error loading model: " + ex.getMessage(), ex);
             callback.onLoadError(ex);
         } catch (final OutOfMemoryError err) {
             callback.onLoadError(new RuntimeException("Out Of Memory Error", err));

@@ -1,7 +1,6 @@
 package org.the3deer.engine.util;
 
 import android.opengl.Matrix;
-import android.util.Log;
 
 import org.the3deer.engine.model.Constants;
 import org.the3deer.util.math.Math3DUtils;
@@ -9,8 +8,11 @@ import org.the3deer.util.math.Math3DUtils;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.logging.Logger;
 
 public class HoleCutter {
+
+    private static final Logger logger = Logger.getLogger(HoleCutter.class.getSimpleName());
 
     public static List<Integer> pierce(List<float[]> triangles, List<List<float[]>> holesList) {
 
@@ -27,7 +29,7 @@ public class HoleCutter {
         cross[2] = 0;
         float[] rotationMatrix = Math3DUtils.createRotationMatrixAroundVector(angle, cross[0], cross[1], cross[2]);
 
-        Log.v("HoleCutter", "normal: " + Arrays.toString(normal) + ", angle: " + angle + ", axis: " + Arrays.toString(cross));
+        logger.finest( "normal: " + Arrays.toString(normal) + ", angle: " + angle + ", axis: " + Arrays.toString(cross));
 
         // map 3D to 2D
         final List<Float> list2D = new ArrayList<>();
@@ -42,8 +44,8 @@ public class HoleCutter {
             list2D.add(mult[0]);
             list2D.add(mult[1]);
 
-            //Log.i("HoleCutter", "p: " + Arrays.toString(temp1));
-            //Log.i("HoleCutter","v1: "+ Arrays.toString(mult));
+            //logger.info("p: " + Arrays.toString(temp1));
+            //logger.info("v1: "+ Arrays.toString(mult));
         }
 
         // convert to integers
@@ -51,8 +53,8 @@ public class HoleCutter {
         for (int i = 0; i < list2D.size(); i++) {
             ints.add(((int)(list2D.get(i)*1000000)));
         }
-        Log.i("HoleCutter","Ints:"+ints.toString());
-        Log.i("HoleCutter", "Ints size: " + list2D.size());
+        logger.info("Ints:"+ints.toString());
+        logger.info("Ints size: " + list2D.size());
 
         final List<Integer> holeIndices = new ArrayList<>();
         for (List<float[]> holeList : holesList) {
@@ -72,7 +74,7 @@ public class HoleCutter {
                 list2D.add(mult[1]);
             }
 
-            //Log.i("HoleCutter", "h: " + Arrays.toString(temp1));
+            //logger.info("h: " + Arrays.toString(temp1));
         }
 
 
@@ -80,9 +82,9 @@ public class HoleCutter {
         for (int i = 0; i < list2D.size(); i++) {
             ints.add(((int)(list2D.get(i)*1000000)));
         }
-        Log.i("HoleCutter","Ints with Holes:"+ints.toString());
-        Log.i("HoleCutter", "Ints holes indices: " + holeIndices.toString());
-        Log.i("HoleCutter", "Ints size: " + list2D.size());
+        logger.info("Ints with Holes:"+ints.toString());
+        logger.info("Ints holes indices: " + holeIndices.toString());
+        logger.info("Ints size: " + list2D.size());
 
         // triangulate
         float[] rq = new float[list2D.size()];

@@ -1,13 +1,14 @@
 package org.the3deer.engine.util;
 
-import android.util.Log;
-
 import org.the3deer.engine.model.AnimatedModel;
 import org.the3deer.engine.model.Object3D;
 
 import java.nio.FloatBuffer;
+import java.util.logging.Logger;
 
 public class Rescaler {
+
+    private static final Logger logger = Logger.getLogger(Rescaler.class.getSimpleName());
 
     public static void rescale(Object3D object3D, float maxSize) {
         float leftPt = Float.MAX_VALUE, rightPt = -Float.MAX_VALUE; // on x-axis
@@ -16,11 +17,11 @@ public class Rescaler {
 
         FloatBuffer vertexBuffer = object3D.getVertexBuffer();
         if (vertexBuffer == null) {
-            Log.v("Rescaler", "Scaling for '" + object3D.getId() + "' I found that there is no vertex data");
+            logger.finest("Scaling for '" + object3D.getId() + "' I found that there is no vertex data");
             return;
         }
 
-        Log.v("Rescaler", "Rescaling '" + object3D.getId() + "...");
+        logger.finest("Rescaling '" + object3D.getId() + "...");
         for (int i = 0; i < vertexBuffer.capacity(); i += 3) {
             if (vertexBuffer.get(i) > rightPt)
                 rightPt = vertexBuffer.get(i);
@@ -35,9 +36,9 @@ public class Rescaler {
             else if (vertexBuffer.get(i + 2) < farPt)
                 farPt = vertexBuffer.get(i + 2);
         } // end
-        Log.v("Rescaler", "Dimensions for '" + object3D.getId() + " (X left, X right): (" + leftPt + "," + rightPt + ")");
-        Log.v("Rescaler", "Dimensions for '" + object3D.getId() + " (Y top, Y bottom): (" + topPt + "," + bottomPt + ")");
-        Log.v("Rescaler", "Dimensions for '" + object3D.getId() + " (Z near, Z far): (" + nearPt + "," + farPt + ")");
+        logger.finest("Dimensions for '" + object3D.getId() + " (X left, X right): (" + leftPt + "," + rightPt + ")");
+        logger.finest("Dimensions for '" + object3D.getId() + " (Y top, Y bottom): (" + topPt + "," + bottomPt + ")");
+        logger.finest("Dimensions for '" + object3D.getId() + " (Z near, Z far): (" + nearPt + "," + farPt + ")");
 
         // calculate center of 3D object
         float xc = (rightPt + leftPt) / 2.0f;
@@ -54,7 +55,7 @@ public class Rescaler {
             largest = height;
         if (depth > largest)
             largest = depth;
-        Log.v("Rescaler", "Largest dimension [" + largest + "]");
+        logger.finest("Largest dimension [" + largest + "]");
 
         // scale object
 
@@ -62,8 +63,7 @@ public class Rescaler {
         float scaleFactor = 1.0f;
         if (largest != 0.0f)
             scaleFactor = (maxSize / largest);
-        Log.i("Rescaler",
-                "Scaling '" + object3D.getId() + "' to (" + xc + "," + yc + "," + zc + ") scale: '" + scaleFactor + "'");
+        logger.info("Scaling '" + object3D.getId() + "' to (" + xc + "," + yc + "," + zc + ") scale: '" + scaleFactor + "'");
 
         // this.setOriginalScale(new float[]{scaleFactor,scaleFactor,scaleFactor});
 
@@ -86,7 +86,6 @@ public class Rescaler {
             object3D.setVertexBuffer(vertexBuffer);
         }
 
-        Log.d("Rescaler",
-                "New dimensions for '" + object3D.getId() + ": "+ object3D.getCurrentDimensions());
+        logger.config("New dimensions for '" + object3D.getId() + ": "+ object3D.getCurrentDimensions());
     }
 }

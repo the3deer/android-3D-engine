@@ -1,7 +1,5 @@
 package org.the3deer.engine.services.collada.entities;
 
-import android.util.Log;
-
 import org.the3deer.engine.model.Element;
 import org.the3deer.util.io.IOUtils;
 import org.the3deer.util.math.Math3DUtils;
@@ -12,6 +10,8 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * This object contains all the mesh data for an animated model that is to be loaded into the VAO.
@@ -35,6 +35,7 @@ import java.util.Map;
  */
 public class MeshData {
 
+    private static final Logger logger = Logger.getLogger(MeshData.class.getSimpleName());
 
     private static final float[] WRONG_NORMAL = {0, -1, 0};
 
@@ -230,12 +231,12 @@ public class MeshData {
 
     private void smoothGroups() {
         // log event
-        Log.i("MeshData", "Smoothing groups... Total: " + smoothingGroups.size());
+        logger.info("Smoothing groups... Total: " + smoothingGroups.size());
 
         // process all smoothing groups
         for (Map.Entry<String, List<Vertex>> smoothingGroup : smoothingGroups.entrySet()) {
 
-            Log.v("MeshData", "Smoothing group... Total vertices: " + smoothingGroup.getValue().size());
+            logger.finest("Smoothing group... Total vertices: " + smoothingGroup.getValue().size());
 
 
             // accumulated normal
@@ -290,7 +291,7 @@ public class MeshData {
         try {
             Math3DUtils.normalizeVector(normal);
         } catch (Exception e) {
-            Log.w("MeshData", "Error calculating normal. " + e.getMessage()
+            logger.warning("Error calculating normal. " + e.getMessage()
                     + "," + Math3DUtils.toString(v1)
                     + "," + Math3DUtils.toString(v2)
                     + "," + Math3DUtils.toString(v3));
@@ -305,7 +306,7 @@ public class MeshData {
      */
     public void fixNormals() {
 
-        Log.v("MeshData", "Fixing missing or wrong normals...");
+        logger.finest("Fixing missing or wrong normals...");
 
         // check there is normals to fix
         if (this.normals == null || this.normals.isEmpty()) {
@@ -332,7 +333,7 @@ public class MeshData {
      */
     private void generateNormals() {
 
-        Log.d("MeshData", "Generating normals...");
+        logger.config("Generating normals...");
 
         // replaced normals
         final List<float[]> newNormals = new ArrayList<>();
@@ -389,12 +390,12 @@ public class MeshData {
 
         this.normals = newNormals;
 
-        Log.d("MeshData", "Generated normals. Total: " + this.normals.size() + ", Faces/Lines: " + counter);
+        logger.config("Generated normals. Total: " + this.normals.size() + ", Faces/Lines: " + counter);
     }
 
     private void fixNormalsForArrays() {
 
-        Log.d("MeshData", "Fixing normals...");
+        logger.config("Fixing normals...");
 
         // otherwise replaced with this normals
         final List<float[]> newNormals = new ArrayList<>();
@@ -471,13 +472,13 @@ public class MeshData {
 
         this.normals = newNormals;
 
-        Log.v("MeshData", "Fixed normals. Total: " + counter);
+        logger.finest("Fixed normals. Total: " + counter);
     }
 
 
     private void fixNormalsForElements() {
 
-        Log.v("MeshData", "Fixing normals for all elements...");
+        logger.finest("Fixing normals for all elements...");
 
         // otherwise replaced with this normals
         final List<float[]> newNormals = new ArrayList<>();
@@ -595,7 +596,7 @@ public class MeshData {
 
         if (counter > 0) {
             this.normals = newNormals;
-            Log.v("MeshData", "Fixed normals. Total: " + counter);
+            logger.finest("Fixed normals. Total: " + counter);
         }
 
     }
@@ -603,7 +604,7 @@ public class MeshData {
     private void smoothAutoForArrays() {
 
         // log event
-        Log.i("MeshData", "Auto smoothing normals for arrays...");
+        logger.info("Auto smoothing normals for arrays...");
 
         // smoothed normal
         final Map<String, float[]> smoothNormals = new HashMap<>();
@@ -641,7 +642,7 @@ public class MeshData {
     private void smoothAutoForElements() {
 
         // log event
-        Log.i("MeshData", "Auto smoothing normals for all elements...");
+        logger.info("Auto smoothing normals for all elements...");
 
         // list of normals associated to the vertex (vertexId --> set of normals)
         final Map<Integer, List<float[]>> vertexNormals = new HashMap<>();
@@ -724,13 +725,13 @@ public class MeshData {
 //
 ////                float[] check = search(this.normals, normals.get(j));
 ////                if (check == null || !Arrays.equals(check, normals.get(j))){
-////                    Log.e("MeshData","search returned ko");
+////                    logger.log(Level.SEVERE, "search returned ko");
 ////                }
 //            }
 //
 //        }
 
-        //Log.i("MeshData", "Smoothing fixed a total of " + count + " normals");
+        //logger.info("Smoothing fixed a total of " + count + " normals");
     }
 
     private static float[] search(List<float[]> list, float[] search){
@@ -753,7 +754,7 @@ public class MeshData {
             if (Float.isNaN(normal[2])) throw new IllegalArgumentException("NaN");
 
             if (Math3DUtils.length(normal) < 0.9f) {
-                Log.e("MeshData","Wrong normal. Length < 0.9");
+                logger.log(Level.SEVERE, "Wrong normal. Length < 0.9");
             }
         }
 
@@ -798,7 +799,7 @@ public class MeshData {
                     if (index >= 0 && index < normals.size()) {
                         normal = normals.get(index);
                     } else {
-                        //Log.v("MeshData", "Wrong normal index: " + index);
+                        //logger.finest("Wrong normal index: " + index);
                     }
                     this.normalsBuffer.put(normal);
                 }
@@ -813,15 +814,15 @@ public class MeshData {
 
     public void refreshNormalsBuffer() {
         if (this.normalsBuffer == null || this.normals.isEmpty()) {
-            Log.e("MeshData", "Can't refresh normals buffer. Either normals or normalsBuffer is empty");
+            logger.log(Level.SEVERE,  "Can't refresh normals buffer. Either normals or normalsBuffer is empty");
             return;
         } else if (this.verticesAttributes != null && this.verticesAttributes.size() * 3 != this.normalsBuffer.capacity()) {
-            Log.e("MeshData", "Can't refresh normals buffer. Buffer size doesn't match actual data");
+            logger.log(Level.SEVERE,  "Can't refresh normals buffer. Buffer size doesn't match actual data");
         } else if (this.verticesAttributes == null && this.normals.size() * 3 != this.normalsBuffer.capacity()) {
-            Log.e("MeshData", "Can't refresh normals buffer. Buffer size doesn't match actual data");
+            logger.log(Level.SEVERE,  "Can't refresh normals buffer. Buffer size doesn't match actual data");
         }
 
-        Log.i("MeshData", "Refreshing normals buffer...");
+        logger.info("Refreshing normals buffer...");
         if (this.verticesAttributes != null) {
             for (int i = 0; i < verticesAttributes.size(); i++) {
                 float[] normal = WRONG_NORMAL; // no normal in case of error
@@ -829,7 +830,7 @@ public class MeshData {
                 if (index >= 0 && index < normals.size()) {
                     normal = this.normals.get(index);
                 } else {
-                    //Log.v("MeshData", "Wrong normal index: " + index);
+                    //logger.finest("Wrong normal index: " + index);
                 }
                 this.normalsBuffer.put(i * 3, normal[0]);
                 this.normalsBuffer.put(i * 3 + 1, normal[1]);

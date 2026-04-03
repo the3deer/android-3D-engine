@@ -1,7 +1,5 @@
 package org.the3deer.engine.animation;
 
-import android.util.Log;
-
 import org.the3deer.engine.model.Animation;
 import org.the3deer.engine.renderer.RenderListener;
 import org.the3deer.util.bean.Bean;
@@ -10,9 +8,12 @@ import org.the3deer.util.bean.BeanProperty;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.logging.Logger;
 
 @Bean
 public class AnimationController implements RenderListener {
+
+    private static final Logger logger = Logger.getLogger(AnimationController.class.getSimpleName());
 
     // state
     @BeanProperty
@@ -24,7 +25,7 @@ public class AnimationController implements RenderListener {
 
     public void add(Animation<?> animation) {
         synchronized (animations_new) {
-            Log.i("AnimationController", "New animation...." + animation);
+            logger.info("New animation...." + animation);
             this.animations_new.add(animation);
         }
     }

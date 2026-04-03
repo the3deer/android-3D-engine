@@ -1,10 +1,8 @@
 package org.the3deer.engine.collision;
 
-import android.util.Log;
-
+import org.the3deer.engine.Model;
 import org.the3deer.engine.controller.TouchEvent;
 import org.the3deer.engine.model.Camera;
-import org.the3deer.engine.Model;
 import org.the3deer.engine.model.Object3D;
 import org.the3deer.engine.model.Scene;
 import org.the3deer.engine.model.Screen;
@@ -13,6 +11,7 @@ import org.the3deer.util.event.EventManager;
 
 import java.util.EventObject;
 import java.util.List;
+import java.util.logging.Logger;
 
 import javax.inject.Inject;
 
@@ -23,6 +22,8 @@ import javax.inject.Inject;
  * Collision controller processes {@link TouchEvent} and fires {@link CollisionEvent}
  */
 public class CollisionController implements EventListener {
+
+    private static final Logger logger = Logger.getLogger(CollisionController.class.getSimpleName());
 
     @Inject
     private Screen screen;
@@ -50,7 +51,7 @@ public class CollisionController implements EventListener {
     public boolean onEvent(EventObject event) {
 
         // process event
-        //Log.v("CollisionController", "Processing event... " + event.toString());
+        //logger.finest("Processing event... " + event.toString());
         if (event instanceof TouchEvent) {
             TouchEvent touchEvent = (TouchEvent) event;
             if (touchEvent.getAction() == TouchEvent.CLICK) {
@@ -66,7 +67,7 @@ public class CollisionController implements EventListener {
                 final List<Object3D> objects = scene.getObjects();
                 if (objects.isEmpty()) return false;
 
-                //Log.v("CollisionController", getObjects().get(0).getCurrentDimensions().toString());
+                //logger.finest(getObjects().get(0).getCurrentDimensions().toString());
                 final float x = touchEvent.getX();
                 final float y = touchEvent.getY();
 
@@ -77,7 +78,7 @@ public class CollisionController implements EventListener {
                 if (objectHit != null) {
 
                     // intersection point
-                    Log.i("CollisionController", "Getting intersection... " + objectHit.getId()+", x="+x+", y="+y);
+                    logger.info("Getting intersection... " + objectHit.getId()+", x="+x+", y="+y);
                     float[] point3D = CollisionDetection.getTriangleIntersection(objectHit, screen.getWidth(), screen.getHeight(),
                             camera.getViewMatrix(), camera.getProjectionMatrix(), x, y);
 

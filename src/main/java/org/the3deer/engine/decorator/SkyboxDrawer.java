@@ -2,17 +2,16 @@ package org.the3deer.engine.decorator;
 
 import android.opengl.GLES20;
 import android.opengl.Matrix;
-import android.util.Log;
 
+import org.the3deer.engine.android.shader.Shader;
+import org.the3deer.engine.android.shader.ShaderFactory;
+import org.the3deer.engine.android.shader.ShaderResource;
 import org.the3deer.engine.model.Camera;
 import org.the3deer.engine.model.Constants;
 import org.the3deer.engine.model.Object3D;
 import org.the3deer.engine.model.Screen;
 import org.the3deer.engine.objects.Skybox;
 import org.the3deer.engine.renderer.Drawer;
-import org.the3deer.engine.android.shader.Shader;
-import org.the3deer.engine.android.shader.ShaderFactory;
-import org.the3deer.engine.android.shader.ShaderResource;
 import org.the3deer.engine.util.Rescaler;
 import org.the3deer.util.bean.Bean;
 import org.the3deer.util.bean.BeanInit;
@@ -21,11 +20,15 @@ import org.the3deer.util.bean.BeanProperty;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.inject.Inject;
 
 @Bean
 public class SkyboxDrawer implements Drawer {
+
+    private static final Logger logger = Logger.getLogger(SkyboxDrawer.class.getSimpleName());
 
     @Inject
     private ShaderFactory shaderFactory;
@@ -59,7 +62,7 @@ public class SkyboxDrawer implements Drawer {
     public void setActiveSkyBox(String id) {
 
         // debug
-        Log.i("SkyboxDrawer", "Setting active sky box to '" + id + "'");
+        logger.info("Setting active sky box to '" + id + "'");
 
         // lazy building of the 3d object
         loadSkyBox(id);
@@ -104,7 +107,7 @@ public class SkyboxDrawer implements Drawer {
             }
 
             // debug
-            Log.i("SkyboxDrawer", "Building sky box... skybox: " + skyboxId);
+            logger.info("Building sky box... skybox: " + skyboxId);
 
             // build skybox
             skybox3D = Skybox.build(skybox);
@@ -120,7 +123,7 @@ public class SkyboxDrawer implements Drawer {
             // register skybox
             skyboxes3D.put(skyboxId, skybox3D);
         } catch (IOException e) {
-            Log.e("SkyboxDrawer", "Error building sky box '" + skyboxId + "'. " + e.getMessage(), e);
+            logger.log(Level.SEVERE,  "Error building sky box '" + skyboxId + "'. " + e.getMessage(), e);
             enabled = false;
             return;
         }
@@ -150,7 +153,7 @@ public class SkyboxDrawer implements Drawer {
 
         // check
         if (skybox3D == null) {
-            Log.e("SkyboxDrawer", "Skybox '" + this.activeSkyBox + "' not found");
+            logger.log(Level.SEVERE,  "Skybox '" + this.activeSkyBox + "' not found");
             enabled = false;
             return;
         }
@@ -160,7 +163,7 @@ public class SkyboxDrawer implements Drawer {
 
             // debug
             if (!traced) {
-                Log.i("SkyboxDrawer", "Drawing sky box... id: " + activeSkyBox);
+                logger.info("Drawing sky box... id: " + activeSkyBox);
             }
 
             // paint
@@ -175,12 +178,12 @@ public class SkyboxDrawer implements Drawer {
 
             // debug
             if (!traced) {
-                Log.i("SkyboxDrawer", "Sky box first draw finished. id: " + activeSkyBox);
+                logger.info("Sky box first draw finished. id: " + activeSkyBox);
                 traced = true;
             }
 
         } catch (Throwable ex) {
-            Log.e("SkyboxDrawer", "Error rendering sky box. " + ex.getMessage(), ex);
+            logger.log(Level.SEVERE,  "Error rendering sky box. " + ex.getMessage(), ex);
             enabled = false;
         }
     }

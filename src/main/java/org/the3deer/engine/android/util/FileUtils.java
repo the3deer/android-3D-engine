@@ -5,7 +5,6 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.os.Build;
 import android.os.Environment;
-import android.util.Log;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -13,11 +12,15 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Created by coco on 6/7/15.
  */
 public class FileUtils {
+
+    private static final Logger logger = Logger.getLogger(FileUtils.class.getSimpleName());
 
     @FunctionalInterface
     public interface Callback {
@@ -105,7 +108,7 @@ public class FileUtils {
                 }
             }
         } else {
-            Log.i("FileUtils","Listing files... "+folder.getAbsolutePath());
+            logger.info("Listing files... "+folder.getAbsolutePath());
             try {
                 File[] children = folder.listFiles(file ->
                         !file.isHidden() && file.exists() && (file.isDirectory() || file.getName().matches(fileRegex)));
@@ -113,7 +116,7 @@ public class FileUtils {
                     ret.addAll(Arrays.asList(children));
                 }
             } catch (Exception e) {
-                Log.e("FileUtils","Error opening directory "+folder.getAbsolutePath());
+                logger.log(Level.SEVERE, "Error opening directory "+folder.getAbsolutePath());
             }
         }
         Collections.sort(ret, (o1, o2) -> o1.getName().compareToIgnoreCase(o2.getName()));

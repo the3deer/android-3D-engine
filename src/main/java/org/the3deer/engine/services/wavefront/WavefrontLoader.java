@@ -31,7 +31,6 @@ package org.the3deer.engine.services.wavefront;
 
 import android.net.Uri;
 import android.opengl.GLES20;
-import android.util.Log;
 
 import androidx.annotation.Nullable;
 
@@ -55,8 +54,12 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class WavefrontLoader {
+
+    private static final Logger logger = Logger.getLogger(WavefrontLoader.class.getSimpleName());
 
     private final int triangulationMode;
     private final LoadListener callback;
@@ -87,7 +90,7 @@ public class WavefrontLoader {
                 }
             }
         } catch (IOException e) {
-            Log.e("WavefrontLoader", "Problem reading file '" + uri + "': " + e.getMessage(), e);
+            logger.log(Level.SEVERE,  "Problem reading file '" + uri + "': " + e.getMessage(), e);
             throw new RuntimeException(e);
         }
         return null;
@@ -97,10 +100,10 @@ public class WavefrontLoader {
         try {
 
             // log event
-            Log.i("WavefrontLoader", "Loading model... " + modelURI);
+            logger.info("Loading model... " + modelURI);
 
             // log event
-            Log.d("WavefrontLoader", "Parsing geometries... ");
+            logger.config("Parsing geometries... ");
 
             // open stream, parse model, then close stream
             final InputStream is = modelURI.toURL().openStream();
@@ -111,7 +114,7 @@ public class WavefrontLoader {
             final List<Object3D> ret = new ArrayList<>();
 
             // log event
-            Log.d("WavefrontLoader", "Processing geometries... ");
+            logger.config("Processing geometries... ");
 
             // notify listener
             callback.onProgress("Processing geometries...");
@@ -162,13 +165,13 @@ public class WavefrontLoader {
             }
 
             // log event
-            Log.i("WavefrontLoader", "Finished loading. Geometries: " + ret.size());
+            logger.info("Finished loading. Geometries: " + ret.size());
 
             callback.onLoadScene(scene);
 
             return ret;
         } catch (Exception ex) {
-            Log.e("WavefrontLoader", ex.getMessage(), ex);
+            logger.log(Level.SEVERE,  ex.getMessage(), ex);
             callback.onLoadError(ex);
             throw ex;
         }
@@ -180,7 +183,7 @@ public class WavefrontLoader {
         if (meshData.getMaterialFile() == null) return;
 
         // log event
-        Log.d("WavefrontLoader", "Parsing materials... ");
+        logger.config("Parsing materials... ");
 
         try {
 
@@ -203,7 +206,7 @@ public class WavefrontLoader {
                     final Element element = meshData.getElements().get(e);
 
                     // log event
-                    Log.d("WavefrontLoader", "Processing element... " + element.getId());
+                    logger.config("Processing element... " + element.getId());
 
                     // get material id
                     final String elementMaterialId = element.getMaterialId();
@@ -223,7 +226,7 @@ public class WavefrontLoader {
 
 
                             // log event
-                            Log.d("WavefrontLoader", "Reading texture file... " + elementMaterial.getColorTexture().getFile());
+                            logger.config("Reading texture file... " + elementMaterial.getColorTexture().getFile());
 
                             // normalize path
                             String replace = elementMaterial.getColorTexture().getFile().replace('\\', '/');
@@ -238,24 +241,24 @@ public class WavefrontLoader {
                                 elementMaterial.getColorTexture().setData(IOUtils.read(stream));
 
                                 // log event
-                                Log.d("WavefrontLoader", "Texture linked... " + elementMaterial.getColorTexture().getFile());
+                                logger.config("Texture linked... " + elementMaterial.getColorTexture().getFile());
 
                             } catch (Exception ex) {
-                                Log.e("WavefrontLoader", String.format("Error reading texture file: %s", ex.getMessage()));
+                                logger.log(Level.SEVERE,  String.format("Error reading texture file: %s", ex.getMessage()));
                             }
                         }
                     }
                 }
             }
         } catch (IOException ex) {
-            Log.e("WavefrontLoader", "Error loading materials... file: " + meshData.getMaterialFile()+", error: "+ex.getMessage());
+            logger.log(Level.SEVERE,  "Error loading materials... file: " + meshData.getMaterialFile()+", error: "+ex.getMessage());
         }
     }
 
     private List<MeshData> loadModel(String uri, InputStream is) {
 
         // log event
-        Log.i("WavefrontLoader", "Loading model... " + uri);
+        logger.info("Loading model... " + uri);
 
         // parse Uri
         final URI modelURI = URI.create(uri);
@@ -316,7 +319,7 @@ public class WavefrontLoader {
                             meshes.add(build);
 
                             // log event
-                            Log.d("WavefrontLoader", "Loaded mesh. id:" + build.getId() + ", indices: " + indicesCurrent.size()
+                            logger.config("Loaded mesh. id:" + build.getId() + ", indices: " + indicesCurrent.size()
                                     + ", vertices:" + vertexList.size()
                                     + ", normals: " + normalsList.size()
                                     + ", textures:" + textureList.size()
@@ -340,7 +343,7 @@ public class WavefrontLoader {
                             meshCurrent.addElement(elementCurrent.build());
 
                             // log event
-                            Log.d("WavefrontLoader", "New element. indices: " + indicesCurrent.size());
+                            logger.config("New element. indices: " + indicesCurrent.size());
 
                             // prepare next element
                             indicesCurrent = new ArrayList<>();
@@ -355,7 +358,7 @@ public class WavefrontLoader {
                         try {
                             mtllib = modelURI.resolve(line.substring(7)).toString();
                         } catch (Exception e) {
-                            Log.e("WavefrontLoader", "Error reading line: " + lineNum + " : " + line, e);
+                            logger.log(Level.SEVERE,  "Error reading line: " + lineNum + " : " + line, e);
                         }
                     } else if (line.startsWith("usemtl ")) {// use material
                         if (elementCurrent.getMaterialId() != null) {
@@ -365,7 +368,7 @@ public class WavefrontLoader {
                             meshCurrent.addElement(elementCurrent.build());
 
                             // log event
-                            Log.v("WavefrontLoader", "New material: " + line);
+                            logger.finest("New material: " + line);
 
                             // prepare next element
                             indicesCurrent = new ArrayList<>();
@@ -382,9 +385,9 @@ public class WavefrontLoader {
                             smoothingGroups.put(smoothingGroupId, currentSmoothingList);
                         }
                     } else if (line.charAt(0) == '#') { // comment line
-                        Log.v("WavefrontLoader", line);
+                        logger.finest(line);
                     } else
-                        Log.w("WavefrontLoader", "Ignoring line " + lineNum + " : " + line);
+                        logger.warning("Ignoring line " + lineNum + " : " + line);
 
                 }
 
@@ -394,7 +397,7 @@ public class WavefrontLoader {
                         .vertexAttributes(verticesAttributes).materialFile(mtllib)
                         .addElement(element).smoothingGroups(smoothingGroups).build();
 
-                Log.d("WavefrontLoader", "Loaded mesh. id:" + meshData.getId() + ", indices: " + indicesCurrent.size()
+                logger.config("Loaded mesh. id:" + meshData.getId() + ", indices: " + indicesCurrent.size()
                         + ", vertices:" + vertexList.size()
                         + ", normals: " + normalsList.size()
                         + ", textures:" + textureList.size()
@@ -407,8 +410,8 @@ public class WavefrontLoader {
                 return meshes;
 
             } catch (Exception e) {
-                Log.e("WavefrontLoader", "Error reading line: " + lineNum + ":" + line, e);
-                Log.e("WavefrontLoader", e.getMessage(), e);
+                logger.log(Level.SEVERE,  "Error reading line: " + lineNum + ":" + line, e);
+                logger.log(Level.SEVERE,  e.getMessage(), e);
                 throw new RuntimeException(e);
             }
         } finally {
@@ -416,7 +419,7 @@ public class WavefrontLoader {
                 try {
                     br.close();
                 } catch (IOException e) {
-                    Log.e("WavefrontLoader", e.getMessage(), e);
+                    logger.log(Level.SEVERE,  e.getMessage(), e);
                 }
             }
         }
@@ -435,7 +438,7 @@ public class WavefrontLoader {
             vector[2] = Float.parseFloat(tokens[2]);
             vectorList.add(vector);
         } catch (Exception ex) {
-            Log.e("WavefrontLoader", "Error parsing vector '"+line+"': "+ex.getMessage());
+            logger.log(Level.SEVERE,  "Error parsing vector '"+line+"': "+ex.getMessage());
             vectorList.add(new float[3]);
         }
 
@@ -459,7 +462,7 @@ public class WavefrontLoader {
             }
             textureList.add(vector);
         } catch (Exception ex) {
-            Log.e("WavefrontLoader", ex.getMessage());
+            logger.log(Level.SEVERE,  ex.getMessage());
             textureList.add(new float[2]);
         }
 
@@ -561,7 +564,7 @@ public class WavefrontLoader {
                 }
             }
         } catch (NumberFormatException e) {
-            Log.e("WavefrontLoader", e.getMessage(), e);
+            logger.log(Level.SEVERE,  e.getMessage(), e);
         }
     }
 

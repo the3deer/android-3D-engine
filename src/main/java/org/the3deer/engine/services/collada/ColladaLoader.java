@@ -3,7 +3,6 @@ package org.the3deer.engine.services.collada;
 import android.net.Uri;
 import android.opengl.GLES20;
 import android.opengl.Matrix;
-import android.util.Log;
 
 import org.the3deer.engine.animation.Animation;
 import org.the3deer.engine.model.AnimatedModel;
@@ -27,10 +26,12 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class ColladaLoader {
 
-    private static final String TAG = ColladaLoader.class.getSimpleName();
+    private static final Logger logger = Logger.getLogger(ColladaLoader.class.getSimpleName());
 
     private String authoringTool;
 
@@ -74,7 +75,7 @@ public class ColladaLoader {
                 Geometry geometry = geometries.get(meshId);
                 if (geometry == null) continue;
 
-                Log.d(TAG, "Building TEMPLATE AnimatedModel for controller: " + controller.getId());
+                logger.config("Building TEMPLATE AnimatedModel for controller: " + controller.getId());
                 AnimatedModel model = buildAnimatedModel(geometry, controller, materials);
 
                 // Store this template in BOTH maps, using the correct key for each.
@@ -85,7 +86,7 @@ public class ColladaLoader {
             // Build static (non-skinned) model templates
             for (Geometry geometry : geometries.values()) {
                 if (!geometryTemplates.containsKey(geometry.getId())) { // Check if it wasn't already made as a skinned model
-                    Log.d(TAG, "Building TEMPLATE static Object3D for geometry: " + geometry.getId());
+                    logger.config("Building TEMPLATE static Object3D for geometry: " + geometry.getId());
                     Object3D staticModel = buildStaticModel(geometry, materials);
                     geometryTemplates.put(geometry.getId(), staticModel); // Key: e.g., "Cube_094-mesh"
                 }
@@ -100,7 +101,7 @@ public class ColladaLoader {
             List<org.the3deer.engine.model.Node> rootModelNodes = buildNodeHierarchy(parser.getRootNodes(), nodeMap, materials);
 
             // LINK THE SKINS TO THE SKELETONS
-            Log.i(TAG, "Linking skins to skeleton nodes...");
+            logger.info("Linking skins to skeleton nodes...");
             for (Node parserNode : parser.getNodeLibrary().values()) { // Iterate through ALL parser nodes
 
                 // guess root joint from controller
@@ -129,9 +130,9 @@ public class ColladaLoader {
                             animatedTemplate.getSkin().setRootJoint(skeletonRootNode);
                             // Attach the actual Skin object to the skeleton's root Node.
                             skeletonRootNode.setSkin(animatedTemplate.getSkin());
-                            Log.i(TAG, "LINK ESTABLISHED: Skin from controller '" + controllerId + "' attached to skeleton root node '" + skeletonRootId + "'");
+                            logger.info("LINK ESTABLISHED: Skin from controller '" + controllerId + "' attached to skeleton root node '" + skeletonRootId + "'");
                         } else {
-                            Log.e(TAG, "LINK FAILED: Could not find skeleton root node '" + skeletonRootId + "' in node map.");
+                            logger.log(Level.SEVERE, "LINK FAILED: Could not find skeleton root node '" + skeletonRootId + "' in node map.");
                         }
                     }
                 }
@@ -149,11 +150,11 @@ public class ColladaLoader {
                     buildScene(rootNode, null, geometryTemplates, controllerTemplates, finalModels, nodeMap);
                 }
             } else {
-                Log.e(TAG, "No root nodes found in visual scene. Falling back to flat list.");
+                logger.log(Level.SEVERE, "No root nodes found in visual scene. Falling back to flat list.");
                 finalModels.addAll(geometryTemplates.values()); // Fallback
             }
 
-            Log.i(TAG, "Final model count: " + finalModels.size());
+            logger.info("Final model count: " + finalModels.size());
 
             // 5. POPULATE AND RETURN THE SCENE
             scene.getObjects().addAll(finalModels);
@@ -177,7 +178,7 @@ public class ColladaLoader {
     private List<org.the3deer.engine.model.Node> buildNodeHierarchy(List<Node> rootParserNodes, Map<Node, org.the3deer.engine.model.Node> nodeMap
     , Map<String, Material> materials) {
         if (rootParserNodes == null || rootParserNodes.isEmpty()) {
-            Log.v(TAG, "No nodes has been parsed");
+           logger.finest("No nodes has been parsed");
             return new ArrayList<>();
         }
 
@@ -219,9 +220,9 @@ public class ColladaLoader {
         // bindings
         if (parserNode.getBindMaterialId() != null) {
             if (materials == null || !materials.containsKey(parserNode.getBindMaterialId())) {
-                Log.d(TAG, "Node '" + parserNode.getId() + "' references unknown material '" + parserNode.getBindMaterialId() + "'");
+                logger.config("Node '" + parserNode.getId() + "' references unknown material '" + parserNode.getBindMaterialId() + "'");
             } else {
-                Log.d(TAG, "Node '" + parserNode.getId() + "' bound to material '" + parserNode.getBindMaterialId() + "'");
+                logger.config("Node '" + parserNode.getId() + "' bound to material '" + parserNode.getBindMaterialId() + "'");
                 final Material material = materials.get(parserNode.getBindMaterialId());
                 modelNode.setMaterial(material);
             }
@@ -271,13 +272,13 @@ public class ColladaLoader {
         if (parserNode.getInstanceControllerId() != null) {
             String controllerId = parserNode.getInstanceControllerId();
             template = controllerTemplates.get(controllerId);
-            Log.d(TAG, "Node '" + parserNode.getId() + "' is instancing a CONTROLLER: " + controllerId);
+            logger.config("Node '" + parserNode.getId() + "' is instancing a CONTROLLER: " + controllerId);
 
             // Check if the node instances a geometry
         } else if (parserNode.getInstanceGeometryId() != null) {
             String geometryId = parserNode.getInstanceGeometryId();
             template = geometryTemplates.get(geometryId);
-            Log.d(TAG, "Node '" + parserNode.getId() + "' is instancing a GEOMETRY: " + geometryId);
+            logger.config("Node '" + parserNode.getId() + "' is instancing a GEOMETRY: " + geometryId);
         }
         // --- END OF FIX ---
 
@@ -298,9 +299,9 @@ public class ColladaLoader {
                 if (skeletonRootNode != null) {
                     // Attach the actual Skin object to the skeleton's root Node.
                     newInstance.setParentNode(skeletonRootNode);
-                    Log.i(TAG, "LINK ESTABLISHED: Skin from controller '" + skinId + "' attached to skeleton root node '" + parserNode.getId() + "'");
+                    logger.info("LINK ESTABLISHED: Skin from controller '" + skinId + "' attached to skeleton root node '" + parserNode.getId() + "'");
                 } else {
-                    Log.e(TAG, "LINK FAILED: Could not find skeleton root node '" + skinId + "' in node map.");
+                    logger.log(Level.SEVERE, "LINK FAILED: Could not find skeleton root node '" + skinId + "' in node map.");
                 }
             }
 
@@ -308,7 +309,7 @@ public class ColladaLoader {
             finalModels.add(newInstance);
 
             // debug link
-            Log.d(TAG, "Node '" + parserNode.getId() + "' resolved to template "+parserNode.getId());
+            logger.config("Node '" + parserNode.getId() + "' resolved to template "+parserNode.getId());
         }
 
         // Recurse for all children
@@ -336,7 +337,7 @@ public class ColladaLoader {
             // Get the rich effect data we parsed earlier
             EffectData effectData = effectLibrary.get(effectId);
             if (effectData == null) {
-                Log.w(TAG, "Material '" + materialId + "' references unknown effect '" + effectId + "'");
+                logger.warning("Material '" + materialId + "' references unknown effect '" + effectId + "'");
                 continue;
             }
 
@@ -355,7 +356,7 @@ public class ColladaLoader {
                 String fileName = imageIdToFileNameMap.get(effectData.imageId);
                 if (fileName != null) {
                     material.setColorTexture(new Texture().setFile(fileName));
-                    Log.d(TAG, "Assembled material '" + materialId + "' with texture '" + fileName + "'");
+                    logger.config("Assembled material '" + materialId + "' with texture '" + fileName + "'");
                 }
             }
         }
@@ -382,15 +383,15 @@ public class ColladaLoader {
                     mat.getColorTexture().setUri(textureUri);
 
                     // debug
-                    Log.d(TAG, "Downloading texture... file: " + textureFile + ", uri: " + textureUri);
+                    logger.config("Downloading texture... file: " + textureFile + ", uri: " + textureUri);
 
                     try (InputStream stream = URI.create(textureUri.toString()).toURL().openStream()) {
                         mat.getColorTexture().setData(IOUtils.read(stream));
 
-                        Log.i(TAG, "Texture linked and data loaded for file: " + textureFile);
+                        logger.info("Texture linked and data loaded for file: " + textureFile);
                     }
                 } catch (Exception ex) {
-                    Log.e(TAG, "Error loading texture file '" + textureFile + "': " + ex.getMessage(), ex);
+                    logger.log(Level.SEVERE, "Error loading texture file '" + textureFile + "': " + ex.getMessage(), ex);
                 }
             }
         }
@@ -450,7 +451,7 @@ public class ColladaLoader {
                 if (sourceIndex < 0 || sourceIndex >= sourceJointIndices.length || sourceIndex >= sourceWeights.length) {
                     // Defensive fallback: log once per problematic originalVertexIndex
                     if (i < 5) {
-                        Log.w(TAG, "Skin source index out of range. originalVertexIndex=" + originalVertexIndex + " sourceIndex=" + sourceIndex + " jointsLen=" + sourceJointIndices.length + " weightsLen=" + sourceWeights.length);
+                        logger.warning("Skin source index out of range. originalVertexIndex=" + originalVertexIndex + " sourceIndex=" + sourceIndex + " jointsLen=" + sourceJointIndices.length + " weightsLen=" + sourceWeights.length);
                     }
                     finalJointIndicesAsFloats[destIndex] = 0f;
                     finalWeights[destIndex] = 0f;
@@ -529,20 +530,20 @@ public class ColladaLoader {
         // build elements
         if (geometry.getMeshes().isEmpty()) {
             if (geometry.getMaterialId() != null && !materials.containsKey(geometry.getMaterialId())) {
-                Log.w(TAG, "Geometry '" + geometry.getId()
+                logger.warning("Geometry '" + geometry.getId()
                         + "' references unknown material '" + geometry.getMaterialId() + "'");
             } else {
                 model.setMaterial(materials.get(geometry.getMaterialId()));
             }
             model.setIndexed(geometry.getIndices() != null);
         } else {
-            Log.d(TAG, "Geometry '" + geometry.getId()
+            logger.config("Geometry '" + geometry.getId()
                     + "' has multiple meshes: "+ geometry.getMeshes().size());
             List<Element> elements = new ArrayList<>();
             for (Mesh mesh : geometry.getMeshes()) {
                 Element element = new Element();
                 if (mesh.getMaterialId() != null && !materials.containsKey(mesh.getMaterialId())) {
-                    Log.w(TAG, "Geometry '" + geometry.getId()
+                    logger.warning("Geometry '" + geometry.getId()
                             + "' references unknown material '" + mesh.getMaterialId() + "'");
                 }
                 element.setMaterial(materials.get(mesh.getMaterialId()));

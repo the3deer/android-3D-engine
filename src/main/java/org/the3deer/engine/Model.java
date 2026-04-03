@@ -2,9 +2,9 @@ package org.the3deer.engine;
 
 import android.net.Uri;
 import android.os.SystemClock;
-import android.util.Log;
 import android.widget.Toast;
 
+import org.the3deer.engine.android.util.ContentUtils;
 import org.the3deer.engine.camera.CameraUtils;
 import org.the3deer.engine.model.Camera;
 import org.the3deer.engine.model.Material;
@@ -20,7 +20,6 @@ import org.the3deer.engine.services.fbx.FbxLoaderTask;
 import org.the3deer.engine.services.gltf.GltfLoaderTask;
 import org.the3deer.engine.services.stl.STLLoaderTask;
 import org.the3deer.engine.services.wavefront.WavefrontLoaderTask;
-import org.the3deer.engine.android.util.ContentUtils;
 import org.the3deer.util.event.EventManager;
 import org.the3deer.util.io.IOUtils;
 
@@ -33,6 +32,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.inject.Inject;
 
@@ -46,7 +47,13 @@ import kotlin.text.Charsets;
  */
 public class Model implements LoadListener {
 
-    private final static String TAG = Model.class.getSimpleName();
+    private final static Logger logger = Logger.getLogger(Model.class.getSimpleName());
+
+    /**
+     * ThreadLocal to keep track of the model being processed in the current thread.
+     * This allows the global LogInterceptor to associate log messages with a specific model.
+     */
+    public static final ThreadLocal<Model> CURRENT = new ThreadLocal<>();
 
     public enum Status {
         UNKNOWN, LOADING, OK, WARNING, ERROR
@@ -55,6 +62,12 @@ public class Model implements LoadListener {
     private Status status = Status.UNKNOWN;
 
     private String message;
+
+    /**
+     * Map of messages by log level.
+     * Sorted by level severity (highest first).
+     */
+    private final Map<Level, String> messages = new TreeMap<>((l1, l2) -> Integer.compare(l2.intValue(), l1.intValue()));
 
     private final Uri uri;
     private final String name;
@@ -110,7 +123,7 @@ public class Model implements LoadListener {
         this.status = status;
         this.message = message;
 
-        Log.i("Model", "Status changed: " + this.status + ", message: " + message);
+        logger.info("Status changed: " + this.status + ", message: " + message);
         if (_eventManager != null) {
             _eventManager.propagate(new ModelEvent(this, ModelEvent.Code.STATUS_CHANGED)
                     .setData("status", status).setData("message", message));
@@ -123,6 +136,14 @@ public class Model implements LoadListener {
 
     public void setMessage(String message) {
         this.message = message;
+    }
+
+    public void addMessage(Level level, String message) {
+        this.messages.put(level, message);
+    }
+
+    public Map<Level, String> getMessages() {
+        return messages;
     }
 
     public Map<String, Object> getExtras() {
@@ -157,12 +178,12 @@ public class Model implements LoadListener {
 
         // check duplicates
         if (scenesMap != null && scenesMap.containsKey(scene.getName())) {
-            Log.e(TAG, "Scene with name '" + scene.getName() + "' already exists");
+            logger.severe("Scene with name '" + scene.getName() + "' already exists");
             throw new IllegalArgumentException("Scene with name '" + scene.getName() + "' already exists");
         }
 
         // log event
-        Log.i(TAG, "addScene: " + scene.getName()+", objects: "+scene.getObjects().size());
+        logger.info("addScene: " + scene.getName()+", objects: "+scene.getObjects().size());
 
         // init map
         if (scenesMap == null) scenesMap = new TreeMap<>();
@@ -174,7 +195,7 @@ public class Model implements LoadListener {
         if (activeScene == null) {
 
             // log event
-            Log.i(TAG, "Activating scene: " + scene.getName());
+            logger.info("Activating scene: " + scene.getName());
 
             // activate default scene
             activeScene = scene;
@@ -206,97 +227,111 @@ public class Model implements LoadListener {
 
     public void load() {
 
-        Log.i(TAG, "Loading model... uri: "+ getUri()+", type: "+ getType()+" ---------------------------------- ");
+        logger.info("Loading model... uri: "+ getUri()+", type: "+ getType()+" ---------------------------------- ");
 
-        // default uri
-        Uri modelUri = getUri();
+        // register current model to the thread
+        CURRENT.set(this);
 
-        // default type
-        String modelType = getType();
+        try {
 
-        // load model
-        Log.i(TAG, "Loading model... uri: " + modelUri);
+            // default uri
+            Uri modelUri = getUri();
 
-        // update model
-        setStatus(Model.Status.LOADING, "Loading model: "+modelUri);
+            // default type
+            String modelType = getType();
 
-        // if the model is a zip file, we need to extract it and register the entries as content uris
-        if (modelUri.toString().toLowerCase().endsWith(".zip")) {
-            final Map<String, byte[]> zipFiles;
-            try {
-                zipFiles = ContentUtils.readFiles(new URL(modelUri.toString()));
-                Uri modelFile = null;
-                for (Map.Entry<String, byte[]> zipFile : zipFiles.entrySet()) {
+            // load model
+            logger.info("Loading model... uri: " + modelUri);
 
-                    final String zipFilename = zipFile.getKey();
-                    final int dotIndex = zipFilename.lastIndexOf('.');
-                    final String fileExtension;
-                    if (dotIndex != -1) {
-                        fileExtension = zipFilename.substring(dotIndex);
+            // update model
+            setStatus(Model.Status.LOADING, "Loading model: " + modelUri);
+
+            // if the model is a zip file, we need to extract it and register the entries as content uris
+            if (modelUri.toString().toLowerCase().endsWith(".zip")) {
+                final Map<String, byte[]> zipFiles;
+                try {
+                    zipFiles = ContentUtils.readFiles(new URL(modelUri.toString()));
+                    Uri modelFile = null;
+                    for (Map.Entry<String, byte[]> zipFile : zipFiles.entrySet()) {
+
+                        final String zipFilename = zipFile.getKey();
+                        final int dotIndex = zipFilename.lastIndexOf('.');
+                        final String fileExtension;
+                        if (dotIndex != -1) {
+                            fileExtension = zipFilename.substring(dotIndex);
+                        } else {
+                            fileExtension = "?";
+                        }
+
+                        // register all zip entries
+
+                        String encodedName = URLEncoder.encode(zipFilename, Charsets.UTF_8.name());
+                        final Uri pseudoUri = Uri.parse("android://org.the3deer.engine/binary/" + encodedName);
+                        ContentUtils.addUri(encodedName, pseudoUri);
+
+                        encodedName = encodedName.replace("+", "%20");
+                        final Uri pseudoUri2 = Uri.parse("android://org.the3deer.engine/binary/" + encodedName);
+                        ContentUtils.addUri(encodedName, pseudoUri2);
+
+                        ContentUtils.addData(pseudoUri, zipFile.getValue());
+                        ContentUtils.addData(pseudoUri2, zipFile.getValue());
+
+                        // detect model
+                        switch (fileExtension.toLowerCase()) {
+                            case ".obj":
+                            case ".stl":
+                            case ".dae":
+                            case ".gltf":
+                            case ".glb":
+                            case ".fbx":
+                                modelFile = pseudoUri;
+                                modelUri = Uri.parse(pseudoUri.toString());
+                                break;
+                        }
+                    }
+                    if (modelFile == null) {
+                        logger.severe("Model not found in zip '" + modelUri + "'");
                     } else {
-                        fileExtension = "?";
+                        logger.info("Model found in zip: " + modelFile);
                     }
-
-                    // register all zip entries
-
-                    String encodedName = URLEncoder.encode(zipFilename, Charsets.UTF_8.name());
-                    final Uri pseudoUri = Uri.parse("android://org.the3deer.engine/binary/" + encodedName);
-                    ContentUtils.addUri(encodedName, pseudoUri);
-
-                    encodedName = encodedName.replace("+", "%20");
-                    final Uri pseudoUri2 = Uri.parse("android://org.the3deer.engine/binary/" + encodedName);
-                    ContentUtils.addUri(encodedName, pseudoUri2);
-
-                    ContentUtils.addData(pseudoUri, zipFile.getValue());
-                    ContentUtils.addData(pseudoUri2, zipFile.getValue());
-
-                    // detect model
-                    switch (fileExtension.toLowerCase()) {
-                        case ".obj":
-                        case ".stl":
-                        case ".dae":
-                        case ".gltf":
-                        case ".glb":
-                        case ".fbx":
-                            modelFile = pseudoUri;
-                            modelUri = Uri.parse(pseudoUri.toString());
-                            break;
-                    }
+                } catch (Exception e) {
+                    logger.log(Level.SEVERE, "Error loading zip file '" + modelUri + "': " + e.getMessage(), e);
                 }
-                if (modelFile == null) {
-                    Log.e(TAG, "Model not found in zip '" + modelUri + "'");
-                } else {
-                    Log.i(TAG, "Model found in zip: " + modelFile);
-                }
-            } catch (Exception e) {
-                Log.e(TAG, "Error loading zip file '" + modelUri + "': " + e.getMessage(), e);
             }
+
+            if (modelUri.toString().toLowerCase().endsWith(".obj") || "obj".equalsIgnoreCase(modelType)) {
+                new WavefrontLoaderTask(modelUri, this).execute(false);
+            } else if (modelUri.toString().toLowerCase().endsWith(".stl") || "stl".equalsIgnoreCase(modelType)) {
+                logger.info("Loading STL object from: " + modelUri);
+                new STLLoaderTask(modelUri, this).execute(false);
+            } else if (modelUri.toString().toLowerCase().endsWith(".dae") || "dae".equalsIgnoreCase(modelType)) {
+                logger.info("Loading Collada object from: " + modelUri);
+                new ColladaLoaderTask(modelUri, this).execute(false);
+            } else if (modelUri.toString().toLowerCase().endsWith(".gltf") || modelUri.toString().toLowerCase().endsWith(".glb") || "gltf".equalsIgnoreCase(modelType)) {
+                logger.info("Loading GLTF object from: " + modelUri);
+                new GltfLoaderTask(modelUri, this).execute(false);
+            } else if (modelUri.toString().toLowerCase().endsWith(".fbx")) {
+                new FbxLoaderTask(modelUri, this).execute(false);
+            }
+
+            // log success
+            logger.info("Loading model finished -------------------------------------- ");
+
+            // update model
+            setStatus(Model.Status.OK, "Loading Model finished successfully");
+
+        } finally {
+            // unregister current model from the thread
+            // we don't remove it here because the loader tasks might still be running in background threads
+            // FIXME: CURRENT.remove();
         }
-
-        if (modelUri.toString().toLowerCase().endsWith(".obj") || "obj".equalsIgnoreCase(modelType)) {
-            new WavefrontLoaderTask(modelUri, this).execute(false);
-        } else if (modelUri.toString().toLowerCase().endsWith(".stl") || "stl".equalsIgnoreCase(modelType)) {
-            Log.i(TAG, "Loading STL object from: " + modelUri);
-            new STLLoaderTask(modelUri, this).execute(false);
-        } else if (modelUri.toString().toLowerCase().endsWith(".dae") || "dae".equalsIgnoreCase(modelType)) {
-            Log.i(TAG, "Loading Collada object from: " + modelUri);
-            new ColladaLoaderTask(modelUri, this).execute(false);
-        } else if (modelUri.toString().toLowerCase().endsWith(".gltf") || modelUri.toString().toLowerCase().endsWith(".glb") || "gltf".equalsIgnoreCase(modelType)) {
-            Log.i(TAG, "Loading GLTF object from: " + modelUri);
-            new GltfLoaderTask(modelUri, this).execute(false);
-        } else if (modelUri.toString().toLowerCase().endsWith(".fbx")) {
-            new FbxLoaderTask(modelUri, this).execute(false);
-        }
-
-        // log success
-        Log.i(TAG, "Loading model finished -------------------------------------- ");
-
-        // update model
-        setStatus(Model.Status.OK, "Loading Model finished successfully");
     }
 
     @Override
     public void onLoadStart() {
+        // register current model to the thread
+        CURRENT.set(this);
+
         // mark start time
         this.startTime = SystemClock.uptimeMillis();
 
@@ -319,7 +354,7 @@ public class Model implements LoadListener {
 
     @Override
     public void onLoadError(Exception ex) {
-        Log.e(TAG, ex.getMessage(), ex);
+        logger.log(Level.SEVERE, ex.getMessage(), ex);
         // update model
         setStatus(Model.Status.ERROR, ex.getMessage());
     }
@@ -332,7 +367,7 @@ public class Model implements LoadListener {
     @Override
     public void onLoadScene(Scene scene) {
         // configure default camera
-        Log.d(TAG, "Initializing scene... name: " + scene.getName());
+        logger.fine("Initializing scene... name: " + scene.getName());
         scene.setActiveCamera(defaultCamera);
 
         // get objects
@@ -340,9 +375,9 @@ public class Model implements LoadListener {
 
         // check
         if (objects.isEmpty()) {
-            Log.w(TAG, "No objects were loaded");
+            logger.warning("No objects were loaded");
         } else {
-            Log.d(TAG, "onLoadScene: " + scene.getName() + ", Objects: " + objects.size());
+            logger.fine("onLoadScene: " + scene.getName() + ", Objects: " + objects.size());
         }
 
         for (int i = 0; i < objects.size(); i++) {
@@ -375,7 +410,7 @@ public class Model implements LoadListener {
 
         // Ensure all objects have a parent node to unify the rendering pipeline.
         if (scene.getRootNodes() == null || scene.getRootNodes().isEmpty()) {
-            Log.i(TAG, "Scene has no root nodes. Creating default nodes for all objects.");
+            logger.info("Scene has no root nodes. Creating default nodes for all objects.");
             List<Node> rootNodes = new ArrayList<>();
             for (Object3D obj : objects) {
                 // Create a new node and assign the object to it.
@@ -404,9 +439,9 @@ public class Model implements LoadListener {
     public void onLoadComplete() {
         // initialize model
         if (scenesMap == null || scenesMap.isEmpty()) {
-            Log.w(TAG, "No scenes available");
+            logger.warning("No scenes available");
         } else if (this.getActiveScene() == null){
-            Log.i(TAG, "No active scene. Setting first scene as active.");
+            logger.info("No active scene. Setting first scene as active.");
             this.setActiveScene(scenesMap.values().iterator().next());
             this.getActiveScene().update();
         }
@@ -415,7 +450,10 @@ public class Model implements LoadListener {
         this.update();
 
         // log success
-        Log.i(TAG, "Model loaded successfully");
+        logger.info("Model loaded successfully");
+
+        // unregister current model from the thread
+        CURRENT.remove();
     }
 
     private void loadTextureDatas(Texture texture) {
@@ -445,10 +483,10 @@ public class Model implements LoadListener {
         texture.setUri(textureUri);
 
         // debug
-        Log.d(TAG, "Downloading texture... file: " + textureFile + ", uri: " + textureUri);
+        logger.fine("Downloading texture... file: " + textureFile + ", uri: " + textureUri);
 
         // debug
-        Log.i(TAG, "Loading texture file: " + textureFile);
+        logger.info("Loading texture file: " + textureFile);
 
         // download texture
         try (InputStream stream = URI.create(textureUri.toString()).toURL().openStream()) {
@@ -457,10 +495,10 @@ public class Model implements LoadListener {
             texture.setData(IOUtils.read(stream));
 
             // debug
-            Log.i(TAG, "Texture successfully loaded: " + textureFile);
+            logger.info("Texture successfully loaded: " + textureFile);
 
         } catch (Exception ex) {
-            Log.e(TAG, "Error loading texture file '" + textureFile + "': " + ex.getMessage(), ex);
+            logger.log(Level.SEVERE, "Error loading texture file '" + textureFile + "': " + ex.getMessage(), ex);
             makeToastText("Error loading texture file '" + textureFile + "': " + ex.getMessage(), Toast.LENGTH_LONG);
         }
     }

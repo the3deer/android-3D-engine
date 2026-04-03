@@ -1,7 +1,5 @@
 package org.the3deer.util.bean;
 
-import android.util.Log;
-
 import androidx.annotation.Nullable;
 
 import java.lang.annotation.Annotation;
@@ -21,7 +19,7 @@ import java.util.Objects;
 import java.util.TreeMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.logging.LogManager;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.inject.Inject;
@@ -32,7 +30,7 @@ import javax.inject.Named;
  */
 public class BeanFactory {
 
-    private final Logger LOG = LogManager.getLogManager().getLogger(this.getClass().getName());
+    private static final Logger logger = Logger.getLogger(BeanFactory.class.getName());
 
     /**
      * Bean is instantiated
@@ -130,7 +128,7 @@ public class BeanFactory {
                 Method setter = findSetterMethod(bean.getClass(), fieldName, propertyName, field.getType());
                 Method getter = findGetterMethod(bean.getClass(), fieldName, propertyName, field.getType());
 
-                Log.v("BeanFactory", "Bean Property found. propertyId: "+propertyId + ", propertyName: " + propertyName+", bean: " + beanId + " - " + setter + " - " + getter);
+                logger.finest( "Bean Property found. propertyId: "+propertyId + ", propertyName: " + propertyName+", bean: " + beanId + " - " + setter + " - " + getter);
 
                 ret.put(propertyId, new BeanPropertyInfo(propertyId, fieldName, beanName, propertyName, ann.values(), field.getType(), field, getter, setter, valuesMethod));
             }
@@ -166,7 +164,7 @@ public class BeanFactory {
 
                 // check if method follows bean naming convention
                 if (!methodName.startsWith("get") && !methodName.startsWith("set") && !methodName.startsWith("is")) {
-                    Log.e("BeanFactory", "Bean Property is not prefixed with set|get|is. bean: " + beanId + ", method: " + methodName);
+                    logger.log(Level.SEVERE,  "Bean Property is not prefixed with set|get|is. bean: " + beanId + ", method: " + methodName);
                     continue;
                 }
 
@@ -175,7 +173,7 @@ public class BeanFactory {
 
                 // check
                 if (getter == null){
-                    Log.e("BeanFactory", "Bean Property error. Getter is null. bean: " + beanId + ", method: " + methodName);
+                    logger.log(Level.SEVERE,  "Bean Property error. Getter is null. bean: " + beanId + ", method: " + methodName);
                     continue;
                 }
 
@@ -184,14 +182,14 @@ public class BeanFactory {
 
                 // check
                 if (setter == null){
-                    Log.e("BeanFactory", "Bean Property error. Setter is null. bean: " + beanId + ", method: " + methodName);
+                    logger.log(Level.SEVERE,  "Bean Property error. Setter is null. bean: " + beanId + ", method: " + methodName);
                     continue;
                 }
 
                 // get values method
                 Method valuesMethod = findBeanValuesMethod(bean.getClass(), propertyName, propertyName);
 
-                Log.v("BeanFactory", "Bean Property found. propertyId: " + propertyId + ", propertyName: "+propertyName + ", bean: " + beanId+", setter: " + setter + ", getter: " + getter);
+                logger.finest( "Bean Property found. propertyId: " + propertyId + ", propertyName: "+propertyName + ", bean: " + beanId+", setter: " + setter + ", getter: " + getter);
 
                 ret.put(propertyId, new BeanPropertyInfo(propertyId, null, beanName, propertyName, ann.values(), getter.getReturnType(), null, getter, setter, valuesMethod));
             }
@@ -390,7 +388,7 @@ public class BeanFactory {
     @Nullable
     private Object configureBean(String id, Object bean) {
         if (bean == null) return null;
-        Log.v("BeanFactory", "Configuring bean... id: " + id);
+        logger.finest("Configuring bean... id: " + id);
         try {
             Class<?> currentClass = bean.getClass();
             while (currentClass != null) {
@@ -448,7 +446,7 @@ public class BeanFactory {
         // update status
         this.status.put(id, STATUS_INITIALIZED);
 
-        Log.v("BeanFactory", "Initializing bean... id: " + id);
+        logger.finest("Initializing bean... id: " + id);
 
         // invoke
         return invokeAnnotatedMethod(bean, BeanInit.class);
@@ -804,7 +802,7 @@ public class BeanFactory {
         } catch (IllegalAccessException e) {
 
             // log error
-            Log.e("BeanFactory", "Error setting property. field: " + field.getName() + ", bean: " + beanId, e);
+            logger.log(Level.SEVERE,  "Error setting property. field: " + field.getName() + ", bean: " + beanId, e);
 
             return false;
         }
@@ -832,7 +830,7 @@ public class BeanFactory {
         } catch (IllegalAccessException e) {
 
             // log error
-            Log.e("BeanFactory", "Error setting property. field: " + field.getName() + ", bean: " + beanId, e);
+            logger.log(Level.SEVERE,  "Error setting property. field: " + field.getName() + ", bean: " + beanId, e);
 
             // continue;
             return false;
@@ -858,7 +856,7 @@ public class BeanFactory {
         } catch (IllegalAccessException e) {
 
             // log error
-            Log.e("BeanFactory", "Error setting property. field: " + field.getName() + ", bean: " + beanId, e);
+            logger.log(Level.SEVERE,  "Error setting property. field: " + field.getName() + ", bean: " + beanId, e);
 
             // continue;
             return false;

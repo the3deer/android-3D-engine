@@ -1,10 +1,11 @@
 package org.the3deer.engine.gui;
 
 import android.opengl.GLES20;
-import android.util.Log;
 
 import androidx.fragment.app.FragmentActivity;
 
+import org.the3deer.engine.android.shader.Shader;
+import org.the3deer.engine.android.shader.ShaderFactory;
 import org.the3deer.engine.collision.Collision;
 import org.the3deer.engine.collision.CollisionDetection;
 import org.the3deer.engine.controller.TouchEvent;
@@ -13,8 +14,6 @@ import org.the3deer.engine.model.Constants;
 import org.the3deer.engine.model.Projection;
 import org.the3deer.engine.model.Screen;
 import org.the3deer.engine.renderer.Drawer;
-import org.the3deer.engine.android.shader.Shader;
-import org.the3deer.engine.android.shader.ShaderFactory;
 import org.the3deer.util.bean.Bean;
 import org.the3deer.util.bean.BeanInit;
 import org.the3deer.util.bean.BeanOrder;
@@ -29,6 +28,7 @@ import java.util.EventObject;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Logger;
 
 import javax.inject.Inject;
 
@@ -36,7 +36,7 @@ import javax.inject.Inject;
 @Bean
 public class GUIDrawer implements EventListener, Drawer {
 
-    private final static String TAG = GUIDrawer.class.getSimpleName();
+    private static final Logger logger = Logger.getLogger(GUIDrawer.class.getSimpleName());
 
     @BeanProperty
     private boolean enabled = false;
@@ -115,7 +115,7 @@ public class GUIDrawer implements EventListener, Drawer {
 
         // BeanFactory.getInstance().find(TouchController.class).addListener(this);
 
-        Log.v(TAG, "Widgets found: " + widgets.size());
+       logger.finest("Widgets found: " + widgets.size());
 
         /*if (gui != null) {
             Label sceneBtn = new Label("Scene");
@@ -131,7 +131,7 @@ public class GUIDrawer implements EventListener, Drawer {
                             androidx.fragment.app.DialogFragment dialog = (androidx.fragment.app.DialogFragment) clazz.newInstance();
                             dialog.show(activity.getSupportFragmentManager(), "scene_dialog");
                         } catch (Exception e) {
-                            Log.e(TAG, "Error showing SceneDialogFragment", e);
+                            logger.log(Level.SEVERE, "Error showing SceneDialogFragment", e);
                         }
                     });
                 }
@@ -151,7 +151,7 @@ public class GUIDrawer implements EventListener, Drawer {
                             androidx.fragment.app.DialogFragment dialog = (androidx.fragment.app.DialogFragment) clazz.newInstance();
                             dialog.show(activity.getSupportFragmentManager(), "camera_dialog");
                         } catch (Exception e) {
-                            Log.e(TAG, "Error showing CameraDialogFragment", e);
+                            logger.log(Level.SEVERE, "Error showing CameraDialogFragment", e);
                         }
                     });
                 }
@@ -171,7 +171,7 @@ public class GUIDrawer implements EventListener, Drawer {
                             androidx.fragment.app.DialogFragment dialog = (androidx.fragment.app.DialogFragment) clazz.newInstance();
                             dialog.show(activity.getSupportFragmentManager(), "animation_dialog");
                         } catch (Exception e) {
-                            Log.e(TAG, "Error showing AnimationDialogFragment", e);
+                            logger.log(Level.SEVERE, "Error showing AnimationDialogFragment", e);
                         }
                     });
                 }
@@ -259,9 +259,9 @@ public class GUIDrawer implements EventListener, Drawer {
 
         if (Constants.DEBUG_UI) {
             if (!debug.contains(widget.getId())) {
-                Log.v("GUIDrawer", "Rendering widget... : " + widget.getId() +
+                logger.finest("Rendering widget... : " + widget.getId() +
                         ", loc: " + Arrays.toString(widget.getLocation()));
-                Log.v("GUIDrawer", "Rendering with cam " + camera.getProjection());
+                logger.finest("Rendering with cam " + camera.getProjection());
                 debug.add(widget.getId());
             }
         }
@@ -309,12 +309,12 @@ public class GUIDrawer implements EventListener, Drawer {
     }
 
     private void hideFloating(List<Widget> widgets) {
-        //Log.v(TAG,"Hiding floating widgets... ");
+        //logger.finest("Hiding floating widgets... ");
         if (widgets != null && !widgets.isEmpty()) {
             for (Widget child : widgets) {
                 hideFloating(child.widgets);
                 if (child.isFloating()) {
-                    Log.d(TAG, "Disposing floating widget... " + child.getId());
+                    logger.config("Disposing floating widget... " + child.getId());
                     child.setVisible(false);
                     child.dispose();
                 }
@@ -357,7 +357,7 @@ public class GUIDrawer implements EventListener, Drawer {
 
         float[] intersection = CollisionDetection.getBoxIntersection(nearHit, direction, widget.getCurrentBoundingBox());
         if (intersection[0] >= 0 && intersection[0] <= intersection[1]) {
-            Log.d("GUIDrawer", "Clicked! " + widget.getId());
+            logger.config("Clicked! " + widget.getId());
             return Math3DUtils.add(nearHit, Math3DUtils.multiply(direction, intersection[0]));
         }
         return null;
@@ -409,7 +409,7 @@ public class GUIDrawer implements EventListener, Drawer {
             float dx = point2[0] - point[0];
             float dy = point2[1] - point[1];
 
-            // Log.v("Widget", "Collision ! "+getId());
+            // logger.finest("Collision ! "+getId());
             return new Collision(widget, point, dx, dy);
         }
         return null;

@@ -16,7 +16,7 @@ public class Light implements EventListener {
 
     public Light(float [] location){
         this.location = location;
-        //Log.v("Light", "location: "+ Arrays.toString(this.location));
+        //logger.finest("location: "+ Arrays.toString(this.location));
     }
 
     public int toggle(){
@@ -41,7 +41,7 @@ public class Light implements EventListener {
         if (event instanceof Camera.CameraUpdatedEvent){
             if (event.getSource() == camera) {
                 //this.location = ((Camera) event.getSource()).getPos();
-                //Log.v("Light", "new location: " + Arrays.toString(this.location));
+                //logger.finest("new location: " + Arrays.toString(this.location));
             }
         }
         return false;

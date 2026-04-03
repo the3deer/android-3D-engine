@@ -10,8 +10,6 @@ import java.util.List;
 
 public class FBXParser {
 
-    private static final String TAG = FBXParser.class.getSimpleName();
-
     static {
         System.loadLibrary("the3deer_engine");
     }

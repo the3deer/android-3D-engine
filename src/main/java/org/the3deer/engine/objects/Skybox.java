@@ -2,16 +2,17 @@ package org.the3deer.engine.objects;
 
 import android.net.Uri;
 import android.opengl.GLES20;
-import android.util.Log;
 
+import org.the3deer.engine.android.util.ContentUtils;
 import org.the3deer.engine.model.CubeMap;
 import org.the3deer.engine.model.Material;
 import org.the3deer.engine.model.Object3D;
 import org.the3deer.engine.model.Texture;
-import org.the3deer.engine.android.util.ContentUtils;
 import org.the3deer.util.io.IOUtils;
 
 import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Skyboxes downloaded from:
@@ -20,6 +21,8 @@ import java.io.IOException;
  * https://github.com/mobialia/jmini3d
  */
 public class Skybox {
+
+    private static final Logger logger = Logger.getLogger(Skybox.class.getSimpleName());
 
     private final static float VERTEX_DATA[] = {
             // positions
@@ -127,7 +130,7 @@ public class Skybox {
                     Uri.parse("android://org.the3deer.android.viewer/res/drawable/front.png"),
                     Uri.parse("android://org.the3deer.android.viewer/res/drawable/back.png")});
         } catch (IOException e) {
-            Log.e("Skybox", "Exception: " + e.getMessage(), e);
+            logger.log(Level.SEVERE,  "Exception: " + e.getMessage(), e);
             throw new RuntimeException(e);
         }
     }
@@ -139,7 +142,7 @@ public class Skybox {
         ret.setMaterial(new Material().setColorTexture(new Texture().setCubeMap(skybox.getCubeMap())));
 
 
-        Log.i("Skybox", "Skybox : " + ret.getDimensions());
+        logger.info("Skybox : " + ret.getDimensions());
 
         return ret;
     }

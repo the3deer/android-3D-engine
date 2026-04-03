@@ -2,9 +2,9 @@ package org.the3deer.engine.android.shader.v2;
 
 import android.opengl.GLES20;
 import android.os.SystemClock;
-import android.util.Log;
 import android.util.SparseArray;
 
+import org.the3deer.engine.android.shader.Shader;
 import org.the3deer.engine.model.AnimatedModel;
 import org.the3deer.engine.model.Constants;
 import org.the3deer.engine.model.Element;
@@ -12,7 +12,6 @@ import org.the3deer.engine.model.Material;
 import org.the3deer.engine.model.Object3D;
 import org.the3deer.engine.model.Skin;
 import org.the3deer.engine.model.Texture;
-import org.the3deer.engine.android.shader.Shader;
 import org.the3deer.engine.util.GLUtil;
 import org.the3deer.util.io.IOUtils;
 import org.the3deer.util.math.Math3DUtils;
@@ -28,6 +27,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Copyright 2013-2020 the3deer.org
@@ -45,7 +46,7 @@ import java.util.Set;
  */
 public class ShaderImplV2 implements Shader {
 
-    private static final String TAG = Shader.class.getSimpleName();
+    private static final Logger logger = Logger.getLogger(Shader.class.getSimpleName());
 
     // Preference Keys (define these as constants)
     public static final String KEY_SHADER_LIGHTING_TYPE = "shader_default_lighting_type";
@@ -161,7 +162,7 @@ public class ShaderImplV2 implements Shader {
         this.vertexShaderCode = vertexShaderCode;
         this.fragmentShaderCode = fragmentShaderCode;
 
-        Log.d(TAG, "Checking features... " + id);
+        logger.config("Checking features... " + id);
         final Set<String> shaderFeatures = new HashSet<>();
         final String shaderCode = vertexShaderCode + fragmentShaderCode;
         this.supportsMMatrix = testShaderFeature(shaderFeatures, shaderCode, "u_MMatrix");
@@ -186,16 +187,16 @@ public class ShaderImplV2 implements Shader {
     }
 
     private void init() {
-        Log.d(TAG, "Loading Shader... " + id);
+        logger.config("Loading Shader... " + id);
 
         // load shaders
         int vertexShader = GLUtil.loadShader(GLES20.GL_VERTEX_SHADER, vertexShaderCode);
         int fragmentShader = GLUtil.loadShader(GLES20.GL_FRAGMENT_SHADER, fragmentShaderCode);
 
         // compile program
-        Log.d(TAG, "Compiled Shader " + id);
+        logger.config("Compiled Shader " + id);
         mProgram = GLUtil.createAndLinkProgram(vertexShader, fragmentShader, features.toArray(new String[0]));
-        Log.d(TAG, "Linked Shader " + id + " with program " + mProgram);
+        logger.config("Linked Shader " + id + " with program " + mProgram);
 
         // Get uniform handles after linking
         if (supportBlending) {
@@ -242,7 +243,7 @@ public class ShaderImplV2 implements Shader {
         this.init();
 
         // reset textures so they can be reloaded in opengl thread
-        Log.i(TAG, "Deleting textures... Total: " + textures.size());
+        logger.info("Deleting textures... Total: " + textures.size());
         for (Texture texture : textures) {
             if (texture.getId() != -1) {
                 GLES20.glDeleteTextures(1, new int[]{texture.getId()}, 0);
@@ -250,7 +251,7 @@ public class ShaderImplV2 implements Shader {
             }
         }
         textures.clear();
-        Log.d(TAG, "Textures deleted");
+        logger.config("Textures deleted");
     }
 
     @Override
@@ -417,20 +418,20 @@ public class ShaderImplV2 implements Shader {
                 }
             }
 
-            //Log.v(TAG, "u_Animated: " + toggle + " ("+obj.getId()+")");
+            //logger.finest("u_Animated: " + toggle + " ("+obj.getId()+")");
             setFeatureFlag("u_Animated", toggle);
 
             // debug
             if (Constants.DEBUG) {
                 if (!logset.contains(obj.getId())) {
-                    Log.v("SHADER_DEBUG", "id: " + obj.getId() + ", u_Animated " + toggle);
+                    logger.finest("id: " + obj.getId() + ", u_Animated " + toggle);
                 }
             }
         }
 
         if (Constants.DEBUG) {
             if (!logset.contains(obj.getId())) {
-                Log.v("SHADER_DEBUG", "id: " + obj.getId() + ", modelMatrix = " + Arrays.toString(obj.getModelMatrix()));
+                logger.finest("id: " + obj.getId() + ", modelMatrix = " + Arrays.toString(obj.getModelMatrix()));
                 logset.add(obj.getId());
             }
         }
@@ -493,12 +494,12 @@ public class ShaderImplV2 implements Shader {
             textureId = GLUtil.loadTexture(texture.getBuffer());
             texture.setId(textureId);
         } else {
-            Log.e(TAG, "No texture data for " + id);
+            logger.log(Level.SEVERE, "No texture data for " + id);
             return;
         }
 
         textures.add(texture);
-        Log.v(TAG, "Loaded texture " + textureId + " for " + id);
+       logger.finest("Loaded texture " + textureId + " for " + id);
     }
 
     private int setVBO(final String shaderVariableName, final Buffer buffer, int componentsPerVertex, int glType) {
@@ -743,7 +744,7 @@ public class ShaderImplV2 implements Shader {
             // debug
             if (Constants.DEBUG) {
                 if (!logset.contains(animatedModel.getId())) {
-                    Log.v("SHADER_DEBUG", "id: " + animatedModel.getId() + ", jointTransform[" + i + "] = " + Arrays.toString(jointTransform));
+                    logger.finest( "id: " + animatedModel.getId() + ", jointTransform[" + i + "] = " + Arrays.toString(jointTransform));
                 }
             }
         }
@@ -883,7 +884,7 @@ public class ShaderImplV2 implements Shader {
                 GLES20.glDrawElements(drawMode, drawSize, drawBufferType, drawOrderBuffer);
                 boolean error = GLUtil.checkGlError("glDrawElements");
                 if (drawUsingInt && error) {
-                    Log.e("ShaderImpl", "Exception drawing elements. Switching to ShortBuffer");
+                    logger.log(Level.SEVERE,  "Exception drawing elements. Switching to ShortBuffer");
                     drawUsingInt = false;
                 }
             }
@@ -1029,7 +1030,7 @@ public class ShaderImplV2 implements Shader {
             GLES20.glDrawElements(drawModePolygon, drawSizePolygon, drawBufferType, drawOrderBuffer);
             boolean error = GLUtil.checkGlError("glDrawElements");
             if (drawUsingInt && error) {
-                Log.e("ShaderImpl", "Exception drawing elements. Switching to ShortBuffer");
+                logger.log(Level.SEVERE,  "Exception drawing elements. Switching to ShortBuffer");
                 drawUsingInt = false;
             }
         }

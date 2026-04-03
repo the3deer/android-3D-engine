@@ -1,7 +1,6 @@
 package org.the3deer.engine.objects;
 
 import android.opengl.GLES20;
-import android.util.Log;
 
 import org.the3deer.engine.model.AnimatedModel;
 import org.the3deer.engine.model.Constants;
@@ -15,8 +14,12 @@ import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.nio.ShortBuffer;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class Wireframe {
+
+    private static final Logger logger = Logger.getLogger(Wireframe.class.getSimpleName());
 
     /**
      * Builds a wireframe of the model by drawing all lines (3) of the triangles.
@@ -27,7 +30,7 @@ public class Wireframe {
     public static Object3D build(Object3D objData) {
 
         // log event
-        Log.i("Wireframe", "Building wireframe... " + objData);
+        logger.info("Building wireframe... " + objData);
 
         // clone object
         final Object3D ret = objData.clone();
@@ -43,7 +46,7 @@ public class Wireframe {
 
                     int totalIndex = element.getIndexBuffer().capacity();
                     if (totalIndex % 3 != 0){
-                        Log.w("Wireframe", "Element "+i+" has " + totalIndex + " indices. That is not a x3 factor. Fixing...");
+                        logger.warning("Element "+i+" has " + totalIndex + " indices. That is not a x3 factor. Fixing...");
                         totalIndex = totalIndex - (totalIndex % 3);
                     }
 
@@ -91,11 +94,11 @@ public class Wireframe {
             } else {
 
                 final FloatBuffer vertexBuffer = ret.getVertexBuffer();
-                Log.i("Wireframe", "Building wireframe... Total vertices: " + vertexBuffer.capacity()/3);
+                logger.info("Building wireframe... Total vertices: " + vertexBuffer.capacity()/3);
 
                 final IntBuffer newBuffer = IOUtils.createIntBuffer(vertexBuffer.capacity()/3 * 2);
                 ret.setIndexBuffer(newBuffer);
-                Log.i("Wireframe", "Wireframe: Total indices: " + newBuffer.capacity());
+                logger.info("Wireframe: Total indices: " + newBuffer.capacity());
 
                 for (int i = 0; i < vertexBuffer.capacity() / 3 - 2; i += 3) {
                     newBuffer.put(i);
@@ -142,7 +145,7 @@ public class Wireframe {
                     .setMaterial(material)
                     .setId(objData.getId() + "_wireframe");
         } catch (Exception ex) {
-            Log.e("Wireframe", ex.getMessage(), ex);
+            logger.log(Level.SEVERE,  ex.getMessage(), ex);
             throw new RuntimeException("Problem building wireframe", ex);
         }
     }

@@ -3,15 +3,14 @@ package org.the3deer.engine.android.renderer;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
 import android.os.SystemClock;
-import android.util.Log;
 
-import org.the3deer.engine.event.FPSEvent;
-import org.the3deer.engine.event.GLEvent;
 import org.the3deer.engine.ModelEngine;
 import org.the3deer.engine.android.ModelEngineViewModel;
+import org.the3deer.engine.android.shader.ShaderFactory;
+import org.the3deer.engine.event.FPSEvent;
+import org.the3deer.engine.event.GLEvent;
 import org.the3deer.engine.model.Constants;
 import org.the3deer.engine.model.Screen;
-import org.the3deer.engine.android.shader.ShaderFactory;
 import org.the3deer.engine.renderer.RenderListener;
 import org.the3deer.engine.renderer.Renderer;
 import org.the3deer.util.bean.Bean;
@@ -23,6 +22,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.inject.Inject;
 import javax.microedition.khronos.egl.EGLConfig;
@@ -35,7 +36,7 @@ import javax.microedition.khronos.opengles.GL10;
 @Bean
 public class GLRenderer implements GLSurfaceView.Renderer {
 
-    private final static String TAG = GLRenderer.class.getSimpleName();
+    private static final Logger logger = Logger.getLogger(GLRenderer.class.getSimpleName());
 
     private final ModelEngineViewModel viewModel;
 
@@ -81,13 +82,13 @@ public class GLRenderer implements GLSurfaceView.Renderer {
      * Construct a new renderer for the specified surface view
      */
     public GLRenderer(ModelEngineViewModel viewModel) {
-        Log.i(TAG, "GLRenderer instantiated: " + System.identityHashCode(this));
+        logger.info("GLRenderer instantiated: " + System.identityHashCode(this));
         this.viewModel = viewModel;
     }
 
     @BeanInit
     public void setUp() {
-        Log.i(TAG, "GLRenderer setUp: " + System.identityHashCode(this));
+        logger.info("GLRenderer setUp: " + System.identityHashCode(this));
 
         if (renderers == null || renderers.isEmpty()) {
             throw new IllegalArgumentException("No renderers found");
@@ -165,13 +166,13 @@ public class GLRenderer implements GLSurfaceView.Renderer {
         this.renderer = renderer;
 
         // debug
-        Log.d(TAG, "Active renderer: " + rendererId);
+        logger.config("Active renderer: " + rendererId);
     }
 
     @Override
     public void onSurfaceCreated(GL10 unused, EGLConfig config) {
         // log event
-        Log.d(TAG, "onSurfaceCreated. config: " + config);
+        logger.config("onSurfaceCreated. config: " + config);
 
         // Set the background frame color
         GLES20.glClearColor(backgroundColorSelected[0], backgroundColorSelected[1], backgroundColorSelected[2], backgroundColorSelected[3]);
@@ -206,7 +207,7 @@ public class GLRenderer implements GLSurfaceView.Renderer {
         this.height = height;
 
         // log event
-        Log.i(TAG, "onSurfaceChanged. width: " + width + ", height: " + height);
+        logger.info("onSurfaceChanged. width: " + width + ", height: " + height);
 
         // fire event
         if (renderers != null) {
@@ -214,7 +215,7 @@ public class GLRenderer implements GLSurfaceView.Renderer {
                 try {
                     Objects.requireNonNull(renderer).onSurfaceChanged(width, height);
                 } catch (Exception ex) {
-                    Log.e(TAG, "Exception on delegate: " + renderer, ex);
+                    logger.log(Level.SEVERE, "Exception on delegate: " + renderer, ex);
                 }
             }
         }
@@ -264,7 +265,7 @@ public class GLRenderer implements GLSurfaceView.Renderer {
 
         // scene not ready
         if (!traced) {
-            Log.v(TAG, "onDrawFrame. Invoking listeners... " + listeners.size());
+           logger.finest("onDrawFrame. Invoking listeners... " + listeners.size());
         }
 
         // prepare listeners
@@ -272,10 +273,10 @@ public class GLRenderer implements GLSurfaceView.Renderer {
 
             for (int i = 0; i < listeners.size(); i++) {
                 try {
-                    //Log.e(TAG, "onPrepareFrame ("+i+"): "+listeners.get(i));
+                    //logger.log(Level.SEVERE, "onPrepareFrame ("+i+"): "+listeners.get(i));
                     listeners.get(i).onPrepareFrame();
                 } catch (Exception ex) {
-                    Log.e(TAG, "Exception on delegate: " + renderer, ex);
+                    logger.log(Level.SEVERE, "Exception on delegate: " + renderer, ex);
                     renderer.setEnabled(false);
                     break;
                 }
@@ -284,13 +285,13 @@ public class GLRenderer implements GLSurfaceView.Renderer {
 
         // debug
         if (!traced) {
-            Log.v(TAG, "onDrawFrame. Invoking renderers... " + renderers);
+           logger.finest("onDrawFrame. Invoking renderers... " + renderers);
         }
 
         try {
             renderer.onDrawFrame();
         } catch (Exception ex) {
-            Log.e(TAG, "Exception on delegate: " + renderer, ex);
+            logger.log(Level.SEVERE, "Exception on delegate: " + renderer, ex);
             renderer.setEnabled(false);
         }
 
@@ -304,18 +305,18 @@ public class GLRenderer implements GLSurfaceView.Renderer {
                     framesPerSecondCounter = 1;
                     framesPerSecondTime = SystemClock.elapsedRealtime();
                     eventManager.propagate(new FPSEvent(this, framesPerSecond));
-                    //Log.v(TAG, "FPS: " + framesPerSecond);
+                    //logger.finest("FPS: " + framesPerSecond);
                 } else {
                     framesPerSecondCounter++;
                 }
             } catch (Exception e) {
-                Log.e(TAG, "Exception on fps: " + e.getMessage(), e);
+                logger.log(Level.SEVERE, "Exception on fps: " + e.getMessage(), e);
             }
         }
 
         // debug
         if (!traced) {
-            Log.i(TAG, "onDrawFrame. First draw finished.");
+            logger.info("onDrawFrame. First draw finished.");
             traced = true;
         }
     }

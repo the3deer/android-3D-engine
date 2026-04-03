@@ -5,7 +5,6 @@ import org.the3deer.util.bean.BeanProperty;
 
 public class Panel extends Widget {
 
-    private static final String TAG = Panel.class.getSimpleName();
     public static final float UI_PANEL_MARGIN = 24;
     public static final float UI_PANEL_PADDING = 16;
 
@@ -95,7 +94,7 @@ public class Panel extends Widget {
 
     private void refreshChildrenLocation() {
         if (!widgets.isEmpty()) {
-            //Log.v(TAG, "Refreshing ("+getId()+") children: "+widgets.size());
+            //logger.finest("Refreshing ("+getId()+") children: "+widgets.size());
             final Dimensions thisDim = getCurrentDimensions();
             float currentX = thisDim.getMin()[0] + margin[0];
             float currentY = thisDim.getMax()[1] - margin[1];

@@ -1,12 +1,11 @@
 package org.the3deer.engine.gui;
 
-import android.util.Log;
-
 import org.the3deer.engine.model.Screen;
 import org.the3deer.util.bean.BeanInit;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Logger;
 
 import javax.inject.Inject;
 
@@ -18,6 +17,8 @@ import javax.inject.Inject;
  * max vertices: 75
  */
 public class FontFactory {
+
+    private static final Logger logger = Logger.getLogger(FontFactory.class.getSimpleName());
 
     private static FontFactory singleton;
 
@@ -89,7 +90,7 @@ public class FontFactory {
 
         charWidth = charHeight = 48;
 
-        Log.v("FontFactory", "glyph g_width: " + charWidth + ", g_height:" + charHeight);
+        logger.finest("glyph g_width: " + charWidth + ", g_height:" + charHeight);
         final float gXS = charWidth / (g_xpoints - 1);
         g_x0 = 0;
         g_x1 = gXS;
@@ -99,7 +100,7 @@ public class FontFactory {
         g_x5 = gXS * 5;
         g_x6 = gXS * 6;
         g_x7 = gXS * 7;
-        Log.v("FontFactory", "glyph gXS: " + gXS + ", g_x4:" + g_x6);
+        logger.finest("glyph gXS: " + gXS + ", g_x4:" + g_x6);
         final float gYS = charHeight / (g_ypoints - 1);
         g_y0 = 0;
         g_y1 = gYS;
@@ -109,7 +110,7 @@ public class FontFactory {
         g_y5 = gYS * 5;
         g_y6 = gYS * 6;
         g_y7 = gYS * 7;
-        Log.v("FontFactory", "glyph gYS: " + gYS + ", g_y6:" + g_y6);
+        logger.finest( "glyph gYS: " + gYS + ", g_y6:" + g_y6);
 
         init();
     }

@@ -1,9 +1,9 @@
 package org.the3deer.engine.android.shader.v3;
 
 import android.opengl.GLES30;
-import android.util.Log;
 import android.util.SparseArray;
 
+import org.the3deer.engine.android.shader.Shader;
 import org.the3deer.engine.model.AnimatedModel;
 import org.the3deer.engine.model.Constants;
 import org.the3deer.engine.model.Element;
@@ -11,7 +11,6 @@ import org.the3deer.engine.model.Material;
 import org.the3deer.engine.model.Object3D;
 import org.the3deer.engine.model.Skin;
 import org.the3deer.engine.model.Texture;
-import org.the3deer.engine.android.shader.Shader;
 import org.the3deer.engine.util.GLUtil;
 import org.the3deer.util.math.Math3DUtils;
 
@@ -20,6 +19,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Logger;
 
 /**
  * OpenGL ES 3.x High-Performance Shader Implementation.
@@ -30,7 +30,7 @@ import java.util.Set;
  */
 public class ShaderImplV3 implements Shader {
 
-    private static final String TAG = ShaderImplV3.class.getSimpleName();
+    private static final Logger logger = Logger.getLogger(ShaderImplV3.class.getSimpleName());
 
     private final String id;
     private final String vertexShaderCode;
@@ -89,7 +89,7 @@ public class ShaderImplV3 implements Shader {
     }
 
     private void init() {
-        Log.d(TAG, "Loading Shader... " + id);
+        logger.config("Loading Shader... " + id);
         int vertexShader = GLUtil.loadShader(GLES30.GL_VERTEX_SHADER, vertexShaderCode);
         int fragmentShader = GLUtil.loadShader(GLES30.GL_FRAGMENT_SHADER, fragmentShaderCode);
         mProgram = GLUtil.createAndLinkProgram(vertexShader, fragmentShader, null);
@@ -404,7 +404,7 @@ public class ShaderImplV3 implements Shader {
         if (!textures.isEmpty()) {
 
             // log event
-            Log.i(TAG, "Resetting textures...");
+            logger.info("Resetting textures...");
 
             // loop
             for (Texture texture : textures) {

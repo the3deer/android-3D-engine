@@ -2,14 +2,13 @@ package org.the3deer.engine.renderer;
 
 import android.app.Activity;
 import android.opengl.GLES20;
-import android.util.Log;
 import android.widget.Toast;
 
+import org.the3deer.engine.Model;
 import org.the3deer.engine.animation.Animator;
 import org.the3deer.engine.model.Camera;
 import org.the3deer.engine.model.Constants;
 import org.the3deer.engine.model.Light;
-import org.the3deer.engine.Model;
 import org.the3deer.engine.model.Object3D;
 import org.the3deer.engine.model.Scene;
 import org.the3deer.engine.model.Screen;
@@ -22,13 +21,15 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EventObject;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.inject.Inject;
 
 @Bean
 public class DefaultRenderer implements Renderer, EventListener {
 
-    private final static String TAG = DefaultRenderer.class.getSimpleName();
+    private static final Logger logger = Logger.getLogger(DefaultRenderer.class.getSimpleName());
 
     protected boolean enabled = true;
 
@@ -130,7 +131,7 @@ public class DefaultRenderer implements Renderer, EventListener {
 
         // debug
         if (!traced){
-            Log.d(TAG, "onDrawFrame start... " + drawers);
+            logger.config("onDrawFrame start... " + drawers);
         }
 
         // default config
@@ -154,7 +155,7 @@ public class DefaultRenderer implements Renderer, EventListener {
             } catch (Exception e) {
 
                 // log the error
-                Log.e(TAG, e.getMessage(), e);
+                logger.log(Level.SEVERE, e.getMessage(), e);
 
                 // disable drawer
                 drawers.get(i).setEnabled(false);
@@ -168,7 +169,7 @@ public class DefaultRenderer implements Renderer, EventListener {
         }
 
         if (!traced){
-            Log.d(TAG, "onDrawFrame finished");
+            logger.config("onDrawFrame finished");
             traced = true;
         }
     }

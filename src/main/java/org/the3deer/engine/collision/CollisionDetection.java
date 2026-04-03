@@ -2,7 +2,6 @@ package org.the3deer.engine.collision;
 
 import android.opengl.GLU;
 import android.opengl.Matrix;
-import android.util.Log;
 
 import org.the3deer.engine.model.BoundingBox;
 import org.the3deer.engine.model.Object3D;
@@ -11,6 +10,7 @@ import org.the3deer.util.math.Math3DUtils;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.logging.Logger;
 
 /**
  * Class that encapsulates all the logic for the collision detection algorithm.
@@ -18,6 +18,8 @@ import java.util.Objects;
  * @author andresoviedo
  */
 public class CollisionDetection {
+
+    private static final Logger logger = Logger.getLogger(CollisionDetection.class.getSimpleName());
 
     /**
      * Get the nearest object intersected by the specified window coordinates
@@ -42,7 +44,7 @@ public class CollisionDetection {
         Math3DUtils.normalizeVectorHighPrecision(direction);
 
         // debug
-        Log.d("CollisionController", "Testing for collision... (" + objects.size() + " object(s))" +
+        logger.config("Testing for collision... (" + objects.size() + " object(s))" +
                 ", width="+width+", height="+height+", x=" + windowX + ", y=" + windowY +
                 ", ray origin=" + Arrays.toString(nearHit) + ", ray end=" + Arrays.toString(farHit));
 
@@ -86,7 +88,7 @@ public class CollisionDetection {
             // check (global) transform
             final float determinant = Math3DUtils.determinant(modelMatrix);
             if (determinant == 0){
-                Log.w("CollisionDetection", "Matrix cannot be inverted for object '"+obj.getId()+"': " +
+                logger.warning("Matrix cannot be inverted for object '"+obj.getId()+"': " +
                         Arrays.toString(modelMatrix));
                 continue;
             }
@@ -111,7 +113,7 @@ public class CollisionDetection {
             }
         }
         if (ret != null) {
-            Log.v("CollisionDetection", "Collision detected '" + ret.getId() + "' distance: " + min);
+            logger.finest("Collision detected '" + ret.getId() + "' distance: " + min);
         }
         return ret;
     }
@@ -190,7 +192,7 @@ public class CollisionDetection {
      * @return the triangle that was intersected
      */
     private static float[] getTriangleIntersection(final Object3D hit, float[] nearHit, float[] farHit) {
-        Log.v("CollisionDetection", "Getting triangle intersection: " + hit.getId());
+        logger.finest("Getting triangle intersection: " + hit.getId());
 
         Octree octree;
         synchronized (Objects.requireNonNull(hit)) {
@@ -206,23 +208,23 @@ public class CollisionDetection {
         if (hit.getParentNode() != null){
             if (hit.getParentNode().getAnimatedWorldTransform() != null){
                 modelMatrix = hit.getParentNode().getAnimatedWorldTransform();
-                Log.d("CollisionDetection", "Using animated model matrix: " + Arrays.toString(hit.getParentNode().getAnimatedWorldTransform()));
+                logger.config("Using animated model matrix: " + Arrays.toString(hit.getParentNode().getAnimatedWorldTransform()));
             } else if (hit.getParentNode().getWorldTransform() != null){
                 modelMatrix = hit.getParentNode().getWorldTransform();
-                Log.d("CollisionDetection", "Using world transform: " + Arrays.toString(hit.getParentNode().getWorldTransform()));
+                logger.config("Using world transform: " + Arrays.toString(hit.getParentNode().getWorldTransform()));
             } else {
-                Log.d("CollisionDetection", "Using model matrix (1): " + Arrays.toString(modelMatrix));
+                logger.config("Using model matrix (1): " + Arrays.toString(modelMatrix));
             }
         } else {
-            Log.d("CollisionDetection", "Using model matrix (2): " + Arrays.toString(modelMatrix));
+            logger.config("Using model matrix (2): " + Arrays.toString(modelMatrix));
         }
 
         // invert current model transform
         float[] invertedModelMatrix = new float[16];
         Matrix.invertM(invertedModelMatrix, 0, modelMatrix, 0);
-        Log.d("CollisionDetection", "DEBUG: Inverted matrix: " + Arrays.toString(invertedModelMatrix));
-        Log.d("CollisionDetection", "DEBUG: nearHit: " + Arrays.toString(nearHit));
-        Log.d("CollisionDetection", "DEBUG: farHit: " + Arrays.toString(farHit));
+        logger.config("DEBUG: Inverted matrix: " + Arrays.toString(invertedModelMatrix));
+        logger.config("DEBUG: nearHit: " + Arrays.toString(nearHit));
+        logger.config("DEBUG: farHit: " + Arrays.toString(farHit));
 
         // get near and far hits
         float[] nearAA = new float[4];
@@ -246,7 +248,7 @@ public class CollisionDetection {
             realIntersection[1] /= realIntersection[3];
             realIntersection[2] /= realIntersection[3];
             realIntersection[3] = 1;*/
-            Log.d("CollisionDetection", "Collision point. Near: "+Arrays.toString(nearAA)+", farAA" + Arrays.toString(farAA)+", point: "+Arrays.toString(intersectionPoint));
+            logger.config("Collision point. Near: "+Arrays.toString(nearAA)+", farAA" + Arrays.toString(farAA)+", point: "+Arrays.toString(intersectionPoint));
             return realIntersection;
         } else {
             return null;
@@ -254,9 +256,9 @@ public class CollisionDetection {
     }
 
     private static float getTriangleIntersectionForOctree(Octree octree, float[] rayOrigin, float[] rayDirection) {
-        //Log.v("CollisionDetection","Testing octree "+octree);
+        //logger.finest("Testing octree "+octree);
         if (!isBoxIntersection(rayOrigin, rayDirection, octree.boundingBox)) {
-            Log.d("CollisionDetection", "No octree intersection");
+            logger.config("No octree intersection");
             return -1;
         }
         Octree selected = null;
@@ -267,7 +269,7 @@ public class CollisionDetection {
             }
             float intersection = getTriangleIntersectionForOctree(child, rayOrigin, rayDirection);
             if (intersection != -1 && intersection < min) {
-                Log.d("CollisionDetection", "Octree intersection: " + intersection);
+                logger.config("Octree intersection: " + intersection);
                 min = intersection;
                 selected = child;
             }
@@ -286,7 +288,7 @@ public class CollisionDetection {
             }
         }
         if (min != Float.MAX_VALUE) {
-            Log.d("CollisionDetection", "Intersection at distance: " + min+ ", triangle: " + Arrays.toString(selectedTriangle)+", octree: " + selected);
+            logger.config("Intersection at distance: " + min+ ", triangle: " + Arrays.toString(selectedTriangle)+", octree: " + selected);
             return min;
         }
         return -1;
@@ -317,7 +319,7 @@ public class CollisionDetection {
         float t = f * Math3DUtils.dotProduct(edge2, q);
         if (t > EPSILON) // ray intersection
         {
-            //Log.v("CollisionDetection", "Triangle intersection at: " + t);
+            //logger.finest("Triangle intersection at: " + t);
             return t;
         } else // This means that there is a line intersection but not a ray intersection.
             return -1;

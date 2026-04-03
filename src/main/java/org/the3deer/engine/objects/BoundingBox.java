@@ -1,7 +1,6 @@
 package org.the3deer.engine.objects;
 
 import android.opengl.GLES20;
-import android.util.Log;
 
 import org.the3deer.engine.model.AnimatedModel;
 import org.the3deer.engine.model.Dimensions;
@@ -12,8 +11,12 @@ import org.the3deer.util.io.IOUtils;
 
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public final class BoundingBox {
+
+    private static final Logger logger = Logger.getLogger(BoundingBox.class.getSimpleName());
 
     public static Object3D build(Object3D obj) {
         if (obj instanceof AnimatedModel && ((AnimatedModel) obj).getSkin() != null) {
@@ -24,7 +27,7 @@ public final class BoundingBox {
 
     public static Object3D buildSkinned(AnimatedModel sourcePrimitive) {
 
-        Log.d("BoundingBox", "Building SKINNED bounding box for: " + sourcePrimitive.getId());
+        logger.config("Building SKINNED bounding box for: " + sourcePrimitive.getId());
 
         // clone model
         AnimatedModel boundingBox = sourcePrimitive.clone();
@@ -55,10 +58,10 @@ public final class BoundingBox {
         // This makes the box move as a rigid unit with the model's root, which is the correct behavior.
         Node rootJoint = sourcePrimitive.getParentNode();
         if (rootJoint == null) {
-            Log.e("BoundingBox", "Source primitive " + sourcePrimitive.getId() + " has no root joint!");
+            logger.log(Level.SEVERE,  "Source primitive " + sourcePrimitive.getId() + " has no root joint!");
             return buildStatic(sourcePrimitive); // Fallback to a static box
         }
-        Log.d("BoundingBox", "Root node: " + rootJoint.getId()+", Joint index: "+rootJoint.getJointIndex());
+        logger.config("Root node: " + rootJoint.getId()+", Joint index: "+rootJoint.getJointIndex());
         int rootJointId = Math.max(rootJoint.getJointIndex(), 0);
 
         IntBuffer bboxJoints = IOUtils.createIntBuffer(8 * 4);
@@ -104,7 +107,7 @@ public final class BoundingBox {
 
     public static Object3D buildStatic(Object3D obj) {
 
-        Log.v("BoundingBox", "Building STATIC bounding box for: " + obj.getId());
+        logger.finest("Building STATIC bounding box for: " + obj.getId());
 
         Dimensions box = obj.getDimensions();
 
@@ -134,7 +137,7 @@ public final class BoundingBox {
 
         // prefer topmost node, because some nodes carries a transform + inverse
         final Node parentNode = obj.getParentNode() != null? obj.getParentNode() : null;
-        Log.v("BoundingBox", "Bounding box Node: " + parentNode);
+        logger.finest("Bounding box Node: " + parentNode);
 
         return new Object3D(vertices, indexBuffer)
                 .setDrawMode(GLES20.GL_LINES)

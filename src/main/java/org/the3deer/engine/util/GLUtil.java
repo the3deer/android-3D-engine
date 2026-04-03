@@ -11,20 +11,21 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.opengl.GLES20;
 import android.opengl.GLUtils;
-import android.util.Log;
 
-import org.the3deer.engine.model.CubeMap;
 import org.the3deer.engine.android.util.AndroidUtils;
+import org.the3deer.engine.model.CubeMap;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import de.javagl.jgltf.model.io.Buffers;
 
 public final class GLUtil {
 
-    private static final String TAG = "GLUtil";
+    private static final Logger logger = Logger.getLogger(GLUtil.class.getSimpleName());
 
     private GLUtil() {
 
@@ -66,7 +67,7 @@ public final class GLUtil {
 
             // If the link failed, delete the program.
             if (linkStatus[0] == 0) {
-                Log.e(TAG, "Error compiling program: " + GLES20.glGetProgramInfoLog(programHandle));
+                logger.log(Level.SEVERE, "Error compiling program: " + GLES20.glGetProgramInfoLog(programHandle));
                 GLES20.glDeleteProgram(programHandle);
                 programHandle = 0;
             }
@@ -102,9 +103,9 @@ public final class GLUtil {
 
         int[] compiled = new int[1];
         GLES20.glGetShaderiv(shader, GLES20.GL_COMPILE_STATUS, compiled, 0);
-        Log.v("GLUtil", "Shader compilation info: " + GLES20.glGetShaderInfoLog(shader));
+        logger.finest("Shader compilation info: " + GLES20.glGetShaderInfoLog(shader));
         if (compiled[0] == 0) {
-            Log.e("GLUtil", "Shader error: " + GLES20.glGetShaderInfoLog(shader));
+            logger.log(Level.SEVERE,  "Shader error: " + GLES20.glGetShaderInfoLog(shader));
             GLES20.glDeleteShader(shader);
         }
 
@@ -122,7 +123,7 @@ public final class GLUtil {
     }
 
     public static int loadTexture(final InputStream is) {
-        Log.v("GLUtil", "Loading texture from stream...");
+        logger.finest("Loading texture from stream...");
 
         final Bitmap bitmap = AndroidUtils.decodeBitmap(is);
         int ret = loadTexture(bitmap);
@@ -132,7 +133,7 @@ public final class GLUtil {
     }
 
     public static int loadTexture(final Bitmap bitmap) {
-        Log.v("GLUtil", "Loading texture from stream...");
+        logger.finest("Loading texture from stream...");
 
         final int[] textureHandle = new int[1];
 
@@ -142,7 +143,7 @@ public final class GLUtil {
             throw new RuntimeException("Error loading texture.");
         }
 
-        //Log.v("GLUtil", "New texture: " + textureHandle[0]);
+        //logger.finest("New texture: " + textureHandle[0]);
 
         // Bind to the texture in OpenGL
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureHandle[0]);
@@ -155,7 +156,7 @@ public final class GLUtil {
         GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,GLES20.GL_TEXTURE_WRAP_S,GLES20.GL_REPEAT);
         GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D,GLES20.GL_TEXTURE_WRAP_T,GLES20.GL_REPEAT);
 
-        Log.v("GLUtil", "Loaded texture: "+textureHandle[0]);
+        logger.finest("Loaded texture: "+textureHandle[0]);
         return textureHandle[0];
     }
 
@@ -243,10 +244,10 @@ public final class GLUtil {
         int glError;
         boolean error = false;
         while ((glError = GLES20.glGetError()) != GLES20.GL_NO_ERROR) {
-            Log.e(TAG, glOperation + ": glError " + glError);
+            logger.log(Level.SEVERE, glOperation + ": glError " + glError);
             error = true;
             for (int i=2; i<Thread.currentThread().getStackTrace().length; i++) {
-                Log.e(TAG, Thread.currentThread().getStackTrace()[i].toString());
+                logger.log(Level.SEVERE, Thread.currentThread().getStackTrace()[i].toString());
             }
             // throw new RuntimeException(glOperation + ": glError " + error);
         }

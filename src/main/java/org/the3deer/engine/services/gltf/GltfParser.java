@@ -1,7 +1,5 @@
 package org.the3deer.engine.services.gltf;
 
-import android.util.Log;
-
 import org.the3deer.engine.services.gltf.dto.GltfAnimationDto;
 import org.the3deer.engine.services.gltf.dto.GltfCameraDto;
 import org.the3deer.engine.services.gltf.dto.GltfChannelDto;
@@ -19,6 +17,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import de.javagl.jgltf.model.AccessorModel;
 import de.javagl.jgltf.model.AnimationModel;
@@ -39,7 +39,7 @@ import de.javagl.jgltf.model.v2.MaterialModelV2;
 
 public class GltfParser {
 
-    private static final String TAG = "GltfParser";
+    private static final Logger logger = Logger.getLogger(GltfParser.class.getSimpleName());
 
     private final GltfModel gltfModel;
     private final GltfAsset gltfAsset;
@@ -159,7 +159,7 @@ public class GltfParser {
                         materialDto.emissiveTexture = materialModelV2.getEmissiveTexture().getImageModel().getImageData();
                     }
                 } catch (Exception e) {
-                    Log.e(TAG, "Failed to parse v2 material: " + e.getMessage(), e);
+                    logger.log(Level.SEVERE, "Failed to parse v2 material: " + e.getMessage(), e);
                 }
 
                 // KHR_materials_volume extension
@@ -192,7 +192,7 @@ public class GltfParser {
                         }
                     }
                 } catch (Exception e) {
-                    Log.e(TAG, "Failed to parse KHR_materials_volume extension: " + e.getMessage(), e);
+                    logger.log(Level.SEVERE, "Failed to parse KHR_materials_volume extension: " + e.getMessage(), e);
                 }
 
             } else if (materialModel instanceof MaterialModelV1){
@@ -395,7 +395,7 @@ public class GltfParser {
 
             NodeModel skeletonNodeModel = skinModel.getSkeleton();
             if (skeletonNodeModel == null) {
-                Log.v("GltfParser", "skin.skeleton not defined. Computing skeleton root node...");
+                logger.finest("skin.skeleton not defined. Computing skeleton root node...");
                 skeletonNodeModel = findLowestCommonAncestor(skinModel.getJoints());
             }
 

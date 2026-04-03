@@ -1,7 +1,5 @@
 package org.the3deer.engine.gui;
 
-import android.util.Log;
-
 import org.the3deer.engine.model.Constants;
 import org.the3deer.util.io.IOUtils;
 
@@ -9,6 +7,8 @@ import java.nio.Buffer;
 import java.nio.FloatBuffer;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Mono-size glyph
@@ -18,6 +18,8 @@ import java.util.Map;
  * max vertices: 75
  */
 public class Glyph extends Widget {
+
+    private static final Logger logger = Logger.getLogger(Glyph.class.getSimpleName());
 
     public static final float SIZE_H = 0.5f;
     public static final float SIZE_V = 0.7f;
@@ -623,7 +625,7 @@ public class Glyph extends Widget {
             setVertexBuffer(vertexBuffer);
             setVertexColorsArrayBuffer(colorBuffer);
         } catch (Exception e) {
-            Log.e("Glyph", e.getMessage(), e);
+            logger.log(Level.SEVERE,  e.getMessage(), e);
         }
     }
 
@@ -797,7 +799,7 @@ public class Glyph extends Widget {
                             float x2, float y2) {
         int voffset = vp;
         int cp = (voffset / 3) * 4;
-        Log.i("Glyph", "voffset: " + vp + ", coffset:" + cp);
+        logger.info("voffset: " + vp + ", coffset:" + cp);
         vertexBuffer.put(voffset++, x1).put(voffset++, y1).put(voffset++, -1f);
         vertexBuffer.put(voffset++, x1).put(voffset++, y1).put(voffset++, 0f);
         vertexBuffer.put(voffset++, x2).put(voffset++, y2).put(voffset++, 0f);

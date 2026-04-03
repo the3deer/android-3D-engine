@@ -15,8 +15,6 @@ import java.util.List;
 
 public class GltfLoaderTask extends LoaderTask {
 
-    private static final String TAG = GltfLoaderTask.class.getSimpleName();
-
     public GltfLoaderTask(Uri uri, LoadListener callback) {
         super(uri, callback);
     }

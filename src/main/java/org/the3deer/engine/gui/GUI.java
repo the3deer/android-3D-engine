@@ -1,9 +1,9 @@
 package org.the3deer.engine.gui;
 
-import android.util.Log;
-
 import androidx.annotation.NonNull;
 
+import org.the3deer.engine.event.FPSEvent;
+import org.the3deer.engine.event.GLEvent;
 import org.the3deer.engine.event.SelectedObjectEvent;
 import org.the3deer.engine.model.Camera;
 import org.the3deer.engine.model.Constants;
@@ -12,8 +12,6 @@ import org.the3deer.engine.model.ModelEvent;
 import org.the3deer.engine.model.Object3D;
 import org.the3deer.engine.model.Scene;
 import org.the3deer.engine.model.Screen;
-import org.the3deer.engine.event.FPSEvent;
-import org.the3deer.engine.event.GLEvent;
 import org.the3deer.util.bean.Bean;
 import org.the3deer.util.bean.BeanFactory;
 import org.the3deer.util.bean.BeanInit;
@@ -26,13 +24,15 @@ import java.util.EventObject;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.inject.Inject;
 
 @Bean(name="gui", experimental = true)
 public class GUI extends Widget implements EventListener, BeanManaged {
 
-    private final static String TAG = GUI.class.getSimpleName();;
+    private static final Logger logger = Logger.getLogger(GUI.class.getSimpleName());;
 
     private Label icon;
     private boolean showFPS = true;
@@ -83,7 +83,7 @@ public class GUI extends Widget implements EventListener, BeanManaged {
             icon.setVisible(true);
             icon.setClickable(true);
             icon.addListener(this);
-            Log.v("GUI", "icon location: " + Arrays.toString(icon.getLocation()));*/
+            logger.finest("icon location: " + Arrays.toString(icon.getLocation()));*/
 
             if (axis !=  null) {
                 addChild(axis);
@@ -99,7 +99,7 @@ public class GUI extends Widget implements EventListener, BeanManaged {
             super.refresh();
 
         } catch (Exception e) {
-            Log.e("GUI", e.getMessage(), e);
+            logger.log(Level.SEVERE,  e.getMessage(), e);
             throw new RuntimeException(e);
         }
     }
@@ -169,14 +169,14 @@ public class GUI extends Widget implements EventListener, BeanManaged {
             if (rev.getCode() == ModelEvent.Code.SCREEN_CHANGED) {
                 setDimensions(calculateScreenDimensions());
                 refresh();
-                Log.i(TAG, "Refreshed after screen changed");
+                logger.info("Refreshed after screen changed");
             }
         } if (event instanceof GLEvent) {
             final GLEvent rev = (GLEvent) event;
             if (rev.getCode() == GLEvent.Code.SURFACE_CHANGED) {
                 setDimensions(calculateScreenDimensions());
                 refresh();
-                Log.i(TAG, "Refreshed after surface changed");
+                logger.info("Refreshed after surface changed");
             }
         } else if (super.onEvent(event)) {
             return true;
@@ -184,10 +184,10 @@ public class GUI extends Widget implements EventListener, BeanManaged {
             if (fps != null && fps.isVisible()) {
                 FPSEvent fpsEvent = (FPSEvent) event;
                 fps.setText(fpsEvent.getFps() + " fps");
-                //Log.v(TAG, "FPS: "+fpsEvent.getFps());
+                //logger.finest("FPS: "+fpsEvent.getFps());
             }
         } else if (event instanceof SelectedObjectEvent) {
-            Log.v(TAG, "onEvent. SelectedObjectEvent: "+((SelectedObjectEvent) event).getSelected());
+           logger.finest("onEvent. SelectedObjectEvent: "+((SelectedObjectEvent) event).getSelected());
             if (this.info != null) {
                 final Object3D selected = ((SelectedObjectEvent) event).getSelected();
                 if (selected != null) {
@@ -211,7 +211,7 @@ public class GUI extends Widget implements EventListener, BeanManaged {
                     //info.append(df.format(selected.getScaleX()));
                     info.append("x");
 
-                    Log.v("GUI", "Selected object info: " + info);
+                    logger.finest("Selected object info: " + info);
                     this.info.update(info.toString().toLowerCase());
                    this.info.setVisible(true);
                 } else {
@@ -223,7 +223,7 @@ public class GUI extends Widget implements EventListener, BeanManaged {
         } else if (event instanceof ClickEvent) {
             Widget widget = ((Event) event).getWidget();
             if (widget == icon) {
-                Log.v("GUI", "Toggling menu visibility... "+icon.getId());
+                logger.finest("Toggling menu visibility... "+icon.getId());
                 mainMenu = createMenu_main();
                 mainMenu.setVisible(true, true);
                 mainMenu.setFloating(true);
@@ -232,7 +232,7 @@ public class GUI extends Widget implements EventListener, BeanManaged {
                 return true;
             }
         }else if (event instanceof Menu.OptionSelectedEvent) {
-            Log.v("GUI", "Item selected: "+ event);
+            logger.finest("Item selected: "+ event);
             final Menu.OptionSelectedEvent optionSelectedEvent = (Menu.OptionSelectedEvent) event;
             if (event.getSource() == mainMenu) {
                 window = createMenu(mainMenu, optionSelectedEvent);
@@ -331,7 +331,7 @@ public class GUI extends Widget implements EventListener, BeanManaged {
                     fieldValue.setClickable(true);
                     fieldValue.setOnClick(()->{
 
-                        Log.v("GUI","field onClick: "+field.getType());
+                        logger.finest("field onClick: "+field.getType());
                         if (field.getType() == Boolean.TYPE){
                             final Menu menuValue = new Menu(Menu.Type.Button);
                             menuValue.setMargin(new float[]{24,24,24});
@@ -358,7 +358,7 @@ public class GUI extends Widget implements EventListener, BeanManaged {
                                         return true;
                                     }
                                 } catch (Exception e) {
-                                    Log.e(TAG, "Error getting setter for field: "+field.getName(), e);
+                                    logger.log(Level.SEVERE, "Error getting setter for field: "+field.getName(), e);
                                 }
                                 return false;
                             });

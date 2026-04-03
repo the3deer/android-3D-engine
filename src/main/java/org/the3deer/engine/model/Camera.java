@@ -3,7 +3,6 @@ package org.the3deer.engine.model;
 // http://stackoverflow.com/questions/14607640/rotating-a-vector-in-3d-space
 
 import android.opengl.Matrix;
-import android.util.Log;
 
 import androidx.annotation.NonNull;
 
@@ -16,6 +15,7 @@ import org.the3deer.util.math.Quaternion;
 import java.util.ArrayList;
 import java.util.EventObject;
 import java.util.List;
+import java.util.logging.Logger;
 
 import javax.inject.Inject;
 
@@ -82,6 +82,8 @@ public class Camera {
             return (Camera)getSource();
         }
     }
+
+    private static final Logger logger = Logger.getLogger(Camera.class.getSimpleName());
 
     private final String name;
 
@@ -272,11 +274,11 @@ public class Camera {
      */
     public boolean isOutOfBounds(float x, float y, float z) {
         if (roomBox.outOfBound(x, y, z)) {
-            Log.v("Camera", "Out of room walls. " + x + "," + y + "," + z);
+            logger.finest("Out of room walls. " + x + "," + y + "," + z);
             return true;
         }
         /*if (!centerBox.outOfBound(x, y, z)) {
-            Log.v("Camera", "Inside absolute center");
+            logger.finest("Inside absolute center");
             return true;
         }*/
         return false;
