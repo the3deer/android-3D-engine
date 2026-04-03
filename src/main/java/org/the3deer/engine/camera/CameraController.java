@@ -2,7 +2,7 @@ package org.the3deer.engine.camera;
 
 
 import org.the3deer.engine.Model;
-import org.the3deer.engine.controller.TouchEvent;
+import org.the3deer.engine.event.TouchEvent;
 import org.the3deer.engine.model.Camera;
 import org.the3deer.engine.model.Projection;
 import org.the3deer.engine.model.Screen;

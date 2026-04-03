@@ -1,7 +1,5 @@
 package org.the3deer.util.math;
 
-import android.opengl.Matrix;
-
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
@@ -60,29 +58,7 @@ public class Math3DUtils {
      */
     public static void multiplyMM(float[] dest, float[] lhs, float[] rhs)
     {
-        // first column
-        dest[0] = lhs[0] * rhs[0] + lhs[4] * rhs[1] + lhs[8] * rhs[2] + lhs[12] * rhs[3];
-        dest[1] = lhs[1] * rhs[0] + lhs[5] * rhs[1] + lhs[9] * rhs[2] + lhs[13] * rhs[3];
-        dest[2] = lhs[2] * rhs[0] + lhs[6] * rhs[1] + lhs[10] * rhs[2] + lhs[14] * rhs[3];
-        dest[3] = lhs[3] * rhs[0] + lhs[7] * rhs[1] + lhs[11] * rhs[2] + lhs[15] * rhs[3];
-
-        // second column
-        dest[4] = lhs[0] * rhs[4] + lhs[4] * rhs[5] + lhs[8] * rhs[6] + lhs[12] * rhs[7];
-        dest[5] = lhs[1] * rhs[4] + lhs[5] * rhs[5] + lhs[9] * rhs[6] + lhs[13] * rhs[7];
-        dest[6] = lhs[2] * rhs[4] + lhs[6] * rhs[5] + lhs[10] * rhs[6] + lhs[14] * rhs[7];
-        dest[7] = lhs[3] * rhs[4] + lhs[7] * rhs[5] + lhs[11] * rhs[6] + lhs[15] * rhs[7];
-
-        // third column
-        dest[8] = lhs[0] * rhs[8] + lhs[4] * rhs[9] + lhs[8] * rhs[10] + lhs[12] * rhs[11];
-        dest[9] = lhs[1] * rhs[8] + lhs[5] * rhs[9] + lhs[9] * rhs[10] + lhs[13] * rhs[11];
-        dest[10] = lhs[2] * rhs[8] + lhs[6] * rhs[9] + lhs[10] * rhs[10] + lhs[14] * rhs[11];
-        dest[11] = lhs[3] * rhs[8] + lhs[7] * rhs[9] + lhs[11] * rhs[10] + lhs[15] * rhs[11];
-
-        // forth column
-        dest[12] = lhs[0] * rhs[12] + lhs[4] * rhs[13] + lhs[8] * rhs[14] + lhs[12] * rhs[15];
-        dest[13] = lhs[1] * rhs[12] + lhs[5] * rhs[13] + lhs[9] * rhs[14] + lhs[13] * rhs[15];
-        dest[14] = lhs[2] * rhs[12] + lhs[6] * rhs[13] + lhs[10] * rhs[14] + lhs[14] * rhs[15];
-        dest[15] = lhs[3] * rhs[12] + lhs[7] * rhs[13] + lhs[11] * rhs[14] + lhs[15] * rhs[15];
+        Matrix.multiplyMM(dest, 0, lhs, 0, rhs, 0);
     };
 
     /**
@@ -184,7 +160,7 @@ public class Math3DUtils {
         float[] vb = new float[]{v2[0] - v0[0], v2[1] - v0[1], v2[2] - v0[2]};
         float[] n = new float[]{va[1] * vb[2] - va[2] * vb[1], va[2] * vb[0] - va[0] * vb[2],
                 va[0] * vb[1] - va[1] * vb[0]};
-        float modul = Matrix.length(n[0], n[1], n[2]);
+        float modul = length(n[0], n[1], n[2]);
         float[] vn = new float[]{n[0] / modul, n[1] / modul, n[2] / modul};
 
         return getNormalLine(v0, v1, v2, vn, scale, 1);
@@ -357,7 +333,7 @@ public class Math3DUtils {
     }
 
     public static float[] crossProduct(float ax, float ay, float az, float bx, float by, float bz) {
-        // AxB = (AyBz − AzBy, AzBx − AxBz, AxBy − AyBx)
+        // AxB = (AyBz − AzBy, AzBx − AzBy, AxBy − AyBx)
         //(r)[0] = (a)[1] * (b)[2] - (b)[1] * (a)[2]; \
         //(r)[1] = (a)[2] * (b)[0] - (b)[2] * (a)[0]; \
         //(r)[2] = (a)[0] * (b)[1] - (b)[0] * (a)[1];
@@ -455,89 +431,17 @@ public class Math3DUtils {
     }
 
     /**
-     * {@link Matrix}
-     */
-    public static void setRotateM(float[] rm, int rmOffset,
-                                  float a, float x, float y, float z) {
-        rm[rmOffset + 3] = 0;
-        rm[rmOffset + 7] = 0;
-        rm[rmOffset + 11] = 0;
-        rm[rmOffset + 12] = 0;
-        rm[rmOffset + 13] = 0;
-        rm[rmOffset + 14] = 0;
-        rm[rmOffset + 15] = 1;
-        a *= (float) (Math.PI / 180.0f);
-        float s = (float) Math.sin(a);
-        float c = (float) Math.cos(a);
-        if (1.0f == x && 0.0f == y && 0.0f == z) {
-            rm[rmOffset + 5] = c;
-            rm[rmOffset + 10] = c;
-            rm[rmOffset + 6] = s;
-            rm[rmOffset + 9] = -s;
-            rm[rmOffset + 1] = 0;
-            rm[rmOffset + 2] = 0;
-            rm[rmOffset + 4] = 0;
-            rm[rmOffset + 8] = 0;
-            rm[rmOffset + 0] = 1;
-        } else if (0.0f == x && 1.0f == y && 0.0f == z) {
-            rm[rmOffset + 0] = c;
-            rm[rmOffset + 10] = c;
-            rm[rmOffset + 8] = s;
-            rm[rmOffset + 2] = -s;
-            rm[rmOffset + 1] = 0;
-            rm[rmOffset + 4] = 0;
-            rm[rmOffset + 6] = 0;
-            rm[rmOffset + 9] = 0;
-            rm[rmOffset + 5] = 1;
-        } else if (0.0f == x && 0.0f == y && 1.0f == z) {
-            rm[rmOffset + 0] = c;
-            rm[rmOffset + 5] = c;
-            rm[rmOffset + 1] = s;
-            rm[rmOffset + 4] = -s;
-            rm[rmOffset + 2] = 0;
-            rm[rmOffset + 6] = 0;
-            rm[rmOffset + 8] = 0;
-            rm[rmOffset + 9] = 0;
-            rm[rmOffset + 10] = 1;
-        } else {
-            float len = length(x, y, z);
-            if (1.0f != len) {
-                float recipLen = 1.0f / len;
-                x *= recipLen;
-                y *= recipLen;
-                z *= recipLen;
-            }
-            float nc = 1.0f - c;
-            float xy = x * y;
-            float yz = y * z;
-            float zx = z * x;
-            float xs = x * s;
-            float ys = y * s;
-            float zs = z * s;
-            rm[rmOffset + 0] = x * x * nc + c;
-            rm[rmOffset + 4] = xy * nc - zs;
-            rm[rmOffset + 8] = zx * nc + ys;
-            rm[rmOffset + 1] = xy * nc + zs;
-            rm[rmOffset + 5] = y * y * nc + c;
-            rm[rmOffset + 9] = yz * nc - xs;
-            rm[rmOffset + 2] = zx * nc - ys;
-            rm[rmOffset + 6] = yz * nc + xs;
-            rm[rmOffset + 10] = z * z * nc + c;
-        }
-    }
-
-    /**
-     * {@link Matrix}
+     * {@link android.opengl.Matrix#length(float, float, float)}
      */
     public static float length(float[] vector) {
         return length(vector[0], vector[1], vector[2]);
     }
 
     /**
-     * {@link Matrix}
+     * {@link android.opengl.Matrix#length(float, float, float)}
      */
-    public static float length(float x, float y, float z) {
-        return (float) Math.sqrt(x * x + y * y + z * z);
+    private static float length(float x, float y, float z) {
+        return Matrix.length(x, y, z);
     }
 
     public static void interpolate(org.the3deer.engine.animation.JointTransform result, org.the3deer.engine.animation.JointTransform start, org.the3deer.engine.animation.JointTransform end, float progression) {
@@ -718,7 +622,7 @@ public class Math3DUtils {
     public static void multiplyMMV(float[] result, int retOffset, float[] matrix, int matOffet, float[] vector4Matrix,
                                    int vecOffset) {
         for (int i = 0; i < vector4Matrix.length / 4; i++) {
-            Matrix.multiplyMV(result, retOffset + (i * 4), matrix, matOffet, vector4Matrix, vecOffset + (i * 4));
+            multiplyMV(result, retOffset + (i * 4), matrix, matOffet, vector4Matrix, vecOffset + (i * 4));
         }
     }
 
@@ -829,7 +733,7 @@ public class Math3DUtils {
     }
 
     public static float[] extractRotationMatrix(float[] matrix) {
-        float[] s = new float[]{Matrix.length(matrix[0],matrix[4],matrix[8]),Matrix.length(matrix[1],matrix[5],matrix[9]),Matrix.length
+        float[] s = new float[]{length(matrix[0],matrix[4],matrix[8]),length(matrix[1],matrix[5],matrix[9]),length
                 (matrix[2],matrix[6],matrix[10])};
         return new float[]{
                 matrix[0]/s[0], matrix[1]/s[1], matrix[2]/s[2], 0,
@@ -865,7 +769,7 @@ public class Math3DUtils {
 
     public static float[] transform(float x, float y, float z, float[] matrix){
         float[] xyz1 = new float[]{x, y, z, 1};
-        Matrix.multiplyMV(xyz1, 0, matrix, 0, xyz1, 0);
+        multiplyMV(xyz1, 0, matrix, 0, xyz1, 0);
         Math3DUtils.round(xyz1, 100000);
         return new float[]{xyz1[0], xyz1[1], xyz1[2]};
     }
@@ -966,5 +870,14 @@ public class Math3DUtils {
         a[2] = (float)(a[2] / length);
         a[3] = (float)(a[3] / length);
     }
-}
 
+    /**
+     * {@link android.opengl.Matrix#multiplyMV(float[], int, float[], int, float[], int)}
+     */
+    public static void multiplyMV(float[] resultVec, int resultVecOffset,
+                                  float[] lhsMat, int lhsMatOffset,
+                                  float[] rhsVec, int rhsVecOffset) {
+        Matrix.multiplyMV(resultVec, resultVecOffset, lhsMat, lhsMatOffset, rhsVec, rhsVecOffset);
+    }
+
+}

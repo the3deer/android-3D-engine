@@ -1,4 +1,4 @@
-package org.the3deer.engine.controller;
+package org.the3deer.engine.event;
 
 import java.util.EventObject;
 
@@ -24,13 +24,13 @@ public class TouchEvent extends EventObject {
     private final float zoom;
     private final float angle;
 
-    TouchEvent(Object source, Action action, int width, int height, float x, float y) {
+    public TouchEvent(Object source, Action action, int width, int height, float x, float y) {
         this(source, action, width, height, x, y, 0, 0, 0, 0, 0, 0f);
     }
 
-    TouchEvent(Object source, Action action, int width, int height, float x, float y,
-               float x2, float y2, float dX,
-               float dY, float zoom, float angle) {
+    public TouchEvent(Object source, Action action, int width, int height, float x, float y,
+                      float x2, float y2, float dX,
+                      float dY, float zoom, float angle) {
         super(source);
         this.width = width;
         this.height = height;

@@ -1,16 +1,15 @@
 
 package org.the3deer.engine;
 
-import android.view.MotionEvent;
-
 import org.the3deer.engine.android.shader.ShaderFactory;
 import org.the3deer.engine.android.util.AndroidUtils;
 import org.the3deer.engine.camera.CameraController;
 import org.the3deer.engine.collision.CollisionController;
 import org.the3deer.engine.collision.CollisionEvent;
-import org.the3deer.engine.controller.TouchController;
-import org.the3deer.engine.controller.TouchEvent;
+import org.the3deer.engine.android.touch.TouchController;
+import org.the3deer.engine.event.TouchEvent;
 import org.the3deer.engine.event.GLEvent;
+import org.the3deer.engine.event.MotionEvent;
 import org.the3deer.engine.event.SelectedObjectEvent;
 import org.the3deer.engine.gui.GUI;
 import org.the3deer.engine.gui.GUIDrawer;
@@ -69,7 +68,7 @@ public class ModelController implements EventManager, TouchHandler {
     @Override
     public boolean onSurfaceTouchEvent(MotionEvent event) {
         // wrap into app event
-        return propagate(new EventObject(event));
+        return propagate(event);
     }
 
     @Override
@@ -106,7 +105,7 @@ public class ModelController implements EventManager, TouchHandler {
             //logger.finest("onEvent. RenderEvent: listeners: " + listeners);
             AndroidUtils.fireEvent(listeners, event);
             //logger.finest("onEvent. RenderEvent: finished");
-        } else if (event.getSource() instanceof MotionEvent) {
+        } else if (event instanceof MotionEvent) {
             if (touchController != null) {  // event coming from glview
                 return touchController.onEvent(event);
             }

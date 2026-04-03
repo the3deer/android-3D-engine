@@ -1,7 +1,8 @@
-package org.the3deer.engine.controller;
+package org.the3deer.engine.android.touch;
 
 import android.view.MotionEvent;
 
+import org.the3deer.engine.event.TouchEvent;
 import org.the3deer.engine.event.GLEvent;
 import org.the3deer.util.event.EventListener;
 import org.the3deer.util.event.EventManager;

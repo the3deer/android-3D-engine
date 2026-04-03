@@ -2,11 +2,10 @@ package org.the3deer.engine.model;
 
 // http://stackoverflow.com/questions/14607640/rotating-a-vector-in-3d-space
 
-import android.opengl.Matrix;
-
 import androidx.annotation.NonNull;
 
 import org.the3deer.engine.android.util.AndroidUtils;
+import org.the3deer.util.math.Matrix;
 import org.the3deer.util.bean.BeanInit;
 import org.the3deer.util.event.EventListener;
 import org.the3deer.util.math.Math3DUtils;

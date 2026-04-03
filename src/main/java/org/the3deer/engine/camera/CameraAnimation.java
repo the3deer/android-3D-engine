@@ -3,7 +3,7 @@ package org.the3deer.engine.camera;
 import org.the3deer.engine.model.Animation;
 import org.the3deer.engine.model.Camera;
 import org.the3deer.engine.model.Constants;
-import org.the3deer.util.math.Math3DUtils;
+import org.the3deer.util.math.Matrix;
 
 import java.util.Arrays;
 import java.util.logging.Logger;
@@ -80,7 +80,7 @@ public class CameraAnimation extends Animation<Camera> {
                 }
             }*/
 
-            if (Math3DUtils.length(x2,y2,z2) > 0 && Math3DUtils.length(xUp,yUp,zUp) > 0) {
+            if (Matrix.length(x2,y2,z2) > 0 && Matrix.length(xUp,yUp,zUp) > 0) {
 
                 float xPos = x0 + (x2 - x0) * progress;
                 float yPos = y0 + (y2 - y0) * progress;

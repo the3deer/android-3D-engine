@@ -8,7 +8,7 @@ import org.the3deer.engine.android.shader.Shader;
 import org.the3deer.engine.android.shader.ShaderFactory;
 import org.the3deer.engine.collision.Collision;
 import org.the3deer.engine.collision.CollisionDetection;
-import org.the3deer.engine.controller.TouchEvent;
+import org.the3deer.engine.event.TouchEvent;
 import org.the3deer.engine.model.Camera;
 import org.the3deer.engine.model.Constants;
 import org.the3deer.engine.model.Projection;

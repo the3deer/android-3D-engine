@@ -65,7 +65,7 @@ public class GLSurfaceView extends android.opengl.GLSurfaceView {
     public boolean onTouchEvent(MotionEvent event) {
         // send the event to the manager
         if (this.touchHandler != null) {
-            return touchHandler.onSurfaceTouchEvent(event);
+            return touchHandler.onSurfaceTouchEvent(new org.the3deer.engine.event.MotionEvent(event));
         }
         return super.onTouchEvent(event);
     }

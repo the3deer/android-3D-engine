@@ -1,12 +1,11 @@
 package org.the3deer.engine.gui;
 
 import android.opengl.GLES20;
-import android.os.SystemClock;
 
 import org.the3deer.engine.animation.JointTransform;
 import org.the3deer.engine.collision.Collision;
 import org.the3deer.engine.collision.CollisionDetection;
-import org.the3deer.engine.controller.TouchEvent;
+import org.the3deer.engine.event.TouchEvent;
 import org.the3deer.engine.model.Camera;
 import org.the3deer.engine.model.Constants;
 import org.the3deer.engine.model.Dimensions;
@@ -577,10 +576,12 @@ public class Widget extends Object3D implements EventListener {
 
     private void animate_impl(final Widget parent, final JointTransform start, final JointTransform end, final long millis) {
         final JointTransform result = new JointTransform(new float[16]);
-        final long startTime = SystemClock.uptimeMillis();
+        // Use nanoTime() for high precision and platform independence
+        final long startTime = System.nanoTime();
         this.animation = () -> {
             result.setVisible(start.isVisible());
-            long elapsed = SystemClock.uptimeMillis() - startTime;
+            // Convert nanoseconds to milliseconds
+            long elapsed = (System.nanoTime() - startTime) / 1000000;
             if (elapsed >= millis) {
                 elapsed = millis;
                 result.setVisible(end.isVisible());

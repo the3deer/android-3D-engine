@@ -1,4 +1,4 @@
-package org.the3deer.engine.renderer;
+package org.the3deer.engine.android.renderer;
 
 import android.app.Activity;
 import android.opengl.GLES20;
@@ -13,6 +13,8 @@ import org.the3deer.engine.model.Object3D;
 import org.the3deer.engine.model.Scene;
 import org.the3deer.engine.model.Screen;
 import org.the3deer.engine.model.Skin;
+import org.the3deer.engine.renderer.Drawer;
+import org.the3deer.engine.renderer.Renderer;
 import org.the3deer.util.bean.Bean;
 import org.the3deer.util.event.EventListener;
 import org.the3deer.util.math.Math3DUtils;

@@ -1,7 +1,7 @@
 package org.the3deer.engine.decorator;
 
 import android.opengl.GLES20;
-import android.opengl.Matrix;
+import org.the3deer.util.math.Matrix;
 
 import org.the3deer.engine.android.shader.Shader;
 import org.the3deer.engine.android.shader.ShaderFactory;

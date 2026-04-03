@@ -1,6 +1,5 @@
 package org.the3deer.engine;
 
-import android.os.SystemClock;
 import android.widget.Toast;
 
 import org.the3deer.engine.android.util.ContentUtils;
@@ -331,7 +330,7 @@ public class Model implements LoadListener {
         CURRENT.set(this);
 
         // mark start time
-        this.startTime = SystemClock.uptimeMillis();
+        this.startTime = System.nanoTime();
 
         setStatus(Model.Status.LOADING, "Loading started...");
     }
@@ -429,7 +428,7 @@ public class Model implements LoadListener {
         this.addScene(scene);
 
         // notify user
-        final String elapsed = (SystemClock.uptimeMillis() - startTime) / 1000 + " secs";
+        final String elapsed = (System.nanoTime() - startTime) / 1000000 + " secs";
         makeToastText("Load complete (" + elapsed + ")", Toast.LENGTH_SHORT);
     }
 

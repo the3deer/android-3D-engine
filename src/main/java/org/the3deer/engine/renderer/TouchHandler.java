@@ -1,6 +1,6 @@
 package org.the3deer.engine.renderer;
 
-import android.view.MotionEvent;
+import org.the3deer.engine.event.MotionEvent;
 
 public interface TouchHandler {
 

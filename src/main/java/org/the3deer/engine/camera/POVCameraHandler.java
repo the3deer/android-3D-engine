@@ -1,6 +1,6 @@
 package org.the3deer.engine.camera;
 
-import android.opengl.Matrix;
+import org.the3deer.util.math.Matrix;
 
 import org.the3deer.engine.model.Camera;
 import org.the3deer.engine.model.Projection;

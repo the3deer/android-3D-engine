@@ -1,7 +1,7 @@
 package org.the3deer.engine.objects;
 
 import android.opengl.GLES20;
-import android.opengl.Matrix;
+import org.the3deer.util.math.Matrix;
 
 import org.the3deer.engine.model.AnimatedModel;
 import org.the3deer.engine.model.Material;

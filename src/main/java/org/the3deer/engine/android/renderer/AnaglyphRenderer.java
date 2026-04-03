@@ -1,4 +1,4 @@
-package org.the3deer.engine.renderer;
+package org.the3deer.engine.android.renderer;
 
 import android.opengl.GLES20;
 
@@ -6,6 +6,7 @@ import org.the3deer.engine.Model;
 import org.the3deer.engine.model.Camera;
 import org.the3deer.engine.model.Constants;
 import org.the3deer.engine.model.Scene;
+import org.the3deer.engine.renderer.Drawer;
 import org.the3deer.util.bean.Bean;
 import org.the3deer.util.event.EventListener;
 

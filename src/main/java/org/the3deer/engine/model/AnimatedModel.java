@@ -1,8 +1,7 @@
 package org.the3deer.engine.model;
 
-import android.opengl.Matrix;
-
 import org.the3deer.engine.animation.Animator;
+import org.the3deer.util.math.Matrix;
 import org.the3deer.util.io.IOUtils;
 
 import java.nio.Buffer;
@@ -87,7 +86,7 @@ public class AnimatedModel extends Object3D {
                 // Calculate the final transform for the bounding box.
                 // final = final_skinning_matrix * primitive's_local_transform
                 float[] finalTransform = new float[16];
-                android.opengl.Matrix.multiplyMM(finalTransform, 0, skinningMatrix, 0, myLocalTransform, 0);
+                Matrix.multiplyMM(finalTransform, 0, skinningMatrix, 0, myLocalTransform, 0);
                 return finalTransform;
             }
         }*/

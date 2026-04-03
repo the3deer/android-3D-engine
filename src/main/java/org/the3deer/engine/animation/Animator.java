@@ -1,6 +1,6 @@
 package org.the3deer.engine.animation;
 
-import android.opengl.Matrix;
+import org.the3deer.util.math.Matrix;
 import android.os.SystemClock;
 
 import org.the3deer.engine.model.AnimatedModel;

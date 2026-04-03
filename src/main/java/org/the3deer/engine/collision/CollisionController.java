@@ -1,7 +1,7 @@
 package org.the3deer.engine.collision;
 
 import org.the3deer.engine.Model;
-import org.the3deer.engine.controller.TouchEvent;
+import org.the3deer.engine.event.TouchEvent;
 import org.the3deer.engine.model.Camera;
 import org.the3deer.engine.model.Object3D;
 import org.the3deer.engine.model.Scene;
