@@ -161,10 +161,10 @@ public class WavefrontLoader {
                 ret.add(data3D);
             }
 
-            callback.onLoadScene(scene);
-
             // log event
-            Log.d("WavefrontLoader", "Loaded geometries: " + ret.size());Log.i("WavefrontLoader", "Parsing geometries... ");
+            Log.i("WavefrontLoader", "Finished loading. Geometries: " + ret.size());
+
+            callback.onLoadScene(scene);
 
             return ret;
         } catch (Exception ex) {

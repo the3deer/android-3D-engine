@@ -99,6 +99,9 @@ public class ModelEngine {
      */
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
+    private boolean initialized;
+    private boolean started;
+
     public ModelEngine(String id, @NonNull Screen screen, @NonNull Model model, Context context) {
         this.id = id;
         this.screen = screen;
@@ -129,6 +132,10 @@ public class ModelEngine {
         return beanFactory;
     }
 
+    public boolean isInitialized() {
+        return initialized;
+    }
+
     public boolean isLoaded() {
         return beanFactory.isInitialized();
     }
@@ -140,6 +147,10 @@ public class ModelEngine {
 
     public String getMessage() {
         return message;
+    }
+
+    public boolean isStarted() {
+        return started;
     }
 
     /**
@@ -245,8 +256,10 @@ public class ModelEngine {
         // init engine
         beanFactory.initialize();
 
-        Log.d(TAG, "Engine loaded");
+        // update status
+        this.initialized = true;
 
+        Log.d(TAG, "Engine loaded");
     }
 
 
@@ -257,6 +270,9 @@ public class ModelEngine {
 
         // start
         beanFactory.start();
+
+        // update status
+        this.started = true;
 
         // log success
         Log.i(TAG, "Engine started successfully");

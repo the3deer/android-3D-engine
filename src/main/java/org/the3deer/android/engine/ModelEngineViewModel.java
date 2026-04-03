@@ -10,6 +10,7 @@ import android.util.Log;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
@@ -87,11 +88,34 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
     }
 
     public ModelEngine initEngine(@NotNull String uriString) {
-        return initEngine(uriString, null, null);
+        return initEngine(uriString, null, null, null);
     }
 
-    public ModelEngine initEngine(@NotNull String uriString, String name, String type) {
+    /**
+     * Initialize the engine for the given URI. If <code>callback</code> is <code>null</code>, the engine will be initialized synchronously. Otherwise, it will be initialized asynchronously</code>
+     *
+     * @param uriString the model id
+     * @param name the model name
+     * @param type the model type
+     * @param callback the callback to invoke when the engine is initialized or <code>null</code>
+     */
+    public ModelEngine initEngine(@NotNull String uriString, String name, String type, Runnable callback) {
 
+        if (callback == null) {
+            // sync
+            return initEngineImpl(uriString, name, type);
+        } else {
+            // async
+            executor.execute(() -> {
+                initEngineImpl(uriString, name, type);
+                handler.post(callback);
+            });
+            return null;
+        }
+    }
+
+    @Nullable
+    private ModelEngine initEngineImpl(@NonNull String uriString, String name, String type) {
         // get
         Model model = getModel(uriString);
 
@@ -111,18 +135,28 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
 
     public void loadEngine(@NotNull String uriString, Runnable callback) {
 
+        // get engine
+        ModelEngine engine = getEngine(uriString);
+        if (engine == null) throw new IllegalStateException("Engine not initialized");
+
+        // check status
+        if (engine.isLoaded()) {
+            Log.v(TAG, "Engine already loaded. uri: " + uriString);
+            return;
+        }
+
         // Check memory before attempting to load
         if (isMemoryExhausted()) {
 
             // make space
             freeMemory(uriString);
 
-                if (isMemoryExhausted()) {
-                    Log.e(TAG, "Critical memory state. Aborting load for: " + uriString);
-                    updateEngineStatus(uriString, ModelEngine.Status.ERROR, "Error: Critical memory limit reached");
-                    return;
-                }
+            if (isMemoryExhausted()) {
+                Log.e(TAG, "Critical memory state. Aborting load for: " + uriString);
+                updateEngineStatus(uriString, ModelEngine.Status.ERROR, "Error: Critical memory limit reached");
+                return;
             }
+        }
 
         executor.execute(() -> {
 
@@ -138,22 +172,24 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
                 // Load 3D model data (Heavyweight) - now handled by the engine itself
                 modelEngine.load();
 
-                if (callback != null) {
-                    handler.post(callback);
-                }
-
-                updateMemoryInfo();
+                // update engine status
+                updateEngineStatus(uriString, ModelEngine.Status.OK, "Info: Engine loaded successfully");
 
                 // log success
                 Log.i(TAG, "Engine loaded. uri: " + uriString);
 
-                // update engine status
-                updateEngineStatus(uriString, ModelEngine.Status.OK, "Info: Engine loaded successfully");
+                // notify
+                if (callback != null) {
+                    handler.post(callback);
+                }
+
+                // update status
+                updateMemoryInfo();
 
             } catch (OutOfMemoryError e) {
                 // We don't call the callback here to avoid further operations on a failed engine
                 Log.e(TAG, "OutOfMemoryError while activating engine for " + uriString, e);
-                updateEngineStatus(uriString, ModelEngine.Status.ERROR , "Error: Out of memory");
+                updateEngineStatus(uriString, ModelEngine.Status.ERROR, "Error: Out of memory");
                 clearCache();
             } catch (Exception e) {
                 Log.e(TAG, "Failed to activate engine for " + uriString, e);
@@ -164,8 +200,15 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
 
     public void startEngine(@NotNull String uriString, Runnable callback) {
 
+        // get engine
         final ModelEngine engine = getEngine(uriString);
         if (engine == null) throw new IllegalStateException("Info: Engine not initialized");
+
+        // check status
+        if (engine.isStarted()) {
+            Log.d(TAG, "Info: Engine already started");
+            return;
+        }
 
         try {
             executor.execute(() -> {
@@ -178,19 +221,20 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
                     handler.post(callback);
                 }
 
+                Log.i(TAG, "Engine started. uri: " + uriString);
+
                 // update engine status
                 updateEngineStatus(uriString, ModelEngine.Status.OK, "Info: Engine started successfully");
 
-                Log.i(TAG, "Engine started. uri: " + uriString);
-
                 // Start the model loading process (previously in SceneLoader)
                 engine.getModel().load();
+
             });
         } catch (Exception ex) {
             Log.e(TAG, "Failed to start engine for " + uriString, ex);
 
             // update engine status
-            updateEngineStatus(uriString, ModelEngine.Status.ERROR, "Error: "+ex.getMessage());
+            updateEngineStatus(uriString, ModelEngine.Status.ERROR, "Error: " + ex.getMessage());
         }
     }
 
@@ -266,7 +310,7 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
 
         engine = new ModelEngine(uriString, _glScreen.getValue(), model, getApplication());
         engines.put(uriString, engine);
-        _engines.setValue(engines);
+
 
         final String finalUriString = uriString;
 
@@ -288,6 +332,9 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
             }
             return false;
         });
+
+        // update model
+        _engines.postValue(engines);
 
         return engine;
     }
@@ -321,6 +368,7 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
 
     /**
      * Update the status of the model
+     *
      * @param uri
      */
     private void notifyStatusChange(String uri) {
@@ -345,7 +393,7 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
             if (engine == _activeEngine.getValue()) {
                 _activeEngine.postValue(engine);
             }
-        };
+        }
     }
 
     public Model getModel(String uriString) {
@@ -370,7 +418,7 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
         Map<String, Model> models = _models.getValue();
         if (models != null) {
             models.put(uriString, model);
-            _models.setValue(models);
+            _models.postValue(models);
         }
 
         return model;

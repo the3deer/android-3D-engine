@@ -29,8 +29,10 @@ import java.net.URI;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 import javax.inject.Inject;
 
@@ -68,7 +70,7 @@ public class Model implements LoadListener {
     @Inject
     private Screen screen;
 
-    private final List<Scene> scenes = new ArrayList<>();
+    private Map<String, Scene> scenesMap;
     private Scene activeScene;
 
     // other variables
@@ -104,14 +106,11 @@ public class Model implements LoadListener {
         return status;
     }
 
-    public void setStatus(Status status) {
-        setStatus(status, null);
-    }
-
-    public void setStatus(Status status, String message) {
+    private void setStatus(Status status, String message) {
         this.status = status;
         this.message = message;
 
+        Log.i("Model", "Status changed: " + this.status + ", message: " + message);
         if (_eventManager != null) {
             _eventManager.propagate(new ModelEvent(this, ModelEvent.Code.STATUS_CHANGED)
                     .setData("status", status).setData("message", message));
@@ -132,7 +131,12 @@ public class Model implements LoadListener {
 
 
     public List<Scene> getScenes() {
-        return scenes;
+
+        // check
+        if (scenesMap == null) return Collections.emptyList();
+
+        // return scenes
+        return new ArrayList<>(scenesMap.values());
     }
 
     public Scene getActiveScene() {
@@ -150,10 +154,29 @@ public class Model implements LoadListener {
     }
 
     public void addScene(Scene scene) {
-        Log.i(TAG, "addScene: " + scene.getName());
-        scenes.add(scene);
+
+        // check duplicates
+        if (scenesMap != null && scenesMap.containsKey(scene.getName())) {
+            Log.e(TAG, "Scene with name '" + scene.getName() + "' already exists");
+            throw new IllegalArgumentException("Scene with name '" + scene.getName() + "' already exists");
+        }
+
+        // log event
+        Log.i(TAG, "addScene: " + scene.getName()+", objects: "+scene.getObjects().size());
+
+        // init map
+        if (scenesMap == null) scenesMap = new TreeMap<>();
+
+        // register
+        scenesMap.put(scene.getName(), scene);
+
+        // check active scene
         if (activeScene == null) {
+
+            // log event
             Log.i(TAG, "Activating scene: " + scene.getName());
+
+            // activate default scene
             activeScene = scene;
         }
     }
@@ -170,8 +193,12 @@ public class Model implements LoadListener {
     }
 
     public long getMemoryUsage() {
+        // check
+        if (scenesMap == null) return 0;
+
+        // calculate memory usage
         long memory = 0;
-        for (Scene scene : scenes) {
+        for (Scene scene : scenesMap.values()) {
             memory += scene.getMemoryUsage();
         }
         return memory;
@@ -179,7 +206,7 @@ public class Model implements LoadListener {
 
     public void load() {
 
-        Log.i(TAG, "Loading model... uri: "+ getUri()+", type: "+ getType());
+        Log.i(TAG, "Loading model... uri: "+ getUri()+", type: "+ getType()+" ---------------------------------- ");
 
         // default uri
         Uri modelUri = getUri();
@@ -188,10 +215,10 @@ public class Model implements LoadListener {
         String modelType = getType();
 
         // load model
-        Log.i(TAG, "Loading model... " + modelUri);
+        Log.i(TAG, "Loading model... uri: " + modelUri);
 
         // update model
-        setStatus(Model.Status.LOADING);
+        setStatus(Model.Status.LOADING, "Loading model: "+modelUri);
 
         // if the model is a zip file, we need to extract it and register the entries as content uris
         if (modelUri.toString().toLowerCase().endsWith(".zip")) {
@@ -260,12 +287,20 @@ public class Model implements LoadListener {
         } else if (modelUri.toString().toLowerCase().endsWith(".fbx")) {
             new FbxLoaderTask(modelUri, this).execute(false);
         }
+
+        // log success
+        Log.i(TAG, "Loading model finished -------------------------------------- ");
+
+        // update model
+        setStatus(Model.Status.OK, "Loading Model finished successfully");
     }
 
     @Override
     public void onLoadStart() {
         // mark start time
         this.startTime = SystemClock.uptimeMillis();
+
+        setStatus(Model.Status.LOADING, "Loading started...");
     }
 
     @Override
@@ -368,11 +403,11 @@ public class Model implements LoadListener {
     @Override
     public void onLoadComplete() {
         // initialize model
-        if (this.getScenes().isEmpty()) {
+        if (scenesMap == null || scenesMap.isEmpty()) {
             Log.w(TAG, "No scenes available");
         } else if (this.getActiveScene() == null){
             Log.i(TAG, "No active scene. Setting first scene as active.");
-            this.setActiveScene(this.getScenes().get(0));
+            this.setActiveScene(scenesMap.values().iterator().next());
             this.getActiveScene().update();
         }
 
@@ -381,9 +416,6 @@ public class Model implements LoadListener {
 
         // log success
         Log.i(TAG, "Model loaded successfully");
-
-        // update model status
-        setStatus(Model.Status.OK);
     }
 
     private void loadTextureDatas(Texture texture) {
