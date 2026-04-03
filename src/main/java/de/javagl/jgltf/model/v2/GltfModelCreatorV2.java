@@ -26,7 +26,7 @@
  */
 package de.javagl.jgltf.model.v2;
 
-import org.the3deer.android.util.AndroidUtils;
+import org.the3deer.engine.android.util.AndroidUtils;
 
 import java.nio.ByteBuffer;
 import java.util.LinkedHashMap;

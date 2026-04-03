@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "org.the3deer.android.engine"
+    namespace = "org.the3deer.engine.android"
     compileSdk = 35
 
     defaultConfig {

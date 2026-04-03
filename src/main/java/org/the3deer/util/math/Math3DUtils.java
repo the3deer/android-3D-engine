@@ -538,7 +538,7 @@ public class Math3DUtils {
         return (float) Math.sqrt(x * x + y * y + z * z);
     }
 
-    public static void interpolate(org.the3deer.android.engine.animation.JointTransform result, org.the3deer.android.engine.animation.JointTransform start, org.the3deer.android.engine.animation.JointTransform end, float progression) {
+    public static void interpolate(org.the3deer.engine.animation.JointTransform result, org.the3deer.engine.animation.JointTransform start, org.the3deer.engine.animation.JointTransform end, float progression) {
         interpolate(result.getScale(), start.getScale(), end.getScale(), progression);
         interpolate(result.getLocation(), start.getLocation(), end.getLocation(), progression);
         /*interpolate(result.getRotation1(), start.getRotation1(), end.getRotation1(), progression);

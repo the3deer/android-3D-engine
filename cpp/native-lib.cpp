@@ -61,7 +61,7 @@ static size_t jni_read_fn(void* user, void* data, size_t size) {
 }
 
 extern "C" JNIEXPORT jlong JNICALL
-Java_org_the3deer_android_engine_services_fbx_FBXParser_fbxParseModel(
+Java_org_the3deer_engine_services_fbx_FBXParser_fbxParseModel(
         JNIEnv* env, jobject, jstring filePath) {
     const char *nativeFilePath = env->GetStringUTFChars(filePath, 0);
 
@@ -84,7 +84,7 @@ Java_org_the3deer_android_engine_services_fbx_FBXParser_fbxParseModel(
 }
 
 extern "C" JNIEXPORT jlong JNICALL
-Java_org_the3deer_android_engine_services_fbx_FBXParser_fbxParseModelFromStream(
+Java_org_the3deer_engine_services_fbx_FBXParser_fbxParseModelFromStream(
         JNIEnv* env, jobject, jobject is) {
 
     jclass is_class = env->GetObjectClass(is);
@@ -128,7 +128,7 @@ Java_org_the3deer_android_engine_services_fbx_dto_FBXModel_fbxFreeModel(
 }
 
 extern "C" JNIEXPORT jint JNICALL
-Java_org_the3deer_android_engine_services_fbx_FBXParser_fbxGetMeshCount(
+Java_org_the3deer_engine_services_fbx_FBXParser_fbxGetMeshCount(
         JNIEnv* env, jobject, jlong modelPtr) {
     fbx_model_t *model = (fbx_model_t*)modelPtr;
     if (!model || !model->scene) return 0;
@@ -140,7 +140,7 @@ Java_org_the3deer_android_engine_services_fbx_FBXParser_fbxGetMeshCount(
 }
 
 extern "C" JNIEXPORT jobject JNICALL
-Java_org_the3deer_android_engine_services_fbx_FBXParser_fbxGetVertexBuffer(
+Java_org_the3deer_engine_services_fbx_FBXParser_fbxGetVertexBuffer(
         JNIEnv* env, jobject, jlong modelPtr, jint meshIndex) {
     fbx_model_t *model = (fbx_model_t*)modelPtr;
     ufbx_node* node = find_mesh_node(model, meshIndex);
@@ -174,7 +174,7 @@ Java_org_the3deer_android_engine_services_fbx_FBXParser_fbxGetVertexBuffer(
 }
 
 extern "C" JNIEXPORT jobject JNICALL
-Java_org_the3deer_android_engine_services_fbx_FBXParser_fbxGetNormalsBuffer(
+Java_org_the3deer_engine_services_fbx_FBXParser_fbxGetNormalsBuffer(
         JNIEnv* env, jobject, jlong modelPtr, jint meshIndex) {
     fbx_model_t *model = (fbx_model_t*)modelPtr;
     ufbx_node* node = find_mesh_node(model, meshIndex);
@@ -210,7 +210,7 @@ Java_org_the3deer_android_engine_services_fbx_FBXParser_fbxGetNormalsBuffer(
 }
 
 extern "C" JNIEXPORT jobject JNICALL
-Java_org_the3deer_android_engine_services_fbx_FBXParser_fbxGetColorsBuffer(
+Java_org_the3deer_engine_services_fbx_FBXParser_fbxGetColorsBuffer(
         JNIEnv* env, jobject, jlong modelPtr, jint meshIndex) {
     fbx_model_t *model = (fbx_model_t*)modelPtr;
     ufbx_node* node = find_mesh_node(model, meshIndex);
@@ -244,7 +244,7 @@ Java_org_the3deer_android_engine_services_fbx_FBXParser_fbxGetColorsBuffer(
 }
 
 extern "C" JNIEXPORT jobject JNICALL
-Java_org_the3deer_android_engine_services_fbx_FBXParser_fbxGetTexCoordsBuffer(
+Java_org_the3deer_engine_services_fbx_FBXParser_fbxGetTexCoordsBuffer(
         JNIEnv* env, jobject, jlong modelPtr, jint meshIndex, jboolean flipY) {
     fbx_model_t *model = (fbx_model_t*)modelPtr;
     ufbx_node* node = find_mesh_node(model, meshIndex);
@@ -276,7 +276,7 @@ Java_org_the3deer_android_engine_services_fbx_FBXParser_fbxGetTexCoordsBuffer(
 }
 
 extern "C" JNIEXPORT jobject JNICALL
-Java_org_the3deer_android_engine_services_fbx_FBXParser_fbxGetTangentsBuffer(
+Java_org_the3deer_engine_services_fbx_FBXParser_fbxGetTangentsBuffer(
         JNIEnv* env, jobject, jlong modelPtr, jint meshIndex) {
     fbx_model_t *model = (fbx_model_t*)modelPtr;
     ufbx_node* node = find_mesh_node(model, meshIndex);
@@ -312,13 +312,13 @@ Java_org_the3deer_android_engine_services_fbx_FBXParser_fbxGetTangentsBuffer(
 }
 
 extern "C" JNIEXPORT jobject JNICALL
-Java_org_the3deer_android_engine_services_fbx_FBXParser_fbxGetIndexBuffer(
+Java_org_the3deer_engine_services_fbx_FBXParser_fbxGetIndexBuffer(
         JNIEnv* env, jobject, jlong modelPtr, jint meshIndex) {
     return NULL;
 }
 
 extern "C" JNIEXPORT jstring JNICALL
-Java_org_the3deer_android_engine_services_fbx_FBXParser_fbxGetTexturePath(
+Java_org_the3deer_engine_services_fbx_FBXParser_fbxGetTexturePath(
         JNIEnv* env, jobject, jlong modelPtr, jint meshIndex) {
     fbx_model_t *model = (fbx_model_t*)modelPtr;
     ufbx_node* node = find_mesh_node(model, meshIndex);
@@ -332,7 +332,7 @@ Java_org_the3deer_android_engine_services_fbx_FBXParser_fbxGetTexturePath(
 }
 
 extern "C" JNIEXPORT jbyteArray JNICALL
-Java_org_the3deer_android_engine_services_fbx_FBXParser_fbxGetTextureEmbeddedData(
+Java_org_the3deer_engine_services_fbx_FBXParser_fbxGetTextureEmbeddedData(
         JNIEnv* env, jobject, jlong modelPtr, jint meshIndex) {
     fbx_model_t *model = (fbx_model_t*)modelPtr;
     ufbx_node* node = find_mesh_node(model, meshIndex);
@@ -349,7 +349,7 @@ Java_org_the3deer_android_engine_services_fbx_FBXParser_fbxGetTextureEmbeddedDat
 }
 
 extern "C" JNIEXPORT jfloatArray JNICALL
-Java_org_the3deer_android_engine_services_fbx_FBXParser_fbxGetMaterialColor(
+Java_org_the3deer_engine_services_fbx_FBXParser_fbxGetMaterialColor(
         JNIEnv* env, jobject, jlong modelPtr, jint meshIndex) {
     fbx_model_t *model = (fbx_model_t*)modelPtr;
     ufbx_node* node = find_mesh_node(model, meshIndex);
@@ -376,7 +376,7 @@ Java_org_the3deer_android_engine_services_fbx_FBXParser_fbxGetMaterialColor(
 }
 
 extern "C" JNIEXPORT jobject JNICALL
-Java_org_the3deer_android_engine_services_fbx_FBXParser_fbxGetModelAttribute(
+Java_org_the3deer_engine_services_fbx_FBXParser_fbxGetModelAttribute(
         JNIEnv *env, jobject thiz, jlong modelPtr, jstring attributeName) {
     fbx_model_t *model = (fbx_model_t*)modelPtr;
     if (!model || !model->scene) return NULL;
@@ -394,7 +394,7 @@ Java_org_the3deer_android_engine_services_fbx_FBXParser_fbxGetModelAttribute(
 }
 
 extern "C" JNIEXPORT jint JNICALL
-Java_org_the3deer_android_engine_services_fbx_FBXParser_fbxGetVersion(
+Java_org_the3deer_engine_services_fbx_FBXParser_fbxGetVersion(
         JNIEnv* env, jobject, jlong modelPtr) {
     fbx_model_t *model = (fbx_model_t*)modelPtr;
     if (!model || !model->scene) return 0;
