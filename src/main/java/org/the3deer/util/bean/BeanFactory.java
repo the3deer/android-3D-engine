@@ -1,7 +1,5 @@
 package org.the3deer.util.bean;
 
-import androidx.annotation.Nullable;
-
 import java.lang.annotation.Annotation;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -385,7 +383,6 @@ public class BeanFactory {
         return configureBean(id, bean);
     }
 
-    @Nullable
     private Object configureBean(String id, Object bean) {
         if (bean == null) return null;
         logger.finest("Configuring bean... id: " + id);
@@ -583,7 +580,6 @@ public class BeanFactory {
         }
     }
 
-    @Nullable
     private static String getNamespace(String id) {
         return id != null && id.contains(".") ? id.substring(0, id.lastIndexOf('.')) : null;
     }

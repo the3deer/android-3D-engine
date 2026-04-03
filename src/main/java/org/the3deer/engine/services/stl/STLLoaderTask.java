@@ -10,7 +10,6 @@ import org.the3deer.engine.services.collada.entities.MeshData;
 
 import java.io.IOException;
 import java.net.URI;
-import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;

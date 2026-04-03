@@ -1,7 +1,7 @@
 package org.the3deer.engine.model;
 
-import org.the3deer.util.math.Matrix;
 import org.the3deer.util.bean.BeanInit;
+import org.the3deer.util.math.Matrix;
 
 import javax.inject.Inject;
 

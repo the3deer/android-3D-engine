@@ -2,8 +2,6 @@ package org.the3deer.util.bean;
 
 import android.content.Context;
 
-import androidx.annotation.NonNull;
-
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Arrays;
@@ -184,7 +182,6 @@ public class BeanPropertyInfo {
         }
     }
 
-    @NonNull
     @Override
     public String toString() {
         return "BeanPropertyInfo{" +

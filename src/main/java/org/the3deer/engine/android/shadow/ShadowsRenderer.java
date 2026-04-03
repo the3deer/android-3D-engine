@@ -1,7 +1,6 @@
 package org.the3deer.engine.android.shadow;
 
 import android.opengl.GLES20;
-import org.the3deer.util.math.Matrix;
 
 import org.the3deer.engine.android.shader.Shader;
 import org.the3deer.engine.android.shader.ShaderFactory;
@@ -14,6 +13,7 @@ import org.the3deer.engine.objects.Plane2;
 import org.the3deer.engine.util.GLUtil;
 import org.the3deer.util.bean.BeanProperty;
 import org.the3deer.util.math.Math3DUtils;
+import org.the3deer.util.math.Matrix;
 
 import java.util.List;
 import java.util.logging.Level;

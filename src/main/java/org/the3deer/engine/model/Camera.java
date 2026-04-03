@@ -5,10 +5,10 @@ package org.the3deer.engine.model;
 import androidx.annotation.NonNull;
 
 import org.the3deer.engine.android.util.AndroidUtils;
-import org.the3deer.util.math.Matrix;
 import org.the3deer.util.bean.BeanInit;
 import org.the3deer.util.event.EventListener;
 import org.the3deer.util.math.Math3DUtils;
+import org.the3deer.util.math.Matrix;
 import org.the3deer.util.math.Quaternion;
 
 import java.util.ArrayList;

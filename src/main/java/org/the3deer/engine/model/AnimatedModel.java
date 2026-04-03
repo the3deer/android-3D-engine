@@ -1,8 +1,8 @@
 package org.the3deer.engine.model;
 
 import org.the3deer.engine.animation.Animator;
-import org.the3deer.util.math.Matrix;
 import org.the3deer.util.io.IOUtils;
+import org.the3deer.util.math.Matrix;
 
 import java.nio.Buffer;
 import java.nio.FloatBuffer;

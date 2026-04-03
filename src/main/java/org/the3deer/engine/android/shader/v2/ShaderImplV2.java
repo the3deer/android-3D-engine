@@ -1,7 +1,6 @@
 package org.the3deer.engine.android.shader.v2;
 
 import android.opengl.GLES20;
-import android.os.SystemClock;
 import android.util.SparseArray;
 
 import org.the3deer.engine.android.shader.Shader;
@@ -804,7 +803,7 @@ public class ShaderImplV2 implements Shader {
         if (drawSize <= 0) {
             // if we want to animate, initialize counter=0 at variable declaration
             if (this.shift >= 0) {
-                double rotation = ((SystemClock.uptimeMillis() % 10000) / 10000f) * (Math.PI * 2);
+                double rotation = ((System.nanoTime() % 10000) / 10000f) * (Math.PI * 2);
 
                 if (this.shift == 0d) {
                     this.shift = rotation;

@@ -1,7 +1,6 @@
 package org.the3deer.engine.objects;
 
 import android.opengl.GLES20;
-import org.the3deer.util.math.Matrix;
 
 import org.the3deer.engine.model.AnimatedModel;
 import org.the3deer.engine.model.Material;
@@ -9,6 +8,7 @@ import org.the3deer.engine.model.Node;
 import org.the3deer.engine.model.Skin;
 import org.the3deer.util.io.IOUtils;
 import org.the3deer.util.math.Math3DUtils;
+import org.the3deer.util.math.Matrix;
 
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;

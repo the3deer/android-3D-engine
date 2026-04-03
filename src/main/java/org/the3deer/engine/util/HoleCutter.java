@@ -1,9 +1,8 @@
 package org.the3deer.engine.util;
 
-import org.the3deer.util.math.Matrix;
-
 import org.the3deer.engine.model.Constants;
 import org.the3deer.util.math.Math3DUtils;
+import org.the3deer.util.math.Matrix;
 
 import java.util.ArrayList;
 import java.util.Arrays;

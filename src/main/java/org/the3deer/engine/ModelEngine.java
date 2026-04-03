@@ -5,17 +5,18 @@ import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
 
-import androidx.annotation.NonNull;
-
+import org.the3deer.engine.android.renderer.AnaglyphRenderer;
+import org.the3deer.engine.android.renderer.DefaultRenderer;
+import org.the3deer.engine.android.renderer.StereoscopicRenderer;
 import org.the3deer.engine.android.shader.ShaderFactory;
 import org.the3deer.engine.android.shader.v3.GpuManager;
 import org.the3deer.engine.android.shadow.ShadowDrawer;
+import org.the3deer.engine.android.touch.TouchController;
 import org.the3deer.engine.android.util.AndroidURLStreamHandlerFactory;
 import org.the3deer.engine.camera.CameraController;
 import org.the3deer.engine.camera.DefaultCameraHandler;
 import org.the3deer.engine.collision.CollisionController;
 import org.the3deer.engine.collision.CollisionDrawer;
-import org.the3deer.engine.android.touch.TouchController;
 import org.the3deer.engine.decorator.BoundingBoxDrawer;
 import org.the3deer.engine.decorator.LightBulbDrawer;
 import org.the3deer.engine.decorator.SkeletonDrawer;
@@ -35,9 +36,6 @@ import org.the3deer.engine.model.PerspectiveProjection;
 import org.the3deer.engine.model.Scene;
 import org.the3deer.engine.model.Screen;
 import org.the3deer.engine.objects.Point;
-import org.the3deer.engine.android.renderer.AnaglyphRenderer;
-import org.the3deer.engine.android.renderer.DefaultRenderer;
-import org.the3deer.engine.android.renderer.StereoscopicRenderer;
 import org.the3deer.engine.scene.SceneDrawer;
 import org.the3deer.util.bean.BeanFactory;
 import org.the3deer.util.event.EventManager;
@@ -117,7 +115,7 @@ public class ModelEngine {
     private boolean initialized;
     private boolean started;
 
-    public ModelEngine(String id, @NonNull Screen screen, @NonNull Model model, Context context) {
+    public ModelEngine(String id, Screen screen, Model model, Context context) {
         this.id = id;
         this.screen = screen;
         this.model = model;
@@ -132,17 +130,14 @@ public class ModelEngine {
     }
 
 
-    @NonNull
     public Model getModel() {
         return model;
     }
 
-    @NonNull
     public EventManager controller() {
         return eventManager;
     }
 
-    @NonNull
     public BeanFactory getBeanFactory() {
         return beanFactory;
     }
@@ -372,7 +367,6 @@ public class ModelEngine {
         }
     }
 
-    @NonNull
     @Override
     public String toString() {
         return "ModelEngine{" +

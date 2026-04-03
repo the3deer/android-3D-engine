@@ -1,7 +1,6 @@
 package org.the3deer.engine.decorator;
 
 import android.opengl.GLES20;
-import org.the3deer.util.math.Matrix;
 
 import org.the3deer.engine.android.shader.Shader;
 import org.the3deer.engine.android.shader.ShaderFactory;
@@ -16,6 +15,7 @@ import org.the3deer.engine.util.Rescaler;
 import org.the3deer.util.bean.Bean;
 import org.the3deer.util.bean.BeanInit;
 import org.the3deer.util.bean.BeanProperty;
+import org.the3deer.util.math.Matrix;
 
 import java.io.IOException;
 import java.util.HashMap;
