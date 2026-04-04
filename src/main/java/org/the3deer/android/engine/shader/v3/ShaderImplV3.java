@@ -50,12 +50,14 @@ public class ShaderImplV3 implements Shader {
     private final boolean supportBlending;
     private final boolean supportsColors;
     private final boolean supportsTextureCube;
+    private final boolean supportsTime;
 
     private boolean autoUseProgram = true;
 
     // variables
     private boolean lightingEnabled = true;
     private boolean texturesEnabled = true;
+    private float time = 0.0f;
 
     private final SparseArray<String> jointCache = new SparseArray<>();
     private final List<Texture> textures = new ArrayList<>();
@@ -84,6 +86,7 @@ public class ShaderImplV3 implements Shader {
         this.supportBlending = fragmentShaderCode.contains("u_AlphaCutoff") && fragmentShaderCode.contains("u_AlphaMode");
         this.supportsColors = vertexShaderCode.contains("a_Color");
         this.supportsTextureCube = fragmentShaderCode.contains("u_TextureCube");
+        this.supportsTime = fragmentShaderCode.contains("u_Time") || vertexShaderCode.contains("u_Time");
 
         this.init();
     }
@@ -103,6 +106,11 @@ public class ShaderImplV3 implements Shader {
     @Override
     public void setTexturesEnabled(boolean texturesEnabled) {
         this.texturesEnabled = texturesEnabled;
+    }
+
+    @Override
+    public void setTime(float time) {
+        this.time = time;
     }
 
     @Override
@@ -170,7 +178,12 @@ public class ShaderImplV3 implements Shader {
         // 7. Set Global Color Mask (Stereoscopic) - Default to White to prevent blackout
         setUniform4(colorMask != null ? colorMask : Constants.COLOR_WHITE, "u_ColorMask");
 
-        // 8. Bind VAO and Draw (Handle Multi-Elements)
+        // 8. Set Time
+        if (supportsTime) {
+            setUniform1(time, "u_Time");
+        }
+
+        // 9. Bind VAO and Draw (Handle Multi-Elements)
         asset.bind();
         List<GpuAsset.GpuElement> gpuElements = asset.getGpuElements();
         if (gpuElements != null && !gpuElements.isEmpty()) {
@@ -265,9 +278,19 @@ public class ShaderImplV3 implements Shader {
         }
 
         // Cube Texture
-        if (supportsTextureCube && material != null && material.getColorTexture() != null) {
-            loadTexture(material.getColorTexture());
-            setTextureCube(material.getColorTexture().getId(), "u_TextureCube", 4);
+        if (supportsTextureCube) {
+            boolean hasTexture = material != null && material.getColorTexture() != null;
+            boolean textured = hasTexture && texturesEnabled;
+            setFeatureFlag("u_Textured", textured);
+            if (textured) {
+                loadTexture(material.getColorTexture());
+                setTextureCube(material.getColorTexture(), "u_Texture", 0);
+
+                // Texture Transform
+                if (supportsTexturesTransformed) {
+                    bindTextureTransform(material.getColorTexture());
+                }
+            }
         }
     }
 
@@ -329,11 +352,12 @@ public class ShaderImplV3 implements Shader {
         }
     }
 
-    private void setTextureCube(int textureId, String variableName, int textureIndex) {
+    private void setTextureCube(Texture texture, String variableName, int textureIndex) {
+        if (texture == null || !texture.hasId()) return;
         int handle = GLES30.glGetUniformLocation(mProgram, variableName);
         if (handle != -1) {
             GLES30.glActiveTexture(GLES30.GL_TEXTURE0 + textureIndex);
-            GLES30.glBindTexture(GLES30.GL_TEXTURE_CUBE_MAP, textureId);
+            GLES30.glBindTexture(GLES30.GL_TEXTURE_CUBE_MAP, handle);
             GLES30.glUniform1i(handle, textureIndex);
         }
     }

@@ -227,6 +227,11 @@ public class ShaderImplV2 implements Shader {
         this.texturesEnabled = texturesEnabled;
     }
 
+    @Override
+    public void setTime(float time) {
+
+    }
+
     public void setLightingEnabled(boolean lightingEnabled) {
         this.lightingEnabled = lightingEnabled;
     }

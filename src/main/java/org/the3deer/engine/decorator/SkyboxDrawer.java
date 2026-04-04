@@ -18,6 +18,7 @@ import org.the3deer.util.bean.BeanProperty;
 import org.the3deer.opengl.Matrix;
 
 import java.io.IOException;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
@@ -43,11 +44,11 @@ public class SkyboxDrawer implements Drawer {
     private boolean enabled;
 
     // data
-    @BeanProperty(name = "skybox", values = {"none", "sea", "sand"})
+    @BeanProperty(name = "skybox", values = {"none", "sea", "sand", "dynamic"})
     private String activeSkyBox;
-    private Map<String, Object3D> skyboxes3D = new HashMap<>();
+    private final Map<String, Object3D> skyboxes3D = new HashMap<>();
 
-    public float[] projectionMatrix = new float[16];
+    public final float[] projectionMatrix = new float[16];
 
     private boolean traced;
 
@@ -59,7 +60,7 @@ public class SkyboxDrawer implements Drawer {
         this.enabled = enabled;
     }
 
-    public void setActiveSkyBox(String id) {
+    public void setActiveSkyBox(final String id) {
 
         // debug
         logger.info("Setting active sky box to '" + id + "'");
@@ -84,7 +85,7 @@ public class SkyboxDrawer implements Drawer {
                 -1f, 1f, Constants.near, Constants.far);
     }
 
-    private void loadSkyBox(String skyboxId) {
+    private void loadSkyBox(final String skyboxId) {
 
         // get skybox 3d
         Object3D skybox3D = skyboxes3D.get(skyboxId);
@@ -101,6 +102,9 @@ public class SkyboxDrawer implements Drawer {
                     break;
                 case "sand":
                     skybox = Skybox.getSkybox2();
+                    break;
+                case "dynamic":
+                    skybox = Skybox.getSkybox1(); // Use any base, shader will override
                     break;
                 default:
                     throw new IllegalArgumentException("Skybox '" + skyboxId + "' not found");
@@ -135,12 +139,12 @@ public class SkyboxDrawer implements Drawer {
     }
 
     @Override
-    public void onDrawFrame(Config config) {
+    public void onDrawFrame(final Config config) {
         draw(config);
     }
 
     //@Override
-    private void draw(Config config) {
+    private void draw(final Config config) {
 
         // enabled?
         if (!enabled) return;
@@ -170,7 +174,20 @@ public class SkyboxDrawer implements Drawer {
             GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0);
             GLES20.glDisable(GLES20.GL_CULL_FACE);
 
-            Shader shader = shaderFactory.getShader(ShaderResource.SKYBOX);
+            final Shader shader = shaderFactory.getShader(ShaderResource.SKYBOX);
+            
+            // Calculate Day Progress (0.0 to 1.0)
+            final Calendar calendar = Calendar.getInstance();
+            final float dayProgress = (calendar.get(Calendar.HOUR_OF_DAY) * 3600f +
+                                 calendar.get(Calendar.MINUTE) * 60f +
+                                 calendar.get(Calendar.SECOND)) / 86400f;
+            
+            // Pass day progress to shader
+            shader.setTime(dayProgress);
+            
+            // Toggle between textured cubemap and procedural sky
+            final boolean isDynamic = "dynamic".equals(this.activeSkyBox);
+            shader.setTexturesEnabled(!isDynamic);
 
             final Camera camera = config != null && config.camera != null ? config.camera : this.camera;
             shader.draw(skybox3D, this.projectionMatrix, camera.getViewMatrix(),
@@ -178,7 +195,7 @@ public class SkyboxDrawer implements Drawer {
 
             // debug
             if (!traced) {
-                logger.info("Sky box first draw finished. id: " + activeSkyBox);
+                logger.info("Sky box first draw finished. id: " + activeSkyBox + ", time: " + dayProgress);
                 traced = true;
             }
 
