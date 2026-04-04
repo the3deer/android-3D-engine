@@ -21,4 +21,10 @@ public interface Shader {
     void setLightingEnabled(boolean on);
 
     void setTexturesEnabled(boolean on);
+
+    /**
+     * Set the current time in seconds for dynamic effects.
+     * @param time time in seconds
+     */
+    void setTime(float time);
 }
