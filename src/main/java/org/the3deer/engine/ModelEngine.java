@@ -13,8 +13,8 @@ import org.the3deer.android.engine.shader.v3.GpuManager;
 import org.the3deer.android.engine.shadow.ShadowDrawer;
 import org.the3deer.android.engine.touch.TouchController;
 import org.the3deer.android.util.AndroidURLStreamHandlerFactory;
+import org.the3deer.engine.camera.ArcBallCameraHandler;
 import org.the3deer.engine.camera.CameraController;
-import org.the3deer.engine.camera.DefaultCameraHandler;
 import org.the3deer.engine.collision.CollisionController;
 import org.the3deer.engine.collision.CollisionDrawer;
 import org.the3deer.engine.decorator.BoundingBoxDrawer;
@@ -57,7 +57,7 @@ import java.util.logging.Logger;
  * The engine is designed using different architectural patterns.
  *
  */
-public class ModelEngine {
+public final class ModelEngine {
 
     private static final Logger logger = Logger.getLogger(ModelEngine.class.getSimpleName());
 
@@ -199,7 +199,7 @@ public class ModelEngine {
         // system
         beanFactory.add("10.gpuManager", GpuManager.class);
         beanFactory.add("10.shaderFactory", ShaderFactory.class);
-        beanFactory.add("10.cameraHandler", DefaultCameraHandler.class);
+        beanFactory.add("10.cameraHandler", ArcBallCameraHandler.class);
 
         beanFactory.add("10.touchController", TouchController.class);
 
@@ -244,7 +244,6 @@ public class ModelEngine {
         beanFactory.add("gui.camera", new Camera("gui", new float[]{0, 0, 10}));
 
         final GUIDrawer guiDrawer = new GUIDrawer();
-        guiDrawer.setEnabled(true);
         beanFactory.add("gui.renderer", guiDrawer);
 
         final FontFactory fontFactory = FontFactory.getInstance();
