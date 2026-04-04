@@ -1,7 +1,7 @@
 /**
- * Decorators package
+ * Engine's generic rendering components.
+ *
+ * <p>This package contains the core rendering abstractions and orchestrators that
+ * handle the OpenGL ES drawing calls, shader management, and the rendering loop.</p>
  */
-@Feature(category = "renderers")
 package org.the3deer.engine.renderer;
-
-import org.the3deer.util.bean.Feature;
