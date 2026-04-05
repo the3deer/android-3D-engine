@@ -11,8 +11,8 @@ import org.poly2tri.triangulation.TriangulationPoint;
 import org.poly2tri.triangulation.delaunay.DelaunayTriangle;
 import org.poly2tri.triangulation.point.TPoint;
 import org.poly2tri.triangulation.sets.ConstrainedPointSet;
-import org.the3deer.engine.collision.CollisionDetection;
-import org.the3deer.engine.model.Object3D;
+import org.the3deer.android.engine.collision.CollisionDetection;
+import org.the3deer.android.engine.model.Object3D;
 import org.the3deer.util.io.IOUtils;
 import org.the3deer.util.math.Math3DUtils;
 

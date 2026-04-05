@@ -3,15 +3,16 @@ package org.the3deer.android.engine.shader.v3;
 import android.opengl.GLES30;
 import android.util.SparseArray;
 
+import org.the3deer.android.engine.util.GLUtil;
+import org.the3deer.android.engine.model.AnimatedModel;
+import org.the3deer.android.engine.model.Constants;
+import org.the3deer.android.engine.model.Element;
+import org.the3deer.android.engine.model.Material;
+import org.the3deer.android.engine.model.Object3D;
+import org.the3deer.android.engine.model.Skin;
+import org.the3deer.android.engine.model.Texture;
+import org.the3deer.android.engine.shader.Program;
 import org.the3deer.android.engine.shader.Shader;
-import org.the3deer.engine.model.AnimatedModel;
-import org.the3deer.engine.model.Constants;
-import org.the3deer.engine.model.Element;
-import org.the3deer.engine.model.Material;
-import org.the3deer.engine.model.Object3D;
-import org.the3deer.engine.model.Skin;
-import org.the3deer.engine.model.Texture;
-import org.the3deer.engine.util.GLUtil;
 import org.the3deer.util.math.Math3DUtils;
 
 import java.util.ArrayList;
@@ -65,8 +66,17 @@ public class ShaderImplV3 implements Shader {
     // Internal GpuManager instance for asset retrieval
     private final GpuManager gpuManager = new GpuManager();
 
+    @Override
+    public int getOpenGLVersion() {
+        return 3;
+    }
+
     public static ShaderImplV3 getInstance(String id, String vertexShaderCode, String fragmentShaderCode) {
         return new ShaderImplV3(id, vertexShaderCode, fragmentShaderCode);
+    }
+
+    public static Shader getInstance(Program program){
+        return getInstance(String.valueOf(program.getId()), program.getVertexShaderCode(), program.getFragmentShaderCode());
     }
 
     private ShaderImplV3(String id, String vertexShaderCode, String fragmentShaderCode) {
@@ -92,7 +102,7 @@ public class ShaderImplV3 implements Shader {
     }
 
     private void init() {
-        logger.config("Loading Shader... " + id);
+        logger.info("Loading Shader... " + id);
         int vertexShader = GLUtil.loadShader(GLES30.GL_VERTEX_SHADER, vertexShaderCode);
         int fragmentShader = GLUtil.loadShader(GLES30.GL_FRAGMENT_SHADER, fragmentShaderCode);
         mProgram = GLUtil.createAndLinkProgram(vertexShader, fragmentShader, null);
@@ -284,7 +294,7 @@ public class ShaderImplV3 implements Shader {
             setFeatureFlag("u_Textured", textured);
             if (textured) {
                 loadTexture(material.getColorTexture());
-                setTextureCube(material.getColorTexture(), "u_Texture", 0);
+                setTextureCube(material.getColorTexture(), "u_TextureCube", 4);
 
                 // Texture Transform
                 if (supportsTexturesTransformed) {
@@ -357,7 +367,7 @@ public class ShaderImplV3 implements Shader {
         int handle = GLES30.glGetUniformLocation(mProgram, variableName);
         if (handle != -1) {
             GLES30.glActiveTexture(GLES30.GL_TEXTURE0 + textureIndex);
-            GLES30.glBindTexture(GLES30.GL_TEXTURE_CUBE_MAP, handle);
+            GLES30.glBindTexture(GLES30.GL_TEXTURE_CUBE_MAP, texture.getId());
             GLES30.glUniform1i(handle, textureIndex);
         }
     }
@@ -406,12 +416,11 @@ public class ShaderImplV3 implements Shader {
 
     private void setFeatureFlag(String name, boolean enabled) {
         int handle = GLES30.glGetUniformLocation(mProgram, name);
-        if (handle != -1) GLES30.glUniform1i(handle, enabled ? 1 : 0);
+        if (handle != -1) {GLES30.glUniform1i(handle, enabled ? 1 : 0);}
     }
 
     @Override public void useProgram() { GLES30.glUseProgram(mProgram); }
     @Override public int getProgram() { return mProgram; }
-    @Override public int getId() { return mProgram; }
     @Override public String getName() { return id; }
     @Override public void setAutoUseProgram(boolean auto) { this.autoUseProgram = auto; }
 

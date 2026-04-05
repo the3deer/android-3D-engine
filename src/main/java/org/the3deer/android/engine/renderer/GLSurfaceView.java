@@ -4,8 +4,6 @@ import android.content.Context;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 
-import org.the3deer.engine.renderer.TouchHandler;
-
 import java.util.logging.Logger;
 
 import javax.inject.Inject;
@@ -65,7 +63,7 @@ public class GLSurfaceView extends android.opengl.GLSurfaceView {
     public boolean onTouchEvent(MotionEvent event) {
         // send the event to the manager
         if (this.touchHandler != null) {
-            return touchHandler.onSurfaceTouchEvent(new org.the3deer.engine.event.MotionEvent(event));
+            return touchHandler.onSurfaceTouchEvent(new org.the3deer.android.engine.event.MotionEvent(event));
         }
         return super.onTouchEvent(event);
     }

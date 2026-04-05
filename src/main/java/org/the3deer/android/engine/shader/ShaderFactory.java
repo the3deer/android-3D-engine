@@ -2,18 +2,10 @@ package org.the3deer.android.engine.shader;
 
 import android.content.Context;
 
-import androidx.annotation.NonNull;
-
-import org.the3deer.engine.android.R;
-import org.the3deer.android.engine.shader.v2.ShaderImplV2;
-import org.the3deer.android.engine.shader.v3.ShaderImplV3;
-import org.the3deer.engine.model.AnimatedModel;
-import org.the3deer.engine.model.Constants;
-import org.the3deer.engine.model.Object3D;
-import org.the3deer.util.bean.BeanInit;
+import org.the3deer.bean.BeanFactory;
+import org.the3deer.android.engine.R;
 import org.the3deer.util.io.IOUtils;
 
-import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
@@ -21,151 +13,72 @@ import java.util.logging.Logger;
 
 import javax.inject.Inject;
 
-/**
- * <p>
- * The ShaderFactory Encapsulates version selection (V2 vs V3) and shader resource management.
- * </p>
- * <p>
- * This component may only be invoked in the GLThread
- * </p>
- * <p>
- * Copyright 2013-2026 the3deer.org
- * </p>
- * <p>
- *
- * @author andresoviedo
- * @author Gemini AI
- */
 public class ShaderFactory {
 
     private static final Logger logger = Logger.getLogger(ShaderFactory.class.getSimpleName());
 
+    private enum AndroidShaderResource {
+        SKYBOX_v2("shader.v2.skybox", Program.SKYBOX, 2, R.raw.shader_v2_skybox_vert, R.raw.shader_v2_skybox_frag),
+        SKYBOX_v3("shader.v3.skybox", Program.SKYBOX, 3, R.raw.shader_v3_skybox_vert, R.raw.shader_v3_skybox_frag),
+        BASIC_v2("shader.v2.basic", Program.BASIC, 2, R.raw.shader_v2_basic_vert, R.raw.shader_v2_basic_frag),
+        BASIC_v3("shader.v3.basic", Program.BASIC, 3, R.raw.shader_v3_basic_vert, R.raw.shader_v3_basic_frag),
+        SUN_v3("shader.v3.sun", Program.SUN, 3, R.raw.shader_v3_sun_vert, R.raw.shader_v3_sun_frag),
+        STATIC_v2("shader.v2.static", Program.STATIC, 2, R.raw.shader_v2_static_vert, R.raw.shader_v2_static_frag),
+        STATIC_v3("shader.v3.static", Program.STATIC, 3, R.raw.shader_v3_static_vert, R.raw.shader_v3_static_frag),
+        ANIMATED_v2("shader.v2.animated", Program.ANIMATED, 2, R.raw.shader_v2_animated_vert, R.raw.shader_v2_animated_frag),
+        ANIMATED_v3("shader.v3.animated", Program.ANIMATED, 3, R.raw.shader_v3_animated_vert, R.raw.shader_v3_animated_frag),
+        SHADOW_MAP_v2("shader.v2.shadow_map", Program.SHADOW_MAP, 2, R.raw.shader_v2_shadow_depth_map_vert, R.raw.shader_v2_shadow_depth_map_frag),
+        // FIXME: upgrade to OpenGL 3
+        SHADOW_MAP_v3("shader.v3.shadow_map", Program.SHADOW_MAP, 3, R.raw.shader_v2_shadow_depth_map_vert, R.raw.shader_v3_shadow_depth_map_frag),
+        SHADOW_v2("shader.v2.shadow",  Program.SHADOW, 2, R.raw.shader_v2_shadow_vert, R.raw.shader_v2_shadow_frag),
+        // FIXME: upgrade to OpenGL 3
+        SHADOW_v3("shader.v3.shadow",  Program.SHADOW, 3, R.raw.shader_v2_shadow_vert, R.raw.shader_v2_shadow_frag);
+
+        final String beanId;
+        final int programId;
+        final int openGLVersion;
+        final int vertexShaderResourceId;
+        final int fragmentShaderResourceId;
+
+        AndroidShaderResource(String beanId, int programId, int openGLVersion, int vertexShaderResourceId, int fragmentShaderResourceId) {
+            this.beanId = beanId;
+            this.programId = programId;
+            this.openGLVersion = openGLVersion;
+            this.vertexShaderResourceId = vertexShaderResourceId;
+            this.fragmentShaderResourceId = fragmentShaderResourceId;
+        }
+    }
+
     @Inject
     private Context context;
 
-    private final Map<Integer, String> shadersCode = new HashMap<>();
-    private final Map<String, Shader> shadersCache = new HashMap<>();
-
-    @BeanInit
-    public void setUp() {
-        if (context == null) throw new IllegalStateException("Context is null");
-
-        logger.info("Processing "+R.raw.class.getFields().length+" shaders...");
-        Field[] fields = R.raw.class.getFields();
-        for (Field field : fields) {
-            try {
-                int resId = field.getInt(field);
-                String code = new String(IOUtils.read(context.getResources().openRawResource(resId)));
-                shadersCode.put(resId, code);
-            } catch (Exception e) {
-                logger.log(Level.SEVERE, "Failed to load shader resource: " + field.getName());
-            }
-        }
-    }
-
-    /**
-     * Main entry point for clients to get the appropriate shader.
-     * Clients don't need to know which GLSL files are being used.
-     */
-    public Shader getShader(Object3D obj) {
-        // Determine the shader type based on model features
-        boolean isAnimated = obj instanceof AnimatedModel && ((AnimatedModel) obj).getSkin() != null;
-        boolean isPoints = obj.getDrawMode() == android.opengl.GLES20.GL_POINTS;
-
-        // Map to the correct resource IDs based on version and type
-        int vertResId, fragResId;
-        String typeId;
-
-        if (Constants.ANIMATIONS_ENABLED && isAnimated) {
-            typeId = "shader_v"+Constants.DEFAULT_SHADER_VERSION+"_animated";
-            vertResId = (Constants.DEFAULT_SHADER_VERSION == 3) ? R.raw.shader_v3_animated_vert : R.raw.shader_v2_animated_vert;
-            fragResId = (Constants.DEFAULT_SHADER_VERSION == 3) ? R.raw.shader_v3_animated_frag : R.raw.shader_v2_animated_frag;
-        } else if (Constants.LIGHTING_ENABLED && !isPoints) {
-            typeId = "shader_v"+Constants.DEFAULT_SHADER_VERSION+"_static";
-            vertResId = (Constants.DEFAULT_SHADER_VERSION == 3) ? R.raw.shader_v3_static_vert : R.raw.shader_v2_static_vert;
-            fragResId = (Constants.DEFAULT_SHADER_VERSION == 3) ? R.raw.shader_v3_static_frag : R.raw.shader_v2_static_frag;
-        } else {
-            typeId = "shader_v"+Constants.DEFAULT_SHADER_VERSION+"_basic";
-            vertResId = (Constants.DEFAULT_SHADER_VERSION == 3) ? R.raw.shader_v3_basic_vert : R.raw.shader_v2_basic_vert;
-            fragResId = (Constants.DEFAULT_SHADER_VERSION == 3) ? R.raw.shader_v3_basic_frag : R.raw.shader_v2_basic_frag;
-        }
-
-        // Check cache
-        String cacheKey = typeId;
-        Shader shader = shadersCache.get(cacheKey);
-        if (shader != null) return shader;
-
-        String vertCode = shadersCode.get(vertResId);
-        String fragCode = shadersCode.get(fragResId);
+    @BeanFactory
+    private Map<String, Program> buildPrograms() {
 
         // check
-        if (vertCode == null || fragCode == null) {
-           logger.finest("Engine is still loading. Cannot load shader: " + cacheKey);
-            return null;
+        if (context == null) throw new IllegalStateException("Context is null");
+
+        // log event
+        logger.info("Loading " + AndroidShaderResource.values().length + " shaders...");
+
+        // prepare
+        final Map<String, Program> programs = new HashMap<>();
+
+        // load data
+        for (AndroidShaderResource ar : AndroidShaderResource.values()) {
+            try {
+
+                final String vertexShaderCode = new String(IOUtils.read(context.getResources().openRawResource(ar.vertexShaderResourceId)));
+                final String fragmentShaderCode = new String(IOUtils.read(context.getResources().openRawResource(ar.fragmentShaderResourceId)));
+
+                final Program program = new Program(ar.programId, ar.openGLVersion, vertexShaderCode, fragmentShaderCode);
+                programs.put(ar.beanId, program);
+
+            } catch (Exception e) {
+                logger.log(Level.SEVERE, "Failed to load shader resource. bean: " + ar.beanId+", program: "+ar.programId, e);
+            }
         }
 
-        // Instantiate the right implementation
-        logger.info("Instantiating Shader: " + cacheKey);
-
-        if (Constants.DEFAULT_SHADER_VERSION == 3) {
-            shader = ShaderImplV3.getInstance(cacheKey, vertCode, fragCode);
-        } else {
-            shader = ShaderImplV2.getInstance(cacheKey, vertCode, fragCode);
-        }
-
-        shadersCache.put(cacheKey, shader);
-
-        // debug
-        logger.info("Shader loaded: " + cacheKey);
-
-        return shader;
-    }
-
-    public Shader getShader(ShaderResource shaderResource) {
-        return getShader(shaderResource.id, shaderResource.vertexShaderResourceId, shaderResource.fragmentShaderResourceId);
-    }
-
-    /**
-     * Return the shader loaded in GPU.
-     * @param resIdVertexShader the shader resource id
-     * @return
-     */
-    private Shader getShader(String id, int resIdVertexShader, int resIdFragmentShader){
-        //final String shaderName = shadersCode.get(resIdVertexShader);
-        final Shader shader = shadersCache.get(id);
-        if (shader == null){
-            logger.config("Loading shader... "+ id);
-            final Shader impl = loadShader(id, resIdVertexShader, resIdFragmentShader);
-            shadersCache.put(id, impl);
-            logger.config("Loaded "+ id);
-            return impl;
-        }
-        return shader;
-    }
-
-    @NonNull
-    private Shader loadShader(String shaderId, int vertexShaderResourceId, int fragmentShaderResourceId) {
-        if (Constants.DEFAULT_SHADER_VERSION == 3){
-            return ShaderImplV3.getInstance(shaderId, shadersCode.get(vertexShaderResourceId), shadersCode.get(fragmentShaderResourceId));
-        } else if (Constants.DEFAULT_SHADER_VERSION == 2) {
-            return ShaderImplV2.getInstance(shaderId, shadersCode.get(vertexShaderResourceId), shadersCode.get(fragmentShaderResourceId));
-        } else {
-            throw new IllegalArgumentException("Unsupported shader version: "+Constants.DEFAULT_SHADER_VERSION);
-        }
-    }
-
-    public void reset() {
-
-        logger.info("Resetting shaders... size: "+shadersCache.size());
-
-        for (Shader shader : shadersCache.values())
-            shader.reset();
-
-        shadersCache.clear();
-    }
-
-    @Deprecated
-    public Map<String, Shader> getShaders() {
-        return shadersCache;
+        return programs;
     }
 }

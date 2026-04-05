@@ -2,11 +2,11 @@ package org.the3deer.android.engine.shader.v3;
 
 import android.opengl.GLES30;
 
-import org.the3deer.engine.gui.Widget;
-import org.the3deer.engine.model.AnimatedModel;
-import org.the3deer.engine.model.Element;
-import org.the3deer.engine.model.Object3D;
-import org.the3deer.engine.model.Skin;
+import org.the3deer.android.engine.gui.Widget;
+import org.the3deer.android.engine.model.AnimatedModel;
+import org.the3deer.android.engine.model.Element;
+import org.the3deer.android.engine.model.Object3D;
+import org.the3deer.android.engine.model.Skin;
 
 import java.nio.Buffer;
 import java.nio.ByteBuffer;

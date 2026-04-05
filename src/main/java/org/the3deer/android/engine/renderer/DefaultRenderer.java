@@ -1,20 +1,17 @@
 package org.the3deer.android.engine.renderer;
 
-import android.app.Activity;
 import android.opengl.GLES20;
 
-import org.the3deer.engine.Model;
-import org.the3deer.engine.animation.Animator;
-import org.the3deer.engine.model.Camera;
-import org.the3deer.engine.model.Constants;
-import org.the3deer.engine.model.Light;
-import org.the3deer.engine.model.Object3D;
-import org.the3deer.engine.model.Scene;
-import org.the3deer.engine.model.Screen;
-import org.the3deer.engine.model.Skin;
-import org.the3deer.engine.renderer.Drawer;
-import org.the3deer.engine.renderer.Renderer;
-import org.the3deer.util.bean.Bean;
+import org.the3deer.bean.Bean;
+import org.the3deer.android.engine.Model;
+import org.the3deer.android.engine.animation.Animator;
+import org.the3deer.android.engine.model.Camera;
+import org.the3deer.android.engine.model.Constants;
+import org.the3deer.android.engine.model.Light;
+import org.the3deer.android.engine.model.Object3D;
+import org.the3deer.android.engine.model.Scene;
+import org.the3deer.android.engine.model.Screen;
+import org.the3deer.android.engine.model.Skin;
 import org.the3deer.util.event.EventListener;
 import org.the3deer.util.math.Math3DUtils;
 
@@ -35,9 +32,6 @@ public class DefaultRenderer implements Renderer, EventListener {
     protected boolean enabled = true;
 
     private boolean traced;
-
-    @Inject
-    private Activity activity;
 
     @Inject
     private Model sceneManager;
@@ -67,7 +61,7 @@ public class DefaultRenderer implements Renderer, EventListener {
     /**
      * Default drawer configuration
      */
-    private final Drawer.Config defaultConfig = new Drawer.Config();
+    private final Renderer.Config defaultConfig = new Renderer.Config();
 
     /**
      * Construct a new renderer for the specified surface view
@@ -116,7 +110,7 @@ public class DefaultRenderer implements Renderer, EventListener {
         drawFrame(null);
     }
 
-    protected void drawFrame(Drawer.Config config) {
+    protected void drawFrame(Renderer.Config config) {
 
         // Default viewport
         GLES20.glViewport(0, 0, screen.width, screen.height);
@@ -169,7 +163,7 @@ public class DefaultRenderer implements Renderer, EventListener {
         }
     }
 
-    protected void prepareFrame(Drawer.Config config) {
+    protected void prepareFrame(Renderer.Config config) {
 
         // check
         if (sceneManager == null) return;

@@ -2,18 +2,19 @@ package org.the3deer.android.engine.shadow;
 
 import android.opengl.GLES20;
 
+import org.the3deer.android.engine.model.Object3D;
+
+import org.the3deer.bean.BeanProperty;
+import org.the3deer.android.engine.util.GLUtil;
+import org.the3deer.android.engine.model.Camera;
+import org.the3deer.android.engine.model.Constants;
+import org.the3deer.android.engine.model.Scene;
+import org.the3deer.android.engine.objects.Plane2;
+import org.the3deer.android.engine.util.Matrix;
+import org.the3deer.android.engine.shader.Program;
 import org.the3deer.android.engine.shader.Shader;
-import org.the3deer.android.engine.shader.ShaderFactory;
-import org.the3deer.android.engine.shader.ShaderResource;
-import org.the3deer.engine.model.Camera;
-import org.the3deer.engine.model.Constants;
-import org.the3deer.engine.model.Object3D;
-import org.the3deer.engine.model.Scene;
-import org.the3deer.engine.objects.Plane2;
-import org.the3deer.engine.util.GLUtil;
-import org.the3deer.util.bean.BeanProperty;
+import org.the3deer.android.engine.shader.ShaderManager;
 import org.the3deer.util.math.Math3DUtils;
-import org.the3deer.opengl.Matrix;
 
 import java.util.List;
 import java.util.logging.Level;
@@ -27,18 +28,10 @@ public class ShadowsRenderer {
     private static final Logger logger = Logger.getLogger(ShadowsRenderer.class.getSimpleName());
 
     /**
-     * Handles to vertex and fragment shader programs
-     */
-    private ShaderResource mSimpleShadowProgram;
-    private ShaderResource mPCFShadowProgram;
-    private ShaderResource mSimpleShadowDynamicBiasProgram;
-    private ShaderResource mPCFShadowDynamicBiasProgram;
-
-    /**
      * The vertex and fragment shader to render depth map
      */
     private Shader mDepthMapProgram;
-    private Shader  mActiveRenderer;
+    private Shader mActiveRenderer;
 
     private int mActiveProgram;
 
@@ -230,7 +223,7 @@ public class ShadowsRenderer {
     }
 
 
-    public void onDrawFrame(ShaderFactory shaderFactory, float[] mProjectionMatrix, float[] mViewMatrix, float[] mActualLightPosition, Scene scene) {
+    public void onDrawFrame(ShaderManager shaderFactory, float[] mProjectionMatrix, float[] mViewMatrix, float[] mActualLightPosition, Scene scene) {
 
         GLES20.glViewport(0, 0, mDisplayWidth, mDisplayHeight);
 
@@ -249,7 +242,7 @@ public class ShadowsRenderer {
 
     }
 
-    public void onPrepareFrame(ShaderFactory shaderFactory, float[] mProjectionMatrix, float[] mViewMatrix, float[] mActualLightPosition, Scene scene) {
+    public void onPrepareFrame(ShaderManager shaderFactory, float[] mProjectionMatrix, float[] mViewMatrix, float[] mActualLightPosition, Scene scene) {
 
         GLES20.glViewport(0, 0, mDisplayWidth, mDisplayHeight);
 
@@ -264,7 +257,7 @@ public class ShadowsRenderer {
 
         Matrix.frustumM(mLightProjectionMatrix, 0, -1.1f*ratio, 1.1f*ratio, 1.1f*bottom, 1.1f*top, near, far);
 
-        mDepthMapProgram = shaderFactory.getShader(ShaderResource.SHADOW_MAP);
+        mDepthMapProgram = shaderFactory.getShader(Program.SHADOW_MAP);
         mDepthMapProgram.setAutoUseProgram(false);
 
         Matrix.setIdentityM(mModelMatrix, 0);
@@ -319,7 +312,7 @@ public class ShadowsRenderer {
         }
     }
 
-    private void renderScene(ShaderFactory shaderFactory, Scene scene, float[] mProjectionMatrix, float[] mViewMatrix, float[] mActualLightPosition) {
+    private void renderScene(ShaderManager shaderFactory, Scene scene, float[] mProjectionMatrix, float[] mViewMatrix, float[] mActualLightPosition) {
 
         // bind default framebuffer
         GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0);
@@ -339,7 +332,7 @@ public class ShadowsRenderer {
         }
     }
 
-    private void drawObject(ShaderFactory shaderFactory, float[] mProjectionMatrix, float[] mViewMatrix, float[] mActualLightPosition, Object3D data, float[] tempResultMatrix) {
+    private void drawObject(ShaderManager shaderFactory, float[] mProjectionMatrix, float[] mViewMatrix, float[] mActualLightPosition, Object3D data, float[] tempResultMatrix) {
 
         final float[] mModelMatrix = data.getModelMatrix();
 
@@ -347,7 +340,7 @@ public class ShadowsRenderer {
         Matrix.multiplyMM(tempResultMatrix, 0, mViewMatrix, 0, mModelMatrix, 0);
         System.arraycopy(tempResultMatrix, 0, mMVMatrix, 0, 16);
 
-        mActiveRenderer = shaderFactory.getShader(ShaderResource.SHADOW);
+        mActiveRenderer = shaderFactory.getShader(Program.SHADOW);
         mActiveRenderer.setAutoUseProgram(false);
         mActiveRenderer.useProgram();
 

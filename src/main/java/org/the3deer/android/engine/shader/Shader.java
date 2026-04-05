@@ -1,10 +1,14 @@
 package org.the3deer.android.engine.shader;
 
-import org.the3deer.engine.model.Object3D;
+import org.the3deer.android.engine.model.Object3D;
 
+/**
+ * This interface connects to the OpenGL underlying shader implementations.
+ * It is directly linked to 1 Program
+ */
 public interface Shader {
 
-    int getId();
+    int getOpenGLVersion();
 
     String getName();
 

@@ -1,12 +1,11 @@
 package org.the3deer.android.engine.renderer;
 
-import org.the3deer.engine.Model;
-import org.the3deer.engine.model.Camera;
-import org.the3deer.engine.model.Constants;
-import org.the3deer.engine.model.Scene;
-import org.the3deer.engine.model.Screen;
-import org.the3deer.engine.renderer.Drawer;
-import org.the3deer.util.bean.Bean;
+import org.the3deer.bean.Bean;
+import org.the3deer.android.engine.Model;
+import org.the3deer.android.engine.model.Camera;
+import org.the3deer.android.engine.model.Constants;
+import org.the3deer.android.engine.model.Scene;
+import org.the3deer.android.engine.model.Screen;
 import org.the3deer.util.event.EventListener;
 
 import java.util.ArrayList;
@@ -59,10 +58,10 @@ public class StereoscopicRenderer extends DefaultRenderer {
         final Camera rightCamera = stereoCamera[1];
 
         // camera:  (left red eye) (right blue eye)
-        Drawer.Config leftConf = new Drawer.Config();
+        Config leftConf = new Config();
         leftConf.camera = leftCamera;
 
-        Drawer.Config rightConf = new Drawer.Config();
+        Config rightConf = new Config();
         rightConf.camera = rightCamera;
 
         //GLES20.glClearColor(0, 0, 0, 1);

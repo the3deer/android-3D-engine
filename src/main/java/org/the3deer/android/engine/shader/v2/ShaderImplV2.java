@@ -3,15 +3,15 @@ package org.the3deer.android.engine.shader.v2;
 import android.opengl.GLES20;
 import android.util.SparseArray;
 
+import org.the3deer.android.engine.model.AnimatedModel;
+import org.the3deer.android.engine.model.Constants;
+import org.the3deer.android.engine.model.Element;
+import org.the3deer.android.engine.model.Material;
+import org.the3deer.android.engine.model.Object3D;
+import org.the3deer.android.engine.model.Skin;
+import org.the3deer.android.engine.model.Texture;
 import org.the3deer.android.engine.shader.Shader;
-import org.the3deer.engine.model.AnimatedModel;
-import org.the3deer.engine.model.Constants;
-import org.the3deer.engine.model.Element;
-import org.the3deer.engine.model.Material;
-import org.the3deer.engine.model.Object3D;
-import org.the3deer.engine.model.Skin;
-import org.the3deer.engine.model.Texture;
-import org.the3deer.engine.util.GLUtil;
+import org.the3deer.android.engine.util.GLUtil;
 import org.the3deer.util.io.IOUtils;
 import org.the3deer.util.math.Math3DUtils;
 
@@ -45,7 +45,7 @@ import java.util.logging.Logger;
  */
 public class ShaderImplV2 implements Shader {
 
-    private static final Logger logger = Logger.getLogger(Shader.class.getSimpleName());
+    private static final Logger logger = Logger.getLogger(ShaderImplV2.class.getSimpleName());
 
     // Preference Keys (define these as constants)
     public static final String KEY_SHADER_LIGHTING_TYPE = "shader_default_lighting_type";
@@ -116,8 +116,8 @@ public class ShaderImplV2 implements Shader {
     private int uAlphaCutoffHandle;
 
     @Override
-    public int getId() {
-        return mProgram;
+    public int getOpenGLVersion() {
+        return 2;
     }
 
     @Override

@@ -3,15 +3,16 @@ package org.the3deer.android.engine.shadow;
 import android.app.Activity;
 import android.opengl.GLES20;
 
-import org.the3deer.engine.Model;
-import org.the3deer.android.engine.shader.ShaderFactory;
-import org.the3deer.engine.model.Camera;
-import org.the3deer.engine.model.Light;
-import org.the3deer.engine.model.Scene;
-import org.the3deer.engine.renderer.Drawer;
-import org.the3deer.util.bean.Bean;
-import org.the3deer.util.bean.BeanInit;
-import org.the3deer.util.bean.BeanProperty;
+import org.the3deer.bean.Bean;
+import org.the3deer.bean.BeanInit;
+import org.the3deer.bean.BeanProperty;
+import org.the3deer.android.engine.Model;
+import org.the3deer.android.engine.model.Camera;
+import org.the3deer.android.engine.model.Light;
+import org.the3deer.android.engine.model.Scene;
+import org.the3deer.android.engine.renderer.Drawer;
+import org.the3deer.android.engine.renderer.Renderer;
+import org.the3deer.android.engine.shader.ShaderManager;
 
 import java.io.IOException;
 
@@ -25,7 +26,7 @@ import javax.inject.Inject;
 public class ShadowDrawer implements Drawer {
 
     @Inject
-    private ShaderFactory shaderFactory;
+    private ShaderManager shaderFactory;
     @Inject
     private Activity activity;
     @Inject
@@ -76,7 +77,7 @@ public class ShadowDrawer implements Drawer {
     }
 
     @Override
-    public void onDrawFrame(Config config) {
+    public void onDrawFrame(Renderer.Config config) {
 
         // check
         if (!enabled) return;

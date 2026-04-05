@@ -3,18 +3,16 @@ package org.the3deer.android.engine.renderer;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
 
-import org.the3deer.engine.ModelEngine;
+import org.the3deer.bean.Bean;
+import org.the3deer.bean.BeanInit;
+import org.the3deer.bean.BeanProperty;
+import org.the3deer.android.engine.ModelEngine;
 import org.the3deer.android.engine.ModelEngineViewModel;
-import org.the3deer.android.engine.shader.ShaderFactory;
-import org.the3deer.engine.event.FPSEvent;
-import org.the3deer.engine.event.GLEvent;
-import org.the3deer.engine.model.Constants;
-import org.the3deer.engine.model.Screen;
-import org.the3deer.engine.renderer.RenderListener;
-import org.the3deer.engine.renderer.Renderer;
-import org.the3deer.util.bean.Bean;
-import org.the3deer.util.bean.BeanInit;
-import org.the3deer.util.bean.BeanProperty;
+import org.the3deer.android.engine.event.FPSEvent;
+import org.the3deer.android.engine.event.GLEvent;
+import org.the3deer.android.engine.model.Constants;
+import org.the3deer.android.engine.model.Screen;
+import org.the3deer.android.engine.shader.ShaderManager;
 import org.the3deer.util.event.EventManager;
 
 import java.util.ArrayList;
@@ -52,7 +50,7 @@ public class GLRenderer implements GLSurfaceView.Renderer {
     private String activeRenderer;
 
     @Inject
-    private ShaderFactory shaderFactory;
+    private ShaderManager shaderFactory;
 
     private Renderer renderer;
 
