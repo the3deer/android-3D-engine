@@ -3,7 +3,7 @@ package org.the3deer.android.engine.services.collada;
 import org.the3deer.android.engine.animation.Animation;
 import org.the3deer.android.engine.animation.JointTransform;
 import org.the3deer.android.engine.animation.KeyFrame;
-import org.the3deer.android.engine.util.Matrix;
+import org.the3deer.android.util.Matrix;
 import org.the3deer.android.engine.services.collada.entities.Controller;
 import org.the3deer.android.engine.services.collada.entities.EffectData;
 import org.the3deer.android.engine.services.collada.entities.Geometry;

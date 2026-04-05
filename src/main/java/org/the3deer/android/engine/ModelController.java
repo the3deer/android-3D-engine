@@ -3,7 +3,7 @@ package org.the3deer.android.engine;
 
 import org.the3deer.bean.BeanManager;
 import org.the3deer.android.engine.touch.TouchController;
-import org.the3deer.android.engine.util.AndroidUtils;
+import org.the3deer.android.util.AndroidUtils;
 import org.the3deer.android.engine.camera.CameraController;
 import org.the3deer.android.engine.collision.CollisionController;
 import org.the3deer.android.engine.collision.CollisionEvent;

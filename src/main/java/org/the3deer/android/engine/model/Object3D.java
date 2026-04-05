@@ -1,8 +1,8 @@
 package org.the3deer.android.engine.model;
 
-import org.the3deer.android.engine.util.AndroidUtils;
+import org.the3deer.android.util.AndroidUtils;
 import org.the3deer.android.engine.collision.Octree;
-import org.the3deer.android.engine.util.Matrix;
+import org.the3deer.android.util.Matrix;
 import org.the3deer.android.engine.services.collada.entities.MeshData;
 import org.the3deer.android.engine.shader.ShaderManager;
 import org.the3deer.util.event.EventListener;

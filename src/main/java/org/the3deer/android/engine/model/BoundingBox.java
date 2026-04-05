@@ -2,7 +2,7 @@ package org.the3deer.android.engine.model;
 
 import androidx.annotation.NonNull;
 
-import org.the3deer.android.engine.util.Matrix;
+import org.the3deer.android.util.Matrix;
 import org.the3deer.util.math.Math3DUtils;
 
 /**

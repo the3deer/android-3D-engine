@@ -1,13 +1,13 @@
-package org.the3deer.android.engine.util.assets;
+package org.the3deer.android.util.content;
 
-import org.the3deer.android.engine.util.AndroidURLConnection;
+import org.the3deer.android.util.AndroidURLConnection;
 
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLStreamHandler;
 
 /**
- *  App's assets URL handler
+ * Android's content url handler
  */
 public class Handler extends URLStreamHandler {
 

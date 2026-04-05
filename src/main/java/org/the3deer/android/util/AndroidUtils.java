@@ -1,4 +1,4 @@
-package org.the3deer.android.engine.util;
+package org.the3deer.android.util;
 
 import android.app.Activity;
 import android.content.Intent;

@@ -37,7 +37,7 @@ import org.the3deer.android.engine.shader.ShaderManager;
 import org.the3deer.android.engine.shader.v3.GpuManager;
 import org.the3deer.android.engine.shadow.ShadowDrawer;
 import org.the3deer.android.engine.touch.TouchController;
-import org.the3deer.android.engine.util.AndroidURLStreamHandlerFactory;
+import org.the3deer.android.util.AndroidURLStreamHandlerFactory;
 import org.the3deer.util.event.EventManager;
 
 import java.net.URL;

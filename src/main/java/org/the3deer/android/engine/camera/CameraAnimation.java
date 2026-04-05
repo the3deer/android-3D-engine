@@ -3,7 +3,7 @@ package org.the3deer.android.engine.camera;
 import org.the3deer.android.engine.model.Animation;
 import org.the3deer.android.engine.model.Camera;
 import org.the3deer.android.engine.model.Constants;
-import org.the3deer.android.engine.util.Matrix;
+import org.the3deer.android.util.Matrix;
 
 import java.util.Arrays;
 import java.util.logging.Logger;

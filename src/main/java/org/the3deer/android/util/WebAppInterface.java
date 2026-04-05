@@ -1,5 +1,5 @@
 
-package org.the3deer.android.engine.util;
+package org.the3deer.android.util;
 
 import android.content.Context;
 import android.webkit.JavascriptInterface;

@@ -1,6 +1,6 @@
 package org.the3deer.android.engine.model;
 
-import org.the3deer.android.engine.util.Matrix;
+import org.the3deer.android.util.Matrix;
 
 import java.text.DecimalFormat;
 import java.util.Arrays;

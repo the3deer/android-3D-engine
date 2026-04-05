@@ -6,7 +6,7 @@ import org.the3deer.android.engine.model.AnimatedModel;
 import org.the3deer.android.engine.model.Material;
 import org.the3deer.android.engine.model.Node;
 import org.the3deer.android.engine.model.Skin;
-import org.the3deer.android.engine.util.Matrix;
+import org.the3deer.android.util.Matrix;
 import org.the3deer.util.io.IOUtils;
 import org.the3deer.util.math.Math3DUtils;
 

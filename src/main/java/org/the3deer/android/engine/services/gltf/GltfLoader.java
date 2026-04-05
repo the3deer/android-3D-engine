@@ -5,7 +5,7 @@ import android.opengl.GLES20;
 
 import org.the3deer.android.engine.model.Object3D;
 
-import org.the3deer.android.engine.util.AndroidUtils;
+import org.the3deer.android.util.AndroidUtils;
 import org.the3deer.android.engine.animation.Animation;
 import org.the3deer.android.engine.animation.JointTransform;
 import org.the3deer.android.engine.animation.KeyFrame;

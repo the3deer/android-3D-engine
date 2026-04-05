@@ -11,7 +11,7 @@ import org.the3deer.android.engine.model.Material;
 import org.the3deer.android.engine.model.Scene;
 import org.the3deer.android.engine.model.Skin;
 import org.the3deer.android.engine.model.Texture;
-import org.the3deer.android.engine.util.Matrix;
+import org.the3deer.android.util.Matrix;
 import org.the3deer.android.engine.services.collada.entities.Controller;
 import org.the3deer.android.engine.services.collada.entities.EffectData;
 import org.the3deer.android.engine.services.collada.entities.Geometry;

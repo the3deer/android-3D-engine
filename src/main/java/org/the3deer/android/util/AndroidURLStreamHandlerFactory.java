@@ -1,6 +1,6 @@
-package org.the3deer.android.engine.util;
+package org.the3deer.android.util;
 
-import org.the3deer.android.engine.util.content.Handler;
+import org.the3deer.android.util.content.Handler;
 
 import java.net.URLStreamHandler;
 import java.net.URLStreamHandlerFactory;
@@ -10,7 +10,7 @@ public class AndroidURLStreamHandlerFactory implements URLStreamHandlerFactory {
     @Override
     public URLStreamHandler createURLStreamHandler(String protocol) {
         if ("android".equals(protocol)) {
-            return new org.the3deer.android.engine.util.assets.Handler();
+            return new org.the3deer.android.util.assets.Handler();
         } else if ("content".equals(protocol)){
             return new Handler();
         }

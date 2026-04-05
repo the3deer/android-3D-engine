@@ -4,7 +4,7 @@ import android.opengl.GLES20;
 
 import org.the3deer.android.engine.model.Object3D;
 
-import org.the3deer.android.engine.util.ContentUtils;
+import org.the3deer.android.util.ContentUtils;
 import org.the3deer.android.engine.model.CubeMap;
 import org.the3deer.android.engine.model.Material;
 import org.the3deer.android.engine.model.Texture;

@@ -1,7 +1,7 @@
 package org.the3deer.android.engine.model;
 
 import org.the3deer.bean.BeanInit;
-import org.the3deer.android.engine.util.Matrix;
+import org.the3deer.android.util.Matrix;
 
 import javax.inject.Inject;
 

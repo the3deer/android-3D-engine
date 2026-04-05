@@ -3,7 +3,7 @@ package org.the3deer.android.engine.camera;
 import org.the3deer.bean.BeanInit;
 import org.the3deer.android.engine.model.Camera;
 import org.the3deer.android.engine.model.Projection;
-import org.the3deer.android.engine.util.Matrix;
+import org.the3deer.android.util.Matrix;
 import org.the3deer.util.math.Math3DUtils;
 
 import javax.inject.Inject;

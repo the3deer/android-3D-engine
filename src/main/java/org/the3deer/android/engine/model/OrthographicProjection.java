@@ -1,6 +1,6 @@
 package org.the3deer.android.engine.model;
 
-import org.the3deer.android.engine.util.Matrix;
+import org.the3deer.android.util.Matrix;
 
 public final class OrthographicProjection implements Projection {
 

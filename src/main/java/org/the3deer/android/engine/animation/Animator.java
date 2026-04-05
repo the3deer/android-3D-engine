@@ -3,7 +3,7 @@ package org.the3deer.android.engine.animation;
 import org.the3deer.android.engine.model.AnimatedModel;
 import org.the3deer.android.engine.model.Constants;
 import org.the3deer.android.engine.model.Node;
-import org.the3deer.android.engine.util.Matrix;
+import org.the3deer.android.util.Matrix;
 import org.the3deer.util.math.Math3DUtils;
 
 import java.util.Arrays;

@@ -10,7 +10,7 @@ import org.the3deer.android.engine.model.Camera;
 import org.the3deer.android.engine.model.Constants;
 import org.the3deer.android.engine.model.Scene;
 import org.the3deer.android.engine.objects.Plane2;
-import org.the3deer.android.engine.util.Matrix;
+import org.the3deer.android.util.Matrix;
 import org.the3deer.android.engine.shader.Program;
 import org.the3deer.android.engine.shader.Shader;
 import org.the3deer.android.engine.shader.ShaderManager;

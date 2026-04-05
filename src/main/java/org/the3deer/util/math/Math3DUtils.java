@@ -1,6 +1,6 @@
 package org.the3deer.util.math;
 
-import org.the3deer.android.engine.util.Matrix;
+import org.the3deer.android.util.Matrix;
 
 import java.math.BigDecimal;
 import java.util.Arrays;

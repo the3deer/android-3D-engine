@@ -1,7 +1,7 @@
 package org.the3deer.android.engine.model;
 
 import org.the3deer.android.engine.animation.Animator;
-import org.the3deer.android.engine.util.Matrix;
+import org.the3deer.android.util.Matrix;
 import org.the3deer.util.io.IOUtils;
 
 import java.nio.Buffer;

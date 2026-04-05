@@ -11,7 +11,7 @@ import org.the3deer.android.engine.model.Camera;
 import org.the3deer.android.engine.model.Constants;
 import org.the3deer.android.engine.model.Screen;
 import org.the3deer.android.engine.objects.Skybox;
-import org.the3deer.android.engine.util.Matrix;
+import org.the3deer.android.util.Matrix;
 import org.the3deer.android.engine.renderer.Drawer;
 import org.the3deer.android.engine.renderer.Renderer;
 import org.the3deer.android.engine.shader.Program;

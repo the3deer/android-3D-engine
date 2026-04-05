@@ -4,7 +4,7 @@ import androidx.annotation.Nullable;
 
 import org.the3deer.android.engine.model.Constants;
 import org.the3deer.android.engine.model.Node;
-import org.the3deer.android.engine.util.Matrix;
+import org.the3deer.android.util.Matrix;
 import org.the3deer.util.math.Math3DUtils;
 import org.the3deer.util.math.Quaternion;
 

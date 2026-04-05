@@ -1,6 +1,6 @@
 package org.the3deer.android.engine;
 
-import org.the3deer.android.engine.util.ContentUtils;
+import org.the3deer.android.util.ContentUtils;
 import org.the3deer.android.engine.camera.CameraUtils;
 import org.the3deer.android.engine.model.Camera;
 import org.the3deer.android.engine.model.Material;

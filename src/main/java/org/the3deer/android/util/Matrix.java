@@ -1,4 +1,4 @@
-package org.the3deer.android.engine.util;
+package org.the3deer.android.util;
 
 /**
  * Android Matrix replacement to be used in non-android environments.
