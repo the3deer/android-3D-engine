@@ -1,5 +1,6 @@
 package org.the3deer.android.engine.model;
 
+import org.the3deer.android.engine.event.CameraEvent;
 import org.the3deer.util.event.EventListener;
 
 import java.util.EventObject;
@@ -38,7 +39,7 @@ public class Light implements EventListener {
 
     @Override
     public boolean onEvent(EventObject event) {
-        if (event instanceof Camera.CameraUpdatedEvent){
+        if (event instanceof CameraEvent){
             if (event.getSource() == camera) {
                 //this.location = ((Camera) event.getSource()).getPos();
                 //logger.finest("new location: " + Arrays.toString(this.location));

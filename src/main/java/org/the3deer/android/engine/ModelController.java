@@ -1,15 +1,14 @@
 
 package org.the3deer.android.engine;
 
-import org.the3deer.bean.BeanManager;
-import org.the3deer.android.engine.touch.TouchController;
-import org.the3deer.android.util.AndroidUtils;
-import org.the3deer.android.engine.camera.CameraController;
+import android.util.Log;
+
+import org.the3deer.android.engine.camera.CameraManager;
 import org.the3deer.android.engine.collision.CollisionController;
 import org.the3deer.android.engine.collision.CollisionEvent;
 import org.the3deer.android.engine.event.GLEvent;
 import org.the3deer.android.engine.event.MotionEvent;
-import org.the3deer.android.engine.event.SelectedObjectEvent;
+import org.the3deer.android.engine.event.SceneEvent;
 import org.the3deer.android.engine.event.TouchEvent;
 import org.the3deer.android.engine.gui.GUI;
 import org.the3deer.android.engine.gui.GUIDrawer;
@@ -19,6 +18,9 @@ import org.the3deer.android.engine.model.Projection;
 import org.the3deer.android.engine.model.Scene;
 import org.the3deer.android.engine.renderer.TouchHandler;
 import org.the3deer.android.engine.shader.ShaderManager;
+import org.the3deer.android.engine.touch.TouchController;
+import org.the3deer.android.util.AndroidUtils;
+import org.the3deer.bean.BeanManager;
 import org.the3deer.util.event.EventListener;
 import org.the3deer.util.event.EventManager;
 
@@ -54,7 +56,7 @@ public class ModelController implements EventManager, TouchHandler {
     @Inject
     private CollisionController collisionController;
     @Inject
-    private CameraController cameraController;
+    private CameraManager cameraManager;
     @Inject
     private List<EventListener> listeners;
     @Inject
@@ -128,9 +130,9 @@ public class ModelController implements EventManager, TouchHandler {
             final Scene scene = sceneManager.getActiveScene();
             if (scene != null && scene.getSelectedObject() != null) {
                 //scene.onEvent(event);
-                cameraController.onEvent(event);
-            } else if (cameraController != null) {
-                cameraController.onEvent(event);
+                cameraManager.onEvent(event);
+            } else if (cameraManager != null) {
+                cameraManager.onEvent(event);
                 /*scene.onEvent(event);
                 if (((TouchEvent) event).getAction() == TouchEvent.Action.PINCH) {
                     //surface.onEvent(event);
@@ -138,32 +140,48 @@ public class ModelController implements EventManager, TouchHandler {
             }
         } else if (event instanceof CollisionEvent) {
 
+
             // check
             if (sceneManager.getActiveScene() == null) return false;
 
             // get hit
             final Object3D hit = ((CollisionEvent) event).getObject();
+            final float[] point = ((CollisionEvent) event).getPoint();
 
             // get current selected object
             final Object3D selected = sceneManager.getActiveScene().getSelectedObject();
 
             // unselect if needed
-            if (selected != null && selected == hit) {
-
-                // select object
-                sceneManager.getActiveScene().setSelectedObject(null);
-
-                // fire event
-                AndroidUtils.fireEvent(listeners, new SelectedObjectEvent(this, null));
+            if (selected != null) {
 
 
+                // FIXME: remove
+                Log.d("ModelController", "CollisionEvent: " + ((CollisionEvent) event).getObject().getId()+", hit: "+hit.getId());
+
+
+                if (selected.equals(hit)) {
+                    // select object
+                    sceneManager.getActiveScene().setSelectedObject(null);
+
+                    // fire event
+                    AndroidUtils.fireEvent(listeners, new SceneEvent(this, SceneEvent.Code.OBJECT_UNSELECTED).setData("object", hit).setData("point", point));
+                }
+                else {
+
+                    // select object
+                    sceneManager.getActiveScene().setSelectedObject(hit);
+
+                    // fire event
+                    AndroidUtils.fireEvent(listeners, new SceneEvent(this, SceneEvent.Code.OBJECT_SELECTED).setData("object", hit).setData("point", point));
+
+                }
             } else {
 
                 // select object
                 sceneManager.getActiveScene().setSelectedObject(hit);
 
                 // fire event
-                AndroidUtils.fireEvent(listeners, new SelectedObjectEvent(this, hit));
+                AndroidUtils.fireEvent(listeners, new SceneEvent(this, SceneEvent.Code.OBJECT_SELECTED).setData("object", hit).setData("point", point));
 
             }
 

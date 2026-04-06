@@ -18,8 +18,8 @@ public final class PerspectiveProjection implements Projection {
 
     private float yfov = 60.0f;
     private float aspectRatio = 1.0f;
-    private float znear = 1;
-    private float zfar = 10;
+    private float znear = 0.01f;
+    private float zfar = 1000f;
     /**
      * This flag to indicate if the perspective is coming from the 3d model (true = yes)
      */

@@ -28,8 +28,6 @@ public class CollisionController implements EventListener {
     @Inject
     private Screen screen;
     @Inject
-    private Camera camera;
-    @Inject
     private Model sceneManager;
     @Inject
     private EventManager eventManager;
@@ -63,6 +61,10 @@ public class CollisionController implements EventListener {
                 final Scene scene = sceneManager.getActiveScene();
                 if (scene == null) return false;
 
+                // get camera
+                final Camera camera = scene.getActiveCamera();
+                if (camera == null) return false;
+
                 // get objects
                 final List<Object3D> objects = scene.getObjects();
                 if (objects.isEmpty()) return false;
@@ -72,7 +74,7 @@ public class CollisionController implements EventListener {
                 final float y = touchEvent.getY();
 
                 // check collision
-                Object3D objectHit = CollisionDetection.getBoxIntersection(
+                Object3D objectHit = CollisionDetection.getTriangleIntersection(
                         objects, screen.getWidth(), screen.getHeight(),
                         camera.getViewMatrix(), camera.getProjectionMatrix(), x, y);
                 if (objectHit != null) {

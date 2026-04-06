@@ -31,6 +31,7 @@ public class Scene {
     // Animation Management
     private List<Animation> animations = new ArrayList<>();
     private Animation activeAnimation;
+    private Dimensions dimensions;
     private boolean isSmooth = false;
     private boolean isCollision = true;
 
@@ -100,6 +101,14 @@ public class Scene {
 
     public void setActiveAnimation(Animation activeAnimation) {
         this.activeAnimation = activeAnimation;
+    }
+
+    public Dimensions getDimensions() {
+        return dimensions;
+    }
+
+    public void setDimensions(Dimensions dimensions) {
+        this.dimensions = dimensions;
     }
 
     public boolean isSmooth() {

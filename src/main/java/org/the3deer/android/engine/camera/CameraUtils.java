@@ -89,20 +89,21 @@ public class CameraUtils {
         // Avoid "gaps" (Z-fighting) by maintaining a healthy Near/Far ratio.
         if (projection != null) {
             
-            // We set near to a small fraction of the distance. 
-            // This provides plenty of room to zoom in before clipping starts.
-            float suggestedNear = distance * 0.05f;
+            // We set near to a balanced fraction of the distance (1%).
+            // This is a "sweet spot" that avoids most foreground clipping while preserving depth precision.
+            float suggestedNear = distance * 0.01f;
             
             // Floors to avoid numerical instability
             float floor = (radius < 0.1f) ? 0.0001f : 0.01f;
             suggestedNear = Math.max(suggestedNear, floor);
             
-            // Set far plane to capture the whole model plus plenty of headroom
-            float suggestedFar = distance + radius * 50.0f;
+            // Set far plane to capture the whole model plus reasonable headroom (10x radius)
+            float suggestedFar = distance + radius * 10.0f;
             
-            // The Golden Ratio: Keep Far/Near <= 10,000 to prevent depth buffer "gaps"
-            if (suggestedFar / suggestedNear > 10000f) {
-                suggestedFar = suggestedNear * 10000f;
+            // Conservative Ratio: Keep Far/Near <= 1,000 to support 16-bit depth buffers (older/cheaper devices)
+            // This prevents the "eaten" look (Z-fighting) seen in smaller models.
+            if (suggestedFar / suggestedNear > 1000f) {
+                suggestedNear = suggestedFar / 1000f;
             }
 
             projection.setNear(suggestedNear);

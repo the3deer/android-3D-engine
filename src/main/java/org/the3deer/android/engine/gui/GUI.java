@@ -9,7 +9,7 @@ import org.the3deer.bean.BeanManager;
 import org.the3deer.bean.BeanProperty;
 import org.the3deer.android.engine.event.FPSEvent;
 import org.the3deer.android.engine.event.GLEvent;
-import org.the3deer.android.engine.event.SelectedObjectEvent;
+import org.the3deer.android.engine.event.SceneEvent;
 import org.the3deer.android.engine.model.Camera;
 import org.the3deer.android.engine.model.Constants;
 import org.the3deer.android.engine.model.Dimensions;
@@ -186,10 +186,9 @@ public class GUI extends Widget implements EventListener, BeanManaged {
                 fps.setText(fpsEvent.getFps() + " fps");
                 //logger.finest("FPS: "+fpsEvent.getFps());
             }
-        } else if (event instanceof SelectedObjectEvent) {
-           logger.finest("onEvent. SelectedObjectEvent: "+((SelectedObjectEvent) event).getSelected());
+        } else if (event instanceof SceneEvent) {
             if (this.info != null) {
-                final Object3D selected = ((SelectedObjectEvent) event).getSelected();
+                final Object3D selected = ((SceneEvent) event).getData("object", Object3D.class);
                 if (selected != null) {
                     final StringBuilder info = new StringBuilder();
                     if (selected.getId() != null) {

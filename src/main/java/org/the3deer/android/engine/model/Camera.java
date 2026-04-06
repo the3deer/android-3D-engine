@@ -4,9 +4,10 @@ package org.the3deer.android.engine.model;
 
 import androidx.annotation.NonNull;
 
-import org.the3deer.bean.BeanInit;
+import org.the3deer.android.engine.event.CameraEvent;
 import org.the3deer.android.util.AndroidUtils;
 import org.the3deer.android.util.Matrix;
+import org.the3deer.bean.BeanInit;
 import org.the3deer.util.event.EventListener;
 import org.the3deer.util.math.Math3DUtils;
 import org.the3deer.util.math.Quaternion;
@@ -23,7 +24,7 @@ public class Camera {
     /**
      * Controls the camera
      */
-    public interface Controller {
+    public interface Controller extends EventListener {
 
         default void move(float dX, float dY) {
         }
@@ -36,49 +37,16 @@ public class Camera {
 
         default void pan(float dX, float dY) {
         }
-    }
 
-    public static class CameraLoadedEvent extends EventObject {
-
-        private Camera camera;
-
-        /**
-         * Constructs a prototypical Event.
-         *
-         * @param source the object on which the Event initially occurred
-         * @throws IllegalArgumentException if source is null
-         */
-        public CameraLoadedEvent(Object source, Camera camera) {
-            super(source);
-            this.camera = camera;
+        default void joystick(float dX, float dY) {
         }
 
-        public Camera getCamera() {
-            return camera;
+        default void joystickLook(float dX, float dY) {
         }
 
-        public void setCamera(Camera camera) {
-            this.camera = camera;
-        }
-    }
-
-    /**
-     * Triggers on any camera update
-     */
-    public static class CameraUpdatedEvent extends EventObject {
-
-        /**
-         * Constructs a prototypical Event.
-         *
-         * @param source the object on which the Event initially occurred
-         * @throws IllegalArgumentException if source is null
-         */
-        public CameraUpdatedEvent(Object source) {
-            super(source);
-        }
-
-        public Camera getCamera(){
-            return (Camera)getSource();
+        @Override
+        default boolean onEvent(EventObject event) {
+            return false;
         }
     }
 
@@ -242,6 +210,16 @@ public class Camera {
             controller.pan(dX, dY);
     }
 
+    public void joystick(float dX, float dY) {
+        if (controller != null)
+            controller.joystick(dX, dY);
+    }
+
+    public void joystickLook(float dX, float dY) {
+        if (controller != null)
+            controller.joystickLook(dX, dY);
+    }
+
     protected void refresh() {
         // update orientation
         Matrix.setLookAtM(this.orientationMatrix, 0,
@@ -293,7 +271,7 @@ public class Camera {
     public void setChanged(boolean changed) {
         this.changed = changed;
         refresh();
-        AndroidUtils.fireEvent(listeners, new CameraUpdatedEvent(this));
+        AndroidUtils.fireEvent(listeners, new CameraEvent(this, this, CameraEvent.Code.CAMERA_UPDATED));
     }
 
 

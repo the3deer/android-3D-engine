@@ -1,18 +1,21 @@
 package org.the3deer.android.engine.camera;
 
-import org.the3deer.bean.BeanInit;
+import org.the3deer.android.engine.Model;
+import org.the3deer.android.engine.event.TouchEvent;
 import org.the3deer.android.engine.model.Camera;
 import org.the3deer.android.engine.model.Constants;
 import org.the3deer.android.engine.model.Projection;
+import org.the3deer.android.engine.model.Screen;
 import org.the3deer.util.math.Math3DUtils;
 
 import java.util.Arrays;
+import java.util.EventObject;
 import java.util.logging.Logger;
 
 import javax.inject.Inject;
 import javax.inject.Named;
 
-public class OrthographicCameraHandler implements CameraController.CameraHandler {
+public class OrthographicCameraHandler implements Camera.Controller {
 
     private static final Logger logger = Logger.getLogger(OrthographicCameraHandler.class.getSimpleName());
 
@@ -23,11 +26,14 @@ public class OrthographicCameraHandler implements CameraController.CameraHandler
     public static final float UNIT = Constants.UNIT * 2f; // Constants.UNIT_SIN_3;
 
     @Inject
-    private Camera camera;
+    private Model model;
 
     @Inject
     @Named("orthographicProjection")
     private Projection projection;
+
+    @Inject
+    private Screen screen;
 
     private boolean initialized = false;
 
@@ -36,37 +42,46 @@ public class OrthographicCameraHandler implements CameraController.CameraHandler
     private float[] saveView;
     private float[] saveUp;
 
-    @BeanInit
-    public void setUp() {
+    @Override
+    public boolean onEvent(EventObject event) {
+        if (!(event instanceof TouchEvent)) {
+            return false;
+        }
 
-        // final init
-        this.savePos = camera.getPos().clone();
-        this.saveView = new float[]{0,0,0,1};
-        this.saveUp = camera.getUp().clone();
-    }
+        final TouchEvent touchEvent = (TouchEvent) event;
+        final Camera camera = model.getActiveScene().getActiveCamera();
+        if (camera == null) {
+            return false;
+        }
 
-    private boolean init() {
         if (!initialized) {
-            this.savePos[0] = Constants.UNIT_0;
-            this.savePos[1] = Constants.UNIT_0;
-            this.savePos[2] = UNIT;
-            this.saveUp[0] = Constants.UNIT_0;
-            this.saveUp[1] = Constants.UNIT_1;
-            this.saveUp[2] = Constants.UNIT_0;
+            savePos = new float[3];
+            saveView = new float[3];
+            saveUp = new float[3];
+            System.arraycopy(camera.getPos(), 0, savePos, 0, 3);
+            System.arraycopy(camera.getView(), 0, saveView, 0, 3);
+            System.arraycopy(camera.getUp(), 0, saveUp, 0, 3);
             initialized = true;
-            return true;
+        }
+
+        switch (touchEvent.getAction()) {
+            case MOVE:
+                final float max = Math.max(screen.getWidth(), screen.getHeight());
+                final float dx = (float) (-touchEvent.getdX() / max * Math.PI * 2);
+                final float dy = (float) (touchEvent.getdY() / max * Math.PI * 2);
+                move(dx, dy);
+                return true;
+            case ROTATE:
+                rotate(touchEvent.getAngle());
+                return true;
+            case PINCH:
+                zoom(touchEvent.getZoom() * camera.getDistance() * 0.01f);
+                return true;
+            case SPREAD:
+                pan(-touchEvent.getdX(), touchEvent.getdY());
+                return true;
         }
         return false;
-    }
-
-    @Override
-    public void enable() {
-        logger.info("Enabling...");
-        init();
-        camera.setController(this);
-        camera.setProjection(projection);
-        camera.setChanged(true);
-        saveAndAnimate(true, this.savePos[0], this.savePos[1], this.savePos[2], this.saveUp[0], this.saveUp[1], this.saveUp[2]);
     }
 
     @Override
@@ -136,6 +151,7 @@ public class OrthographicCameraHandler implements CameraController.CameraHandler
 
     private void saveAndAnimate(boolean force, float xp, float yp, float zp, float xu, float yu, float zu) {
 
+        final Camera camera = model.getActiveScene().getActiveCamera();
         logger.finest("saveAndAnimate..."+ camera);
 
         synchronized (camera) {

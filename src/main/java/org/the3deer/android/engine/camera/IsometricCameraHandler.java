@@ -1,14 +1,17 @@
 package org.the3deer.android.engine.camera;
 
-import org.the3deer.bean.BeanInit;
+import org.the3deer.android.engine.Model;
 import org.the3deer.android.engine.animation.AnimationController;
+import org.the3deer.android.engine.event.TouchEvent;
 import org.the3deer.android.engine.model.Camera;
 import org.the3deer.android.engine.model.Constants;
 import org.the3deer.android.engine.model.Projection;
+import org.the3deer.android.engine.model.Screen;
 import org.the3deer.android.util.Matrix;
 import org.the3deer.util.math.Math3DUtils;
 
 import java.util.Arrays;
+import java.util.EventObject;
 import java.util.logging.Logger;
 
 import javax.inject.Inject;
@@ -27,7 +30,7 @@ import javax.inject.Named;
  * For every rotation, the camera will land on the next isometric key point
  *
  */
-public class IsometricCameraHandler implements CameraController.CameraHandler {
+public class IsometricCameraHandler implements Camera.Controller {
 
     private static final Logger logger = Logger.getLogger(IsometricCameraHandler.class.getSimpleName());
 
@@ -38,7 +41,7 @@ public class IsometricCameraHandler implements CameraController.CameraHandler {
     public static final float UNIT = Constants.UNIT; // Constants.UNIT_SIN_3;
 
     @Inject
-    private Camera camera;
+    private Model model;
 
     @Inject
     @Named("orthographicProjection")
@@ -46,6 +49,9 @@ public class IsometricCameraHandler implements CameraController.CameraHandler {
 
     @Inject
     private AnimationController animationController;
+
+    @Inject
+    private Screen screen;
 
     private boolean initialized = false;
 
@@ -57,29 +63,43 @@ public class IsometricCameraHandler implements CameraController.CameraHandler {
     // vars
     private CameraAnimation animation;
 
-    @BeanInit
-    public void setUp() {
-        this.savePos[0] = UNIT;
-        this.savePos[1] = UNIT;
-        this.savePos[2] = UNIT;
-        this.saveUp[0] = -Constants.UNIT_SIN_1;
-        this.saveUp[1] = Constants.UNIT_SIN_1;
-        this.saveUp[2] = -Constants.UNIT_SIN_1;
-        this.saveView[0] = 0;
-        this.saveView[1] = 0;
-        this.saveView[2] = 0;
-
-/*        this.savePos = camera.getPos().clone();
-        this.saveUp = camera.getUp().clone();
-        this.saveView = camera.getView().clone();*/
-    }
-
     @Override
-    public void enable(){
-        camera.setController(this);
-        camera.setProjection(projection);
-        camera.setChanged(true);
-        saveAndAnimate(this.savePos[0], this.savePos[1], this.savePos[2], this.saveUp[0], this.saveUp[1], this.saveUp[2]);
+    public boolean onEvent(EventObject event) {
+        if (!(event instanceof TouchEvent)) {
+            return false;
+        }
+
+        final TouchEvent touchEvent = (TouchEvent) event;
+        final Camera camera = model.getActiveScene().getActiveCamera();
+        if (camera == null) {
+            return false;
+        }
+
+        if (!initialized) {
+            System.arraycopy(camera.getPos(), 0, savePos, 0, 3);
+            System.arraycopy(camera.getView(), 0, saveView, 0, 3);
+            System.arraycopy(camera.getUp(), 0, saveUp, 0, 3);
+            initialized = true;
+        }
+
+        switch (touchEvent.getAction()) {
+            case MOVE:
+                final float max = Math.max(screen.getWidth(), screen.getHeight());
+                final float dx = (float) (-touchEvent.getdX() / max * Math.PI * 2);
+                final float dy = (float) (touchEvent.getdY() / max * Math.PI * 2);
+                move(dx, dy);
+                return true;
+            case ROTATE:
+                rotate(touchEvent.getAngle());
+                return true;
+            case PINCH:
+                zoom(touchEvent.getZoom() * camera.getDistance() * 0.01f);
+                return true;
+            case SPREAD:
+                pan(-touchEvent.getdX(), touchEvent.getdY());
+                return true;
+        }
+        return false;
     }
 
     @Override
@@ -165,6 +185,7 @@ public class IsometricCameraHandler implements CameraController.CameraHandler {
             return;
         }
 
+        final Camera camera = model.getActiveScene().getActiveCamera();
         final float[] posN = Math3DUtils.normalize2(camera.getPos());
         final float[] cross2 = Math3DUtils.crossProduct(posN, cross);
         final double dot = Math3DUtils.dotProduct(axis, cross2);
@@ -199,7 +220,7 @@ public class IsometricCameraHandler implements CameraController.CameraHandler {
     }
 
     private void saveAndAnimate(boolean force, float xp, float yp, float zp, float xu, float yu, float zu) {
-
+        final Camera camera = model.getActiveScene().getActiveCamera();
         synchronized (camera) {
             //if (camera.getAnimation() == null || camera.getAnimation().isFinished() || force) {
 

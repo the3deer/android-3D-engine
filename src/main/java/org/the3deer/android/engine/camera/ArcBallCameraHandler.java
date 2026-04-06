@@ -1,14 +1,16 @@
 package org.the3deer.android.engine.camera;
 
-import org.the3deer.bean.BeanInit;
 import org.the3deer.android.engine.Model;
+import org.the3deer.android.engine.event.TouchEvent;
 import org.the3deer.android.engine.model.Camera;
 import org.the3deer.android.engine.model.Object3D;
 import org.the3deer.android.engine.model.Projection;
+import org.the3deer.android.engine.model.Screen;
 import org.the3deer.util.math.Math3DUtils;
 
+import java.util.EventObject;
+
 import javax.inject.Inject;
-import javax.inject.Named;
 
 /**
  * Robust Arcball (Orbit) Camera implementation.
@@ -16,27 +18,52 @@ import javax.inject.Named;
  * If an object is selected in the scene, it orbits around that object's center.
  * Otherwise, it orbits around the world center (0,0,0) or its current view point.
  */
-public class ArcBallCameraHandler implements CameraController.CameraHandler {
+public class ArcBallCameraHandler implements Camera.Controller {
 
     @Inject
     private Model model;
 
     @Inject
-    @Named("perspectiveProjection")
     private Projection projection;
 
-    @BeanInit
-    public void setUp() {
-    }
+    @Inject
+    private Screen screen;
 
+    /**
+     * Transform touch events to camera actions.
+     * @param event The event to process
+     * @return true if handled
+     */
     @Override
-    public void enable() {
-        final Camera camera = model.getActiveScene().getActiveCamera();
-        if (camera == null) return;
+    public boolean onEvent(final EventObject event) {
+        if (!(event instanceof TouchEvent)) {
+            return false;
+        }
 
-        camera.setController(this);
-        camera.setProjection(projection);
-        camera.setChanged(true);
+        final TouchEvent touchEvent = (TouchEvent) event;
+        final Camera camera = model.getActiveScene().getActiveCamera();
+        if (camera == null) {
+            return false;
+        }
+
+        switch (touchEvent.getAction()) {
+            case MOVE:
+                final float max = Math.max(screen.getWidth(), screen.getHeight());
+                final float dx = (float) (-touchEvent.getdX() / max * Math.PI * 2);
+                final float dy = (float) (touchEvent.getdY() / max * Math.PI * 2);
+                move(dx, dy);
+                return true;
+            case ROTATE:
+                rotate(touchEvent.getAngle());
+                return true;
+            case PINCH:
+                zoom(touchEvent.getZoom() * camera.getDistance() * 0.01f);
+                return true;
+            case SPREAD:
+                pan(-touchEvent.getdX(), touchEvent.getdY());
+                return true;
+        }
+        return false;
     }
 
     /**

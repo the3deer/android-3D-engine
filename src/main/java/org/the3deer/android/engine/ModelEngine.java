@@ -4,9 +4,9 @@ import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
 
-import org.the3deer.bean.BeanManager;
 import org.the3deer.android.engine.camera.ArcBallCameraHandler;
-import org.the3deer.android.engine.camera.CameraController;
+import org.the3deer.android.engine.camera.CameraManager;
+import org.the3deer.android.engine.camera.FirstPersonCameraHandler;
 import org.the3deer.android.engine.collision.CollisionController;
 import org.the3deer.android.engine.collision.CollisionDrawer;
 import org.the3deer.android.engine.decorator.BoundingBoxDrawer;
@@ -38,6 +38,7 @@ import org.the3deer.android.engine.shader.v3.GpuManager;
 import org.the3deer.android.engine.shadow.ShadowDrawer;
 import org.the3deer.android.engine.touch.TouchController;
 import org.the3deer.android.util.AndroidURLStreamHandlerFactory;
+import org.the3deer.bean.BeanManager;
 import org.the3deer.util.event.EventManager;
 
 import java.net.URL;
@@ -201,7 +202,12 @@ public final class ModelEngine {
 
         // system
         beanManager.add("10.gpuManager", GpuManager.class);
-        beanManager.add("10.cameraHandler", ArcBallCameraHandler.class);
+
+        // camera
+        beanManager.add("camera.default", new Camera("default", Constants.DEFAULT_CAMERA_POSITION));
+        beanManager.add("camera.fps", new Camera("fps", Constants.DEFAULT_CAMERA_POSITION));
+        beanManager.add("camera.1arcBall", ArcBallCameraHandler.class);
+        beanManager.add("camera.2firstPerson", FirstPersonCameraHandler.class);
 
         beanManager.add("10.touchController", TouchController.class);
 
@@ -218,7 +224,7 @@ public final class ModelEngine {
 
         // controllers
         //beanFactory.add("20.controller.animationController", AnimationController.class);
-        beanManager.add("30.controller.cameraController", CameraController.class);
+        beanManager.add("30.controller.cameraController", CameraManager.class);
         beanManager.add("30.controller.collisionController", CollisionController.class);
 
         // drawers

@@ -33,7 +33,7 @@ public class CollisionDetection {
      * @param windowY               the window y coordinate
      * @return the nearest object intersected by the specified coordinates or null
      */
-    public static Object3D getBoxIntersection(List<Object3D> objects, int width, int height, float[] modelViewMatrix, float[] modelProjectionMatrix, float windowX, float windowY) {
+    public static Object3D getTriangleIntersection(List<Object3D> objects, int width, int height, float[] modelViewMatrix, float[] modelProjectionMatrix, float windowX, float windowY) {
 
         // project ray
         float[] nearHit = unProject(width, height, modelViewMatrix, modelProjectionMatrix, windowX, windowY, 0);
@@ -44,12 +44,44 @@ public class CollisionDetection {
         Math3DUtils.normalizeVectorHighPrecision(direction);
 
         // debug
-        logger.config("Testing for collision... (" + objects.size() + " object(s))" +
-                ", width="+width+", height="+height+", x=" + windowX + ", y=" + windowY +
+        logger.config("Testing for triangle collision... (" + objects.size() + " object(s))" +
+                ", width=" + width + ", height=" + height + ", x=" + windowX + ", y=" + windowY +
                 ", ray origin=" + Arrays.toString(nearHit) + ", ray end=" + Arrays.toString(farHit));
 
-        // try hit
-        return getBoxIntersection(objects, nearHit, farHit, direction);
+        // default hit (no intersection)
+        float min = Float.MAX_VALUE;
+
+        // hit candidate
+        Object3D ret = null;
+
+        // loop through objects
+        for (Object3D obj : objects) {
+
+            // check
+            if (obj.isDecorator()) {
+                continue;
+            }
+
+            // TODO: makes sense? check this rule later. maybe some UI thing. ugly. use isDecorator()
+            final String id = obj.getId().toLowerCase();
+            if ("point".equals(id) || "line".equals(id) || id.contains("skybox") || id.contains("skybox")) {
+                continue;
+            }
+
+            // get intersection
+            float[] intersection = getTriangleIntersection(obj, nearHit, farHit);
+            if (intersection != null) {
+                float dist = Math3DUtils.dist(nearHit, intersection);
+                if (dist < min) {
+                    min = dist;
+                    ret = obj;
+                }
+            }
+        }
+        if (ret != null) {
+            logger.info("Triangle collision detected '" + ret.getId() + "' distance: " + min);
+        }
+        return ret;
     }
 
     /**
@@ -85,17 +117,13 @@ public class CollisionDetection {
             // get model matrix - this contains the object's local transform
             final float[] modelMatrix = obj.getModelMatrix();
 
-            // check (global) transform
-            final float determinant = Math3DUtils.determinant(modelMatrix);
-            if (determinant == 0){
-                logger.warning("Matrix cannot be inverted for object '"+obj.getId()+"': " +
+            // convert world space to local space
+            float[] invertedModelMatrix = new float[16];
+            if (!Matrix.invertM(invertedModelMatrix, 0, modelMatrix, 0)) {
+                logger.severe("Matrix cannot be inverted for object '" + obj.getId() + "': " +
                         Arrays.toString(modelMatrix));
                 continue;
             }
-
-            // convert world space to local space
-            float[] invertedModelMatrix = new float[16];
-            Matrix.invertM(invertedModelMatrix, 0, modelMatrix, 0);
 
             // convert rays into model's local space
             float[] nearAA = new float[4];
@@ -221,7 +249,11 @@ public class CollisionDetection {
 
         // invert current model transform
         float[] invertedModelMatrix = new float[16];
-        Matrix.invertM(invertedModelMatrix, 0, modelMatrix, 0);
+        if (!Matrix.invertM(invertedModelMatrix, 0, modelMatrix, 0)) {
+            logger.severe("Matrix cannot be inverted for object '" + hit.getId() + "': " +
+                    Arrays.toString(modelMatrix));
+            return null;
+        }
         logger.config("DEBUG: Inverted matrix: " + Arrays.toString(invertedModelMatrix));
         logger.config("DEBUG: nearHit: " + Arrays.toString(nearHit));
         logger.config("DEBUG: farHit: " + Arrays.toString(farHit));

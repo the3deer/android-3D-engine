@@ -3,6 +3,7 @@ package org.the3deer.android.engine;
 import org.the3deer.android.util.ContentUtils;
 import org.the3deer.android.engine.camera.CameraUtils;
 import org.the3deer.android.engine.model.Camera;
+import org.the3deer.android.engine.model.Dimensions;
 import org.the3deer.android.engine.model.Material;
 import org.the3deer.android.engine.model.ModelEvent;
 import org.the3deer.android.engine.model.Node;
@@ -42,6 +43,7 @@ import kotlin.text.Charsets;
  */
 public class Model implements LoadListener {
 
+
     private final static Logger logger = Logger.getLogger(Model.class.getSimpleName());
 
     /**
@@ -73,7 +75,7 @@ public class Model implements LoadListener {
     private EventManager _eventManager;
 
     @Inject
-    private Camera defaultCamera;
+    private List<Camera> cameras;
 
     @Inject
     private Screen screen;
@@ -178,7 +180,7 @@ public class Model implements LoadListener {
         }
 
         // log event
-        logger.info("addScene: " + scene.getName()+", objects: "+scene.getObjects().size());
+        logger.info("addScene: " + scene.getName() + ", objects: " + scene.getObjects().size());
 
         // init map
         if (scenesMap == null) scenesMap = new TreeMap<>();
@@ -199,8 +201,8 @@ public class Model implements LoadListener {
 
     public List<Camera> getCameras() {
         List<Camera> cameras = new ArrayList<>();
-        if (defaultCamera != null) {
-            cameras.add(defaultCamera);
+        if (this.cameras != null) {
+            cameras.addAll(this.cameras);
         }
         if (activeScene != null) {
             cameras.addAll(activeScene.getCameras());
@@ -222,7 +224,7 @@ public class Model implements LoadListener {
 
     public void load() {
 
-        logger.info("Loading model... uri: "+ getUri()+", type: "+ getType()+" ---------------------------------- ");
+        logger.info("Loading model... uri: " + getUri() + ", type: " + getType() + " ---------------------------------- ");
 
         // register current model to the thread
         CURRENT.set(this);
@@ -363,7 +365,12 @@ public class Model implements LoadListener {
     public void onLoadScene(Scene scene) {
         // configure default camera
         logger.fine("Initializing scene... name: " + scene.getName());
-        scene.setActiveCamera(defaultCamera);
+
+        // initialize cameras
+        if (this.cameras != null && !this.cameras.isEmpty()) {
+            scene.getCameras().addAll(this.cameras);
+            scene.setActiveCamera(cameras.get(0));
+        }
 
         // get objects
         final List<Object3D> objects = scene.getObjects();
@@ -425,6 +432,20 @@ public class Model implements LoadListener {
         // register scene
         this.addScene(scene);
 
+        // calculate scene dimensions
+        final Dimensions dimensions = new Dimensions();
+        for (Object3D object : scene.getObjects()) {
+            final Dimensions objDimensions = object.getCurrentDimensions();
+            if (objDimensions != null) {
+                float[] min = objDimensions.getMin();
+                float[] max = objDimensions.getMax();
+                dimensions.update(min[0], min[1], min[2]);
+                dimensions.update(max[0], max[1], max[2]);
+            }
+        }
+        scene.setDimensions(dimensions);
+        logger.info("Scene dimensions: " + dimensions);
+
         // notify user
         /*final String elapsed = (System.nanoTime() - startTime) / 1000000 + " secs";
         makeToastText("Load complete (" + elapsed + ")", Toast.LENGTH_SHORT);*/
@@ -435,7 +456,7 @@ public class Model implements LoadListener {
         // initialize model
         if (scenesMap == null || scenesMap.isEmpty()) {
             logger.warning("No scenes available");
-        } else if (this.getActiveScene() == null){
+        } else if (this.getActiveScene() == null) {
             logger.info("No active scene. Setting first scene as active.");
             this.setActiveScene(scenesMap.values().iterator().next());
             this.getActiveScene().update();
@@ -454,16 +475,17 @@ public class Model implements LoadListener {
     private void loadTextureDatas(Texture texture) {
 
         // check texture
-        if(texture == null) throw new IllegalArgumentException("Texture cannot be null");;
+        if (texture == null) throw new IllegalArgumentException("Texture cannot be null");
+        ;
 
         // check texture data
-        if(texture.getData() != null) return; // already loaded
+        if (texture.getData() != null) return; // already loaded
 
         // check file
         if (texture.getFile() == null) return;
 
         // get file
-        final String textureFile = texture.getFile().replace('\\','/').replace(' ', '+');
+        final String textureFile = texture.getFile().replace('\\', '/').replace(' ', '+');
 
         // Resolve texture URI relative to the model's location
         // Extracting the parent path manually from the model's URI

@@ -1,6 +1,7 @@
 package org.the3deer.android.engine.scene;
 
 import org.the3deer.android.engine.Model;
+import org.the3deer.android.engine.event.CameraEvent;
 import org.the3deer.android.engine.model.AnimatedModel;
 import org.the3deer.android.engine.model.Camera;
 import org.the3deer.android.engine.model.Constants;
@@ -55,15 +56,22 @@ public class SceneDrawer implements Drawer, EventListener {
         final Scene scene = sceneManager.getActiveScene();
         if (scene == null) return false;
 
-        if (event instanceof Camera.CameraUpdatedEvent) {
-            final Camera camera = (Camera) event.getSource();
-            final float[] pos = camera.getPos();
-            final List<Object3D> objects = scene.getObjects();
-            Collections.sort(objects, (o1, o2) -> {
-                final float[] d1 = Math3DUtils.substract(pos, o1.getLocation());
-                final float[] d2 = Math3DUtils.substract(pos, o2.getLocation());
-                return -(int) (Math3DUtils.length(d1) - Math3DUtils.length(d2));
-            });
+        // FIXME: this event should be handled on the Model
+        if (event instanceof CameraEvent) {
+
+            if (((CameraEvent) event).getCode() == CameraEvent.Code.CAMERA_UPDATED) {
+
+                // sort objects by distance to camera
+                final Camera camera = ((CameraEvent) event).getCamera();
+                final float[] pos = camera.getPos();
+                final List<Object3D> objects = scene.getObjects();
+                Collections.sort(objects, (o1, o2) -> {
+                    final float[] d1 = Math3DUtils.substract(pos, o1.getLocation());
+                    final float[] d2 = Math3DUtils.substract(pos, o2.getLocation());
+                    return -(int) (Math3DUtils.length(d1) - Math3DUtils.length(d2));
+                });
+                traced = false;
+            }
         }
         return false;
     }

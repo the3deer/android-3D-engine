@@ -1,5 +1,6 @@
 package org.the3deer.android.engine.gui;
 
+import org.the3deer.android.engine.event.CameraEvent;
 import org.the3deer.android.engine.model.Camera;
 
 import java.util.EventObject;
@@ -20,10 +21,10 @@ public class Axis extends Widget {
 
     @Override
     public boolean onEvent(EventObject event) {
-        if (event instanceof Camera.CameraUpdatedEvent){
+        if (event instanceof CameraEvent){
 
             // check
-            final Camera camera = ((Camera.CameraUpdatedEvent) event).getCamera();
+            final Camera camera = ((CameraEvent) event).getCamera();
             if (camera == null) return false;
 
             // update

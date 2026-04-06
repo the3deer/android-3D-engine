@@ -882,4 +882,20 @@ public class Math3DUtils {
         Matrix.multiplyMV(resultVec, resultVecOffset, lhsMat, lhsMatOffset, rhsVec, rhsVecOffset);
     }
 
+    public static void multiplyMM(float[] resultMat, int resultMatOffset,
+                                  float[] lhsMat, int lhsMatOffset, float[] rhsMat, int rhsMatOffset) {
+        Matrix.multiplyMM(resultMat, resultMatOffset, lhsMat, lhsMatOffset, rhsMat, rhsMatOffset);
+    }
+
+    /**
+     * @param p1
+     * @param p2
+     * @return the distance between 2 3d points
+     */
+    public static float dist(float[] p1, float[] p2) {
+        float[] substract = substract(p1, p2);
+        return substract[0]* substract[0]
+                + substract[1]* substract[1]
+                + substract[2]* substract[2];
+    }
 }
