@@ -270,8 +270,18 @@ public class Object3D {
         this(IOUtils.createFloatBuffer(vertexArray));
     }
 
+    /**
+     *
+     * use {@link #Object3D(float[])} instead
+     */
+    @Deprecated
     public Object3D(FloatBuffer vertexArrayBuffer) {
         this(vertexArrayBuffer, null);
+    }
+
+    public Object3D(String id, FloatBuffer vertexArrayBuffer) {
+        this(vertexArrayBuffer, null);
+        this.id = id;
     }
 
     public Object3D(FloatBuffer verticesBuffer, Buffer indicesBuffer) {
@@ -437,7 +447,6 @@ public class Object3D {
     public Dimensions getDimensions() {
         if (dimensions == null) {
             refreshDimensions();
-            logger.finest("New dimensions for '" + getId() + "': " + this.dimensions);
         }
         return dimensions;
     }
@@ -456,15 +465,9 @@ public class Object3D {
         vertexArrayBuffer.position(0);
 
         try {
-            // Case 1: The object is drawn using glDrawArrays (non-indexed)
-            if (!isIndexed()) {
-                for (int i = 0; i < vertexArrayBuffer.capacity() / 3; i++) {
-                    dimensions.update(vertexArrayBuffer.get(i * 3), vertexArrayBuffer.get(i * 3 + 1), vertexArrayBuffer.get(i * 3 + 2));
-                }
-            }
-            // Case 2: The object is drawn using glDrawElements (indexed)
-            else if (this.elements != null && !this.elements.isEmpty()) {
-                Set<Integer> processedIndices = new HashSet<>();
+
+            // Case 1: The object is drawn using glDrawElements (indexed)
+            if (this.elements != null && !this.elements.isEmpty()) {
                 for (Element element : getElements()) {
                     final Buffer indexBuffer = element.getIndexBuffer();
                     if (indexBuffer != null) {
@@ -473,22 +476,18 @@ public class Object3D {
                         for (int i = 0; i < indexBuffer.capacity(); i++) {
                             final int idx = IOUtils.getIntBufferValue(indexBuffer, i);
 
-                            if (processedIndices.contains(idx)) {
-                                continue; 
-                            }
-
                             if (idx < 0 || idx >= vertexArrayBuffer.capacity() / 3) {
                                 logger.warning("Wrong index '" + idx + "' while getting dimensions for '" + getId() + "'");
                                 continue;
                             }
 
                             dimensions.update(vertexArrayBuffer.get(idx * 3), vertexArrayBuffer.get(idx * 3 + 1), vertexArrayBuffer.get(idx * 3 + 2));
-                            processedIndices.add(idx);
                         }
                         indexBuffer.position(originalIdxPos);
                     }
                 }
-            } else if (indexBuffer != null) {
+            } // Case 1: The object is drawn using glDrawArrays (non-indexed)
+              else if (indexBuffer != null) {
                 int originalIdxPos = indexBuffer.position();
                 indexBuffer.position(0);
                 for (int i = 0; i < indexBuffer.capacity(); i++) {
@@ -1003,6 +1002,7 @@ public class Object3D {
 
     public Object3D setIndexBuffer(Buffer drawBuffer) {
         this.indexBuffer = drawBuffer;
+        refreshDimensions();
         return this;
     }
 

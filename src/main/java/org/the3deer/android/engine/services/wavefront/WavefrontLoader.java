@@ -31,13 +31,12 @@ package org.the3deer.android.engine.services.wavefront;
 
 import android.opengl.GLES20;
 
-import org.the3deer.android.engine.model.Object3D;
-
 import androidx.annotation.Nullable;
 
 import org.the3deer.android.engine.model.Element;
 import org.the3deer.android.engine.model.Material;
 import org.the3deer.android.engine.model.Materials;
+import org.the3deer.android.engine.model.Object3D;
 import org.the3deer.android.engine.model.Scene;
 import org.the3deer.android.engine.services.LoadListener;
 import org.the3deer.android.engine.services.collada.entities.MeshData;
@@ -122,7 +121,7 @@ public class WavefrontLoader {
             // scene
             final Scene scene = new Scene("default");
 
-            // proces all meshes
+            // process all meshes
             for (int i=0; i< meshes.size(); i++) {
 
                 // get each mesh
@@ -138,8 +137,7 @@ public class WavefrontLoader {
                 meshData.validate();
 
                 // create 3D object
-                Object3D data3D = new Object3D(meshData.getVertexBuffer());
-                data3D.setId(meshData.getId());
+                Object3D data3D = new Object3D(meshData.getId(), meshData.getVertexBuffer());
                 data3D.setUri(modelURI);
                 data3D.setMeshData(meshData);
                 data3D.setName(meshData.getName());
