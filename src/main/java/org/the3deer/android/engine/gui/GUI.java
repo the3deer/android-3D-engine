@@ -164,6 +164,10 @@ public class GUI extends Widget implements EventListener, BeanManaged {
 
     @Override
     public boolean onEvent(EventObject event) {
+
+        // check
+        if (!isEnabled()) return false;
+
         if (event instanceof ModelEvent) {
             final ModelEvent rev = (ModelEvent) event;
             if (rev.getCode() == ModelEvent.Code.SCREEN_CHANGED) {
