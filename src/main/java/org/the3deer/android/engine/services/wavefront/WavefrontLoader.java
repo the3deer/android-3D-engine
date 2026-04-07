@@ -53,6 +53,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.StringTokenizer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -427,44 +428,48 @@ public class WavefrontLoader {
      * List of texture coordinates, in (u, [,v ,w]) coordinates, these will vary between 0 and 1. v, w are optional and default to 0.
      * There may only be 1 tex coords  on the line, which is determined by looking at the first tex coord line.
      */
-    private void parseVector(List<float[]> vectorList, String line) {
+    private void parseVector(final List<float[]> vectorList, final String line) {
         try {
-            final String[] tokens = line.split(" +");
+            final StringTokenizer st = new StringTokenizer(line, " ");
             final float[] vector = new float[3];
-            vector[0] = Float.parseFloat(tokens[0]);
-            vector[1] = Float.parseFloat(tokens[1]);
-            vector[2] = Float.parseFloat(tokens[2]);
+            int i = 0;
+            while (st.hasMoreTokens() && i < 3) {
+                vector[i++] = Float.parseFloat(st.nextToken());
+            }
             vectorList.add(vector);
         } catch (Exception ex) {
-            logger.log(Level.SEVERE,  "Error parsing vector '"+line+"': "+ex.getMessage());
+            logger.log(Level.SEVERE, "Error parsing vector '" + line + "': " + ex.getMessage());
             vectorList.add(new float[3]);
         }
-
     }
 
     /**
      * List of texture coordinates, in (u, [,v ,w]) coordinates, these will vary between 0 and 1. v, w are optional and default to 0.
      * There may only be 1 tex coords  on the line, which is determined by looking at the first tex coord line.
      */
-    private void parseVariableVector(List<float[]> textureList, String line) {
+    private void parseVariableVector(final List<float[]> textureList, final String line) {
         try {
-            final String[] tokens = line.split(" +");
+            // StringTokenizer is significantly faster than line.split(" +")
+            // because it avoids regex compilation and array allocation.
+            final StringTokenizer st = new StringTokenizer(line, " ");
             final float[] vector = new float[2];
-            vector[0] = Float.parseFloat(tokens[0]);
-            if (tokens.length > 1) {
-                vector[1] = Float.parseFloat(tokens[1]);
-                // ignore 3d coordinate
-				/*if (tokens.length > 2) {
-					vector[2] = Float.parseFloat(tokens[2]);
-				}*/
+
+            if (st.hasMoreTokens()) {
+                vector[0] = Float.parseFloat(st.nextToken());
             }
+            if (st.hasMoreTokens()) {
+                vector[1] = Float.parseFloat(st.nextToken());
+            }
+
+            // ignore 3d coordinate (w) if present, as per requirements
+
             textureList.add(vector);
         } catch (Exception ex) {
-            logger.log(Level.SEVERE,  ex.getMessage());
+            logger.log(Level.SEVERE, "Error parsing texture vector '" + line + "': " + ex.getMessage());
             textureList.add(new float[2]);
         }
-
     }
+
 
     /**
      * get this face's indicies from line "f v/vt/vn ..." with vt or vn index values perhaps being absent.

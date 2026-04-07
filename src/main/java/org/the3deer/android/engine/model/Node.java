@@ -316,7 +316,8 @@ public class Node {
 		//Matrix.multiplyMM(this.animatedWorldTransform, 0, temp, 0, this.getInverseBindMatrix(), 0);
 
 		// 2. Recursively update all children using THIS node's final transform as the new parent.
-		for (Node child : getChildren()) {
+		for (int i=0; i<children.size(); i++) {
+			final Node child = children.get(i);
 			child.updateAnimatedWorldTransform(this.animatedWorldTransform);
 		}
 	}

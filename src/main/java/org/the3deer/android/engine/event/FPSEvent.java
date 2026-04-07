@@ -1,13 +1,14 @@
 package org.the3deer.android.engine.event;
 
-import java.util.EventObject;
+public class FPSEvent extends Event {
 
-public class FPSEvent extends EventObject {
+    private int fps;
 
-    private final int fps;
-
-    public FPSEvent(Object source, int fps) {
+    public FPSEvent(Object source) {
         super(source);
+    }
+
+    public void setFps(int fps) {
         this.fps = fps;
     }
 

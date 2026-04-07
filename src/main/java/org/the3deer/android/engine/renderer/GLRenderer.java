@@ -73,6 +73,8 @@ public class GLRenderer implements GLSurfaceView.Renderer {
     private long framesPerSecondTime = -1;
     private int framesPerSecondCounter = 0;
 
+    private final FPSEvent fpsEvent = new FPSEvent(this);
+
     private boolean traced;
 
     /**
@@ -301,7 +303,8 @@ public class GLRenderer implements GLSurfaceView.Renderer {
                     int framesPerSecond = framesPerSecondCounter;
                     framesPerSecondCounter = 1;
                     framesPerSecondTime = System.currentTimeMillis();
-                    eventManager.propagate(new FPSEvent(this, framesPerSecond));
+                    fpsEvent.setFps(framesPerSecond);
+                    eventManager.propagate(fpsEvent);
                     //logger.finest("FPS: " + framesPerSecond);
                 } else {
                     framesPerSecondCounter++;
