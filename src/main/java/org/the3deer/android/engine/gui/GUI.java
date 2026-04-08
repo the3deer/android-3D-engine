@@ -54,6 +54,8 @@ public class GUI extends Widget implements EventListener, BeanManaged {
     private Camera camera;
     @Inject
     private Screen screen;
+    @Inject
+    private FontFactory fontFactory;
 
     @BeanInit
     public void setUp() {
@@ -130,7 +132,7 @@ public class GUI extends Widget implements EventListener, BeanManaged {
         // frame-per-second
         if (showFPS) {
             if (fps == null) {
-                fps = new Label(FontFactory.getInstance(), 7, 1);
+                fps = new Label(fontFactory, 7, 1);
                 fps.setId("fps");
                 //fps.setPadding(1);
                 fps.setText("0 fps");
@@ -259,7 +261,7 @@ public class GUI extends Widget implements EventListener, BeanManaged {
         container.setPadding(new float[]{16,16,16});
         container.setRelativeLocation(Widget.POSITION_TOP_RIGHT);
         //container.setMovable(true);
-        container.addChild(new Label("Entities"));
+        container.addChild(new Label(fontFactory, "Entities"));
         //container.setId("container_test");
 
         // main menu
@@ -272,7 +274,7 @@ public class GUI extends Widget implements EventListener, BeanManaged {
             //optionPanel.setId("panel_test");
             container.addOption(new Menu.Option(entry.getKey(), optionPanel, entry.getValue()));
 
-            Label widget = new Label(entry.getKey());
+            Label widget = new Label(fontFactory, entry.getKey());
             optionPanel.addChild(widget);
             /*List<Field> fields = BeanFactory.getFields(entry.getValue(), BeanProperty.class);
             for (Field field : fields) {
@@ -308,7 +310,7 @@ public class GUI extends Widget implements EventListener, BeanManaged {
         try {
             if (option != null) {
                 final List<Field> fields = BeanManager.getFields(option.getObject(), BeanProperty.class);
-                if (fields.isEmpty()) return new Label("empty: "+option.getId());
+                if (fields.isEmpty()) return new Label(fontFactory, "empty: "+option.getId());
 
                 final GridPanel container = new GridPanel(fields.size(), 2);
                 container.setFloating(true);
@@ -318,8 +320,8 @@ public class GUI extends Widget implements EventListener, BeanManaged {
                 for (Field field : fields) {
 
                     field.setAccessible(true);
-                    final Label fieldLabel = new Label(field.getName());
-                    final Label fieldValue = new Label(String.valueOf(field.get(option.getObject()))){
+                    final Label fieldLabel = new Label(fontFactory, field.getName());
+                    final Label fieldValue = new Label(fontFactory, String.valueOf(field.get(option.getObject()))){
                         @Override
                         public boolean onEvent(EventObject event) {
                             if (event instanceof ChangeEvent && event.getSource() == GUI.this)
@@ -339,8 +341,8 @@ public class GUI extends Widget implements EventListener, BeanManaged {
                             final Menu menuValue = new Menu(Menu.Type.Button);
                             menuValue.setMargin(new float[]{24,24,24});
                             menuValue.setPadding(new float[]{16,16,16});
-                            menuValue.addOption(new Menu.Option("true", new Label("true"), Boolean.TRUE));
-                            menuValue.addOption(new Menu.Option("false", new Label("false"), Boolean.FALSE));
+                            menuValue.addOption(new Menu.Option("true", new Label(fontFactory, "true"), Boolean.TRUE));
+                            menuValue.addOption(new Menu.Option("false", new Label(fontFactory, "false"), Boolean.FALSE));
                             menuValue.setRelativeLocation(Widget.POSITION_CHILD_BOTTOM);
 
                             final Widget backgroundValue = new Background(menuValue);
@@ -379,9 +381,9 @@ public class GUI extends Widget implements EventListener, BeanManaged {
             }
 
         } catch (IllegalAccessException e) {
-            return new Label("Error ("+item.getOption().getId()+"): "+e.getMessage());
+            return new Label(fontFactory, "Error ("+item.getOption().getId()+"): "+e.getMessage());
         }
-        return new Label("Error ("+item.getOption().getId()+")");
+        return new Label(fontFactory, "Error ("+item.getOption().getId()+")");
     }
 
     /*@NonNull

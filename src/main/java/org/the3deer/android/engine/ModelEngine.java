@@ -202,22 +202,17 @@ public final class ModelEngine {
 
         // system
         beanManager.add("10.gpuManager", GpuManager.class);
+        beanManager.add("10.touchController", TouchController.class);
 
         // camera
+        beanManager.add("camera.projection", PerspectiveProjection.class);
         beanManager.add("camera.default", new Camera("default", Constants.DEFAULT_CAMERA_POSITION));
         beanManager.add("camera.fps", new Camera("fps", Constants.DEFAULT_CAMERA_POSITION));
         beanManager.add("camera.1arcBall", ArcBallCameraHandler.class);
         beanManager.add("camera.2firstPerson", FirstPersonCameraHandler.class);
 
-        beanManager.add("10.touchController", TouchController.class);
-
         // objects
-        //beanFactory.add("20.scene_0.scene", SceneImpl.class);
-        beanManager.add("20.scene.projection", PerspectiveProjection.class);
-        beanManager.add("20.scene.camera", new Camera("default", Constants.DEFAULT_CAMERA_POSITION));
-        //beanFactory.add("20.scene.light", new Light(Constants.DEFAULT_LIGHT_LOCATION));
         beanManager.add("20.scene.light", new Light(new float[]{50f, 100f, 50f}));
-
 
         // projections
         beanManager.add("20.scene.projections.orthographic", OrthographicProjection.class);
@@ -254,11 +249,9 @@ public final class ModelEngine {
         final GUIDrawer guiDrawer = new GUIDrawer();
         beanManager.add("gui.renderer", guiDrawer);
 
-        final FontFactory fontFactory = FontFactory.getInstance();
-        fontFactory.setScreen(beanManager.find(Screen.class));
-        beanManager.add("gui.font_factory", fontFactory);
-        beanManager.add("gui.default", GUI.class);
-        beanManager.add("gui.axis", Axis.class);
+        beanManager.add("gui.1font_factory", FontFactory.class);
+        beanManager.add("gui.2axis", Axis.class);
+        beanManager.add("gui.3default", GUI.class);
     }
 
     /**

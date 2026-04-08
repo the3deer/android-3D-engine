@@ -20,8 +20,6 @@ public class FontFactory {
 
     private static final Logger logger = Logger.getLogger(FontFactory.class.getSimpleName());
 
-    private static FontFactory singleton;
-
     @Inject
     private Screen screen;
 
@@ -113,13 +111,6 @@ public class FontFactory {
         logger.finest( "glyph gYS: " + gYS + ", g_y6:" + g_y6);
 
         init();
-    }
-
-    public static FontFactory getInstance() {
-        if (singleton == null) {
-            singleton = new FontFactory();
-        }
-        return singleton;
     }
 
     public float getCharWidth() {

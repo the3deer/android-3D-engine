@@ -20,9 +20,12 @@ public class Window extends Widget {
 
     private float contentHeight;
 
-    public Window(Widget parent) {
-        super(parent, FontFactory.getInstance().getCharWidth() * 10,
-                FontFactory.getInstance().getCharHeight());
+    private FontFactory fontFactory;
+
+    public Window(FontFactory fontFactory, Widget parent) {
+        super(parent, fontFactory.getCharWidth() * 10,
+                fontFactory.getCharHeight());
+        this.fontFactory = fontFactory;
         /*super(parent, content.getContentDimensions().getWidth(),
                 content.getContentDimensions().getHeight()+FontFactory.getInstance().getCharHeight());*/
         //this.init();
@@ -98,8 +101,8 @@ public class Window extends Widget {
         // ------------------- separator
 
         // transparent link
-        float charWidth = FontFactory.getInstance().getCharWidth();
-        float charHeight = FontFactory.getInstance().getCharHeight();
+        float charWidth = fontFactory.getCharWidth();
+        float charHeight = fontFactory.getCharHeight();
 
         this.contentHeight = height - charHeight;
         vertexBuffer.put(idx++, width).put(idx++, contentHeight).put(idx++, 0);
@@ -117,9 +120,9 @@ public class Window extends Widget {
 
         /// ------------------- close button
 
-        float[] data = FontFactory.getInstance().getChar('X'); //Glyph.getChar('X');
-        float offsetX = width - FontFactory.getInstance().getCharWidth();
-        float offsetY = height - FontFactory.getInstance().getCharHeight();
+        float[] data = fontFactory.getChar('X'); //Glyph.getChar('X');
+        float offsetX = width - fontFactory.getCharWidth();
+        float offsetY = height - fontFactory.getCharHeight();
 
         idx = Glyph.build(vertexBuffer, idx, colorBuffer, offsetX, offsetY, data, Constants.COLOR_WHITE);
         //for (int i = 0; i < 4; i++) colorBuffer.put(coffset++, 0f);
@@ -143,7 +146,7 @@ public class Window extends Widget {
 
         final Dimensions currentDimensions = content.getCurrentDimensions();
         this.width = currentDimensions.getWidth();
-        this.height = currentDimensions.getHeight() + FontFactory.getInstance().getCharHeight();
+        this.height = currentDimensions.getHeight() + fontFactory.getCharHeight();
 
         return build(vertexBuffer, idx, colorBuffer);
     }
@@ -159,15 +162,15 @@ public class Window extends Widget {
             float x = clickEvent.getX();
             x -= getLocationX();
             x /= getScaleX();
-            x /= FontFactory.getInstance().getCharWidth();
+            x /= fontFactory.getCharWidth();
             int idxX = (int) x;
-            int last = (int) (width / FontFactory.getInstance().getCharWidth()) - 1;
+            int last = (int) (width / fontFactory.getCharWidth()) - 1;
 
             float y = clickEvent.getY();
             y -= getLocationY();
             y /= getScaleY();
-            y /= FontFactory.getInstance().getCharHeight();
-            int idxY = (int) (height / FontFactory.getInstance().getCharHeight()) - 1 - (int) y;
+            y /= fontFactory.getCharHeight();
+            int idxY = (int) (height / fontFactory.getCharHeight()) - 1 - (int) y;
 
             logger.finest( "x:" + idxX + ", y:" + idxY + ", last:" + last);
             if (idxY == 0 && idxX == last) {
@@ -213,8 +216,8 @@ public class Window extends Widget {
             float y = moveEvent.getY();
             y -= getLocationY();
             y /= getScaleY();
-            y /= FontFactory.getInstance().getCharHeight();
-            int idxY = (int) (height / FontFactory.getInstance().getCharHeight()) - 1 - (int) y;
+            y /= fontFactory.getCharHeight();
+            int idxY = (int) (height / fontFactory.getCharHeight()) - 1 - (int) y;
             // logger.finest("can handle: y:" + idxY);
             if (idxY == 0) {
                 return true;

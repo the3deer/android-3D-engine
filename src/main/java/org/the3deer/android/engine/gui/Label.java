@@ -20,10 +20,6 @@ public class Label extends Widget {
     private final int columns;
     private String currentText = null;
 
-
-    public Label(String text) {
-        this(FontFactory.getInstance(), text);
-    }
     public Label(FontFactory fontFactory, String text) {
         super();
         this.fontFactory = fontFactory;
