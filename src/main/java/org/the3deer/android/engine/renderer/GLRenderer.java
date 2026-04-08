@@ -320,4 +320,34 @@ public class GLRenderer implements GLSurfaceView.Renderer {
             traced = true;
         }
     }
+
+    /**
+     * Release references to prevent memory leaks when the model is unloaded.
+     */
+    public void reset() {
+        logger.info("Resetting GLRenderer references...");
+
+        // 1. Clear the active renderer to release its internal model references
+        if (this.renderer != null) {
+            this.renderer.setEnabled(false);
+            this.renderer = null;
+        }
+
+        // 2. Clear the collections.
+        // These maps/lists often contain beans that hold onto the 3D Model.
+        if (this.renderers != null) {
+            this.renderers.clear();
+        }
+        if (this.listeners != null) {
+            this.listeners.clear();
+        }
+
+        // 3. Clear the screen or event manager if they hold stateful data
+        this.activeRenderer = null;
+
+        // Note: Do NOT nullify 'viewModel' if the renderer instance is reused,
+        // but do ensure the 'activeEngine' inside it is also reset.
+    }
+
+
 }

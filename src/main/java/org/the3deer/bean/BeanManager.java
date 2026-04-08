@@ -917,6 +917,14 @@ public class BeanManager {
         }
     }
 
+    public void close() {
+        this.beans.clear();
+        this.definitions.clear();
+        this.status.clear();
+        this.isInitialized = false;
+        this.isStarted = false;
+    }
+
     @Retention(RetentionPolicy.RUNTIME)
     public @interface OnBeanUpdate {
     }

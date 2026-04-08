@@ -354,6 +354,8 @@ public class Model implements LoadListener {
         logger.log(Level.SEVERE, ex.getMessage(), ex);
         // update model
         setStatus(Model.Status.ERROR, ex.getMessage());
+
+        CURRENT.remove();
     }
 
     @Override
@@ -368,7 +370,6 @@ public class Model implements LoadListener {
 
         // initialize cameras
         if (this.cameras != null && !this.cameras.isEmpty()) {
-            scene.getCameras().addAll(this.cameras);
             scene.setActiveCamera(cameras.get(0));
         }
 
@@ -470,6 +471,10 @@ public class Model implements LoadListener {
 
         // unregister current model from the thread
         CURRENT.remove();
+
+        ContentUtils.clearDocumentsProvided();
+
+        CURRENT.remove();
     }
 
     private void loadTextureDatas(Texture texture) {
@@ -520,6 +525,10 @@ public class Model implements LoadListener {
 
     private void makeToastText(final String text, final int toastDuration) {
         // FIXME: how to show toast from here?
+    }
+
+    public void dispose(){
+        this.messages.clear();
     }
 
     public static class Metadata {

@@ -145,17 +145,9 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
             return;
         }
 
-        // Check memory before attempting to load
-        if (isMemoryExhausted()) {
-
-            // make space
-            freeMemory(uriString);
-
-            if (isMemoryExhausted()) {
-                logger.log(Level.SEVERE, "Critical memory state. Aborting load for: " + uriString);
-                updateEngineStatus(uriString, ModelEngine.Status.ERROR, "Error: Critical memory limit reached");
-                return;
-            }
+        if (isMemoryExhausted()){
+            logger.warning("Engine load aborted. Low memory (MB): "+getAvailableMemory());
+            return;
         }
 
         executor.execute(() -> {
@@ -172,6 +164,11 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
                 // Load 3D model data (Heavyweight) - now handled by the engine itself
                 modelEngine.load();
 
+                if (isMemoryExhausted()){
+                    logger.warning("Engine load aborted. Low memory (MB): "+getAvailableMemory());
+                    return;
+                }
+
                 // update engine status
                 updateEngineStatus(uriString, ModelEngine.Status.OK, "Info: Engine loaded successfully");
 
@@ -183,19 +180,47 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
                     handler.post(callback);
                 }
 
-                // update status
-                updateMemoryInfo();
+                // collect garbage
+                gc();
 
             } catch (OutOfMemoryError e) {
                 // We don't call the callback here to avoid further operations on a failed engine
                 logger.log(Level.SEVERE, "OutOfMemoryError while activating engine for " + uriString, e);
                 updateEngineStatus(uriString, ModelEngine.Status.ERROR, "Error: Out of memory");
-                clearCache();
+                clearCache(false);
             } catch (Exception e) {
                 logger.log(Level.SEVERE, "Failed to activate engine for " + uriString, e);
-                updateEngineStatus(uriString, ModelEngine.Status.ERROR, "Error: " + e.getMessage());
+                try {
+                    updateEngineStatus(uriString, ModelEngine.Status.ERROR, "Error: " + e.getMessage());
+                } catch (Exception ex) {
+                    logger.severe("Failed to update engine status for " + uriString);
+                }
             }
         });
+    }
+
+    private boolean isMemoryExhausted() {
+
+        // Check memory before attempting to load
+        long availableMemory = getAvailableMemory();
+
+        // Safety threshold: 32MB
+        if (availableMemory <= 32) {
+
+            // make space
+            freeMemory(false);
+
+            if (getAvailableMemory() <= 32) {
+                logger.log(Level.SEVERE, "Critical memory state. Free Memory (MB): "+getAvailableMemory());
+
+                freeMemory(true);
+
+                logger.info("Critical memory state. Free Memory (MB): "+getAvailableMemory());
+
+                return getAvailableMemory() <= 32;
+            }
+        }
+        return false;
     }
 
     public void startEngine(@NotNull String uriString, Runnable callback) {
@@ -271,9 +296,9 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
         }
     }
 
-    private void freeMemory(String uriString) {
-        logger.warning("Low memory detected. Unloading other models to proceed with: " + uriString);
-        updateEngineStatus(uriString, ModelEngine.Status.ERROR, "Low memory. Unloading other models...");
+    private void freeMemory(boolean freeActive) {
+        logger.warning("Low memory detected");
+
 
         // FIXME: make this an EngineEvent
         handler.post(() ->
@@ -281,17 +306,15 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
         );
 
         // Clear cache and try again
-        clearCache();
+        clearCache(freeActive);
     }
 
-    private boolean isMemoryExhausted() {
+    private static long getAvailableMemory() {
         Runtime runtime = Runtime.getRuntime();
         long usedMemory = runtime.totalMemory() - runtime.freeMemory();
         long maxMemory = runtime.maxMemory();
         long availableMemory = maxMemory - usedMemory;
-
-        // Safety threshold: 32MB
-        return availableMemory <= 32 * 1024 * 1024;
+        return availableMemory / (1024 * 1024);
     }
 
     private void updateMemoryInfo() {
@@ -473,18 +496,20 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
         return activeEngine.getValue();
     }
 
-    public void clearCache() {
-        logger.info("Clearing inactive engines and models from cache...");
-        ModelEngine active = _activeEngine.getValue();
-        String activeUri = active != null ? active.id : null;
+    public void clearCache(boolean deleteActive) {
 
-        Map<String, ModelEngine> engines = _engines.getValue();
+        final ModelEngine active = _activeEngine.getValue();
+        final String activeUri = active != null ? active.id : null;
+
+        final Map<String, ModelEngine> engines = _engines.getValue();
         if (engines != null) {
+
+            logger.info("Clearing inactive engines and models from cache...");
             Iterator<Map.Entry<String, ModelEngine>> it = engines.entrySet().iterator();
             while (it.hasNext()) {
                 Map.Entry<String, ModelEngine> entry = it.next();
-                if (!entry.getKey().equals(activeUri)) {
-                    logger.config("Closing engine: " + entry.getKey());
+                if (!entry.getKey().equals(activeUri) || deleteActive) {
+                    logger.info("Closing engine: " + entry.getKey());
                     entry.getValue().close();
                     it.remove();
                 }
@@ -497,25 +522,40 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
             Iterator<Map.Entry<String, Model>> it = models.entrySet().iterator();
             while (it.hasNext()) {
                 Map.Entry<String, Model> entry = it.next();
-                if (!entry.getKey().equals(activeUri)) {
-                    logger.config("Removing model: " + entry.getKey());
+                if (!entry.getKey().equals(activeUri) || deleteActive) {
+                    logger.info("Removing model: " + entry.getKey());
                     // Note: Object3D.dispose() is called in ModelEngine.close()
+                    entry.getValue().dispose();
                     it.remove();
                 }
             }
             _models.postValue(models);
         }
+
+
+        if (deleteActive) {
+            _activeEngine.postValue(null);
+        }
+
+        gc();
+    }
+
+    private void gc() {
+        // [SAFE APPLY] Trigger GC and delay the UI update to reflect actual memory state
         System.gc();
-        updateMemoryInfo();
+        System.runFinalization();
+
+        // Wait 500ms before updating the UI so the GC has a chance to run
+        handler.postDelayed(this::updateMemoryInfo, 500);
     }
 
     @Override
     public void onTrimMemory(int level) {
-        logger.info("onTrimMemory level: " + level);
         if (level >= ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW ||
                 level == ComponentCallbacks2.TRIM_MEMORY_MODERATE ||
                 level == ComponentCallbacks2.TRIM_MEMORY_COMPLETE) {
-            clearCache();
+            logger.info("onTrimMemory level: " + level);
+            clearCache(false);
         }
     }
 
@@ -526,7 +566,7 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
     @Override
     public void onLowMemory() {
         logger.warning("onLowMemory received!");
-        clearCache();
+        clearCache(false);
     }
 
     @Override

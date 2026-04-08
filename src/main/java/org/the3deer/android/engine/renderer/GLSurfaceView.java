@@ -45,8 +45,16 @@ public class GLSurfaceView extends android.opengl.GLSurfaceView {
         super.setRenderer(renderer);
     }
 
-    public Renderer getRenderer() {
+
+    public Object getRenderer() {
         return renderer;
+    }
+
+    public void reset() {
+        if (renderer instanceof GLRenderer){
+            ((GLRenderer)renderer).reset();
+        }
+        touchHandler = null;
     }
 
     @Override
@@ -67,4 +75,5 @@ public class GLSurfaceView extends android.opengl.GLSurfaceView {
         }
         return super.onTouchEvent(event);
     }
+
 }

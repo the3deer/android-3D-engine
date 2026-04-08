@@ -38,6 +38,7 @@ import org.the3deer.android.engine.shader.v3.GpuManager;
 import org.the3deer.android.engine.shadow.ShadowDrawer;
 import org.the3deer.android.engine.touch.TouchController;
 import org.the3deer.android.util.AndroidURLStreamHandlerFactory;
+import org.the3deer.android.util.ContentUtils;
 import org.the3deer.bean.BeanManager;
 import org.the3deer.util.event.EventManager;
 
@@ -195,7 +196,6 @@ public final class ModelEngine {
         // core
         beanManager.add(Constants.BEAN_ID_SCREEN, this.screen);
         beanManager.add("engine", ModelEngine.this);
-        //beanManager.add("settings", Settings.class);
         beanManager.add("shader.factory", ShaderFactory.class);
         beanManager.add("shader.manager", ShaderManager.class);
         beanManager.add(Constants.BEAN_ID_CONTROLLER, eventManager);
@@ -364,7 +364,9 @@ public final class ModelEngine {
                     object.dispose();
                 }
             }
+            beanManager.close();
         }
+        ContentUtils.clearDocumentsProvided();
     }
 
     @Override
