@@ -357,7 +357,7 @@ public class WavefrontLoader {
                         try {
                             mtllib = modelURI.resolve(line.substring(7)).toString();
                         } catch (Exception e) {
-                            logger.log(Level.SEVERE,  "Error reading line: " + lineNum + " : " + line, e);
+                            logger.log(Level.SEVERE,  "Error reading line: " + lineNum + " : " + line+", message: "+e.getMessage());
                         }
                     } else if (line.startsWith("usemtl ")) {// use material
                         if (elementCurrent.getMaterialId() != null) {
