@@ -23,7 +23,6 @@ import org.the3deer.util.event.EventListener;
 import java.net.URI;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
-import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -55,34 +54,18 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
 
 
     /**
-     * Memory info
-     */
-    private final MutableLiveData<String> _memoryInfo = new MutableLiveData<>("Memory info...");
-    public final LiveData<String> memoryInfo = _memoryInfo;
-
-    /**
      * Background executor for heavy loading operations.
      */
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     /**
-     * Periodic memory updater
+     * Main thread handler for UI updates and callbacks.
      */
     private final Handler handler = new Handler(Looper.getMainLooper());
-    private final Runnable memoryUpdater = new Runnable() {
-        @Override
-        public void run() {
-            updateMemoryInfo();
-            handler.postDelayed(this, 1000); // Update every second
-        }
-    };
 
     public ModelEngineViewModel(Application application) {
         super(application);
         application.registerComponentCallbacks(this);
         //initTestModels();
-
-        // Start periodic update
-        handler.post(memoryUpdater);
     }
 
     public ModelEngine getEngine(@NotNull String uri) {
@@ -91,7 +74,7 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
     }
 
     /**
-     * Initialize the engine for the given URI. If <code>callback</code> is <code>null</code>, the engine will be initialized synchronously. Otherwise, it will be initialized asynchronously</code>
+     * Initialize the engine for the given URI. If <code>callback</code> is <code>null</code>, the engine will be initialized synchronously. Otherwise, it will be initialized asynchronously
      *
      * @param uriString the model id
      * @param name the model name
@@ -317,17 +300,14 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
         return availableMemory / (1024 * 1024);
     }
 
-    private void updateMemoryInfo() {
+    public void updateMemoryStatus() {
         Runtime runtime = Runtime.getRuntime();
         long usedMemory = (runtime.totalMemory() - runtime.freeMemory());
         long maxMemory = runtime.maxMemory();
         long availableMemory = maxMemory - usedMemory;
 
-        long modelMemory = 0;
         ModelEngine active = _activeEngine.getValue();
         if (active != null && active.getModel() != null) {
-            modelMemory = active.getModel().getMemoryUsage();
-
             // Update status based on available memory
             if (availableMemory < 32 * 1024 * 1024) {
                 active.setStatus(ModelEngine.Status.ERROR);
@@ -337,10 +317,6 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
                 active.setStatus(ModelEngine.Status.OK);
             }
         }
-
-        String info = String.format(Locale.getDefault(), "Memory: %d/%d MB\nModel: %d MB",
-                usedMemory / 1024 / 1024, maxMemory / 1024 / 1024, modelMemory / 1024 / 1024);
-        _memoryInfo.postValue(info);
     }
 
     private ModelEngine getOrCreateEngine(String uriString, Model model) {
@@ -370,7 +346,7 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
                         case OK:
                         case ERROR:
                             notifyStatusChange(finalUriString);
-                            updateMemoryInfo();
+                            updateMemoryStatus();
                     }
                 }
             }
@@ -546,7 +522,7 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
         System.runFinalization();
 
         // Wait 500ms before updating the UI so the GC has a chance to run
-        handler.postDelayed(this::updateMemoryInfo, 500);
+        handler.postDelayed(this::updateMemoryStatus, 500);
     }
 
     @Override
@@ -572,7 +548,6 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
     @Override
     protected void onCleared() {
         super.onCleared();
-        handler.removeCallbacks(memoryUpdater);
         getApplication().unregisterComponentCallbacks(this);
         // Shut down all engines to release resources
         Map<String, ModelEngine> engines = _engines.getValue();
