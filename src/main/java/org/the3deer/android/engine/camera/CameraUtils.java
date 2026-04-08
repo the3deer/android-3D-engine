@@ -106,6 +106,10 @@ public class CameraUtils {
                 suggestedNear = suggestedFar / 1000f;
             }
 
+            if (suggestedFar <= 0){
+                suggestedFar = 1000f;
+            }
+
             projection.setNear(suggestedNear);
             projection.setFar(suggestedFar);
             
