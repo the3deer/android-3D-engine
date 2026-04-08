@@ -4,9 +4,9 @@ import android.opengl.GLES20;
 
 import org.the3deer.android.engine.model.Object3D;
 
-import org.the3deer.bean.Bean;
-import org.the3deer.bean.BeanOrder;
-import org.the3deer.bean.BeanProperty;
+import org.the3deer.util.bean.Bean;
+import org.the3deer.util.bean.BeanOrder;
+import org.the3deer.util.bean.BeanProperty;
 import org.the3deer.android.engine.Model;
 import org.the3deer.android.engine.animation.Animator;
 import org.the3deer.android.engine.model.AnimatedModel;

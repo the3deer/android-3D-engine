@@ -39,7 +39,7 @@ import org.the3deer.android.engine.shadow.ShadowDrawer;
 import org.the3deer.android.engine.touch.TouchController;
 import org.the3deer.android.util.AndroidURLStreamHandlerFactory;
 import org.the3deer.android.util.ContentUtils;
-import org.the3deer.bean.BeanManager;
+import org.the3deer.util.bean.BeanManager;
 import org.the3deer.util.event.EventManager;
 
 import java.net.URL;

@@ -1,4 +1,4 @@
-package org.the3deer.bean;
+package org.the3deer.util.bean;
 
 /**
  * Copyright 2026 The Android Open Source Project

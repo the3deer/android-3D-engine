@@ -1,4 +1,4 @@
-package org.the3deer.bean;
+package org.the3deer.util.bean;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

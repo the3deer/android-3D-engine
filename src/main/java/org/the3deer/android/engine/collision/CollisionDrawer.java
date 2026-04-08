@@ -1,7 +1,7 @@
 package org.the3deer.android.engine.collision;
 
-import org.the3deer.bean.Bean;
-import org.the3deer.bean.BeanProperty;
+import org.the3deer.util.bean.Bean;
+import org.the3deer.util.bean.BeanProperty;
 import org.the3deer.android.engine.Model;
 import org.the3deer.android.engine.model.Light;
 import org.the3deer.android.engine.model.Object3D;

@@ -1,7 +1,7 @@
 package org.the3deer.android.engine.animation;
 
-import org.the3deer.bean.Bean;
-import org.the3deer.bean.BeanProperty;
+import org.the3deer.util.bean.Bean;
+import org.the3deer.util.bean.BeanProperty;
 import org.the3deer.android.engine.model.Animation;
 import org.the3deer.android.engine.renderer.RenderListener;
 

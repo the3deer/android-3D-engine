@@ -4,7 +4,7 @@ import android.opengl.GLES20;
 
 import org.the3deer.android.engine.model.Object3D;
 
-import org.the3deer.bean.BeanProperty;
+import org.the3deer.util.bean.BeanProperty;
 import org.the3deer.android.engine.util.GLUtil;
 import org.the3deer.android.engine.model.Camera;
 import org.the3deer.android.engine.model.Constants;

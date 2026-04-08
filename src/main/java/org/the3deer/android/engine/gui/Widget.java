@@ -4,8 +4,8 @@ import android.opengl.GLES20;
 
 import org.the3deer.android.engine.model.Object3D;
 
-import org.the3deer.bean.BeanInit;
-import org.the3deer.bean.BeanManager;
+import org.the3deer.util.bean.BeanInit;
+import org.the3deer.util.bean.BeanManager;
 import org.the3deer.android.engine.animation.JointTransform;
 import org.the3deer.android.engine.collision.Collision;
 import org.the3deer.android.engine.collision.CollisionDetection;

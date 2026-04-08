@@ -2,7 +2,7 @@ package org.the3deer.android.engine.renderer;
 
 import android.opengl.GLES20;
 
-import org.the3deer.bean.Bean;
+import org.the3deer.util.bean.Bean;
 import org.the3deer.android.engine.Model;
 import org.the3deer.android.engine.model.Camera;
 import org.the3deer.android.engine.model.Constants;

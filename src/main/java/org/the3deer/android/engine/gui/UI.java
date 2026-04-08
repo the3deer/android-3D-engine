@@ -1,7 +1,7 @@
 package org.the3deer.android.engine.gui;
 
-import org.the3deer.bean.BeanInit;
-import org.the3deer.bean.BeanManaged;
+import org.the3deer.util.bean.BeanInit;
+import org.the3deer.util.bean.BeanManaged;
 import org.the3deer.android.engine.model.Camera;
 import org.the3deer.util.event.EventListener;
 

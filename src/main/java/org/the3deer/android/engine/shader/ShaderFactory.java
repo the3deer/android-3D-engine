@@ -2,7 +2,7 @@ package org.the3deer.android.engine.shader;
 
 import android.content.Context;
 
-import org.the3deer.bean.BeanFactory;
+import org.the3deer.util.bean.BeanFactory;
 import org.the3deer.android.engine.R;
 import org.the3deer.util.io.IOUtils;
 

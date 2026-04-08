@@ -20,7 +20,7 @@ import org.the3deer.android.engine.renderer.TouchHandler;
 import org.the3deer.android.engine.shader.ShaderManager;
 import org.the3deer.android.engine.touch.TouchController;
 import org.the3deer.android.util.AndroidUtils;
-import org.the3deer.bean.BeanManager;
+import org.the3deer.util.bean.BeanManager;
 import org.the3deer.util.event.EventListener;
 import org.the3deer.util.event.EventManager;
 

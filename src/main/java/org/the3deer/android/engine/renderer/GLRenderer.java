@@ -3,9 +3,9 @@ package org.the3deer.android.engine.renderer;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
 
-import org.the3deer.bean.Bean;
-import org.the3deer.bean.BeanInit;
-import org.the3deer.bean.BeanProperty;
+import org.the3deer.util.bean.Bean;
+import org.the3deer.util.bean.BeanInit;
+import org.the3deer.util.bean.BeanProperty;
 import org.the3deer.android.engine.ModelEngine;
 import org.the3deer.android.engine.ModelEngineViewModel;
 import org.the3deer.android.engine.event.FPSEvent;

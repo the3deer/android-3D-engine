@@ -7,7 +7,7 @@ import androidx.annotation.NonNull;
 import org.the3deer.android.engine.event.CameraEvent;
 import org.the3deer.android.util.AndroidUtils;
 import org.the3deer.android.util.Matrix;
-import org.the3deer.bean.BeanInit;
+import org.the3deer.util.bean.BeanInit;
 import org.the3deer.util.event.EventListener;
 import org.the3deer.util.math.Math3DUtils;
 import org.the3deer.util.math.Quaternion;

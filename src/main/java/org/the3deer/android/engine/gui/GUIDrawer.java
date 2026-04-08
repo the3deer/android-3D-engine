@@ -4,10 +4,10 @@ import android.opengl.GLES20;
 
 import androidx.fragment.app.FragmentActivity;
 
-import org.the3deer.bean.Bean;
-import org.the3deer.bean.BeanInit;
-import org.the3deer.bean.BeanOrder;
-import org.the3deer.bean.BeanProperty;
+import org.the3deer.util.bean.Bean;
+import org.the3deer.util.bean.BeanInit;
+import org.the3deer.util.bean.BeanOrder;
+import org.the3deer.util.bean.BeanProperty;
 import org.the3deer.android.engine.collision.Collision;
 import org.the3deer.android.engine.collision.CollisionDetection;
 import org.the3deer.android.engine.event.TouchEvent;

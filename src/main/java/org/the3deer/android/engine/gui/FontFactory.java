@@ -1,6 +1,6 @@
 package org.the3deer.android.engine.gui;
 
-import org.the3deer.bean.BeanInit;
+import org.the3deer.util.bean.BeanInit;
 import org.the3deer.android.engine.model.Screen;
 
 import java.util.HashMap;

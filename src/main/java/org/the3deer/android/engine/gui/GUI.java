@@ -2,11 +2,11 @@ package org.the3deer.android.engine.gui;
 
 import androidx.annotation.NonNull;
 
-import org.the3deer.bean.Bean;
-import org.the3deer.bean.BeanInit;
-import org.the3deer.bean.BeanManaged;
-import org.the3deer.bean.BeanManager;
-import org.the3deer.bean.BeanProperty;
+import org.the3deer.util.bean.Bean;
+import org.the3deer.util.bean.BeanInit;
+import org.the3deer.util.bean.BeanManaged;
+import org.the3deer.util.bean.BeanManager;
+import org.the3deer.util.bean.BeanProperty;
 import org.the3deer.android.engine.event.FPSEvent;
 import org.the3deer.android.engine.event.GLEvent;
 import org.the3deer.android.engine.event.SceneEvent;

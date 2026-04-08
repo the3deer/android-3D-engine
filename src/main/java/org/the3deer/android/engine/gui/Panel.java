@@ -1,6 +1,6 @@
 package org.the3deer.android.engine.gui;
 
-import org.the3deer.bean.BeanProperty;
+import org.the3deer.util.bean.BeanProperty;
 import org.the3deer.android.engine.model.Dimensions;
 
 public class Panel extends Widget {
