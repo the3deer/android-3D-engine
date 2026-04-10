@@ -1,6 +1,6 @@
 #version 300 es
 
-// OpenGL ES 3.x High-Performance Fragment Shader
+// OpenGL ES 3.x High-Performance Animated Fragment Shader
 // @author andresoviedo
 // @author Gemini AI
 
@@ -92,13 +92,20 @@ void main() {
     if (u_Lighted) {
         // Normal mapping logic
         if (u_NormalTextured){
+            // Sample normal map [0, 1] and convert to [-1, 1]
             vec3 normalSample = texture(u_NormalTexture, v_TexCoordinate).rgb * 2.0 - 1.0;
+
+            // Re-orthogonalize tangent (Gram-Schmidt process)
             vec3 T = normalize(v_Tangent.xyz - dot(v_Tangent.xyz, N) * N);
+            // Construct bitangent respecting handedness (w)
             vec3 B = cross(N, T) * v_Tangent.w;
+
+            // Construct TBN matrix and transform sample to world space
             mat3 TBN = mat3(T, B, N);
             N = normalize(TBN * normalSample);
         }
 
+        // Blinn-Phong lighting
         vec3 lightVec = u_LightPos - v_Position;
         float dist = length(lightVec);
         lightVec = normalize(lightVec);
@@ -116,10 +123,13 @@ void main() {
         specular = pow(max(dot(N, halfDir), 0.0), 32.0) * attenuation;
     }
 
-    // Ambient light
-    float ambient = 0.40;
+    // Ambient light (Hemisphere Lighting)
+    float skyIntensity = 0.50;   // Light from above
+    float groundIntensity = 0.25; // Light from below
+    float ambient = mix(groundIntensity, skyIntensity, N.y * 0.5 + 0.5);
     float totalLight = min((diffuse + specular + ambient), 1.0);
 
+    // Combine lighting with color
     finalColor.rgb = finalColor.rgb * totalLight;
 
     // 4. Emissive Handling
@@ -128,8 +138,10 @@ void main() {
         finalColor.rgb += emissiveTex.rgb * u_EmissiveFactor;
     }
 
+    // Set output color
     fragColor = finalColor;
 
+    // Force opaque if mode is 0 (OPAQUE)
     if (u_AlphaMode == 0) {
         fragColor.a = 1.0;
     }
