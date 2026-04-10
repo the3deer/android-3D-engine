@@ -1,9 +1,10 @@
 package org.the3deer.android.engine.services.collada;
 
+import android.opengl.Matrix;
+
 import org.the3deer.android.engine.animation.Animation;
 import org.the3deer.android.engine.animation.JointTransform;
 import org.the3deer.android.engine.animation.KeyFrame;
-import org.the3deer.android.util.Matrix;
 import org.the3deer.android.engine.services.collada.entities.Controller;
 import org.the3deer.android.engine.services.collada.entities.EffectData;
 import org.the3deer.android.engine.services.collada.entities.Geometry;
@@ -534,7 +535,7 @@ public class ColladaParser {
                     }
                 } else if ("ph".equals(parser.getName())) {
                     // Polygon with Holes
-                     processPolygonWithHoles(parser, stride, vertexOffset, normalOffset, texOffset, colorOffset,
+                    processPolygonWithHoles(parser, stride, vertexOffset, normalOffset, texOffset, colorOffset,
                             positionSource, normalSource, texCoordSource, colorSource,
                             unrolledPositions, unrolledNormals, unrolledTexCoords, unrolledColors);
                 }
@@ -588,6 +589,8 @@ public class ColladaParser {
 
         // Set the mesh ID and material
         mesh.setId(primitiveName + "#" + parser.getLineNumber());
+
+        // Read the 'material' attribute from the <polylist> or <triangles> tag.
         String materialId = parser.getAttributeValue(null, "material");
         if (materialId != null) {
             mesh.setMaterialId(materialId);
@@ -774,34 +777,38 @@ public class ColladaParser {
 
         // Position (required)
         int pIdx = indices[baseIndex + vertexOffset];
-        outPos.add(posSrc.floatData[pIdx * 3]);
-        outPos.add(posSrc.floatData[pIdx * 3 + 1]);
-        outPos.add(posSrc.floatData[pIdx * 3 + 2]);
+        int pStride = posSrc.getStride();
+        outPos.add(posSrc.floatData[pIdx * pStride]);
+        outPos.add(posSrc.floatData[pIdx * pStride + 1]);
+        outPos.add(posSrc.floatData[pIdx * pStride + 2]);
         outIndices.add(pIdx);
 
         // Normal
         if (normalOffset >= 0 && normSrc != null) {
             int nIdx = indices[baseIndex + normalOffset];
-            outNorm.add(normSrc.floatData[nIdx * 3]);
-            outNorm.add(normSrc.floatData[nIdx * 3 + 1]);
-            outNorm.add(normSrc.floatData[nIdx * 3 + 2]);
+            int nStride = normSrc.getStride();
+            outNorm.add(normSrc.floatData[nIdx * nStride]);
+            outNorm.add(normSrc.floatData[nIdx * nStride + 1]);
+            outNorm.add(normSrc.floatData[nIdx * nStride + 2]);
         }
 
         // TexCoord
         if (texOffset >= 0 && texSrc != null) {
             int tIdx = indices[baseIndex + texOffset];
-            outTex.add(texSrc.floatData[tIdx * 2]);
-            outTex.add(texSrc.floatData[tIdx * 2 + 1]);
+            int tStride = texSrc.getStride();
+            outTex.add(texSrc.floatData[tIdx * tStride]);
+            outTex.add(texSrc.floatData[tIdx * tStride + 1]);
         }
 
         // Color
         if (colorOffset >= 0 && colSrc != null) {
             int cIdx = indices[baseIndex + colorOffset];
-            outCol.add(colSrc.floatData[cIdx * 3]);
-            outCol.add(colSrc.floatData[cIdx * 3 + 1]);
-            outCol.add(colSrc.floatData[cIdx * 3 + 2]);
-            if (colSrc.stride >= 4) {
-                outCol.add(colSrc.floatData[cIdx * colSrc.stride + 3]);
+            int cStride = colSrc.getStride();
+            outCol.add(colSrc.floatData[cIdx * cStride]);
+            outCol.add(colSrc.floatData[cIdx * cStride + 1]);
+            outCol.add(colSrc.floatData[cIdx * cStride + 2]);
+            if (cStride >= 4) {
+                outCol.add(colSrc.floatData[cIdx * cStride + 3]);
             } else {
                 outCol.add(1.0f);
             }
@@ -986,9 +993,9 @@ public class ColladaParser {
         Input weightInput = null;
         int[] vcount = null;
         int[] v = null;
-        int inputCount = 0;
+        int inputCount = 0; // Number of inputs (usually 2: JOINT and WEIGHT)
 
-        // 1. Parse the <vertex_weights> block
+        // 1. Find all the <input>, <vcount>, and <v> tags
         while (parser.next() != XmlPullParser.END_TAG || !parser.getName().equals("vertex_weights")) {
             if (parser.getEventType() != XmlPullParser.START_TAG) continue;
 
@@ -1019,46 +1026,54 @@ public class ColladaParser {
             return null;
         }
 
+        // --- THIS IS THE SECOND FIX ---
+        // The vertex count is simply the length of the vcount array.
         int vertexCount = vcount.length;
-        Source weightsSource = sources.get(weightInput.sourceId);
-        float[] rawWeights = weightsSource != null ? weightsSource.getFloatData() : new float[0];
+        // --- END OF FIX ---
 
-        // We use a fixed 4 influences per vertex for the output arrays
+
+        // 2. Get the raw source data for weights
+        Source weightsSource = sources.get(weightInput.sourceId);
+        if (weightsSource == null) {
+            logger.severe("Could not find weight source: " + weightInput.sourceId);
+            return null;
+        }
+        float[] rawWeights = weightsSource.getFloatData();
+
+        // 3. Process vcount and v to create normalized joint and weight arrays
+        // We will assume a max of 4 influences per vertex, which is standard.
         int[] finalJointIndices = new int[vertexCount * 4];
         float[] finalWeights = new float[vertexCount * 4];
+        int vIndex = 0;
 
-        for (int i=0; i<finalJointIndices.length; i+=4){
-            finalJointIndices[i] = 1;
-            finalWeights[i] = 1;
-        }
-
-        int vPointer = 0; // Current position in the 'v' array
         for (int i = 0; i < vertexCount; i++) {
             int numInfluences = vcount[i];
             float totalWeight = 0;
 
-            // Read influences for this vertex
-            for (int j = 0; j < numInfluences; j++) {
-                int jointIndex = v[vPointer + jointInput.offset];
-                int weightIndex = v[vPointer + weightInput.offset];
-                float weight = (weightIndex < rawWeights.length) ? rawWeights[weightIndex] : 0.0f;
+            // First pass: read up to 4 influences and accumulate total weight for normalization
+            for (int j = 0; j < numInfluences && j < 4; j++) {
+                int jointIndex = v[vIndex + jointInput.offset];
+                int weightIndex = v[vIndex + weightInput.offset];
+                float weight = rawWeights[weightIndex];
 
-                // We only store the first 4 influences
-                if (j < 4) {
-                    finalJointIndices[i * 4 + j] = jointIndex;
-                    finalWeights[i * 4 + j] = weight;
-                    totalWeight += weight;
-                }
+                finalJointIndices[i * 4 + j] = jointIndex;
+                finalWeights[i * 4 + j] = weight;
+                totalWeight += weight;
 
-                // Move pointer to the next influence entry in 'v'
-                vPointer += inputCount;
+                // Move to the next (joint, weight) pair
+                vIndex += inputCount;
             }
 
-            // Normalize weights if we have data
+            // Normalize the weights for this vertex if the total is greater than 0
             if (totalWeight > 0) {
                 for (int j = 0; j < Math.min(numInfluences, 4); j++) {
                     finalWeights[i * 4 + j] /= totalWeight;
                 }
+            }
+
+            // If a vertex had more than 4 influences, we must advance the vIndex past them to stay in sync
+            if (numInfluences > 4) {
+                vIndex += (numInfluences - 4) * inputCount;
             }
         }
 
@@ -1426,7 +1441,7 @@ public class ColladaParser {
         int set = (setStr != null) ? Integer.parseInt(setStr) : 0;
 
         logger.config("Parsed <input> with semantic: " + semantic + ", source: " + sourceId +
-                   ", offset: " + offset + ", set: " + set);
+                ", offset: " + offset + ", set: " + set);
         return new Input(semantic, sourceId, offset, set);
     }
 
@@ -1559,7 +1574,7 @@ public class ColladaParser {
                     if ("instance_controller".equals(tagName)) {
                         logger.config("Found <instance_controller> for node '" + currentNode.getId() + "' with url: " + url);
                         currentNode.setInstanceControllerId(cleanId(url));
-                    } else {
+                        } else {
                         logger.config("Found <instance_geometry> for node '" + currentNode.getId() + "' with url: " + url);
                         currentNode.setInstanceGeometryId(cleanId(url));
                     }
@@ -1592,7 +1607,7 @@ public class ColladaParser {
                 }
                 default:
                     // Skip other tags like <instance_light>
-                    skipTag(parser);
+                    skipToEnd(parser, tagName);
                     break;
             }
         }
