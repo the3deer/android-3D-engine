@@ -72,7 +72,7 @@ public class FirstPersonCameraHandler implements Camera.Controller {
         // Apply sensitivity scaling to rotation (Look Around).
         // We factor in the scene dimensions to ensure the rotation "grooves" with the world's scale.
         // For larger environments, we dampen the speed slightly to maintain precision and avoid dizziness.
-        float baseSensitivity = 0.025f;
+        float baseSensitivity = 0.1f;
         if (model.getActiveScene() != null && model.getActiveScene().getDimensions() != null) {
             final float sceneScale = model.getActiveScene().getDimensions().getLargest();
             if (sceneScale > 0) {
@@ -152,9 +152,6 @@ public class FirstPersonCameraHandler implements Camera.Controller {
 
         // Sensitivity scaling based on scene size
         float sensitivity = 0.1f;
-        if (model.getActiveScene() != null && model.getActiveScene().getDimensions() != null) {
-            sensitivity = model.getActiveScene().getDimensions().getLargest() / 1000f;
-        }
 
         final float moveX;
         final float moveY;
