@@ -738,7 +738,6 @@ public class GltfLoader {
 
                 finalScenes.add(scene);
 
-                scene.update();
             }
         } else {
             logger.warning("Gltf file has no scenes defined. Creating a default scene.");
