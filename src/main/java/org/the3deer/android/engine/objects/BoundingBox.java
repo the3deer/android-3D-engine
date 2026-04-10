@@ -108,9 +108,9 @@ public final class BoundingBox {
 
     public static Object3D buildStatic(Object3D obj) {
 
-        logger.finest("Building STATIC bounding box for: " + obj.getId());
+        logger.info("Building STATIC bounding box for: " + obj.getId());
 
-        Dimensions box = obj.getDimensions();
+        org.the3deer.android.engine.model.BoundingBox box = obj.getBoundingBox();
 
         final FloatBuffer vertices = IOUtils.createFloatBuffer(8 * 3);
         //@formatter:off
@@ -138,7 +138,7 @@ public final class BoundingBox {
 
         // prefer topmost node, because some nodes carries a transform + inverse
         final Node parentNode = obj.getParentNode() != null? obj.getParentNode() : null;
-        logger.finest("Bounding box Node: " + parentNode);
+        logger.info("Bounding box Node: " + parentNode);
 
         return new Object3D(vertices, indexBuffer)
                 .setDrawMode(GLES20.GL_LINES)

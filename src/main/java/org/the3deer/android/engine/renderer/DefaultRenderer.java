@@ -2,7 +2,6 @@ package org.the3deer.android.engine.renderer;
 
 import android.opengl.GLES20;
 
-import org.the3deer.util.bean.Bean;
 import org.the3deer.android.engine.Model;
 import org.the3deer.android.engine.animation.Animator;
 import org.the3deer.android.engine.model.Camera;
@@ -12,8 +11,8 @@ import org.the3deer.android.engine.model.Object3D;
 import org.the3deer.android.engine.model.Scene;
 import org.the3deer.android.engine.model.Screen;
 import org.the3deer.android.engine.model.Skin;
+import org.the3deer.util.bean.Bean;
 import org.the3deer.util.event.EventListener;
-import org.the3deer.util.math.Math3DUtils;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -193,7 +192,7 @@ public class DefaultRenderer implements Renderer, EventListener {
         if (scene.getRootNodes() != null && !scene.getRootNodes().isEmpty()) {
             for (int i = 0; i < scene.getRootNodes().size(); i++) {
                 // This method should now recursively calculate the *animated* world transform
-                scene.getRootNodes().get(i).updateAnimatedWorldTransform(Math3DUtils.IDENTITY_MATRIX);
+                scene.getRootNodes().get(i).updateAnimatedWorldTransform(scene.getWorldMatrix());
             }
         }
 

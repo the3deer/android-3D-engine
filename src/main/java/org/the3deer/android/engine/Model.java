@@ -1,6 +1,5 @@
 package org.the3deer.android.engine;
 
-import org.the3deer.android.util.ContentUtils;
 import org.the3deer.android.engine.camera.CameraUtils;
 import org.the3deer.android.engine.model.Camera;
 import org.the3deer.android.engine.model.Dimensions;
@@ -17,6 +16,7 @@ import org.the3deer.android.engine.services.fbx.FbxLoaderTask;
 import org.the3deer.android.engine.services.gltf.GltfLoaderTask;
 import org.the3deer.android.engine.services.stl.STLLoaderTask;
 import org.the3deer.android.engine.services.wavefront.WavefrontLoaderTask;
+import org.the3deer.android.util.ContentUtils;
 import org.the3deer.util.event.EventManager;
 import org.the3deer.util.io.IOUtils;
 
@@ -399,8 +399,6 @@ public class Model implements LoadListener {
             }
         }
 
-        // initialize scene
-        scene.update();
 
         // show object errors
         List<String> allErrors = new ArrayList<>();
@@ -419,19 +417,13 @@ public class Model implements LoadListener {
                 // Create a new node and assign the object to it.
                 Node node = new Node();
                 node.setMesh(obj); // Link the visible object to this node.
-                node.setMatrix(obj.getModelMatrix());
+                //node.setMatrix(obj.getModelMatrix());
                 obj.setParentNode(node);
-                obj.setParentBound(true);
+                //obj.setParentBound(true);
                 rootNodes.add(node);
             }
             scene.getRootNodes().addAll(rootNodes);
         }
-
-        // fame camera
-        CameraUtils.frameModel(scene.getActiveCamera(), scene.getObjects());
-
-        // register scene
-        this.addScene(scene);
 
         // calculate scene dimensions
         final Dimensions dimensions = new Dimensions();
@@ -446,6 +438,16 @@ public class Model implements LoadListener {
         }
         scene.setDimensions(dimensions);
         logger.info("Scene dimensions: " + dimensions);
+
+        // initialize scene
+        scene.update();
+
+        // fame camera
+        CameraUtils.frameModel(scene.getActiveCamera(), scene.getObjects());
+
+        // register scene
+        this.addScene(scene);
+
 
         // notify user
         /*final String elapsed = (System.nanoTime() - startTime) / 1000000 + " secs";
@@ -527,7 +529,7 @@ public class Model implements LoadListener {
         // FIXME: how to show toast from here?
     }
 
-    public void dispose(){
+    public void dispose() {
         this.messages.clear();
     }
 

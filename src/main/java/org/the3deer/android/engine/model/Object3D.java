@@ -167,7 +167,7 @@ public class Object3D {
     private BoundingBox boundingBox;
 
     // Transformation data (ordered from top to bottom)
-    protected Quaternion orientation = new Quaternion(0, 0, 0, 1);
+    protected Quaternion orientation;
     protected float[] scale = new float[]{1, 1, 1};
     protected float[] location = new float[]{0f, 0f, 0f};
     protected float[] rotation = new float[]{0f, 0f, 0f};
@@ -665,9 +665,19 @@ public class Object3D {
         return centered;
     }
 
+
     public void setCentered(boolean centered) {
         this.centered = centered;
-        updateModelMatrix();
+        if (centered) {
+            float[] center = getBoundingBox().getCenter();
+            setLocation(-center[0], -center[1], -center[2]);
+        } else {
+            setLocation(0, 0, 0);
+        }
+    }
+
+    public void center() {
+        this.setCentered(true);
     }
 
     public boolean isPinned() {
@@ -874,12 +884,6 @@ public class Object3D {
             Matrix.scaleM(modelMatrix2, 0, getScaleX(), getScaleY(), getScaleZ());
         }
 
-        if (isCentered()) {
-            float[] center = getDimensions().getCenter();
-            Matrix.translateM(modelMatrix, 0, -center[0], -center[1], -center[2]);
-            Matrix.translateM(modelMatrix2, 0, -center[0], -center[1], -center[2]);
-        }
-
         /*if (this.worldTransform != null) {
             //System.arraycopy(this.worldTransform, 0, this.modelMatrix, 0, 16);
             Matrix.multiplyMM(modelMatrix, 0, modelMatrix, 0, this.worldTransform, 0);
@@ -949,33 +953,11 @@ public class Object3D {
 
                 return finalModelMatrix;
             }
-
         }
         return modelMatrix;
     }
 
     // In Object3D.java
-
-    /**
-     * Returns the true final world transform of this object, considering animation.
-     * This method is intended to be called by children or special cases like a bounding box,
-     * bypassing any specific logic in getModelMatrix() like returning an identity matrix for skinning.
-     *
-     * @return the final world-space transformation matrix.
-     */
-    public float[] getFinalWorldTransform() {
-        // If this mesh is attached to a node in the scene graph, get the node's final transform.
-        if (parentNode != null) {
-            if (parentNode.getAnimatedWorldTransform() != null) {
-                return parentNode.getAnimatedWorldTransform();
-            }
-            if (parentNode.getWorldTransform() != null) {
-                return parentNode.getWorldTransform();
-            }
-        }
-        // Otherwise, fall back to the object's static model matrix.
-        return modelMatrix;
-    }
 
 
     public float[] getNormalMatrix() {

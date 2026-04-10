@@ -1,7 +1,7 @@
 package org.the3deer.android.engine.model;
 
 import org.the3deer.android.engine.animation.Animation;
-import org.the3deer.util.math.Math3DUtils;
+import org.the3deer.android.util.Matrix;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -12,6 +12,11 @@ public class Scene {
     private final Logger logger = Logger.getLogger(this.getClass().getName());
 
     private String name;
+
+    private final float[] worldMatrix = new float[16];
+    {
+        Matrix.setIdentityM(worldMatrix, 0);
+    }
 
     // Core Hierarchy
     private final List<Node> rootNodes = new ArrayList<>();
@@ -49,6 +54,10 @@ public class Scene {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public float[] getWorldMatrix() {
+        return worldMatrix;
     }
 
     public List<Node> getRootNodes() {
@@ -128,10 +137,15 @@ public class Scene {
     }
 
     public void update() {
-        logger.config("Updating scene graph");
-        // Recursive update of the scene graph
+
+        logger.config("Updating scene...");
+
+        // center scene
+        final float[] center = getDimensions().getCenter();
+        Matrix.setIdentityM(worldMatrix, 0);
+        Matrix.translateM(worldMatrix, 0, -center[0], -center[1], -center[2]);
         for (Node node : rootNodes) {
-            node.updateWorldTransform(Math3DUtils.IDENTITY_MATRIX);
+            node.updateWorldTransform(worldMatrix);
         }
 
         if (!animations.isEmpty() && activeAnimation == null) {

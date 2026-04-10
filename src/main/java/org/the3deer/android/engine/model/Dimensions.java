@@ -212,4 +212,25 @@ public class Dimensions {
     }
 
 
+    public float getxMin() {
+        return min[0];
+    }
+
+    public float getxMax() {
+        return max[0];
+    }
+
+    public float getyMin() {
+        return min[1];
+    }
+    public float getyMax() {
+        return max[1];
+    }
+
+    public float getzMin() {
+        return min[2];
+    }
+    public float getzMax() {
+        return max[2];
+    }
 }
