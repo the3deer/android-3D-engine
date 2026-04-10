@@ -81,7 +81,7 @@ public class ShaderImplV2 implements Shader {
     private final boolean supportsNormals;
 
     // opengl program
-    private final boolean checkGlError;
+    private final boolean checkGlError = false;
     private int mProgram;
 
     // animation data
@@ -180,7 +180,6 @@ public class ShaderImplV2 implements Shader {
         this.supportsTexturesTransformed = testShaderFeature(shaderFeatures, fragmentShaderCode, "u_TextureTransformed");
         this.supportsTransmissionTexture = testShaderFeature(shaderFeatures, fragmentShaderCode, "u_TransmissionTexture");
         this.features = shaderFeatures;
-        this.checkGlError = false;
 
         this.init();
     }
@@ -322,7 +321,7 @@ public class ShaderImplV2 implements Shader {
             setFeatureFlag("u_NormalTextured", toggle);
             if (toggle) {
                 loadTexture(obj.getMaterial().getNormalTexture());
-                setTexture(obj.getMaterial().getNormalTexture(), "u_NormalTexture", 1);
+                setTexture(obj.getMaterial().getNormalTexture(), "u_NormalTexture");
                 mNormalMapHandle = setVBO("a_Tangent", obj.getTangentBuffer(), COORDS_PER_VERTEX, GLES20.GL_FLOAT);
             }
         }
@@ -372,7 +371,7 @@ public class ShaderImplV2 implements Shader {
 
                 if (obj.getMaterial().getColorTexture() != null) {
                     loadTexture(obj.getMaterial().getColorTexture());
-                    setTexture(obj.getMaterial().getColorTexture(), "u_Texture", 0);
+                    setTexture(obj.getMaterial().getColorTexture(), "u_Texture");
                     setFeatureFlag("u_Textured", texturesEnabled);
                 }
 
@@ -381,7 +380,7 @@ public class ShaderImplV2 implements Shader {
                 setFeatureFlag("u_EmissiveTextured", enableEmissive);
                 if (enableEmissive) {
                     loadTexture(obj.getMaterial().getEmissiveTexture());
-                    setTexture(obj.getMaterial().getEmissiveTexture(), "u_EmissiveTexture", 2);
+                    setTexture(obj.getMaterial().getEmissiveTexture(), "u_EmissiveTexture");
                     setUniform3(obj.getMaterial().getEmissiveFactor(), "u_EmissiveFactor");
                 }
             }
@@ -672,7 +671,7 @@ public class ShaderImplV2 implements Shader {
         }
     }
 
-    private void setTexture(Texture texture, String variableName, int textureIndex) {
+    private void setTexture(Texture texture, String variableName) {
 
         // check
         if (texture == null || !texture.hasId()) return;
@@ -683,7 +682,7 @@ public class ShaderImplV2 implements Shader {
         }
 
         // Set the active texture unit to texture unit 0.
-        GLES20.glActiveTexture(GLES20.GL_TEXTURE0 + textureIndex);
+        GLES20.glActiveTexture(GLES20.GL_TEXTURE0 + textureCounter);
         if (checkGlError) {
             GLUtil.checkGlError("glActiveTexture");
         }
@@ -694,8 +693,8 @@ public class ShaderImplV2 implements Shader {
             GLUtil.checkGlError("glBindTexture");
         }
 
-        // Tell the texture uniform sampler to use this texture in the shader by binding to texture unit 0.
-        GLES20.glUniform1i(mTextureUniformHandle, textureIndex);
+        // Tell the texture uniform sampler to use this texture in the shader by binding to texture unit.
+        GLES20.glUniform1i(mTextureUniformHandle, textureCounter++);
         if (checkGlError) {
             GLUtil.checkGlError("glUniform1i");
         }
@@ -897,6 +896,8 @@ public class ShaderImplV2 implements Shader {
 
     private void drawObjectElement(Object3D obj, Element element, int drawMode, int drawBufferType) {
 
+        int mTextureHandle = -1;
+
         Buffer drawOrderBuffer = element.getIndexBuffer();
 
         if (!drawUsingInt && drawOrderBuffer instanceof IntBuffer) {
@@ -934,10 +935,14 @@ public class ShaderImplV2 implements Shader {
 
         // default is no textured
         if (supportsTextures) {
-            setFeatureFlag("u_Textured", obj.getTextureCoordsArrayBuffer() != null
+            boolean enabled = obj.getTextureCoordsArrayBuffer() != null
                     && material != null && material.getColorTexture() != null
                     && material.getColorTexture().hasId()
-                    && texturesEnabled);
+                    && texturesEnabled;
+            setFeatureFlag("u_Textured", enabled);
+            if (enabled){
+                mTextureHandle = setVBO("a_TexCoordinate", obj.getTextureCoordsArrayBuffer(), TEXTURE_COORDS_PER_VERTEX, GLES20.GL_FLOAT);
+            }
         }
 
         // texture transform (Khronos)
@@ -976,7 +981,7 @@ public class ShaderImplV2 implements Shader {
             }
         }
 
-        textureCounter = 4;
+
         if (material != null) {
 
             // set alpha cutoff
@@ -989,7 +994,7 @@ public class ShaderImplV2 implements Shader {
                     && material.getColorTexture() != null
                     && texturesEnabled) {
                 loadTexture(material.getColorTexture());
-                setTexture(material.getColorTexture(), "u_Texture", textureCounter++);
+                setTexture(material.getColorTexture(), "u_Texture");
                 setFeatureFlag("u_Textured", true);
             }
 
@@ -997,14 +1002,14 @@ public class ShaderImplV2 implements Shader {
             if (supportsTransmissionTexture) {
                 boolean toggle = material.getTransmissionTexture() != null;
                 loadTexture(material.getTransmissionTexture());
-                setTexture(material.getTransmissionTexture(), "u_TransmissionTexture", textureCounter++);
+                setTexture(material.getTransmissionTexture(), "u_TransmissionTexture");
                 setUniform1(material.getThicknessFactor(), "u_TransmissionFactor");
                 setFeatureFlag("u_TransmissionTextured", toggle);
             }
 
             if (material.getNormalTexture() != null) {
                 loadTexture(material.getNormalTexture());
-                setTexture(material.getNormalTexture(), "u_NormalTexture", textureCounter++);
+                setTexture(material.getNormalTexture(), "u_NormalTexture");
                 setFeatureFlag("u_NormalTextured", true);
             }
 
@@ -1012,7 +1017,7 @@ public class ShaderImplV2 implements Shader {
             setFeatureFlag("u_EmissiveTextured", enableEmissive);
             if (enableEmissive) {
                 loadTexture(material.getEmissiveTexture());
-                setTexture(material.getEmissiveTexture(), "u_EmissiveTexture", textureCounter++);
+                setTexture(material.getEmissiveTexture(), "u_EmissiveTexture");
                 setUniform3(material.getEmissiveFactor(), "u_EmissiveFactor");
             }
         }
@@ -1021,6 +1026,9 @@ public class ShaderImplV2 implements Shader {
         drawOrderBuffer.position(0);
         GLES20.glDrawElements(drawMode, drawOrderBuffer.capacity(), drawBufferType,
                 drawOrderBuffer);
+
+
+        disableVBO(mTextureHandle);
 
     }
 

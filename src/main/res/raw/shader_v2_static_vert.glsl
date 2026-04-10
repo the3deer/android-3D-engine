@@ -1,7 +1,7 @@
 #version 100
 precision highp float;
 
-// OpenGL ES 2.x Animated Shader
+// OpenGL ES 2.x High-Performance Static Vertex Shader
 // @author andresoviedo
 
 // MVP matrices
@@ -33,6 +33,7 @@ uniform mat4 u_NormalMatrix;
 uniform bool u_NormalTextured;
 attribute vec4 a_Tangent;
 varying vec4 v_Tangent;
+
 void main(){
 
     // calculate MVP matrix
@@ -40,20 +41,25 @@ void main(){
     mat4 u_MVPMatrix = u_PMatrix * u_MVMatrix;
 
     // calculate rendered position
-    gl_Position = u_MVPMatrix * vec4(a_Position, 1.0);;
-
-    // pass color to fragment shader
-    if (u_Coloured){
-        v_Color = a_Color;
-    }
-
-    // texture
-    if (u_Textured) {
-        v_TexCoordinate = a_TexCoordinate;
-    }
+    v_Position = vec3(u_MMatrix * vec4(a_Position,1.0));
 
     // normal and tangent to world space
     if (u_Lighted){
         v_Normal = mat3(u_NormalMatrix) * a_Normal;
+    }
+
+    if (u_Coloured){
+        v_Color = a_Color;
+    }
+
+    if (u_Textured) {
+        v_TexCoordinate = a_TexCoordinate;
+    }
+
+    gl_Position = u_MVPMatrix * vec4(a_Position,1.0);
+
+    if (u_NormalTextured) {
+        vec3 tempTangent = vec3(u_NormalMatrix * vec4(a_Tangent.xyz, 0.0));
+        v_Tangent = vec4(tempTangent, a_Tangent.w);
     }
 }

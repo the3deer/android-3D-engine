@@ -1,4 +1,7 @@
 #version 100
+// OpenGL ES 2.x Static Fragment Shader
+// @author andresoviedo
+
 precision highp float;
 
 // data
@@ -50,35 +53,35 @@ uniform sampler2D u_TransmissionTexture;
 uniform float u_TransmissionFactor;
 
 void main(){
-
-    // colors initialization
+    // 1. Initial Color Setup
     vec4 baseColor = u_Coloured ? v_Color : u_Color;
-    vec4 texColor = u_Textured ? texture2D(u_Texture, v_TexCoordinate) : vec4(1.0);
+    vec4 texColor = vec4(1.0);
 
-    // Texture transformation (if enabled)
-    if (u_Textured && u_TextureTransformed){
-        mat3 translation = mat3(1, 0, 0, 0, 1, 0, u_TextureOffset.x, u_TextureOffset.y, 1);
-        mat3 rotation = mat3(
-            cos(u_TextureRotation), -sin(u_TextureRotation), 0,
-            sin(u_TextureRotation), cos(u_TextureRotation), 0,
-            0, 0, 1
-        );
-        mat3 scale = mat3(u_TextureScale.x, 0, 0, 0, u_TextureScale.y, 0, 0, 0, 1);
-        mat3 matrix = translation * rotation * scale;
-        vec2 uvTransformed = (matrix * vec3(v_TexCoordinate.xy, 1)).xy;
-        texColor = texture2D(u_Texture, uvTransformed);
+    if (u_Textured) {
+        vec2 uv = v_TexCoordinate;
+        if (u_TextureTransformed) {
+            mat3 translation = mat3(1, 0, 0, 0, 1, 0, u_TextureOffset.x, u_TextureOffset.y, 1);
+            mat3 rotation = mat3(
+                cos(u_TextureRotation), -sin(u_TextureRotation), 0,
+                sin(u_TextureRotation), cos(u_TextureRotation), 0,
+                0, 0, 1
+            );
+            mat3 scale = mat3(u_TextureScale.x, 0, 0, 0, u_TextureScale.y, 0, 0, 0, 1);
+            mat3 matrix = translation * rotation * scale;
+            uv = (matrix * vec3(v_TexCoordinate.xy, 1)).xy;
+        }
+        texColor = texture2D(u_Texture, uv);
     }
 
     // Combine base, texture, and mask
     vec4 finalColor = baseColor * texColor * u_ColorMask;
 
-    // Alpha mode handling (Early discard for Mask mode)
-    // 1 == MASK
+    // 2. Alpha handling
     if (u_AlphaMode == 1 && finalColor.a < u_AlphaCutoff) {
         discard;
     }
 
-    // Light initialization
+    // 3. Lighting Calculation
     float diffuse = 0.25;
     float specular = 0.0;
     vec3 N = normalize(v_Normal);
@@ -104,6 +107,7 @@ void main(){
         float dist = length(lightVec);
         lightVec = normalize(lightVec);
 
+        // Diffuse (Lambert)
         float diff = max(dot(lightVec, N), 0.0);
 
         // Attenuation
@@ -125,7 +129,7 @@ void main(){
     // Combine lighting with color
     finalColor.rgb = finalColor.rgb * totalLight;
 
-    // Apply Emissive texture (if enabled)
+    // 4. Emissive Handling
     if (u_EmissiveTextured){
         vec4 emissiveTex = texture2D(u_EmissiveTexture, v_TexCoordinate);
         finalColor.rgb += emissiveTex.rgb * u_EmissiveFactor;
