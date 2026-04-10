@@ -102,10 +102,12 @@ public class ContentUtils {
 
     public static void addUri(String name, URI uri) {
         documentsProvided.put(name, uri);
+        logger.info("File added: " + name+", uri: "+uri);
     }
 
     public static void addData(URI uri, byte[] data) {
         binariesProvided.put(uri, data);
+        logger.info("Binary added: " + uri);
     }
 
     public static byte[] getData(URI uri) {
@@ -128,9 +130,10 @@ public class ContentUtils {
         if (uri.getScheme() != null && uri.getScheme().equals("android")) {
             if (uri.getPath().startsWith("/binary/")) {
                 final String path = uri.getPath().substring("/binary/".length());
-                byte[] buf = binariesProvided.get(uri);
+                final URI pathUri = uri.resolve(path.replace(" ","+").replace("%20", "+"));
+                byte[] buf = binariesProvided.get(pathUri);
                 if (buf != null) return new ByteArrayInputStream(buf, 0, buf.length);
-                else throw new FileNotFoundException("File not found: " + path);
+                else throw new FileNotFoundException("File not found: " + pathUri);
             }
             else if (uri.getPath().startsWith("/assets/")) {
                 final String path = uri.getPath().substring("/assets/".length());

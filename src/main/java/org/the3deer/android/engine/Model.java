@@ -22,7 +22,6 @@ import org.the3deer.util.io.IOUtils;
 
 import java.io.InputStream;
 import java.net.URI;
-import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -32,8 +31,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.inject.Inject;
-
-import kotlin.text.Charsets;
 
 /**
  * <p>Main model class representing a 3D model resource and its environment.</p>
@@ -66,7 +63,10 @@ public class Model implements LoadListener {
      */
     private final Map<Level, String> messages = new TreeMap<>((l1, l2) -> Integer.compare(l2.intValue(), l1.intValue()));
 
+    // uri of the model. it can be a zip
     private final URI uri;
+    // uri of the model
+    private URI uriModel;
     private final String name;
     private final String type;
     private final Map<String, Object> extras;
@@ -105,6 +105,9 @@ public class Model implements LoadListener {
     }
 
     public URI getUri() {
+        if (uriModel != null) {
+            return uriModel;
+        }
         return uri;
     }
 
@@ -245,54 +248,64 @@ public class Model implements LoadListener {
 
             // if the model is a zip file, we need to extract it and register the entries as content urls
             if (modelUri.toString().toLowerCase().endsWith(".zip")) {
-                final Map<String, byte[]> zipFiles;
-                try {
-                    zipFiles = ContentUtils.readFiles(modelUri);
-                    URI modelFile = null;
-                    for (Map.Entry<String, byte[]> zipFile : zipFiles.entrySet()) {
 
-                        final String zipFilename = zipFile.getKey();
-                        final int dotIndex = zipFilename.lastIndexOf('.');
-                        final String fileExtension;
-                        if (dotIndex != -1) {
-                            fileExtension = zipFilename.substring(dotIndex);
-                        } else {
-                            fileExtension = "?";
-                        }
+                // pseudo filename
+                String pseudoFileName = modelUri.getPath();
+                if (modelUri.getPath().contains("/")) {
+                    pseudoFileName = modelUri.getPath().substring(modelUri.getPath().lastIndexOf('/') + 1);
+                }
 
-                        // register all zip entries
+                // create uri
+                final URI dataUri = URI.create("android://org.the3deer.android.engine/binary/" + pseudoFileName);
 
-                        String encodedName = URLEncoder.encode(zipFilename, Charsets.UTF_8.name());
-                        final URI pseudoUri = URI.create("android://org.the3deer.engine/binary/" + encodedName);
-                        ContentUtils.addUri(encodedName, pseudoUri);
+                // register resource
+                ContentUtils.addUri(pseudoFileName, dataUri);
 
-                        encodedName = encodedName.replace("+", "%20");
-                        final URI pseudoUri2 = URI.create("android://org.the3deer.engine/binary/" + encodedName);
-                        ContentUtils.addUri(encodedName, pseudoUri2);
+                // FIXME: potential out of memory error
+                final Map<String, byte[]> zipFiles = ContentUtils.readFiles(URI.create(uri.toString()));
+                URI modelFile = null;
+                for (Map.Entry<String, byte[]> zipFile : zipFiles.entrySet()) {
 
-                        ContentUtils.addData(pseudoUri, zipFile.getValue());
-                        ContentUtils.addData(pseudoUri2, zipFile.getValue());
-
-                        // detect model
-                        switch (fileExtension.toLowerCase()) {
-                            case ".obj":
-                            case ".stl":
-                            case ".dae":
-                            case ".gltf":
-                            case ".glb":
-                            case ".fbx":
-                                modelFile = pseudoUri;
-                                modelUri = pseudoUri;
-                                break;
-                        }
-                    }
-                    if (modelFile == null) {
-                        logger.severe("Model not found in zip '" + modelUri + "'");
+                    final String zipFilename = zipFile.getKey();
+                    final int dotIndex = zipFilename.lastIndexOf('.');
+                    final String fileExtension;
+                    if (dotIndex != -1) {
+                        fileExtension = zipFilename.substring(dotIndex);
                     } else {
-                        logger.info("Model found in zip: " + modelFile);
+                        continue; // it's probably a folder. ignore it
                     }
-                } catch (Exception e) {
-                    logger.log(Level.SEVERE, "Error loading zip file '" + modelUri + "': " + e.getMessage(), e);
+
+                    // sanitize filename
+                    final String fileNameEntrySanitized = zipFilename.replaceAll(" ", "+");
+
+                    // build uri
+                    final URI pseudoUri = dataUri.resolve(fileNameEntrySanitized);
+
+                    // register all zip entries
+                    ContentUtils.addUri(fileNameEntrySanitized, pseudoUri);
+                    ContentUtils.addData(pseudoUri, zipFile.getValue());
+
+                    // detect model
+                    switch (fileExtension) {
+                        case ".obj":
+                        case ".stl":
+                        case ".dae":
+                        case ".gltf":
+                        case ".fbx":
+                        case ".glb":
+                            modelFile = pseudoUri;
+                            logger.info("Found model in zip:");
+                            modelType = fileExtension;
+                            break;
+                    }
+                }
+                if (modelFile != null) {
+                    modelUri = modelFile;
+                    this.uriModel = modelFile;
+                    logger.info("Found model in zip: " + modelFile);
+                } else {
+                    logger.severe("Model file found in zip: " + modelFile);
+                    throw new IllegalArgumentException("No model found in zip file: " + uri);
                 }
             }
 
@@ -307,7 +320,7 @@ public class Model implements LoadListener {
             } else if (modelUri.toString().toLowerCase().endsWith(".gltf") || modelUri.toString().toLowerCase().endsWith(".glb") || "gltf".equalsIgnoreCase(modelType)) {
                 logger.info("Loading GLTF object from: " + modelUri);
                 new GltfLoaderTask(modelUri, this).execute(false);
-            } else if (modelUri.toString().toLowerCase().endsWith(".fbx")) {
+            } else if (modelUri.toString().toLowerCase().endsWith(".fbx") || "fbx".equalsIgnoreCase(modelType)) {
                 new FbxLoaderTask(modelUri, this).execute(false);
             }
 
@@ -491,29 +504,26 @@ public class Model implements LoadListener {
         // check file
         if (texture.getFile() == null) return;
 
-        // get file
-        final String textureFile = texture.getFile().replace('\\', '/').replace(' ', '+');
+        // get texture file
+        final String textureFile = texture.getFile();
 
-        // Resolve texture URI relative to the model's location
-        // Extracting the parent path manually from the model's URI
-        final String modelPath = getUri().toString();
-        int lastSlash = modelPath.lastIndexOf('/');
-        final String parentPath = (lastSlash != -1) ? modelPath.substring(0, lastSlash + 1) : "";
+        // sanitize filename
+        final String textureFileSanitized = textureFile.replace('\\', '/').replace(' ', '+').replace("./", "");
 
-        // Create the full texture URI
-        final String textureUriString = parentPath + textureFile;
+       // Create the full texture URI
+        final URI textureUri = getUri().resolve(textureFileSanitized);
 
         // debug
-        logger.fine("Downloading texture... file: " + textureFile + ", uri: " + textureUriString);
+        logger.fine("Downloading texture... file: " + textureFile + ", uri: " + textureUri);
 
         // debug
         logger.info("Loading texture file: " + textureFile);
 
         // download texture
-        try (InputStream stream = ContentUtils.getInputStream(URI.create(textureUriString))) {
+        try (InputStream stream = ContentUtils.getInputStream(textureUri)) {
 
             // update model
-            texture.setUri(URI.create(textureUriString));
+            texture.setUri(textureUri);
             texture.setData(IOUtils.read(stream));
 
             // debug

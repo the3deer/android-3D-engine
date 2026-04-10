@@ -370,14 +370,8 @@ public class ColladaLoader {
             if (mat.getColorTexture() != null && mat.getColorTexture().getFile() != null) {
                 String textureFile = mat.getColorTexture().getFile();
                 try {
-                    // Resolve texture URL relative to the model's location
-                    // Extracting the parent path manually from the model's URL
-                    String modelPath = modelUrl.toString();
-                    int lastSlash = modelPath.lastIndexOf('/');
-                    String parentPath = (lastSlash != -1) ? modelPath.substring(0, lastSlash + 1) : "";
-
                     // Create the full texture URL
-                    URI textureUrl = URI.create(parentPath + textureFile);
+                    final URI textureUrl = modelUrl.resolve(textureFile);
 
                     // update model
                     mat.getColorTexture().setUri(textureUrl);
