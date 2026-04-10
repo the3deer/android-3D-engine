@@ -54,12 +54,6 @@ public class Camera {
 
     private final String name;
 
-    // Relaxed bounding boxes to allow framing of tiny models (like Avocado)
-    private final BoundingBox centerBox = new BoundingBox("scene", -0.00001f, 0.00001f,
-            -0.00001f, 0.00001f, -0.00001f, 0.00001f);
-    private final BoundingBox roomBox = new BoundingBox("scene", -Constants.ROOM_SIZE, Constants.ROOM_SIZE,
-            -Constants.ROOM_SIZE, Constants.ROOM_SIZE, -Constants.ROOM_SIZE, Constants.ROOM_SIZE);
-
     // new vector model
     protected float[] pos = new float[]{0, 0, 1, 1};
     protected float[] view = new float[]{0, 0, 0, 1};
@@ -250,10 +244,10 @@ public class Camera {
      * @return true if specified position is outside room "walls" or in the very center of the room
      */
     public boolean isOutOfBounds(float x, float y, float z) {
-        if (roomBox.outOfBound(x, y, z)) {
+        /*if (roomBox.outOfBound(x, y, z)) {
             logger.finest("Out of room walls. " + x + "," + y + "," + z);
             return true;
-        }
+        }*/
         /*if (!centerBox.outOfBound(x, y, z)) {
             logger.finest("Inside absolute center");
             return true;

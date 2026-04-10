@@ -79,7 +79,7 @@ public class ArcBallCameraHandler implements Camera.Controller {
         // Get the center of the object in its local space
         final float[] localCenter = selected.getDimensions().getCenter();
         // Transform the local center to world space using its final transform
-        return Math3DUtils.transform(localCenter[0], localCenter[1], localCenter[2], selected.getFinalWorldTransform());
+        return Math3DUtils.transform(localCenter[0], localCenter[1], localCenter[2], selected.getModelMatrix());
     }
 
     @Override
@@ -191,7 +191,17 @@ public class ArcBallCameraHandler implements Camera.Controller {
         final float[] cameraUp = Math3DUtils.crossProduct(right, look);
 
         final float distance = Math3DUtils.length(Math3DUtils.substract(view, pos));
-        final float sensitivity = distance * 0.0015f;
+
+
+        float baseSensitivity = 0.0015f;
+        if (model.getActiveScene() != null && model.getActiveScene().getDimensions() != null) {
+            final float sceneScale = model.getActiveScene().getDimensions().getLargest();
+            if (sceneScale > 0) {
+                baseSensitivity /= (1.0f + (float) Math.log10(Math.max(1.0f, sceneScale)));
+            }
+        }
+
+        final float sensitivity = distance * baseSensitivity;
 
         final float tx = -right[0] * dX * sensitivity + cameraUp[0] * dY * sensitivity;
         final float ty = -right[1] * dX * sensitivity + cameraUp[1] * dY * sensitivity;

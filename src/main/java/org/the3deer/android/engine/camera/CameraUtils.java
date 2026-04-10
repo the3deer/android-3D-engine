@@ -106,14 +106,14 @@ public class CameraUtils {
                 suggestedNear = suggestedFar / 1000f;
             }
 
-            if (suggestedFar <= 0){
-                suggestedFar = 1000f;
+            if (suggestedFar <= 100){
+                suggestedFar = 100f;
             }
 
             projection.setNear(suggestedNear);
             projection.setFar(suggestedFar);
             
-            logger.info("Dynamic projection: near=" + suggestedNear + ", far=" + suggestedFar + " (Ratio: " + (suggestedFar/suggestedNear) + ")");
+            logger.info("- Dynamic projection: near=" + suggestedNear + ", far=" + suggestedFar + " (Ratio: " + (suggestedFar/suggestedNear) + ")");
         }
 
         logger.info("Framing model: center=(" + centerX + "," + centerY + "," + centerZ + "), distance=" + distance);
@@ -137,6 +137,8 @@ public class CameraUtils {
         float newPosX = centerX - lookDir[0] * distance;
         float newPosY = centerY - lookDir[1] * distance;
         float newPosZ = centerZ - lookDir[2] * distance;
+
+        logger.info("- New Camera position: "+newPosX+","+newPosY+","+newPosZ);
 
         camera.set(newPosX, newPosY, newPosZ, centerX, centerY, centerZ, 0, 1, 0);
     }
