@@ -26,6 +26,8 @@ import org.the3deer.util.event.EventManager;
 
 import java.util.EventObject;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import javax.inject.Inject;
 
@@ -41,6 +43,8 @@ import javax.inject.Inject;
  *
  */
 public class ModelController implements EventManager, TouchHandler {
+
+    private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
     // dependencies
     @Inject
@@ -74,7 +78,24 @@ public class ModelController implements EventManager, TouchHandler {
     }
 
     @Override
-    public boolean propagate(EventObject event) {
+    public boolean propagate(final EventObject event) {
+        if (event instanceof MotionEvent && event.getSource() instanceof android.view.MotionEvent) {
+            final android.view.MotionEvent androidEvent = (android.view.MotionEvent) event.getSource();
+            final android.view.MotionEvent copy = android.view.MotionEvent.obtain(androidEvent);
+            executor.execute(() -> {
+                try {
+                    propagateInternal(new MotionEvent(copy));
+                } finally {
+                    copy.recycle();
+                }
+            });
+            return true;
+        }
+        executor.execute(() -> propagateInternal(event));
+        return true;
+    }
+
+    private boolean propagateInternal(final EventObject event) {
         if (event instanceof GLEvent) {
             final GLEvent rev = (GLEvent) event;
             //logger.finest("propagate. RenderEvent:" + rev.getCode());
