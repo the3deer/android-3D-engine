@@ -9,6 +9,7 @@ import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.nio.ShortBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Logger;
@@ -21,21 +22,27 @@ public class Octree {
 
     private static final Logger logger = Logger.getLogger(Octree.class.getSimpleName());
 
+    private final String id;
     // The minimum size of the 3D space for individual boxes
-    public static final double BOX_SIZE = 10;
+    public final double boxSize;
 
     final BoundingBox boundingBox;
     private final List<float[]> pending = new ArrayList<>();
     private final List<float[]> triangles = new ArrayList<>();
-    private final Octree[] children = new Octree[8];
+    private Octree[] children;
 
-    private Octree(BoundingBox box){
+    private Octree(String id, BoundingBox box, double boxSize){
+        this.id = id;
         this.boundingBox = box;
+        this.boxSize = boxSize;
     }
 
-    private void addChild(int octant, BoundingBox boundingBox, float[] triangle){
+    private void addChild(String id, int octant, BoundingBox boundingBox, float[] triangle){
+        if (children == null){
+            children = new Octree[8];
+        }
         if (children[octant] == null){
-            children[octant] = new Octree(boundingBox);
+            children[octant] = new Octree(id, boundingBox, this.boxSize);
         }
         children[octant].pending.add(triangle);
     }
@@ -48,18 +55,20 @@ public class Octree {
         return triangles;
     }
 
-    private void subdivide(){
+    private void subdivide(int depth){
         logger.finest("Subdividing octree...");
         for (Octree child : children){
             if (child != null){
-                subdivide(child);
+                subdivide(child, depth);
             }
         }
     }
 
     static Octree build(Object3D object){
-        logger.config("Building octree for "+object.getId());
-        final Octree ret = new Octree(object.getBoundingBox());
+        final BoundingBox bbox = object.getBoundingBox();
+        final double boxSize = Math.max(bbox.getxMax() - bbox.getxMin(), Math.max(bbox.getyMax() - bbox.getyMin(), bbox.getzMax() - bbox.getzMin())) / 10;
+        logger.info("Building octree for "+object.getId()+", boxel size: "+boxSize);
+        final Octree ret = new Octree("root", bbox, boxSize);
         final FloatBuffer buffer = object.getVertexBuffer().asReadOnlyBuffer();
         
         if (object.getIndexBuffer() == null) {
@@ -100,41 +109,45 @@ public class Octree {
                 ret.pending.add(triangle);
             }
         }
-        subdivide(ret);
+        subdivide(ret, 0);
+
+        // log event
+        logger.info("Octree built. obj: "+object.getId()+", octree: "+ret);
+
         return ret;
     }
 
-    private static void subdivide(Octree octree){
-        logger.config("Subdividing octree ("+octree.boundingBox+"): "+octree.pending.size());
+    private static void subdivide(Octree octree, int depth){
         float[] min = octree.boundingBox.getMin();
         float[] max = octree.boundingBox.getMax();
         float[] mid = Math3DUtils.divide(Math3DUtils.add(max,min),2);
+        logger.info("Subdividing octree ("+octree.boundingBox+"): depth: "+depth+", mid:"+Arrays.toString(mid));
         BoundingBox[] octant = new BoundingBox[8];
         float xMin,yMin,zMin,xMax,yMax,zMax;
         xMin = min[0]; yMin = min[1]; zMin = min[2];
         xMax = mid[0]; yMax = mid[1]; zMax = mid[2];
-        octant[0] = new BoundingBox("octree0",xMin,xMax,yMin,yMax,zMin,zMax);
+        octant[0] = new BoundingBox("octree_"+depth+"#0",xMin,xMax,yMin,yMax,zMin,zMax);
         xMin = mid[0]; yMin = min[1]; zMin = min[2];
         xMax = max[0]; yMax = mid[1]; zMax = mid[2];
-        octant[1] = new BoundingBox("octree1",xMin,xMax,yMin,yMax,zMin,zMax);
+        octant[1] = new BoundingBox("octree_"+depth+"#1",xMin,xMax,yMin,yMax,zMin,zMax);
         xMin = min[0]; yMin = mid[1]; zMin = min[2];
         xMax = mid[0]; yMax = max[1]; zMax = mid[2];
-        octant[2] = new BoundingBox("octree2",xMin,xMax,yMin,yMax,zMin,zMax);
+        octant[2] = new BoundingBox("octree_"+depth+"#2",xMin,xMax,yMin,yMax,zMin,zMax);
         xMin = mid[0]; yMin = mid[1]; zMin = min[2];
         xMax = max[0]; yMax = max[1]; zMax = mid[2];
-        octant[3] = new BoundingBox("octree3",xMin,xMax,yMin,yMax,zMin,zMax);
+        octant[3] = new BoundingBox("octree_"+depth+"#3",xMin,xMax,yMin,yMax,zMin,zMax);
         xMin = min[0]; yMin = min[1]; zMin = min[2];
         xMax = mid[0]; yMax = mid[1]; zMax = max[2];
-        octant[4] = new BoundingBox("octree4",xMin,xMax,yMin,yMax,zMin,zMax);
+        octant[4] = new BoundingBox("octree_"+depth+"#4",xMin,xMax,yMin,yMax,zMin,zMax);
         xMin = mid[0]; yMin = min[1]; zMin = min[2];
         xMax = max[0]; yMax = mid[1]; zMax = max[2];
-        octant[5] = new BoundingBox("octree5",xMin,xMax,yMin,yMax,zMin,zMax);
+        octant[5] = new BoundingBox("octree_"+depth+"#5",xMin,xMax,yMin,yMax,zMin,zMax);
         xMin = min[0]; yMin = mid[1]; zMin = min[2];
         xMax = mid[0]; yMax = max[1]; zMax = max[2];
-        octant[6] = new BoundingBox("octree6",xMin,xMax,yMin,yMax,zMin,zMax);
+        octant[6] = new BoundingBox("octree_"+depth+"#6",xMin,xMax,yMin,yMax,zMin,zMax);
         xMin = mid[0]; yMin = mid[1]; zMin = min[2];
         xMax = max[0]; yMax = max[1]; zMax = max[2];
-        octant[7] = new BoundingBox("octree7",xMin,xMax,yMin,yMax,zMin,zMax);
+        octant[7] = new BoundingBox("octree_"+depth+"#7",xMin,xMax,yMin,yMax,zMin,zMax);
         boolean anyInOctant = false;
         for (Iterator<float[]> it = octree.pending.iterator(); it.hasNext(); ) {
             float[] triangle = it.next();
@@ -145,7 +158,7 @@ public class Octree {
                 inside += octant[i].insideBounds(triangle[8], triangle[9], triangle[10]) ? 1 : 0;
                 if (inside == 3) {
                     inOctant = true;
-                    octree.addChild(i, octant[i], triangle);
+                    octree.addChild("octree_"+depth+"+"+i, i, octant[i], triangle);
                     anyInOctant = true;
                 }
             }
@@ -155,8 +168,8 @@ public class Octree {
             it.remove();
         }
         if (anyInOctant){
-            if ((mid[0]+min[0])/2 > BOX_SIZE && (mid[1]+min[1])/2 > BOX_SIZE && (mid[2]+min[2])/2 > BOX_SIZE) {
-                octree.subdivide();
+            if (depth > 0 && ((mid[0]-min[0]) > octree.boxSize || (mid[1]-min[1]) > octree.boxSize || (mid[2]-min[2]) > octree.boxSize)) {
+                octree.subdivide(--depth);
             }
             else{
                 for (Octree child : octree.children) {
@@ -165,5 +178,14 @@ public class Octree {
                 }
             }
         }
+    }
+
+    @Override
+    public String toString() {
+        return "Octree{" +
+                "id=" + id +
+                ", triangles=" + triangles.size() +
+                ", children=" + Arrays.toString(children) +
+                '}';
     }
 }
