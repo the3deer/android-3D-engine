@@ -187,7 +187,7 @@ public class WavefrontLoader {
         try {
 
             // get materials stream
-            final URL materialUrl = modelURI.resolve(URI.create(meshData.getMaterialFile())).toURL();
+            final URL materialUrl = modelURI.resolve(meshData.getMaterialFile()).toURL();
 
             final InputStream inputStream = materialUrl.openStream();
 
@@ -223,15 +223,11 @@ public class WavefrontLoader {
                         if (elementMaterial != null && elementMaterial.getColorTexture() != null
                             && elementMaterial.getColorTexture().getFile() != null) {
 
-
                             // log event
                             logger.config("Reading texture file... " + elementMaterial.getColorTexture().getFile());
 
-                            // normalize path
-                            String replace = elementMaterial.getColorTexture().getFile().replace('\\', '/');
-
                             // build color url
-                            final URL diffuseUrl = modelURI.resolve(URI.create(replace)).toURL();
+                            final URL diffuseUrl = modelURI.resolve(elementMaterial.getColorTexture().getFile()).toURL();
 
                             // read texture data
                             try (InputStream stream = diffuseUrl.openStream()) {
