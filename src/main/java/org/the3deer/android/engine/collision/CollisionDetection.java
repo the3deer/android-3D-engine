@@ -84,16 +84,27 @@ public class CollisionDetection {
         return ret;
     }
 
+
     /**
      * Get the nearest object intersected by the specified ray or null if no object is intersected
      *
-     * @param objects   the list of objects to test
-     * @param nearHit   the ray start point
-     * @param farHit    the ray far hit
-     * @param direction the ray direction
-     * @return the object intersected by the specified ray
+     * @param objects
+     * @param width
+     * @param height
+     * @param modelViewMatrix
+     * @param modelProjectionMatrix
+     * @param windowX
+     * @param windowY
+     * @return
      */
-    private static Object3D getBoxIntersection(List<Object3D> objects, float[] nearHit, float[] farHit, float[] direction) {
+    public static Object3D getBoxIntersection(List<Object3D> objects, int width, int height, float[] modelViewMatrix, float[] modelProjectionMatrix, float windowX, float windowY) {
+
+        // project ray
+        float[] nearHit = unProject(width, height, modelViewMatrix, modelProjectionMatrix, windowX, windowY, 0);
+        float[] farHit = unProject(width, height, modelViewMatrix, modelProjectionMatrix, windowX, windowY, 1);
+
+        // calculate ray vector
+        float[] direction = Math3DUtils.substract(farHit, nearHit);
 
         // default hit (no intersection)
         float min = Float.MAX_VALUE;
@@ -295,15 +306,17 @@ public class CollisionDetection {
         }
         Octree selected = null;
         float min = Float.MAX_VALUE;
-        for (Octree child : octree.getChildren()) {
-            if (child == null) {
-                continue;
-            }
-            float intersection = getTriangleIntersectionForOctree(child, rayOrigin, rayDirection);
-            if (intersection != -1 && intersection < min) {
-                logger.config("Octree intersection: " + intersection);
-                min = intersection;
-                selected = child;
+        if (octree.getChildren() != null){
+            for (Octree child : octree.getChildren()) {
+                if (child == null) {
+                    continue;
+                }
+                float intersection = getTriangleIntersectionForOctree(child, rayOrigin, rayDirection);
+                if (intersection != -1 && intersection < min) {
+                    logger.config("Octree intersection: " + intersection);
+                    min = intersection;
+                    selected = child;
+                }
             }
         }
         float[] selectedTriangle = null;

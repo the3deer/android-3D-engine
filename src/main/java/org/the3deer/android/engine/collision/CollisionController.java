@@ -32,7 +32,7 @@ public class CollisionController implements EventListener {
     @Inject
     private EventManager eventManager;
 
-    private boolean enabled = true;
+    private boolean enabled = false;
 
     public CollisionController() {
     }
@@ -55,7 +55,7 @@ public class CollisionController implements EventListener {
             if (touchEvent.getAction() == TouchEvent.CLICK) {
 
                 // check
-                if (!enabled || sceneManager == null) return false;
+                if (sceneManager == null) return false;
 
                 // get scene
                 final Scene scene = sceneManager.getActiveScene();
@@ -74,21 +74,31 @@ public class CollisionController implements EventListener {
                 final float y = touchEvent.getY();
 
                 // check collision
-                Object3D objectHit = CollisionDetection.getTriangleIntersection(
+                Object3D objectHit = CollisionDetection.getBoxIntersection(
                         objects, screen.getWidth(), screen.getHeight(),
                         camera.getViewMatrix(), camera.getProjectionMatrix(), x, y);
+
                 if (objectHit != null) {
 
-                    // intersection point
-                    logger.info("Getting intersection... " + objectHit.getId()+", x="+x+", y="+y);
-                    float[] point3D = CollisionDetection.getTriangleIntersection(objectHit, screen.getWidth(), screen.getHeight(),
-                            camera.getViewMatrix(), camera.getProjectionMatrix(), x, y);
+                    logger.config("Collision detected. obj: " + objectHit.getId() + ", x=" + x + ", y=" + y);
 
-                    // fire event
-                    final CollisionEvent collisionEvent = new CollisionEvent(this, objectHit, x, y, point3D);
-                    eventManager.propagate(collisionEvent);
+                    if (this.enabled) {
+                        // intersection point
+                        logger.config("Getting intersection... " + objectHit.getId() + ", x=" + x + ", y=" + y);
+                        float[] point3D = CollisionDetection.getTriangleIntersection(objectHit, screen.getWidth(), screen.getHeight(),
+                                camera.getViewMatrix(), camera.getProjectionMatrix(), x, y);
 
-                    return true;
+                        // fire event
+                        final CollisionEvent collisionEvent = new CollisionEvent(this, objectHit, x, y, point3D);
+                        eventManager.propagate(collisionEvent);
+
+                        return true;
+                    } else {
+
+                        // fire event
+                        final CollisionEvent collisionEvent = new CollisionEvent(this, objectHit, x, y, null);
+                        eventManager.propagate(collisionEvent);
+                    }
                 }
             }
         }
