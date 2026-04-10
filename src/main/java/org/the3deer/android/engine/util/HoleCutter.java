@@ -52,8 +52,8 @@ public class HoleCutter {
         for (int i = 0; i < list2D.size(); i++) {
             ints.add(((int)(list2D.get(i)*1000000)));
         }
-        logger.info("Ints:"+ints.toString());
-        logger.info("Ints size: " + list2D.size());
+        logger.finest("Ints:"+ints.toString());
+        logger.finest("Ints size: " + list2D.size());
 
         final List<Integer> holeIndices = new ArrayList<>();
         for (List<float[]> holeList : holesList) {
@@ -81,9 +81,9 @@ public class HoleCutter {
         for (int i = 0; i < list2D.size(); i++) {
             ints.add(((int)(list2D.get(i)*1000000)));
         }
-        logger.info("Ints with Holes:"+ints.toString());
-        logger.info("Ints holes indices: " + holeIndices.toString());
-        logger.info("Ints size: " + list2D.size());
+        logger.finest("Ints with Holes:"+ints.toString());
+        logger.finest("Ints holes indices: " + holeIndices.toString());
+        logger.finest("Ints size: " + list2D.size());
 
         // triangulate
         float[] rq = new float[list2D.size()];
