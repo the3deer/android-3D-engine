@@ -1,3 +1,4 @@
+#version 100
 precision highp float;
 
 // OpenGL ES 2.x Animated Shader

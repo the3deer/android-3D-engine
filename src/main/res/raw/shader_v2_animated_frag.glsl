@@ -1,3 +1,4 @@
+#version 100
 precision highp float;
 
 // data
@@ -115,8 +116,10 @@ void main(){
         specular = pow(max(dot(N, halfDir), 0.0), 32.0) * attenuation;
     }
 
-    // Ambient light
-    float ambient = 0.40;
+    // Ambient light (Hemisphere Lighting)
+    float skyIntensity = 0.50;   // Light from above
+    float groundIntensity = 0.25; // Light from below
+    float ambient = mix(groundIntensity, skyIntensity, N.y * 0.5 + 0.5);
     float totalLight = min((diffuse + specular + ambient), 1.0);
 
     // Combine lighting with color

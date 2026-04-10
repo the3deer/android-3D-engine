@@ -1,3 +1,4 @@
+#version 100
 precision highp float;
 
 const int MAX_JOINTS = 60;
