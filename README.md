@@ -2,14 +2,20 @@
 
 A lightweight, modular OpenGL ES 2.0/3.0 engine for Android. This library provides a component-based architecture to load and render 3D models with support for animations, lighting, and various file formats.
 
+## News (11/04/2026)
+
+**Version 2.0.1** *
+- Source split. Now the parsers are plugins that can be included or not. 
+
 ## Features
 
 - **Compatibility**: Android 7.0+ (API 24+), targeting API 35.
 - **Graphics API**: OpenGL ES 2.0 and 3.0.
-- **Supported Formats**:
+- **Modular Architecture**: The engine is decoupled from specific file formats. You only compile and include the parsers you actually use.
+- **Supported Formats (Optional Plugins)**:
     - **OBJ** (Wavefront)
     - **STL** (Stereolithography)
-    - **DAE** (Collada) - Full support for skinning and animations.
+    - **DAE** (Collada) - Support for skinning and animations.
     - **GLTF** (GL Transmission Format) - PBR-ready structures, skinning, and animations.
     - **FBX** (Filmbox) - High-performance native parsing via `ufbx`.
 - **Core Capabilities**:
@@ -19,6 +25,19 @@ A lightweight, modular OpenGL ES 2.0/3.0 engine for Android. This library provid
     - Skybox support.
     - Collision Detection (Ray-casting & Octree optimized).
     - Stereoscopic/VR Rendering (Anaglyph & Side-by-Side).
+
+## Modular Configuration
+
+To keep your APK small and build times fast, you can enable only the loaders you need in your `gradle.properties` file:
+
+```properties
+# Enable specific 3D format plugins
+org.the3deer.android.engine.includeObj=true
+org.the3deer.android.engine.includeStl=true
+org.the3deer.android.engine.includeGltf=true
+org.the3deer.android.engine.includeDae=true
+org.the3deer.android.engine.includeFbx=false  # Set to false to exclude FBX and its native C++ code
+```
 
 ## Documentation
 
@@ -44,6 +63,21 @@ dependencies {
     implementation project(':engine')
 }
 ```
+
+### 2. Register Loaders
+In your application initialization (e.g., `MainActivity` or `Application` class), register the plugins you want to use:
+
+```kotlin
+// Register only the formats your game uses
+LoaderRegistry.register("obj") { uri, listener -> WavefrontLoaderTask(uri, listener) }
+LoaderRegistry.register("gltf") { uri, listener -> GltfLoaderTask(uri, listener) }
+LoaderRegistry.register("glb") { uri, listener -> GltfLoaderTask(uri, listener) }
+```
+
+## Documentation
+
+Detailed technical documentation regarding the engine's architecture, Scene Graph, and API can be found here:
+**[doc/README.md](./doc/README.md)**
 
 ## Credits & License
 

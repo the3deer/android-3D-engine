@@ -11,6 +11,7 @@ import android.webkit.MimeTypeMap;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+import org.the3deer.util.io.ByteBufferInputStream;
 import org.the3deer.util.event.EventListener;
 
 import java.io.InputStream;
@@ -19,8 +20,6 @@ import java.util.EventObject;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Logger;
-
-import de.javagl.jgltf.model.io.Buffers;
 
 public class AndroidUtils {
 
@@ -43,7 +42,7 @@ public class AndroidUtils {
 
     public static String decodeMimeType(ByteBuffer imageData) {
         String mimeType = null;
-        try (InputStream imageIS = Buffers.createByteBufferInputStream(imageData)){
+        try (InputStream imageIS = new ByteBufferInputStream(imageData)){
             BitmapFactory.Options opt = new BitmapFactory.Options();
             opt.inJustDecodeBounds = true;
             BitmapFactory.decodeStream(imageIS, null, opt);
