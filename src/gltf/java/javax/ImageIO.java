@@ -4,11 +4,11 @@ import java.io.InputStream;
 import java.util.Iterator;
 
 public class ImageIO {
-    public static ImageInputStream createImageInputStream(InputStream inputStream) {
+    public static javax.imageio.ImageInputStream createImageInputStream(InputStream inputStream) {
         return null;
     }
 
-    public static Iterator<ImageReader> getImageReaders(ImageInputStream imageInputStream) {
+    public static Iterator<javax.imageio.ImageReader> getImageReaders(javax.imageio.ImageInputStream imageInputStream) {
         return null;
     }
 }

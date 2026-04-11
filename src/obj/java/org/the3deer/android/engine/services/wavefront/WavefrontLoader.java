@@ -140,7 +140,7 @@ public class WavefrontLoader {
                 // create 3D object
                 Object3D data3D = new Object3D(meshData.getId(), meshData.getVertexBuffer());
                 data3D.setUri(modelURI);
-                data3D.setMeshData(meshData);
+                //data3D.setMeshData(meshData);
                 data3D.setName(meshData.getName());
                 data3D.setVertexNormalsArrayBuffer(meshData.getNormalsBuffer());
                 data3D.setTextureCoordsArrayBuffer(meshData.getTextureBuffer());

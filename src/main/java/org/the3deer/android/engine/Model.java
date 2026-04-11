@@ -292,7 +292,7 @@ public class Model implements LoadListener {
                         case ".glb":
                             modelFile = pseudoUri;
                             logger.info("Found model in zip:");
-                            modelType = fileExtension;
+                            modelType = fileExtension.substring(1);
                             break;
                     }
                 }

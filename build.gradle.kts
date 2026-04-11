@@ -24,26 +24,29 @@ android {
         getByName("main") {
             java.srcDirs("src/main/java")
             
-            if (project.findProperty("includeGltf") == "true") {
+            if (project.findProperty("org.the3deer.android.engine.includeGltf") == "true") {
                 java.srcDir("src/gltf/java")
+                dependencies {
+                    implementation(libs.fasterxml.jackson.databind)
+                }
             }
-            if (project.findProperty("includeFbx") == "true") {
+            if (project.findProperty("org.the3deer.android.engine.includeFbx") == "true") {
                 java.srcDir("src/fbx/java")
                 jniLibs.srcDir("src/fbx/cpp")
             }
-            if (project.findProperty("includeObj") == "true") {
+            if (project.findProperty("org.the3deer.android.engine.includeObj") == "true") {
                 java.srcDir("src/obj/java")
             }
-            if (project.findProperty("includeStl") == "true") {
+            if (project.findProperty("org.the3deer.android.engine.includeStl") == "true") {
                 java.srcDir("src/stl/java")
             }
-            if (project.findProperty("includeDae") == "true") {
+            if (project.findProperty("org.the3deer.android.engine.includeDae") == "true") {
                 java.srcDir("src/dae/java")
             }
         }
     }
 
-    if (project.findProperty("includeFbx") == "true") {
+    if (project.findProperty("org.the3deer.android.engine.includeFbx") == "true") {
         externalNativeBuild {
             cmake {
                 path = file("src/fbx/cpp/CMakeLists.txt")
@@ -65,7 +68,6 @@ android {
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
-    implementation("javax.inject:javax.inject:1")
 }
 
 // Javadoc configuration

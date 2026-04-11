@@ -27,11 +27,11 @@ To keep your APK small and build times fast, you can enable only the loaders you
 
 ```properties
 # Enable specific 3D format plugins
-includeObj=true
-includeStl=true
-includeGltf=true
-includeDae=true
-includeFbx=false  # Set to false to exclude FBX and its native C++ code
+org.the3deer.android.engine.includeObj=true
+org.the3deer.android.engine.includeStl=true
+org.the3deer.android.engine.includeGltf=true
+org.the3deer.android.engine.includeDae=true
+org.the3deer.android.engine.includeFbx=false  # Set to false to exclude FBX and its native C++ code
 ```
 
 ## Documentation

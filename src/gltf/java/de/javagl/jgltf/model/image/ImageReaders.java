@@ -58,7 +58,7 @@ public class ImageReaders
      * @throws IOException If no matching image reader can be found
      */
     @SuppressWarnings("resource")
-    public static ImageReader findImageReader(ByteBuffer imageData) 
+    public static ImageReader findImageReader(ByteBuffer imageData)
         throws IOException
     {
         InputStream inputStream = 
