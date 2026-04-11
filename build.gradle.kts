@@ -20,6 +20,12 @@ android {
         }
     }
 
+    packaging {
+        jniLibs {
+            useLegacyPackaging = false
+        }
+    }
+
     sourceSets {
         getByName("main") {
             java.srcDirs("src/main/java")
