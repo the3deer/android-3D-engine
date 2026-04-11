@@ -64,6 +64,9 @@ public class ShaderManager {
         // update model
         this.openGLVersion_ = openGLVersionRequested;
 
+        // log event
+        logger.info("- OpenGL version: "+openGLVersion_);
+
         // update
         //refresh();
     }
@@ -128,11 +131,11 @@ public class ShaderManager {
         if (program == null) throw new IllegalArgumentException("Program not found");
 
         // log event
-        logger.info("Loading program... program: " + program.id);
+        logger.info("Loading program... program: " + program.id+", glVersion: "+openGLVersion_);
 
         // build shader
         final Shader shader;
-        switch (program.openGLVersion) {
+        switch (openGLVersion_) {
             case 3:
                 shader = ShaderImplV3.getInstance(program);
                 break;
