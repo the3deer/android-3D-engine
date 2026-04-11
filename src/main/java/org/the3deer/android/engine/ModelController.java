@@ -14,7 +14,6 @@ import org.the3deer.android.engine.gui.GUI;
 import org.the3deer.android.engine.gui.GUIDrawer;
 import org.the3deer.android.engine.model.Camera;
 import org.the3deer.android.engine.model.Object3D;
-import org.the3deer.android.engine.model.Projection;
 import org.the3deer.android.engine.model.Scene;
 import org.the3deer.android.engine.renderer.TouchHandler;
 import org.the3deer.android.engine.shader.ShaderManager;
@@ -47,8 +46,6 @@ public class ModelController implements EventManager, TouchHandler {
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
     // dependencies
-    @Inject
-    private Projection projection;
     @Inject
     private Model sceneManager;
     @Inject
@@ -105,11 +102,6 @@ public class ModelController implements EventManager, TouchHandler {
                 // which is called by GLRenderer.onSurfaceCreated on the GL Thread.
 
             } else if (rev.getCode() == GLEvent.Code.SURFACE_CHANGED) {
-
-                // update aspect ratio of the default projection
-                if (projection != null) {
-                    projection.setAspectRatio((float) rev.getWidth() / rev.getHeight());
-                }
 
                 // update aspect ratio of all cameras in the scene
                 if (sceneManager != null) {

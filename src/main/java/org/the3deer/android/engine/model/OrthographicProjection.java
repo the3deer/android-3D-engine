@@ -58,6 +58,11 @@ public final class OrthographicProjection implements Projection {
     }
 
     @Override
+    public float getAspectRatio() {
+        return aspectRatio;
+    }
+
+    @Override
     public void setAspectRatio(float aspectRatio) {
         this.aspectRatio = aspectRatio;
     }

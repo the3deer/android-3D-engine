@@ -1,7 +1,5 @@
 package org.the3deer.android.engine.event;
 
-import org.the3deer.android.engine.model.Projection;
-
 import java.util.EventObject;
 
 public class GLEvent extends EventObject {
@@ -10,9 +8,8 @@ public class GLEvent extends EventObject {
 
     private int width;
     private int height;
-    private Projection projection;
 
-    public enum Code {SURFACE_CREATED, SURFACE_CHANGED, PROJECTION_CHANGED}
+    public enum Code {SURFACE_CREATED, SURFACE_CHANGED}
 
     public GLEvent(Object source, Code code) {
         super(source);
@@ -36,14 +33,6 @@ public class GLEvent extends EventObject {
 
     public int getHeight() {
         return height;
-    }
-
-    public Projection getProjection() {
-        return projection;
-    }
-
-    public void setProjection(Projection projection) {
-        this.projection = projection;
     }
 
     @Override

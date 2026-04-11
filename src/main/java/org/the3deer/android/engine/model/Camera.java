@@ -277,6 +277,8 @@ public class Camera {
         // lazy init
         if (stereoCam == null) {
             stereoCam = new Camera[]{new Camera("left"), new Camera("right")};
+            stereoCam[0].projection = this.projection.clone();
+            stereoCam[1].projection = this.projection.clone();
         }
 
         // look vector
@@ -306,12 +308,12 @@ public class Camera {
 
         // update left
         final Camera left = stereoCam[0];
-        left.projection = this.projection.clone();
+        left.projection.setAspectRatio(this.projection.getAspectRatio()/2);
         left.set(xPosLeft, yPosLeft, zPosLeft, xConv, yConv, zConv, getxUp(), getyUp(), getzUp());
 
         // update right
         final Camera right = stereoCam[1];
-        right.projection = this.projection.clone();
+        right.projection.setAspectRatio(this.projection.getAspectRatio()/2);
         right.set(xPosRight, yPosRight, zPosRight, xConv, yConv, zConv, getxUp(), getyUp(), getzUp());
 
         return stereoCam;

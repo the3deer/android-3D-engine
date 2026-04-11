@@ -17,7 +17,7 @@ public final class PerspectiveProjection implements Projection {
     private Screen screen;
 
     private float yfov = 60.0f;
-    private float aspectRatio = 1.0f;
+    private float aspectRatio = -1;
     private float znear = 0.01f;
     private float zfar = 1000f;
     /**
@@ -30,13 +30,22 @@ public final class PerspectiveProjection implements Projection {
     }
 
     public PerspectiveProjection(float yfov, float aspectRatio, float znear, float zfar) {
-        this.yfov = (float) Math.toDegrees(yfov);
+        this.yfov = yfov;
         this.aspectRatio = aspectRatio;
         this.znear = znear;
         this.zfar = zfar;
         this.custom = true;
     }
 
+    @Override
+    public float getAspectRatio() {
+        if (aspectRatio == -1 && screen != null) {
+            return screen.getRatio();
+        }
+        return aspectRatio;
+    }
+
+    @Override
     public void setAspectRatio(float aspectRatio) {
         this.aspectRatio = aspectRatio;
     }
@@ -53,7 +62,7 @@ public final class PerspectiveProjection implements Projection {
 
     @Override
     public float[] getMatrix(){
-        float ratio = screen != null ? screen.getRatio() : this.aspectRatio;
+        float ratio = aspectRatio == -1 && screen != null ? screen.getRatio() : this.aspectRatio;
         if (custom) {
             Matrix.perspectiveM(matrix, 0, yfov, ratio, znear, zfar);
         } else {
@@ -99,6 +108,6 @@ public final class PerspectiveProjection implements Projection {
 
     @Override
     public Projection clone() {
-        return new PerspectiveProjection((float) Math.toRadians(yfov), aspectRatio, znear, zfar);
+        return new PerspectiveProjection(yfov, aspectRatio, znear, zfar);
     }
 }

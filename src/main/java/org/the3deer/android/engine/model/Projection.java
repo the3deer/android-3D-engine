@@ -18,5 +18,7 @@ public interface Projection {
     
     Projection clone();
 
-    void setAspectRatio(float halfRatio);
+    float getAspectRatio();
+
+    void setAspectRatio(float aspectRatio);
 }
