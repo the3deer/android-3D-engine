@@ -3,7 +3,6 @@ package org.the3deer.android.engine.model;
 import org.the3deer.android.util.AndroidUtils;
 import org.the3deer.android.engine.collision.Octree;
 import org.the3deer.android.util.Matrix;
-import org.the3deer.android.engine.services.collada.entities.MeshData;
 import org.the3deer.android.engine.shader.ShaderManager;
 import org.the3deer.util.event.EventListener;
 import org.the3deer.util.io.IOUtils;
@@ -140,9 +139,6 @@ public class Object3D {
      */
     private int drawMode = 0;
 
-    // mesh vertex data
-    private MeshData meshData = null;
-
     // Model data
     protected FloatBuffer vertexArrayBuffer = null;
     protected int vertexCount = 0;
@@ -256,14 +252,6 @@ public class Object3D {
 
     public String getAuthoringTool() {
         return authoringTool;
-    }
-
-    public void setMeshData(MeshData meshData) {
-        this.meshData = meshData;
-    }
-
-    public MeshData getMeshData() {
-        return meshData;
     }
 
     public Object3D(float[] vertexArray) {

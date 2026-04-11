@@ -14,6 +14,7 @@ import android.opengl.GLES20;
 import android.opengl.GLUtils;
 
 import org.the3deer.android.engine.model.CubeMap;
+import org.the3deer.util.io.ByteBufferInputStream;
 import org.the3deer.android.util.AndroidUtils;
 
 import java.io.ByteArrayInputStream;
@@ -21,8 +22,6 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import de.javagl.jgltf.model.io.Buffers;
 
 public final class GLUtil {
 
@@ -114,7 +113,7 @@ public final class GLUtil {
     }
 
     public static int loadTexture(final ByteBuffer textureData) {
-        Bitmap bitmap = AndroidUtils.decodeBitmap(Buffers.createByteBufferInputStream(textureData));
+        Bitmap bitmap = AndroidUtils.decodeBitmap(new ByteBufferInputStream(textureData));
         return loadTexture(bitmap);
     }
 

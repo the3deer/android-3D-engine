@@ -11,11 +11,8 @@ import org.the3deer.android.engine.model.Scene;
 import org.the3deer.android.engine.model.Screen;
 import org.the3deer.android.engine.model.Texture;
 import org.the3deer.android.engine.services.LoadListener;
-import org.the3deer.android.engine.services.collada.ColladaLoaderTask;
-import org.the3deer.android.engine.services.fbx.FbxLoaderTask;
-import org.the3deer.android.engine.services.gltf.GltfLoaderTask;
-import org.the3deer.android.engine.services.stl.STLLoaderTask;
-import org.the3deer.android.engine.services.wavefront.WavefrontLoaderTask;
+import org.the3deer.android.engine.services.LoaderRegistry;
+import org.the3deer.android.engine.services.LoaderTask;
 import org.the3deer.android.util.ContentUtils;
 import org.the3deer.util.event.EventManager;
 import org.the3deer.util.io.IOUtils;
@@ -309,19 +306,13 @@ public class Model implements LoadListener {
                 }
             }
 
-            if (modelUri.toString().toLowerCase().endsWith(".obj") || "obj".equalsIgnoreCase(modelType)) {
-                new WavefrontLoaderTask(modelUri, this).execute(false);
-            } else if (modelUri.toString().toLowerCase().endsWith(".stl") || "stl".equalsIgnoreCase(modelType)) {
-                logger.info("Loading STL object from: " + modelUri);
-                new STLLoaderTask(modelUri, this).execute(false);
-            } else if (modelUri.toString().toLowerCase().endsWith(".dae") || "dae".equalsIgnoreCase(modelType)) {
-                logger.info("Loading Collada object from: " + modelUri);
-                new ColladaLoaderTask(modelUri, this).execute(false);
-            } else if (modelUri.toString().toLowerCase().endsWith(".gltf") || modelUri.toString().toLowerCase().endsWith(".glb") || "gltf".equalsIgnoreCase(modelType)) {
-                logger.info("Loading GLTF object from: " + modelUri);
-                new GltfLoaderTask(modelUri, this).execute(false);
-            } else if (modelUri.toString().toLowerCase().endsWith(".fbx") || "fbx".equalsIgnoreCase(modelType)) {
-                new FbxLoaderTask(modelUri, this).execute(false);
+            final LoaderTask loaderTask = LoaderRegistry.get(modelType, modelUri, this);
+            if (loaderTask != null) {
+                logger.info("Loading " + modelType + " object from: " + modelUri);
+                loaderTask.execute(false);
+            } else {
+                logger.severe("No loader registered for type: " + modelType);
+                throw new UnsupportedOperationException("No loader registered for type: " + modelType);
             }
 
             // log success

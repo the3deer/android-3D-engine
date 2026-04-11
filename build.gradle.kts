@@ -11,12 +11,6 @@ android {
         minSdk = 24
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")
-
-        externalNativeBuild {
-            cmake {
-                cppFlags("")
-            }
-        }
     }
 
     buildTypes {
@@ -26,10 +20,35 @@ android {
         }
     }
 
-    externalNativeBuild {
-        cmake {
-            path = file("cpp/CMakeLists.txt")
-            version = "3.22.1"
+    sourceSets {
+        getByName("main") {
+            java.srcDirs("src/main/java")
+            
+            if (project.findProperty("includeGltf") == "true") {
+                java.srcDir("src/gltf/java")
+            }
+            if (project.findProperty("includeFbx") == "true") {
+                java.srcDir("src/fbx/java")
+                jniLibs.srcDir("src/fbx/cpp")
+            }
+            if (project.findProperty("includeObj") == "true") {
+                java.srcDir("src/obj/java")
+            }
+            if (project.findProperty("includeStl") == "true") {
+                java.srcDir("src/stl/java")
+            }
+            if (project.findProperty("includeDae") == "true") {
+                java.srcDir("src/dae/java")
+            }
+        }
+    }
+
+    if (project.findProperty("includeFbx") == "true") {
+        externalNativeBuild {
+            cmake {
+                path = file("src/fbx/cpp/CMakeLists.txt")
+                version = "3.22.1"
+            }
         }
     }
 
@@ -46,8 +65,7 @@ android {
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
-    // required by gltf parser
-    implementation(libs.core.jackson.databind)
+    implementation("javax.inject:javax.inject:1")
 }
 
 // Javadoc configuration
