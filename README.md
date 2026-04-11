@@ -2,6 +2,11 @@
 
 A lightweight, modular OpenGL ES 2.0/3.0 engine for Android. This library provides a component-based architecture to load and render 3D models with support for animations, lighting, and various file formats.
 
+## News (11/04/2026)
+
+**Version 2.0.1** *
+- Source split. Now the parsers are plugins that can be included or not. 
+
 ## Features
 
 - **Compatibility**: Android 7.0+ (API 24+), targeting API 35.
