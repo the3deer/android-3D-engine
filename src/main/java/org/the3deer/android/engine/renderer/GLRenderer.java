@@ -3,9 +3,7 @@ package org.the3deer.android.engine.renderer;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
 
-import org.the3deer.util.bean.Bean;
-import org.the3deer.util.bean.BeanInit;
-import org.the3deer.util.bean.BeanProperty;
+import org.jetbrains.annotations.NotNull;
 import org.the3deer.android.engine.ModelEngine;
 import org.the3deer.android.engine.ModelEngineViewModel;
 import org.the3deer.android.engine.event.FPSEvent;
@@ -13,6 +11,9 @@ import org.the3deer.android.engine.event.GLEvent;
 import org.the3deer.android.engine.model.Constants;
 import org.the3deer.android.engine.model.Screen;
 import org.the3deer.android.engine.shader.ShaderManager;
+import org.the3deer.util.bean.Bean;
+import org.the3deer.util.bean.BeanInit;
+import org.the3deer.util.bean.BeanProperty;
 import org.the3deer.util.event.EventManager;
 
 import java.util.ArrayList;
@@ -37,8 +38,7 @@ public class GLRenderer implements GLSurfaceView.Renderer {
 
     private final ModelEngineViewModel viewModel;
 
-    @Inject
-    private Screen screen;
+    private final Screen screen;
     @Inject
     private EventManager eventManager;
     @Inject
@@ -80,8 +80,9 @@ public class GLRenderer implements GLSurfaceView.Renderer {
     /**
      * Construct a new renderer for the specified surface view
      */
-    public GLRenderer(ModelEngineViewModel viewModel) {
+    public GLRenderer(Screen screen, @NotNull ModelEngineViewModel viewModel) {
         logger.info("GLRenderer instantiated: " + System.identityHashCode(this));
+        this.screen = screen;
         this.viewModel = viewModel;
     }
 
@@ -205,6 +206,9 @@ public class GLRenderer implements GLSurfaceView.Renderer {
         this.width = width;
         this.height = height;
 
+        // update model
+        this.screen.setSize(width, height);
+
         // log event
         logger.info("onSurfaceChanged. width: " + width + ", height: " + height);
 
@@ -224,9 +228,6 @@ public class GLRenderer implements GLSurfaceView.Renderer {
             eventManager.propagate(new GLEvent(this, GLEvent.Code.SURFACE_CHANGED,
                     width, height));
         }
-
-        // forward event
-        viewModel.onSurfaceChanged(width, height);
     }
 
     public int getWidth() {
@@ -264,7 +265,7 @@ public class GLRenderer implements GLSurfaceView.Renderer {
 
         // scene not ready
         if (!traced) {
-           logger.finest("onDrawFrame. Invoking listeners... " + listeners.size());
+           logger.info("onDrawFrame. Invoking listeners... " + listeners.size());
         }
 
         // prepare listeners
@@ -284,7 +285,7 @@ public class GLRenderer implements GLSurfaceView.Renderer {
 
         // debug
         if (!traced) {
-           logger.finest("onDrawFrame. Invoking renderers... " + renderers);
+           logger.info("onDrawFrame. Invoking renderers... " + renderers);
         }
 
         try {

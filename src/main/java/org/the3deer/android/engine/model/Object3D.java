@@ -356,6 +356,12 @@ public class Object3D {
         return this.name;
     }
 
+
+    public Object3D setScale(float scale){
+        this.setScale(scale, scale, scale);
+        return this;
+    }
+
     public void setSkinned(boolean skinned) {
         this.isSkinned = skinned;
     }
@@ -742,13 +748,17 @@ public class Object3D {
     }
 
     public Object3D setLocation(float[] location) {
-        return this.setLocation(location[0], location[1], location[2]);
+        return this.setPosition(location[0], location[1], location[2]);
     }
 
     public Object3D setLocation(float locx, float locy, float locz) {
-        this.location[0] = locx;
-        this.location[1] = locy;
-        this.location[2] = locz;
+        return this.setPosition(locx, locy, locz);
+    }
+
+    public Object3D setPosition(float x, float y, float z) {
+        this.location[0] = x;
+        this.location[1] = y;
+        this.location[2] = z;
         this.updateModelMatrix();
         //this.updateModelDimensions();
         this.changed = true;

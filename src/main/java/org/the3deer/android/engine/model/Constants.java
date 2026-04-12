@@ -54,15 +54,15 @@ public class Constants {
     /**
      * Default model size: 1 meter = 100 cm = 100f
      */
-    public static final float DEFAULT_MODEL_SIZE = UNIT * 100f;
+    public static final float DEFAULT_MODEL_SIZE = UNIT * 10f;
     /**
      * Perspective camera. Near clipping panel
      */
-    public static final float near = UNIT;
+    public static final float near = 1f;
     /**
      * Perspective camera. Far clipping panel
      */
-    public static final float far = DEFAULT_MODEL_SIZE * 100f;
+    public static final float far = 100000f;
     /**
      * Default ratio in case no screen is provided (this should not happen)
      */
@@ -107,7 +107,7 @@ public class Constants {
      * Default light location
      */
     public static final float[] DEFAULT_LIGHT_LOCATION = DEFAULT_CAMERA_POSITION;
-    public static final float SKYBOX_SIZE = DEFAULT_MODEL_SIZE * 10f;
+    public static final float SKYBOX_SIZE_FACTOR = 2f;
     public static final float[] Z_NORMAL = {0, 0, 1};
     public static final float[] VECTOR_ZERO = {0,0,0};
     public static final float[] VECTOR_ONE = {1,1,1};
@@ -118,7 +118,7 @@ public class Constants {
 
     static final float ROOM_CENTER_SIZE = 0.001f;
 
-    static final float ROOM_SIZE = SKYBOX_SIZE * 100;
+    static final float ROOM_SIZE = SKYBOX_SIZE_FACTOR * 100;
     /**
      * The nominal frames per second
      */

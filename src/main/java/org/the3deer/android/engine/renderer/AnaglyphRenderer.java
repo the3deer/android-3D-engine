@@ -36,15 +36,17 @@ public class AnaglyphRenderer extends DefaultRenderer {
     @Inject
     private List<EventListener> listeners = new ArrayList<>();
 
+    // camera:  (left red eye) (right blue eye)
+    private final Config leftConf = new Config();
+
+    private Config rightConf = new Config();
+
     public AnaglyphRenderer addListener(EventListener listener) {
         this.listeners.add(listener);
         return this;
     }
 
     public void onDrawFrame() {
-
-        // assert
-        if (sceneManager == null) return;
 
         // get current scene
         final Scene scene = sceneManager.getActiveScene();
@@ -58,10 +60,7 @@ public class AnaglyphRenderer extends DefaultRenderer {
         final Camera rightCamera = stereoCamera[1];
 
         // camera:  (left red eye) (right blue eye)
-        Config leftConf = new Config();
         leftConf.camera = leftCamera;
-
-        Config rightConf = new Config();
         rightConf.camera = rightCamera;
 
         GLES20.glClearColor(0, 0, 0, 1);

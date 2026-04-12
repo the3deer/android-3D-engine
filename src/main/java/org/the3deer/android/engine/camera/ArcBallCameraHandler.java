@@ -5,10 +5,12 @@ import org.the3deer.android.engine.event.TouchEvent;
 import org.the3deer.android.engine.model.Camera;
 import org.the3deer.android.engine.model.Object3D;
 import org.the3deer.android.engine.model.Projection;
+import org.the3deer.android.engine.model.Scene;
 import org.the3deer.android.engine.model.Screen;
 import org.the3deer.util.math.Math3DUtils;
 
 import java.util.EventObject;
+import java.util.logging.Logger;
 
 import javax.inject.Inject;
 
@@ -19,6 +21,8 @@ import javax.inject.Inject;
  * Otherwise, it orbits around the world center (0,0,0) or its current view point.
  */
 public class ArcBallCameraHandler implements Camera.Controller {
+
+    private final static Logger logger = Logger.getLogger(ArcBallCameraHandler.class.getSimpleName());
 
     @Inject
     private Model model;
@@ -68,12 +72,12 @@ public class ArcBallCameraHandler implements Camera.Controller {
 
     /**
      * Calculates the current target point for the camera.
-     * @return The world-space center of the selected object, or (0,0,0) if none selected.
+     * @return The world-space center of the selected object, or the current camera view if none selected.
      */
-    private float[] getTarget() {
-        final Object3D selected = model.getActiveScene().getSelectedObject();
+    private float[] getTarget(Scene scene, Camera camera) {
+        final Object3D selected = scene.getSelectedObject();
         if (selected == null) {
-            return new float[]{0, 0, 0};
+            return camera.getView();
         }
 
         // Get the center of the object in its local space
@@ -89,7 +93,7 @@ public class ArcBallCameraHandler implements Camera.Controller {
         if (dX == 0 && dY == 0) return;
 
         // Update camera's view point to follow selection target
-        final float[] target = getTarget();
+        final float[] target = getTarget(model.getActiveScene(), camera);
         camera.getView()[0] = target[0];
         camera.getView()[1] = target[1];
         camera.getView()[2] = target[2];
@@ -147,7 +151,7 @@ public class ArcBallCameraHandler implements Camera.Controller {
         if (direction == 0) return;
 
         // Ensure target is up to date
-        final float[] target = getTarget();
+        final float[] target = getTarget(model.getActiveScene(), camera);
         camera.getView()[0] = target[0];
         camera.getView()[1] = target[1];
         camera.getView()[2] = target[2];

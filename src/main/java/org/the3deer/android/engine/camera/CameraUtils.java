@@ -3,6 +3,7 @@ package org.the3deer.android.engine.camera;
 import org.the3deer.android.engine.model.Camera;
 import org.the3deer.android.engine.model.Object3D;
 import org.the3deer.android.engine.model.Projection;
+import org.the3deer.android.engine.model.Scene;
 
 import java.util.List;
 import java.util.logging.Logger;
@@ -69,7 +70,7 @@ public class CameraUtils {
         float dz = maxZ - minZ;
         
         // Sphere radius that perfectly encloses the AABB
-        float radius = (float) Math.sqrt(dx * dx + dy * dy + dz * dz) / 2.0f;
+        final float radius = (float) Math.sqrt(dx * dx + dy * dy + dz * dz) / 2.0f;
 
         // 3. Calculate distance based on FOV
         Projection projection = camera.getProjection();
@@ -85,40 +86,12 @@ public class CameraUtils {
             distance = distance * 0.8f; // Get a bit closer for tiny things
         }
 
-        // --- ROBUST CLIPPING PLANE LOGIC ---
-        // Avoid "gaps" (Z-fighting) by maintaining a healthy Near/Far ratio.
-        if (projection != null) {
-            
-            // We set near to a balanced fraction of the distance (1%).
-            // This is a "sweet spot" that avoids most foreground clipping while preserving depth precision.
-            float suggestedNear = distance * 0.01f;
-            
-            // Floors to avoid numerical instability
-            float floor = (radius < 0.1f) ? 0.0001f : 0.01f;
-            suggestedNear = Math.max(suggestedNear, floor);
-            
-            // Set far plane to capture the whole model plus reasonable headroom (10x radius)
-            float suggestedFar = distance + radius * 10.0f;
-            
-            // Conservative Ratio: Keep Far/Near <= 1,000 to support 16-bit depth buffers (older/cheaper devices)
-            // This prevents the "eaten" look (Z-fighting) seen in smaller models.
-            if (suggestedFar / suggestedNear > 1000f) {
-                suggestedNear = suggestedFar / 1000f;
-            }
-
-            if (suggestedFar <= 100){
-                suggestedFar = 100f;
-            }
-
-            projection.setNear(suggestedNear);
-            projection.setFar(suggestedFar);
-            
-            logger.info("- Dynamic projection: near=" + suggestedNear + ", far=" + suggestedFar + " (Ratio: " + (suggestedFar/suggestedNear) + ")");
-        }
+        // 4. Update Projection Clipping Planes
+        updateProjection(camera, centerX, centerY, centerZ, radius);
 
         logger.info("Framing model: center=(" + centerX + "," + centerY + "," + centerZ + "), distance=" + distance);
 
-        // 4. Position the camera
+        // 5. Position the camera
         float[] lookDir = new float[]{
                 camera.getView()[0] - camera.getPos()[0],
                 camera.getView()[1] - camera.getPos()[1],
@@ -141,5 +114,78 @@ public class CameraUtils {
         logger.info("- New Camera position: "+newPosX+","+newPosY+","+newPosZ);
 
         camera.set(newPosX, newPosY, newPosZ, centerX, centerY, centerZ, 0, 1, 0);
+    }
+
+    /**
+     * Updates the camera's projection clipping planes (near/far) based on the scene's current state.
+     * This ensures the entire model is visible regardless of camera movement.
+     *
+     * @param camera the camera to update
+     * @param scene the scene containing the model dimensions
+     */
+    public static void updateProjection(Camera camera, Scene scene) {
+        if (camera == null || scene == null || scene.getDimensions() == null) {
+            return;
+        }
+
+        final float[] center = scene.getDimensions().getCenter();
+        final float radius = scene.getDimensions().getRadius();
+
+        updateProjection(camera, center[0], center[1], center[2], radius);
+    }
+
+    /**
+     * Updates the camera's projection clipping planes (near/far) based on camera position and target sphere.
+     */
+    public static void updateProjection(Camera camera, float centerX, float centerY, float centerZ, float radius) {
+        final Projection projection = camera.getProjection();
+        if (projection == null) return;
+
+        // 1. Calculate Distance from Camera to Scene Center
+        final float[] camPos = camera.getPos();
+        final float distance = (float) Math.sqrt(
+                Math.pow(camPos[0] - centerX, 2) +
+                Math.pow(camPos[1] - centerY, 2) +
+                Math.pow(camPos[2] - centerZ, 2)
+        );
+
+        // --- ROBUST CLIPPING PLANE LOGIC ---
+        // We set near to a balanced fraction of the distance (1%),
+        // but we must ensure it's closer than the front of the model.
+        float suggestedNear = Math.min(distance * 0.01f, Math.max(0.001f, (distance - radius) * 0.5f));
+
+        // Floors to avoid numerical instability
+        final float floor = (radius < 0.1f) ? 0.0001f : 0.01f;
+        suggestedNear = Math.max(suggestedNear, floor);
+
+        // Set far plane to capture the model plus a generous headroom (2.0x radius).
+        // DO NOT include the skybox/universe here; it will be handled by a private projection pass.
+        float suggestedFar = distance + radius * 2.0f;
+
+        // --- HARDWARE-AWARE DEPTH PRECISION ---
+        final int[] depthBits = new int[1];
+        android.opengl.GLES20.glGetIntegerv(android.opengl.GLES20.GL_DEPTH_BITS, depthBits, 0);
+        final float maxHealthyRatio = (depthBits[0] >= 24) ? 10000f : 1000f;
+
+        if (suggestedFar / suggestedNear > maxHealthyRatio) {
+            // If the ratio is too high, we must increase 'near' to preserve depth precision.
+            // This might clip the very front of the model, which is usually acceptable.
+            suggestedNear = suggestedFar / maxHealthyRatio;
+
+            // But don't increase 'near' so much that we clip the center of the model!
+            final float maxNearLimit = distance - radius * 0.1f;
+            if (suggestedNear > maxNearLimit) {
+                suggestedNear = Math.max(floor, maxNearLimit);
+                suggestedFar = suggestedNear * maxHealthyRatio;
+            }
+        } else {
+            suggestedFar = suggestedNear * maxHealthyRatio;
+        }
+
+        // Apply to projection
+        projection.setNear(suggestedNear);
+        projection.setFar(suggestedFar);
+
+        // logger.finest("- Scene projection updated: near=" + suggestedNear + ", far=" + suggestedFar);
     }
 }

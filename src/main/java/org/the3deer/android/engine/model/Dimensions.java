@@ -166,6 +166,16 @@ public class Dimensions {
     }
 
     /**
+     * @return the radius of the bounding sphere that encloses the AABB
+     */
+    public float getRadius() {
+        final float dx = max[0] - min[0];
+        final float dy = max[1] - min[1];
+        final float dz = max[2] - min[2];
+        return (float) Math.sqrt(dx * dx + dy * dy + dz * dz) / 2.0f;
+    }
+
+    /**
      * This is the same as center()-min()
      * @return the distance vector from min() to center()
      */

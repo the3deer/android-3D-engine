@@ -39,7 +39,7 @@ public class ShadowDrawer implements Drawer {
     // shadowing
     @BeanProperty
     private boolean enabled = false;
-    private ShadowsRenderer shadowsRenderer;
+    private ShadowsRenderer shadowsRenderer = new ShadowsRenderer();
     private final float[] lightViewMatrix = new float[16];
 
     public ShadowDrawer() throws IOException, IllegalAccessException {
@@ -48,8 +48,6 @@ public class ShadowDrawer implements Drawer {
     @BeanInit
     public void setUp(){
         if (activity == null || shaderFactory == null) return;
-
-        this.shadowsRenderer = new ShadowsRenderer();
     }
 
     @Override
@@ -60,15 +58,6 @@ public class ShadowDrawer implements Drawer {
     @Override
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
-    }
-
-    /*@Override
-    public List<? extends Object3D> getObjects() {
-        return Collections.emptyList();
-    }*/
-
-    public void onSurfaceChanged(int width, int height) {
-        shadowsRenderer.onSurfaceChanged(width, height);
     }
 
     @Override
@@ -93,15 +82,13 @@ public class ShadowDrawer implements Drawer {
 
         // check
         final Camera sceneCamera = scene.getActiveCamera();
-        if (sceneCamera == null || light == null || shadowsRenderer == null) return;
+        if (sceneCamera == null || light == null) return;
 
         // get camera (it will be different in stereoscopic mode)
         final Camera camera = config != null && config.camera != null? config.camera : sceneCamera;
 
         // check
         if (scene.getObjects().isEmpty()) return;
-
-        if (!shadowsRenderer.enabled) return;
 
         // Front-Face Culling for the Shadow Map
         // A very effective trick to reduce acne is to render only the back faces of your objects
@@ -110,12 +97,12 @@ public class ShadowDrawer implements Drawer {
         GLES20.glCullFace(GLES20.GL_FRONT);
 
         // shadow buffer
-        shadowsRenderer.onPrepareFrame(shaderFactory, camera.getProjectionMatrix(), camera.getViewMatrix(), light.getLocation(), scene);
+        shadowsRenderer.onPrepareFrame(shaderFactory, config, camera.getProjectionMatrix(), camera.getViewMatrix(), light.getLocation(), scene);
 
         // ... render objects to depth FBO ...
         GLES20.glCullFace(GLES20.GL_FRONT); // Restore for normal rendering (was GLES20.glCullFace(GLES20.GL_BACK) in original code, but restoring the state)
 
         // render with shadows
-        shadowsRenderer.onDrawFrame(shaderFactory, camera.getProjectionMatrix(), camera.getViewMatrix(), light.getLocation(), scene);
+        shadowsRenderer.onDrawFrame(shaderFactory, config, camera.getProjectionMatrix(), camera.getViewMatrix(), light.getLocation(), scene);
     }
 }

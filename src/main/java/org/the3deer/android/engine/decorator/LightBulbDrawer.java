@@ -120,7 +120,7 @@ public class LightBulbDrawer implements Drawer, EventListener {
         final float z = (float) (Math.cos(angle) * Math.sin(lat));
         
         // Place it far away, just inside the skybox
-        final float distance = Constants.SKYBOX_SIZE * 0.8f;
+        final float distance = Constants.SKYBOX_SIZE_FACTOR * 0.8f;
         return new float[]{-x * distance, y * distance, z * distance};
     }
 

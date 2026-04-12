@@ -4,6 +4,7 @@ import android.opengl.GLES20;
 
 import org.the3deer.android.engine.Model;
 import org.the3deer.android.engine.animation.Animator;
+import org.the3deer.android.engine.camera.CameraUtils;
 import org.the3deer.android.engine.model.Camera;
 import org.the3deer.android.engine.model.Constants;
 import org.the3deer.android.engine.model.Light;
@@ -96,6 +97,11 @@ public class DefaultRenderer implements Renderer, EventListener {
         // check
         if (!enabled) return;
 
+        // update camera projection dynamically to fit the model
+        if (sceneManager != null && sceneManager.getActiveScene() != null) {
+            CameraUtils.updateProjection(defaultCamera, sceneManager.getActiveScene());
+        }
+
         // prepare frame
         prepareFrame(null);
     }
@@ -106,36 +112,37 @@ public class DefaultRenderer implements Renderer, EventListener {
         // check
         if (!enabled) return;
 
-        drawFrame(null);
+        drawFrame(this.defaultConfig);
     }
 
     protected void drawFrame(Renderer.Config config) {
 
-        // Default viewport
-        GLES20.glViewport(0, 0, screen.width, screen.height);
-        GLES20.glScissor(0, 0, screen.width, screen.height);
-
-        // override viewport
-        if (config != null) {
-
-            // configure viewport
-            GLES20.glViewport(config.viewPortX, config.viewPortY, config.viewPortWidth, config.viewPortHeigth);
-            GLES20.glScissor(config.viewPortX, config.viewPortY, config.viewPortWidth, config.viewPortHeigth);
-        }
-
-        // debug
-        if (!traced) {
-            logger.config("onDrawFrame start... " + drawers);
-        }
+        // check full initialization
+        if (screen == null) return;
 
         // default config
         if (config == null) {
             config = this.defaultConfig;
         }
 
+        if (config.viewPortWidth == 0 || config.viewPortHeigth == 0) {
+            config.viewPortWidth = screen.width;
+            config.viewPortHeigth = screen.height;
+            logger.info("- Viewport (default) configured . width: "+screen.width+", height: "+screen.height);
+        }
+
         // check
         if (config.camera == null) {
             config.camera = defaultCamera;
+        }
+
+        // configure viewport
+        GLES20.glViewport(config.viewPortX, config.viewPortY, config.viewPortWidth, config.viewPortHeigth);
+        GLES20.glScissor(config.viewPortX, config.viewPortY, config.viewPortWidth, config.viewPortHeigth);
+
+        // debug
+        if (!traced) {
+            logger.config("onDrawFrame start... " + drawers);
         }
 
         // invoke all decorators

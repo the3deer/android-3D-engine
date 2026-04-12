@@ -18,8 +18,8 @@ public final class PerspectiveProjection implements Projection {
 
     private float yfov = 60.0f;
     private float aspectRatio = -1;
-    private float znear = 0.01f;
-    private float zfar = 1000f;
+    private float znear = Constants.near;
+    private float zfar = Constants.far;
     /**
      * This flag to indicate if the perspective is coming from the 3d model (true = yes)
      */
@@ -62,7 +62,15 @@ public final class PerspectiveProjection implements Projection {
 
     @Override
     public float[] getMatrix(){
-        float ratio = aspectRatio == -1 && screen != null ? screen.getRatio() : this.aspectRatio;
+
+        // safe ratio
+        float ratio = this.aspectRatio;
+        if (ratio == -1 && screen != null){
+            ratio = screen.getRatio();
+        }
+        if (ratio == -1) ratio = 1.0f;
+
+        // calculate projection
         if (custom) {
             Matrix.perspectiveM(matrix, 0, yfov, ratio, znear, zfar);
         } else {

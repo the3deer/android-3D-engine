@@ -2,18 +2,17 @@ package org.the3deer.android.engine.shadow;
 
 import android.opengl.GLES20;
 
-import org.the3deer.android.engine.model.Object3D;
-
-import org.the3deer.util.bean.BeanProperty;
-import org.the3deer.android.engine.util.GLUtil;
 import org.the3deer.android.engine.model.Camera;
 import org.the3deer.android.engine.model.Constants;
+import org.the3deer.android.engine.model.Object3D;
 import org.the3deer.android.engine.model.Scene;
 import org.the3deer.android.engine.objects.Plane2;
-import org.the3deer.android.util.Matrix;
+import org.the3deer.android.engine.renderer.Renderer;
 import org.the3deer.android.engine.shader.Program;
 import org.the3deer.android.engine.shader.Shader;
 import org.the3deer.android.engine.shader.ShaderManager;
+import org.the3deer.android.engine.util.GLUtil;
+import org.the3deer.android.util.Matrix;
 import org.the3deer.util.math.Math3DUtils;
 
 import java.util.List;
@@ -84,12 +83,6 @@ public class ShadowsRenderer {
     private float mRotationY;
 
     /**
-     * Current display sizes
-     */
-    private int mDisplayWidth;
-    private int mDisplayHeight;
-
-    /**
      * Current shadow map sizes
      */
     private int mShadowMapWidth;
@@ -120,9 +113,6 @@ public class ShadowsRenderer {
 
     final Object3D plane = Plane2.build();
 
-    @BeanProperty
-    boolean enabled = false;
-
     {
         plane.setColor(Constants.COLOR_GRAY.clone());
         plane.setLocation(new float[]{0f, -Constants.DEFAULT_MODEL_SIZE/2, 0f});
@@ -145,14 +135,14 @@ public class ShadowsRenderer {
     /**
      * Sets up the framebuffer and renderbuffer to render to texture
      */
-    public void generateShadowFBO(){
+    public void generateShadowFBO(Renderer.Config config){
 
         if (fboId != null) {
             return;
         }
 
-        mShadowMapWidth = Math.round(mDisplayWidth * this.mShadowMapRatio);
-        mShadowMapHeight = Math.round(mDisplayHeight * this.mShadowMapRatio);
+        mShadowMapWidth = Math.round(config.viewPortWidth * this.mShadowMapRatio);
+        mShadowMapHeight = Math.round(config.viewPortHeigth * this.mShadowMapRatio);
 
         fboId = new int[1];
         depthTextureId = new int[1];
@@ -212,25 +202,18 @@ public class ShadowsRenderer {
 
         if(FBOstatus != GLES20.GL_FRAMEBUFFER_COMPLETE) {
             logger.log(Level.SEVERE, "GL_FRAMEBUFFER_COMPLETE failed, CANNOT use FBO. code: "+FBOstatus);
-            enabled = false;
             throw new IllegalStateException("GL_FRAMEBUFFER_COMPLETE failed, CANNOT use FBO. code: "+FBOstatus);
         }
     }
 
-    public void onSurfaceChanged(int width, int height) {
-        mDisplayWidth = width;
-        mDisplayHeight = height;
-    }
+    public void onDrawFrame(ShaderManager shaderFactory, Renderer.Config config, float[] mProjectionMatrix, float[] mViewMatrix, float[] mActualLightPosition, Scene scene) {
 
-
-    public void onDrawFrame(ShaderManager shaderFactory, float[] mProjectionMatrix, float[] mViewMatrix, float[] mActualLightPosition, Scene scene) {
-
-        GLES20.glViewport(0, 0, mDisplayWidth, mDisplayHeight);
+        GLES20.glViewport(0, 0, config.viewPortWidth, config.viewPortHeigth);
 
         GLES20.glEnable(GLES20.GL_CULL_FACE);
         GLES20.glCullFace(GLES20.GL_BACK);
 
-     	renderScene(shaderFactory, scene, mProjectionMatrix, mViewMatrix, mActualLightPosition);
+     	renderScene(shaderFactory, config, scene, mProjectionMatrix, mViewMatrix, mActualLightPosition);
 
         // Print openGL errors to console
         int debugInfo = GLES20.glGetError();
@@ -242,13 +225,13 @@ public class ShadowsRenderer {
 
     }
 
-    public void onPrepareFrame(ShaderManager shaderFactory, float[] mProjectionMatrix, float[] mViewMatrix, float[] mActualLightPosition, Scene scene) {
+    public void onPrepareFrame(ShaderManager shaderFactory, Renderer.Config config, float[] mProjectionMatrix, float[] mViewMatrix, float[] mActualLightPosition, Scene scene) {
 
-        GLES20.glViewport(0, 0, mDisplayWidth, mDisplayHeight);
+        GLES20.glViewport(0, 0, config.viewPortWidth, config.viewPortHeigth);
 
-        generateShadowFBO();
+        generateShadowFBO(config);
 
-        float ratio = (float) mDisplayWidth / mDisplayHeight;
+        float ratio = (float) config.viewPortWidth / config.viewPortHeigth;
 
         float bottom = -1.0f;
         float top = 1.0f;
@@ -312,14 +295,14 @@ public class ShadowsRenderer {
         }
     }
 
-    private void renderScene(ShaderManager shaderFactory, Scene scene, float[] mProjectionMatrix, float[] mViewMatrix, float[] mActualLightPosition) {
+    private void renderScene(ShaderManager shaderFactory, Renderer.Config config, Scene scene, float[] mProjectionMatrix, float[] mViewMatrix, float[] mActualLightPosition) {
 
         // bind default framebuffer
         GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0);
 
         GLES20.glClear(GLES20.GL_DEPTH_BUFFER_BIT);
 
-        GLES20.glViewport(0, 0, mDisplayWidth, mDisplayHeight);
+        GLES20.glViewport(0, 0, config.viewPortWidth, config.viewPortHeigth);
 
         float[] tempResultMatrix = new float[16];
 

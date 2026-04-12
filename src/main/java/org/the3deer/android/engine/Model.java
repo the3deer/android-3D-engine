@@ -432,6 +432,7 @@ public class Model implements LoadListener {
         // calculate scene dimensions
         final Dimensions dimensions = new Dimensions();
         for (Object3D object : scene.getObjects()) {
+            if (object.isDecorator()) continue;
             final Dimensions objDimensions = object.getCurrentDimensions();
             if (objDimensions != null) {
                 float[] min = objDimensions.getMin();

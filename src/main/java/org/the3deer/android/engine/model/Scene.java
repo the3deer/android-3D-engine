@@ -2,6 +2,7 @@ package org.the3deer.android.engine.model;
 
 import org.the3deer.android.engine.animation.Animation;
 import org.the3deer.android.util.Matrix;
+import org.the3deer.util.math.Math3DUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -138,18 +139,24 @@ public class Scene {
 
     public void update() {
 
-        logger.config("Updating scene...");
-
-        // center scene
+        /*// center scene
         final float[] center = getDimensions().getCenter();
         Matrix.setIdentityM(worldMatrix, 0);
         Matrix.translateM(worldMatrix, 0, -center[0], -center[1], -center[2]);
+
+        logger.info("- World transform translation: "+center[0]+", "+center[1]+", "+center[2]);
+
         for (Node node : rootNodes) {
             node.updateWorldTransform(worldMatrix);
+        }*/
+
+        for (Node node : rootNodes) {
+            node.updateWorldTransform(Math3DUtils.IDENTITY_MATRIX);
         }
 
         if (!animations.isEmpty() && activeAnimation == null) {
             activeAnimation = animations.get(0);
+            logger.info("- Animation active:: "+activeAnimation.getName());
         }
     }
 

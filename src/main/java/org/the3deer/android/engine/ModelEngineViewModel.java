@@ -34,10 +34,9 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
     private static final Logger logger = Logger.getLogger(ModelEngineViewModel.class.getSimpleName());
 
     /**
-     * OpenGL Screen. Shared across all models to ensure consistent UI.
+     * OpenGL Screen. Shared across all models to ensure consistent UI. Initialized with some safe value
      */
-    private final MutableLiveData<Screen> _glScreen = new MutableLiveData<>(new Screen(640, 480));
-    public final LiveData<Screen> glScreen = _glScreen;
+    private final Screen glScreen = new Screen(640, 480);
     /**
      * Model
      */
@@ -328,7 +327,7 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
         ModelEngine engine = engines.get(uriString);
         if (engine != null) return engine;
 
-        engine = new ModelEngine(uriString, _glScreen.getValue(), model, getApplication());
+        engine = new ModelEngine(uriString, glScreen, model, getApplication());
         engines.put(uriString, engine);
 
 
@@ -449,25 +448,6 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
         return model;
     }
 
-    public void onSurfaceChanged(int width, int height) {
-
-        // debug
-        logger.config("onSurfaceChanged: " + width + " x " + height);
-
-        // get screen
-        Screen screen = _glScreen.getValue();
-
-        // check
-        if (screen == null) throw new IllegalStateException("screen is null at this point");
-
-        // update model
-        screen.setSize(width, height);
-
-        // notify
-        _glScreen.postValue(screen);
-
-    }
-
     public ModelEngine getActiveEngine() {
         return activeEngine.getValue();
     }
@@ -556,5 +536,9 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
                 engine.close();
             }
         }
+    }
+
+    public Screen getGlScreen() {
+        return glScreen;
     }
 }
