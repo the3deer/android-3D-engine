@@ -88,10 +88,11 @@ public class ContentUtils {
             final String[] files = activity.getAssets().list(directory);
             if (files != null && files.length > 0) {
                 for (String document : files) {
-                    final String[] files2 = activity.getAssets().list(directory + "/" + document);
+                    String assetNameSanitized = document.replaceAll(" ", "+");
+                    final String[] files2 = activity.getAssets().list(directory + "/" + assetNameSanitized);
                     if (files2 == null) continue;
                     if (files2.length == 0) {
-                        documentsProvided.put(document, URI.create("android://" + activity.getPackageName() + "/assets/models/" + document));
+                        documentsProvided.put(document, URI.create("android://" + activity.getPackageName() + "/assets/models/" + assetNameSanitized));
                     }
                 }
             }
