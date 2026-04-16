@@ -12,7 +12,6 @@ import org.the3deer.android.engine.model.Constants;
 import org.the3deer.android.engine.model.Screen;
 import org.the3deer.android.engine.shader.ShaderManager;
 import org.the3deer.util.bean.Bean;
-import org.the3deer.util.bean.BeanInit;
 import org.the3deer.util.bean.BeanProperty;
 import org.the3deer.util.event.EventManager;
 
@@ -84,19 +83,6 @@ public class GLRenderer implements GLSurfaceView.Renderer {
         logger.info("GLRenderer instantiated: " + System.identityHashCode(this));
         this.screen = screen;
         this.viewModel = viewModel;
-    }
-
-    @BeanInit
-    public void setUp() {
-        logger.info("GLRenderer setUp: " + System.identityHashCode(this));
-
-        if (renderers == null || renderers.isEmpty()) {
-            throw new IllegalArgumentException("No renderers found");
-        }
-
-        if (renderer == null) {
-            renderer = renderers.get("renderer.default");
-        }
     }
 
     @BeanProperty
@@ -241,6 +227,12 @@ public class GLRenderer implements GLSurfaceView.Renderer {
 
     @Override
     public void onDrawFrame(GL10 unused) {
+
+        // check
+        if (renderer == null && renderers != null) {
+            renderer = renderers.get("renderer.default");
+            logger.info("- Renderer default: " + renderer);
+        }
 
         // check
         if (renderer == null || !renderer.isEnabled()) return;
