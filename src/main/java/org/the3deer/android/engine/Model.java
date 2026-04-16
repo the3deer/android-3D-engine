@@ -267,7 +267,7 @@ public class Model implements LoadListener {
                     final int dotIndex = zipFilename.lastIndexOf('.');
                     final String fileExtension;
                     if (dotIndex != -1) {
-                        fileExtension = zipFilename.substring(dotIndex);
+                        fileExtension = zipFilename.substring(dotIndex).toLowerCase();
                     } else {
                         continue; // it's probably a folder. ignore it
                     }
