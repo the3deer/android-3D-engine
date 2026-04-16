@@ -302,24 +302,29 @@ public class Model implements LoadListener {
                     logger.info("Found model in zip: " + modelFile);
                 } else {
                     logger.severe("Model file found in zip: " + modelFile);
-                    throw new IllegalArgumentException("No model found in zip file: " + uri);
+                    setStatus(Status.ERROR, "No model found in zip: " + modelUri);
+                    //throw new IllegalArgumentException("No model found in zip file: " + uri);
+                    return;
                 }
             }
 
             final LoaderTask loaderTask = LoaderRegistry.get(modelType, modelUri, this);
             if (loaderTask != null) {
+
                 logger.info("Loading " + modelType + " object from: " + modelUri);
                 loaderTask.execute(false);
+
+                // log success
+                logger.info("Loading model finished -------------------------------------- ");
+
+                // update model
+                setStatus(Model.Status.OK, "Loading Model finished successfully");
+
             } else {
                 logger.severe("No loader registered for type: " + modelType);
-                throw new UnsupportedOperationException("No loader registered for type: " + modelType);
+                setStatus(Status.ERROR, "No loader registered for type: " + modelType);
+                //throw new UnsupportedOperationException("No loader registered for type: " + modelType);
             }
-
-            // log success
-            logger.info("Loading model finished -------------------------------------- ");
-
-            // update model
-            setStatus(Model.Status.OK, "Loading Model finished successfully");
 
         } finally {
             // unregister current model from the thread
