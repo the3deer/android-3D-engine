@@ -30,8 +30,9 @@ public final class BoundingBox {
 
         logger.config("Building SKINNED bounding box for: " + sourcePrimitive.getId());
 
-        // clone model
-        AnimatedModel boundingBox = sourcePrimitive.clone();
+        // Create a fresh AnimatedModel instead of cloning to avoid "baggage"
+        // from the original mesh (like thousands of indices).
+        AnimatedModel boundingBox = new AnimatedModel();
 
         // override attributes
         boundingBox.setId(sourcePrimitive.getId() + "_boundingBox_skinned");
@@ -57,12 +58,25 @@ public final class BoundingBox {
         // --- ROBUST SKINNING --- //
         // Bind all 8 vertices of the bounding box to the root joint of the skeleton.
         // This makes the box move as a rigid unit with the model's root, which is the correct behavior.
-        Node rootJoint = sourcePrimitive.getParentNode();
+        Skin skin = sourcePrimitive.getSkin();
+        Node rootJoint = skin != null ? skin.getRootJoint() : null;
+
+        if (rootJoint == null) {
+            rootJoint = sourcePrimitive.getParentNode();
+        } /*else {
+            if (!rootJoint.getChildren().isEmpty()){
+                // FIXME: get the first child for autodesk exported models
+                rootJoint = rootJoint.getChildren().get(0);
+            }
+        }*/
+
         if (rootJoint == null) {
             logger.log(Level.SEVERE,  "Source primitive " + sourcePrimitive.getId() + " has no root joint!");
             return buildStatic(sourcePrimitive); // Fallback to a static box
         }
-        logger.config("Root node: " + rootJoint.getId()+", Joint index: "+rootJoint.getJointIndex());
+        boundingBox.setParentNode(rootJoint);
+
+        logger.info("- BoundingBox Root Node: " + rootJoint.getId()+", Joint Index: "+rootJoint.getJointIndex());
         int rootJointId = Math.max(rootJoint.getJointIndex(), 0);
 
         IntBuffer bboxJoints = IOUtils.createIntBuffer(8 * 4);
@@ -98,7 +112,7 @@ public final class BoundingBox {
         //@formatter:on
         indexBuffer.flip();
         boundingBox.setIndexBuffer(indexBuffer);
-        boundingBox.getElements().get(0).setIndexBuffer(indexBuffer);
+        //boundingBox.getElements().get(0).setIndexBuffer(indexBuffer);
         boundingBox.setDrawMode(GLES20.GL_LINES);
         boundingBox.setIndexed(true);
         boundingBox.setDrawModeList(null);
