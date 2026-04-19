@@ -282,7 +282,7 @@ public class ShaderImplV2 implements Shader {
             // Check if this is an animated model with a skin.
             if (obj instanceof AnimatedModel) {
                 AnimatedModel animatedModel = (AnimatedModel) obj;
-                if (animatedModel.getParentNode() != null && animatedModel.getParentNode().getSkin() != null) {
+                if (animatedModel.getSkin() != null) {
                     // Skinned models have their world transformation baked into the joint matrices (u_jointMat).
                     // Therefore, the main model matrix must be identity to avoid double-transformation.
                     modelMatrix = Math3DUtils.IDENTITY_MATRIX;
@@ -304,7 +304,7 @@ public class ShaderImplV2 implements Shader {
             float[] normalMatrix = obj.getNormalMatrix();
              if (obj instanceof AnimatedModel) {
                 AnimatedModel animatedModel = (AnimatedModel) obj;
-                if (animatedModel.getParentNode() != null && animatedModel.getParentNode().getSkin() != null) {
+                if (animatedModel.getSkin() != null) {
                    normalMatrix = Math3DUtils.IDENTITY_MATRIX;
                 }
             }
