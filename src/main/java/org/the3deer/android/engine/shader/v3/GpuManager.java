@@ -96,12 +96,18 @@ public class GpuManager {
 
         // Animation Attributes
         boolean hasSkin = false;
+        int jointTextureId = 0;
         if (obj instanceof AnimatedModel) {
             Skin skin = ((AnimatedModel) obj).getSkin();
             if (skin != null && skin.getJointsBuffer() != null && skin.getWeightsBuffer() != null) {
                 uploadAttribute(ATTR_JOINT_INDICES, vboIds[ATTR_JOINT_INDICES], skin.getJointsBuffer(), skin.getJointComponents(), usage);
                 uploadAttribute(ATTR_JOINT_WEIGHTS, vboIds[ATTR_JOINT_WEIGHTS], skin.getWeightsBuffer(), skin.getWeightsComponents(), usage);
                 hasSkin = true;
+
+                // Create a texture ID for skinning matrices
+                final int[] texIds = new int[1];
+                GLES30.glGenTextures(1, texIds, 0);
+                jointTextureId = texIds[0];
             }
         }
 
@@ -128,9 +134,9 @@ public class GpuManager {
         GLES30.glBindVertexArray(0);
 
         return new GpuAsset(vaoIds[0], vboIds, gpuElements, 
-                obj.getVertexBuffer().capacity() / 3, 
+                obj.getVertexCount(), 
                 obj.getDrawMode(),
-                hasSkin, hasNormals, hasTexCoords, hasColors, hasTangents);
+                jointTextureId, hasSkin, hasNormals, hasTexCoords, hasColors, hasTangents);
     }
 
     private void updateAsset(GpuAsset asset, Object3D obj) {
@@ -147,7 +153,7 @@ public class GpuManager {
         GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, vboId);
         buffer.position(0);
         int elementSize = (buffer instanceof FloatBuffer || buffer instanceof IntBuffer) ? 4 : (buffer instanceof ShortBuffer) ? 2 : 1;
-        GLES30.glBufferSubData(GLES30.GL_ARRAY_BUFFER, 0, buffer.capacity() * elementSize, buffer);
+        GLES30.glBufferSubData(GLES30.GL_ARRAY_BUFFER, 0, buffer.remaining() * elementSize, buffer);
     }
 
     private GpuAsset.GpuElement uploadIndexBuffer(Buffer indexBuffer) {
@@ -157,7 +163,7 @@ public class GpuManager {
         int eboId = eboIds[0];
         GLES30.glBindBuffer(GLES30.GL_ELEMENT_ARRAY_BUFFER, eboId);
         indexBuffer.position(0);
-        int count = indexBuffer.capacity();
+        int count = indexBuffer.remaining();
         int type;
         int size;
         if (indexBuffer instanceof IntBuffer) {
@@ -197,9 +203,14 @@ public class GpuManager {
         } else {
             throw new IllegalArgumentException("Unsupported buffer type: " + buffer.getClass());
         }
-        GLES30.glBufferData(GLES30.GL_ARRAY_BUFFER, buffer.capacity() * elementSize, buffer, usage);
+        GLES30.glBufferData(GLES30.GL_ARRAY_BUFFER, buffer.remaining() * elementSize, buffer, usage);
         GLES30.glEnableVertexAttribArray(location);
         GLES30.glVertexAttribPointer(location, size, type, false, 0, 0);
+    }
+
+    public int getJointTextureId(Object3D obj) {
+        GpuAsset asset = assetMap.get(obj);
+        return asset != null ? asset.getJointTextureId() : 0;
     }
 
     public void removeAsset(Object3D obj) {

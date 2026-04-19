@@ -205,7 +205,6 @@ public class DefaultRenderer implements Renderer, EventListener {
 
         // 3. SKINNING PHASE: UPDATE ALL SKELETON MATRICES
         // Now that all nodes have their final world transforms, we can compute the skinning matrices.
-        scene.getSkins();
         if (!scene.getSkins().isEmpty()) {
             for (int i = 0; i < scene.getSkins().size(); i++) {
                 Skin skin = scene.getSkins().get(i);

@@ -11,14 +11,13 @@ layout(location = 4) in vec4 in_jointIndices;
 layout(location = 5) in vec4 in_weights;
 layout(location = 6) in vec4 a_Tangent;
 
-const int MAX_JOINTS = 60;
-
 uniform mat4 u_MMatrix;
 uniform mat4 u_VMatrix;
 uniform mat4 u_PMatrix;
 uniform mat4 u_NormalMatrix;
 uniform mat4 u_BindShapeMatrix;
-uniform mat4 jointTransforms[MAX_JOINTS];
+
+uniform sampler2D u_JointTexture;
 
 uniform bool u_Animated;
 uniform bool u_Coloured;
@@ -31,6 +30,15 @@ out vec3 v_Normal;
 out vec2 v_TexCoordinate;
 out vec4 v_Color;
 out vec4 v_Tangent;
+
+mat4 getJointMatrix(int jointIndex) {
+    return mat4(
+        texelFetch(u_JointTexture, ivec2(0, jointIndex), 0),
+        texelFetch(u_JointTexture, ivec2(1, jointIndex), 0),
+        texelFetch(u_JointTexture, ivec2(2, jointIndex), 0),
+        texelFetch(u_JointTexture, ivec2(3, jointIndex), 0)
+    );
+}
 
 void main() {
     vec4 localPos = vec4(a_Position, 1.0);
@@ -46,30 +54,16 @@ void main() {
     if (u_Animated) {
         vec4 bindPos = u_BindShapeMatrix * localPos;
 
-        // Dynamic skinning
-        vec4 animatedPos = (jointTransforms[int(in_jointIndices.x)] * bindPos) * in_weights.x;
-        animatedPos += (jointTransforms[int(in_jointIndices.y)] * bindPos) * in_weights.y;
-        animatedPos += (jointTransforms[int(in_jointIndices.z)] * bindPos) * in_weights.z;
-        animatedPos += (jointTransforms[int(in_jointIndices.w)] * bindPos) * in_weights.w;
-        localPos = animatedPos;
+        mat4 skinMat = getJointMatrix(int(in_jointIndices.x)) * in_weights.x;
+        skinMat += getJointMatrix(int(in_jointIndices.y)) * in_weights.y;
+        skinMat += getJointMatrix(int(in_jointIndices.z)) * in_weights.z;
+        skinMat += getJointMatrix(int(in_jointIndices.w)) * in_weights.w;
 
-        // Normal skinning
-        mat3 skinMat0 = mat3(jointTransforms[int(in_jointIndices.x)]);
-        mat3 skinMat1 = mat3(jointTransforms[int(in_jointIndices.y)]);
-        mat3 skinMat2 = mat3(jointTransforms[int(in_jointIndices.z)]);
-        mat3 skinMat3 = mat3(jointTransforms[int(in_jointIndices.w)]);
+        localPos = skinMat * bindPos;
+        localNormal = mat3(skinMat) * a_Normal;
 
-        localNormal = (skinMat0 * a_Normal) * in_weights.x;
-        localNormal += (skinMat1 * a_Normal) * in_weights.y;
-        localNormal += (skinMat2 * a_Normal) * in_weights.z;
-        localNormal += (skinMat3 * a_Normal) * in_weights.w;
-
-        // Tangent skinning - Only if normal mapping is enabled
         if (u_NormalTextured) {
-            localTangent = (skinMat0 * a_Tangent.xyz) * in_weights.x;
-            localTangent += (skinMat1 * a_Tangent.xyz) * in_weights.y;
-            localTangent += (skinMat2 * a_Tangent.xyz) * in_weights.z;
-            localTangent += (skinMat3 * a_Tangent.xyz) * in_weights.w;
+            localTangent = mat3(skinMat) * a_Tangent.xyz;
         }
     }
 

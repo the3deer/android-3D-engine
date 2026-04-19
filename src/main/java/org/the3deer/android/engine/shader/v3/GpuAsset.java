@@ -36,6 +36,7 @@ public class GpuAsset {
     private final List<GpuElement> gpuElements;
     private final int vertexCount;
     private final int drawMode;
+    private final int jointTextureId;
     
     // Metadata to track what's baked into this asset
     private final boolean hasSkin;
@@ -45,17 +46,23 @@ public class GpuAsset {
     private final boolean hasTangents;
 
     public GpuAsset(int vaoId, int[] vboIds, List<GpuElement> gpuElements, int vertexCount, int drawMode,
-                    boolean hasSkin, boolean hasNormals, boolean hasTexCoords, boolean hasColors, boolean hasTangents) {
+                    int jointTextureId, boolean hasSkin, boolean hasNormals, boolean hasTexCoords, 
+                    boolean hasColors, boolean hasTangents) {
         this.vaoId = vaoId;
         this.vboIds = vboIds;
         this.gpuElements = gpuElements;
         this.vertexCount = vertexCount;
         this.drawMode = drawMode;
+        this.jointTextureId = jointTextureId;
         this.hasSkin = hasSkin;
         this.hasNormals = hasNormals;
         this.hasTexCoords = hasTexCoords;
         this.hasColors = hasColors;
         this.hasTangents = hasTangents;
+    }
+
+    public int getJointTextureId() {
+        return jointTextureId;
     }
 
     public int[] getVboIds() {
@@ -102,6 +109,9 @@ public class GpuAsset {
                 ids[0] = element.eboId;
                 GLES30.glDeleteBuffers(1, ids, 0);
             }
+        }
+        if (jointTextureId != 0) {
+            GLES30.glDeleteTextures(1, new int[]{jointTextureId}, 0);
         }
     }
 }

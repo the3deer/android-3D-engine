@@ -373,15 +373,34 @@ public class ShaderImplV3 implements Shader {
     }
 
     private void setJointTransforms(AnimatedModel animatedModel) {
-        float[][] transforms = animatedModel.getSkin().getJointTransforms();
-        for (int i = 0; i < transforms.length; i++) {
-            String name = jointCache.get(i);
-            if (name == null) {
-                name = "jointTransforms[" + i + "]";
-                jointCache.put(i, name);
-            }
-            setUniformMatrix4(transforms[i], name);
+        final Skin skin = animatedModel.getSkin();
+        final float[][] transforms = skin.getJointTransforms();
+        if (transforms == null) return;
+
+        // Create a flat buffer for all matrices (N joints * 16 floats)
+        final java.nio.FloatBuffer buffer = java.nio.ByteBuffer.allocateDirect(transforms.length * 16 * 4)
+                .order(java.nio.ByteOrder.nativeOrder()).asFloatBuffer();
+        for (float[] matrix : transforms) {
+            buffer.put(matrix);
         }
+        buffer.position(0);
+
+        // Upload to a specialized texture instead of uniforms
+        int textureId = gpuManager.getJointTextureId(animatedModel);
+        GLES30.glActiveTexture(GLES30.GL_TEXTURE4); // Use a high unit to avoid conflict with materials
+        GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, textureId);
+
+        // RGBA32F allows 4 floats per pixel (one matrix column per pixel)
+        // Texture width = 4 (for 4 columns), height = number of joints
+        GLES30.glTexImage2D(GLES30.GL_TEXTURE_2D, 0, GLES30.GL_RGBA32F, 4, transforms.length, 0, GLES30.GL_RGBA, GLES30.GL_FLOAT, buffer);
+
+        // Set sampling parameters for data fetch
+        GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MIN_FILTER, GLES30.GL_NEAREST);
+        GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_MAG_FILTER, GLES30.GL_NEAREST);
+        GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_WRAP_S, GLES30.GL_CLAMP_TO_EDGE);
+        GLES30.glTexParameteri(GLES30.GL_TEXTURE_2D, GLES30.GL_TEXTURE_WRAP_T, GLES30.GL_CLAMP_TO_EDGE);
+
+        setUniformInt(4, "u_JointTexture");
     }
 
     private void setUniformMatrix4(float[] matrix, String name) {
