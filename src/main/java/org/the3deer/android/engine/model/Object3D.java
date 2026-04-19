@@ -307,6 +307,10 @@ public class Object3D {
         this.updateDimensions();
     }
 
+
+    public void setVertexCount(int vertexCount) {
+        this.vertexCount = vertexCount;
+    }
     public int getVertexCount() {
         return vertexCount;
     }

@@ -102,8 +102,13 @@ public class Skin {
         return joints;
     }
 
+    @Deprecated
     public List<Node> getBones() {
         return bones;
+    }
+
+    public List<Node> getNodes() {
+        return nodes;
     }
 
     public List<String> getJointNames() {
