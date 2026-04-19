@@ -5,7 +5,6 @@ import org.the3deer.util.bean.BeanProperty;
 import org.the3deer.android.engine.Model;
 import org.the3deer.android.engine.model.AnimatedModel;
 import org.the3deer.android.engine.model.Camera;
-import org.the3deer.android.engine.model.Constants;
 import org.the3deer.android.engine.model.Object3D;
 import org.the3deer.android.engine.model.Scene;
 import org.the3deer.android.engine.objects.BoundingBox;
@@ -89,7 +88,7 @@ public class BoundingBoxDrawer implements Drawer {
                         ((AnimatedModel) boundingBoxData).getSkin().updateSkinMatrices();
                     }
 
-                    final Shader shader = shaderFactory.getShader(Program.BASIC);
+                    final Shader shader = shaderFactory.getShader(boundingBoxData instanceof AnimatedModel ? Program.ANIMATED : Program.BASIC);
                     //final Shader drawerObject = shaderFactory.getShader(R.raw.shader_basic_vert, R.raw.shader_basic_frag);
                     if (shader == null) {
                         logger.log(Level.SEVERE, "No drawer for " + objData.getId());
@@ -118,11 +117,7 @@ public class BoundingBoxDrawer implements Drawer {
     private Object3D getBoundingBox(Object3D objData) {
         Object3D boundingBoxData = boundingBoxes.get(objData.getId());
         if (boundingBoxData == null) {
-            if (Constants.STRATEGY_BBOX_NEW && objData instanceof AnimatedModel && ((AnimatedModel) objData).getSkin() != null){
-                boundingBoxData = BoundingBox.buildSkinned((AnimatedModel) objData);
-            } else {
-                boundingBoxData = BoundingBox.buildStatic(objData);
-            }
+            boundingBoxData = BoundingBox.build(objData);
             if (boundingBoxData != null) {
                 //boundingBoxData.setModelMatrix(objData.getModelMatrix());
                 //boundingBoxData.setParentBound(true);
