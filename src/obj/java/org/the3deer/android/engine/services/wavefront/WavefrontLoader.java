@@ -1,32 +1,3 @@
-// WavefrontLoader.java
-// Andrew Davison, February 2007, ad@fivedots.coe.psu.ac.th
-
-/* Load the OBJ model from MODEL_DIR, centering and scaling it.
- The scale comes from the sz argument in the constructor, and
- is implemented by changing the vertices of the loaded model.
-
- The model can have vertices, normals and tex coordinates, and
- refer to materials in a MTL file.
-
- The OpenGL commands for rendering the model are stored in 
- a display list (modelDispList), which is drawn by calls to
- draw().
-
- Information about the model is printed to stdout.
-
- Based on techniques used in the OBJ loading code in the
- JautOGL multiplayer racing game by Evangelos Pournaras 
- (http://today.java.net/pub/a/today/2006/10/10/
- development-of-3d-multiplayer-racing-game.html 
- and https://jautogl.dev.java.net/), and the 
- Asteroids tutorial by Kevin Glass 
- (http://www.cokeandcode.com/asteroidstutorial)
-
- CHANGES (Feb 2007)
- - a global flipTexCoords boolean
- - drawToList() sets and uses flipTexCoords
- */
-
 package org.the3deer.android.engine.services.wavefront;
 
 import android.opengl.GLES20;
@@ -39,8 +10,6 @@ import org.the3deer.android.engine.model.Materials;
 import org.the3deer.android.engine.model.Object3D;
 import org.the3deer.android.engine.model.Scene;
 import org.the3deer.android.engine.services.LoadListener;
-import org.the3deer.android.engine.services.collada.entities.MeshData;
-import org.the3deer.android.engine.services.collada.entities.Vertex;
 import org.the3deer.util.io.IOUtils;
 
 import java.io.BufferedReader;
@@ -49,6 +18,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.URL;
+import java.nio.FloatBuffer;
+import java.nio.IntBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -57,6 +28,11 @@ import java.util.StringTokenizer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+/**
+ * <p>High-Performance wavefront parser</p>
+ *
+ * @author Andres, Gemini (AI)
+ */
 public class WavefrontLoader {
 
     private static final Logger logger = Logger.getLogger(WavefrontLoader.class.getSimpleName());
@@ -102,12 +78,16 @@ public class WavefrontLoader {
             // log event
             logger.info("Loading model... " + modelURI);
 
+            // pre-scan model to count elements and optimize memory
+            final ModelConfig config = preScan(modelURI);
+            logger.info("Pre-scan finished: " + config);
+
             // log event
             logger.config("Parsing geometries... ");
 
             // open stream, parse model, then close stream
             final InputStream is = modelURI.toURL().openStream();
-            final List<MeshData> meshes = loadModel(modelURI.toString(), is);
+            final List<WavefrontMeshData> meshes = loadModel(modelURI.toString(), is, config);
             is.close();
 
             // 3D meshes
@@ -126,7 +106,7 @@ public class WavefrontLoader {
             for (int i=0; i< meshes.size(); i++) {
 
                 // get each mesh
-                final MeshData meshData = meshes.get(i);
+                final WavefrontMeshData meshData = meshes.get(i);
 
                 // notify listener
                 callback.onProgress("Processing normals...");
@@ -140,13 +120,15 @@ public class WavefrontLoader {
                 // create 3D object
                 Object3D data3D = new Object3D(meshData.getId(), meshData.getVertexBuffer());
                 data3D.setUri(modelURI);
-                //data3D.setMeshData(meshData);
                 data3D.setName(meshData.getName());
                 data3D.setVertexNormalsArrayBuffer(meshData.getNormalsBuffer());
                 data3D.setTextureCoordsArrayBuffer(meshData.getTextureBuffer());
                 data3D.setElements(meshData.getElements());
                 data3D.setIndexed(true);
                 data3D.setDrawMode(GLES20.GL_TRIANGLES);
+
+                // Clear temporary data to free memory
+                meshData.clearTemporaryData();
 
                 // add model to scene
                 callback.onLoadObject(scene, data3D);
@@ -176,7 +158,7 @@ public class WavefrontLoader {
         }
     }
 
-    private void loadMaterials(URI modelURI, MeshData meshData) {
+    private void loadMaterials(URI modelURI, WavefrontMeshData meshData) {
 
         // process materials
         if (meshData.getMaterialFile() == null) return;
@@ -224,7 +206,7 @@ public class WavefrontLoader {
                             && elementMaterial.getColorTexture().getFile() != null) {
 
                             // log event
-                            logger.config("Reading texture file... " + elementMaterial.getColorTexture().getFile());
+                            logger.info("Reading texture file... " + elementMaterial.getColorTexture().getFile());
 
                             // build color url
                             final URL diffuseUrl = modelURI.resolve(elementMaterial.getColorTexture().getFile()).toURL();
@@ -250,7 +232,7 @@ public class WavefrontLoader {
         }
     }
 
-    private List<MeshData> loadModel(String uri, InputStream is) {
+    private List<WavefrontMeshData> loadModel(String uri, InputStream is, ModelConfig config) {
 
         // log event
         logger.info("Loading model... " + uri);
@@ -267,26 +249,30 @@ public class WavefrontLoader {
             int lineNum = 0;
             String line = null;
 
-            // primitive data
-            final List<float[]> vertexList = new ArrayList<>();
-            final List<float[]> normalsList = new ArrayList<>();
-            final List<float[]> textureList = new ArrayList<>();
+            // primitive data pools (pre-allocated)
+            final FloatBuffer vertexList = IOUtils.createFloatBuffer(config.vertexCount * 3);
+            final FloatBuffer normalsList = IOUtils.createFloatBuffer(config.normalCount * 3);
+            final FloatBuffer textureList = IOUtils.createFloatBuffer(config.textureCount * 2);
 
             // mesh data
-            final List<MeshData> meshes = new ArrayList<>();
-            final List<Vertex> verticesAttributes = new ArrayList<>();
+            final List<WavefrontMeshData> meshes = new ArrayList<>();
+
+            // We use a flat IntBuffer for vertex attributes: each vertex is represented by 3 ints: v, vt, vn
+            final IntBuffer verticesAttributes = IOUtils.createIntBuffer(config.faceCount * 3);
 
             // material file
             String mtllib = null;
 
-            // smoothing groups
-            final Map<String,List<Vertex>> smoothingGroups = new HashMap<>();
-            List<Vertex> currentSmoothingList = null;
+            // smoothing groups (keeping as Integer indices into verticesAttributes)
+            final Map<String, List<Integer>> smoothingGroups = new HashMap<>();
+            List<Integer> currentSmoothingList = null;
 
             // mesh current
-            MeshData.Builder meshCurrent = new MeshData.Builder().id(uri);
+            WavefrontMeshData.Builder meshCurrent = new WavefrontMeshData.Builder().id(uri.toString());
             Element.Builder elementCurrent = new Element.Builder().id("default");
-            List<Integer> indicesCurrent = new ArrayList<>();
+            IntBuffer indicesCurrent = IOUtils.createIntBuffer(config.faceCount);
+            int meshAttributesStart = 0;
+            //String mtllib = null;
             boolean buildNewMesh = false;
             boolean buildNewElement = false;
 
@@ -302,53 +288,47 @@ public class WavefrontLoader {
                     } else if (line.startsWith("vt")) { // tex coord
                         parseVariableVector(textureList, line.substring(3).trim());
                     } else if (line.charAt(0) == 'o') { // object group
-                        if (buildNewMesh) {
-                            // build mesh
-                            meshCurrent.vertices(vertexList).normals(normalsList).textures(textureList)
-                                    .vertexAttributes(verticesAttributes)
-				    .materialFile(mtllib)
-                                    .addElement(elementCurrent.indices(indicesCurrent).build());
+                        if (indicesCurrent.position() > 0) {
+                            // build current mesh
+                            elementCurrent.indices(indicesCurrent.flip());
+                            meshCurrent.addElement(elementCurrent.build());
 
-                            // add current mesh
-                            final MeshData build = meshCurrent.build();
-                            meshes.add(build);
+                            IntBuffer attributesSlice = verticesAttributes.duplicate();
+                            attributesSlice.position(meshAttributesStart);
+                            attributesSlice.limit(verticesAttributes.position());
+                            final WavefrontMeshData meshData = meshCurrent.vertices(vertexList).normals(normalsList).textures(textureList)
+                                    .vertexAttributes(attributesSlice.slice()).materialFile(mtllib)
+                                    .smoothingGroups(smoothingGroups).build();
+                            meshes.add(meshData);
 
-                            // log event
-                            logger.config("Loaded mesh. id:" + build.getId() + ", indices: " + indicesCurrent.size()
-                                    + ", vertices:" + vertexList.size()
-                                    + ", normals: " + normalsList.size()
-                                    + ", textures:" + textureList.size()
-                                    + ", elements: " + build.getElements());
-
-                            // next mesh
-                            meshCurrent = new MeshData.Builder().id(line.substring(1).trim());
-
-                            // next element
-                            elementCurrent = new Element.Builder();
-                            indicesCurrent = new ArrayList<>();
+                            // start new mesh
+                            meshCurrent = new WavefrontMeshData.Builder().id(line.substring(1).trim());
+                            elementCurrent = new Element.Builder().id("default");
+                            indicesCurrent = IOUtils.createIntBuffer(config.faceCount - (verticesAttributes.position() / 3));
+                            meshAttributesStart = verticesAttributes.position();
                         } else {
                             meshCurrent.id(line.substring(1).trim());
                             buildNewMesh = true;
                         }
                     } else if (line.charAt(0) == 'g') { // group name
-                        if (buildNewElement && indicesCurrent.size() > 0) {
+                        if (buildNewElement && indicesCurrent.position() > 0) {
 
                             // add current element
-                            elementCurrent.indices(indicesCurrent);
+                            elementCurrent.indices(indicesCurrent.flip());
                             meshCurrent.addElement(elementCurrent.build());
 
                             // log event
-                            logger.config("New element. indices: " + indicesCurrent.size());
+                            logger.config("New element. indices: " + indicesCurrent.limit());
 
                             // prepare next element
-                            indicesCurrent = new ArrayList<>();
+                            indicesCurrent = IOUtils.createIntBuffer(config.faceCount - (verticesAttributes.position() / 3));
                             elementCurrent = new Element.Builder().id(line.substring(1).trim());
                         } else {
                             elementCurrent.id(line.substring(1).trim());
                             buildNewElement = true;
                         }
                     } else if (line.startsWith("f ")) { // face
-                        parseFace(verticesAttributes, indicesCurrent, vertexList, normalsList, textureList, line.substring(2), currentSmoothingList);
+                        parseFace(verticesAttributes, meshAttributesStart, indicesCurrent, vertexList, normalsList, textureList, line.substring(2).trim(), currentSmoothingList);
                     } else if (line.startsWith("mtllib ")) {// build material
                         try {
                             mtllib = modelURI.resolve(line.substring(7)).toString();
@@ -356,17 +336,17 @@ public class WavefrontLoader {
                             logger.log(Level.SEVERE,  "Error reading line: " + lineNum + " : " + line+", message: "+e.getMessage());
                         }
                     } else if (line.startsWith("usemtl ")) {// use material
-                        if (elementCurrent.getMaterialId() != null) {
+                        if (indicesCurrent.position() > 0) {
 
                             // change element since we are dealing with different material
-                            elementCurrent.indices(indicesCurrent);
+                            elementCurrent.indices(indicesCurrent.flip());
                             meshCurrent.addElement(elementCurrent.build());
 
                             // log event
                             logger.finest("New material: " + line);
 
                             // prepare next element
-                            indicesCurrent = new ArrayList<>();
+                            indicesCurrent = IOUtils.createIntBuffer(config.faceCount - (verticesAttributes.position() / 3));
                             elementCurrent = new Element.Builder().id(elementCurrent.getId());
                         }
 
@@ -387,16 +367,22 @@ public class WavefrontLoader {
                 }
 
                 // build mesh
-                final Element element = elementCurrent.indices(indicesCurrent).build();
-                final MeshData meshData = meshCurrent.vertices(vertexList).normals(normalsList).textures(textureList)
-                        .vertexAttributes(verticesAttributes).materialFile(mtllib)
-                        .addElement(element).smoothingGroups(smoothingGroups).build();
+                if (indicesCurrent.position() > 0) {
+                    elementCurrent.indices(indicesCurrent.flip());
+                    meshCurrent.addElement(elementCurrent.build());
+                }
 
-                logger.config("Loaded mesh. id:" + meshData.getId() + ", indices: " + indicesCurrent.size()
-                        + ", vertices:" + vertexList.size()
-                        + ", normals: " + normalsList.size()
-                        + ", textures:" + textureList.size()
-                        + ", elements: " + meshData.getElements());
+                IntBuffer attributesSlice = verticesAttributes.duplicate();
+                attributesSlice.position(meshAttributesStart);
+                attributesSlice.limit(verticesAttributes.position());
+                final WavefrontMeshData meshData = meshCurrent.vertices(vertexList).normals(normalsList).textures(textureList)
+                        .vertexAttributes(attributesSlice.slice()).materialFile(mtllib)
+                        .smoothingGroups(smoothingGroups).build();
+
+                logger.config("Loaded mesh. id:" + meshData.getId() + ", indices: " + indicesCurrent.limit()
+                        + ", vertices:" + vertexList.capacity()
+                        + ", normals: " + normalsList.capacity()
+                        + ", textures:" + textureList.capacity());
 
                 // add mesh
                 meshes.add(meshData);
@@ -420,146 +406,164 @@ public class WavefrontLoader {
         }
     }
 
+    private static class ModelConfig {
+        int vertexCount = 0;
+        int normalCount = 0;
+        int textureCount = 0;
+        int faceCount = 0;
+
+        @Override
+        public String toString() {
+            return "ModelConfig{" +
+                    "vertices=" + vertexCount +
+                    ", normals=" + normalCount +
+                    ", textures=" + textureCount +
+                    ", faceCorners=" + faceCount +
+                    '}';
+        }
+    }
+
+    private ModelConfig preScan(URI uri) {
+        final ModelConfig config = new ModelConfig();
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(uri.toURL().openStream()))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                line = line.trim();
+                if (line.startsWith("v ")) {
+                    config.vertexCount++;
+                } else if (line.startsWith("vn")) {
+                    config.normalCount++;
+                } else if (line.startsWith("vt")) {
+                    config.textureCount++;
+                } else if (line.startsWith("f ")) {
+                    final StringTokenizer st = new StringTokenizer(line, " ");
+                    final int tokens = st.countTokens() - 1;
+                    if (tokens >= 3) {
+                        config.faceCount += (tokens - 2) * 3;
+                    }
+                }
+            }
+        } catch (IOException e) {
+            logger.log(Level.SEVERE, "Error during pre-scan: " + e.getMessage(), e);
+        }
+        return config;
+    }
+
     /**
      * List of texture coordinates, in (u, [,v ,w]) coordinates, these will vary between 0 and 1. v, w are optional and default to 0.
-     * There may only be 1 tex coords  on the line, which is determined by looking at the first tex coord line.
      */
-    private void parseVector(final List<float[]> vectorList, final String line) {
+    private void parseVector(final FloatBuffer vectorBuffer, final String line) {
         try {
             final StringTokenizer st = new StringTokenizer(line, " ");
-            final float[] vector = new float[3];
             int i = 0;
             while (st.hasMoreTokens() && i < 3) {
-                vector[i++] = Float.parseFloat(st.nextToken());
+                vectorBuffer.put(Float.parseFloat(st.nextToken()));
+                i++;
             }
-            vectorList.add(vector);
+            // Fill remaining if less than 3 tokens
+            while (i < 3) {
+                vectorBuffer.put(0);
+                i++;
+            }
         } catch (Exception ex) {
             logger.log(Level.SEVERE, "Error parsing vector '" + line + "': " + ex.getMessage());
-            vectorList.add(new float[3]);
+            vectorBuffer.put(0).put(0).put(0);
         }
     }
 
     /**
      * List of texture coordinates, in (u, [,v ,w]) coordinates, these will vary between 0 and 1. v, w are optional and default to 0.
-     * There may only be 1 tex coords  on the line, which is determined by looking at the first tex coord line.
      */
-    private void parseVariableVector(final List<float[]> textureList, final String line) {
+    private void parseVariableVector(final FloatBuffer textureBuffer, final String line) {
         try {
-            // StringTokenizer is significantly faster than line.split(" +")
-            // because it avoids regex compilation and array allocation.
             final StringTokenizer st = new StringTokenizer(line, " ");
-            final float[] vector = new float[2];
-
+            int i = 0;
             if (st.hasMoreTokens()) {
-                vector[0] = Float.parseFloat(st.nextToken());
+                textureBuffer.put(Float.parseFloat(st.nextToken()));
+                i++;
             }
             if (st.hasMoreTokens()) {
-                vector[1] = Float.parseFloat(st.nextToken());
+                textureBuffer.put(Float.parseFloat(st.nextToken()));
+                i++;
             }
-
-            // ignore 3d coordinate (w) if present, as per requirements
-
-            textureList.add(vector);
+            // Fill remaining if less than 2 tokens
+            while (i < 2) {
+                textureBuffer.put(0);
+                i++;
+            }
         } catch (Exception ex) {
             logger.log(Level.SEVERE, "Error parsing texture vector '" + line + "': " + ex.getMessage());
-            textureList.add(new float[2]);
+            textureBuffer.put(0).put(0);
         }
     }
 
 
-    /**
-     * get this face's indicies from line "f v/vt/vn ..." with vt or vn index values perhaps being absent.
-     */
-    private void parseFace(List<Vertex> vertexAttributes, List<Integer> indices,
-                           List<float[]> vertexList, List<float[]> normalsList, List<float[]> texturesList,
-                           String line, List<Vertex> currentSmoothingList) {
+
+    private void parseFace(IntBuffer vertexAttributes, int attributesStart, IntBuffer indices,
+                           FloatBuffer vertexList, FloatBuffer normalsList, FloatBuffer texturesList,
+                           String line, List<Integer> currentSmoothingList) {
         try {
 
             // cpu optimization
-            final String[] tokens;
-            if (line.contains("  ")) {
-                tokens = line.split(" +");
-            } else {
-                tokens = line.split(" ");
+            final StringTokenizer st = new StringTokenizer(line, " ");
+            final int numTokens = st.countTokens();
+            if (numTokens < 3) return;
+
+            final String[] tokens = new String[numTokens];
+            for (int i = 0; i < numTokens; i++) {
+                tokens[i] = st.nextToken();
             }
 
-            // number of v/vt/vn tokens
-            final int numTokens = tokens.length;
+            // Triangulate polygon into triangles
+            // (0, 1, 2), (0, 2, 3), (0, 3, 4), ...
+            for (int i = 1; i < numTokens - 1; i++) {
+                final int[] triangleIndices = {0, i, i + 1};
 
-            for (int i = 0, faceIndex = 0; i < numTokens; i++, faceIndex++) {
+                for (int triIdx : triangleIndices) {
+                    final String faceToken = tokens[triIdx];
+                    final String[] faceTokens = faceToken.split("/", -1);
+                    final int numSeps = faceTokens.length;
 
-                // convert to triangles all polygons
-                if (faceIndex > 2) {
-                    // Converting polygon to triangle
-                    faceIndex = 0;
-
-                    i -= 2;
-                }
-
-                // triangulate polygon
-                final String faceToken;
-                if (this.triangulationMode == GLES20.GL_TRIANGLE_FAN) {
-                    // In FAN mode all meshObject shares the initial vertex
-                    if (faceIndex == 0) {
-                        faceToken = tokens[0];// get a v/vt/vn
+                    int vertIdx = Integer.parseInt(faceTokens[0]);
+                    if (vertIdx < 0) {
+                        vertIdx = (vertexList.position() / 3) + vertIdx;
                     } else {
-                        faceToken = tokens[i]; // get a v/vt/vn
+                        vertIdx--;
                     }
-                } else {
-                    // GL.GL_TRIANGLES | GL.GL_TRIANGLE_STRIP
-                    faceToken = tokens[i]; // get a v/vt/vn
-                }
 
-                // parse index tokens
-                // how many '/'s are there in the token
-                final String[] faceTokens = faceToken.split("/");
-                final int numSeps = faceTokens.length;
-
-                int vertIdx = Integer.parseInt(faceTokens[0]);
-                // A valid vertex index matches the corresponding vertex elements of a previously defined vertex list.
-                // If an index is positive then it refers to the offset in that vertex list, starting at 1.
-                // If an index is negative then it relatively refers to the end of the vertex list,
-                // -1 referring to the last element.
-                if (vertIdx < 0) {
-                    vertIdx = vertexList.size() + vertIdx;
-                } else {
-                    vertIdx--;
-                }
-
-                int textureIdx = -1;
-                if (numSeps > 1 && faceTokens[1].length() > 0) {
-                    textureIdx = Integer.parseInt(faceTokens[1]);
-                    if (textureIdx < 0) {
-                        textureIdx = texturesList.size() + textureIdx;
-                    } else {
-                        textureIdx--;
+                    int textureIdx = -1;
+                    if (numSeps > 1 && faceTokens[1].length() > 0) {
+                        textureIdx = Integer.parseInt(faceTokens[1]);
+                        if (textureIdx < 0) {
+                            textureIdx = (texturesList.position() / 2) + textureIdx;
+                        } else {
+                            textureIdx--;
+                        }
                     }
-                }
-                int normalIdx = -1;
-                if (numSeps > 2 && faceTokens[2].length() > 0) {
-                    normalIdx = Integer.parseInt(faceTokens[2]);
-                    if (normalIdx < 0) {
-                        normalIdx = normalsList.size() + normalIdx;
-                    } else {
-                        normalIdx--;
+
+                    int normalIdx = -1;
+                    if (numSeps > 2 && faceTokens[2].length() > 0) {
+                        normalIdx = Integer.parseInt(faceTokens[2]);
+                        if (normalIdx < 0) {
+                            normalIdx = (normalsList.position() / 3) + normalIdx;
+                        } else {
+                            normalIdx--;
+                        }
                     }
-                }
 
-                // create VertexAttribute
-                final Vertex vertexAttribute = new Vertex(vertIdx);
-                vertexAttribute.setNormalIndex(normalIdx);
-                vertexAttribute.setTextureIndex(textureIdx);
+                    // store the indices for this face
+                    final int idx = (vertexAttributes.position() - attributesStart) / 3;
+                    indices.put(idx);
 
-                // add VertexAtribute
-                final int idx = vertexAttributes.size();
-                vertexAttributes.add(idx, vertexAttribute);
+                    // store VertexAttribute (v, vt, vn)
+                    vertexAttributes.put(vertIdx);
+                    vertexAttributes.put(textureIdx);
+                    vertexAttributes.put(normalIdx);
 
-                // store the indices for this face
-                indices.add(idx);
-
-                // smoothing
-                if (currentSmoothingList != null){
-                    currentSmoothingList.add(vertexAttribute);
+                    // smoothing
+                    if (currentSmoothingList != null) {
+                        currentSmoothingList.add(idx);
+                    }
                 }
             }
         } catch (NumberFormatException e) {
