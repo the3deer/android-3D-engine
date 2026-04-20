@@ -377,9 +377,13 @@ public class ShaderImplV3 implements Shader {
         final float[][] transforms = skin.getJointTransforms();
         if (transforms == null) return;
 
-        // Create a flat buffer for all matrices (N joints * 16 floats)
-        final java.nio.FloatBuffer buffer = java.nio.ByteBuffer.allocateDirect(transforms.length * 16 * 4)
-                .order(java.nio.ByteOrder.nativeOrder()).asFloatBuffer();
+        java.nio.FloatBuffer buffer = skin.getJointTransformTextureBuffer();
+        if (buffer == null) {
+            buffer = java.nio.ByteBuffer.allocateDirect(transforms.length * 16 * 4)
+                    .order(java.nio.ByteOrder.nativeOrder()).asFloatBuffer();
+            skin.setJointTransformTextureBuffer(buffer);
+        }
+
         for (float[] matrix : transforms) {
             buffer.put(matrix);
         }

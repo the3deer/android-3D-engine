@@ -31,6 +31,8 @@ public class Skin {
     private int weightsComponents = Constants.MAX_VERTEX_WEIGHTS;
     private Buffer jointsBuffer;
     private FloatBuffer weightsBuffer;
+
+    private FloatBuffer jointTransformTextureBuffer;
     private float[] bindShapeMatrix;
     private float[][] jointMatrices;
     private float[] inverseBindMatrices;
@@ -130,6 +132,15 @@ public class Skin {
 
     public void setBoneCount(int boneCount) {
         this.boneCount = boneCount;
+    }
+
+
+    public FloatBuffer getJointTransformTextureBuffer() {
+        return jointTransformTextureBuffer;
+    }
+
+    public void setJointTransformTextureBuffer(FloatBuffer jointTransformTextureBuffer) {
+        this.jointTransformTextureBuffer = jointTransformTextureBuffer;
     }
 
     public int getBoneCount() {
