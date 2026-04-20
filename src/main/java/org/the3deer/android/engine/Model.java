@@ -264,6 +264,10 @@ public class Model implements LoadListener {
                 for (Map.Entry<String, byte[]> zipFile : zipFiles.entrySet()) {
 
                     final String zipFilename = zipFile.getKey();
+                    if (zipFilename.startsWith("__MACOSX") || zipFilename.contains("/._") || zipFilename.startsWith("._")) {
+                        continue;
+                    }
+
                     final int dotIndex = zipFilename.lastIndexOf('.');
                     final String fileExtension;
                     if (dotIndex != -1) {
