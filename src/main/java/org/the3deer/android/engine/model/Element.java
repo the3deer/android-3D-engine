@@ -15,6 +15,7 @@ public class Element {
         // polygon
         private String id;
         private List<Integer> indices;
+        private Buffer indexBuffer;
 
         // materials
         private String materialId;
@@ -37,6 +38,11 @@ public class Element {
             return this;
         }
 
+        public Builder indices(Buffer indices) {
+            this.indexBuffer = indices;
+            return this;
+        }
+
         public Builder materialId(String materialId) {
             this.materialId = materialId;
             return this;
@@ -47,6 +53,9 @@ public class Element {
         }
 
         public Element build() {
+            if (indexBuffer != null) {
+                return new Element(id, indexBuffer, materialId);
+            }
             return new Element(id, indices, materialId);
         }
 

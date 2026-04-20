@@ -589,7 +589,7 @@ public class MeshData {
                     vertexAttribute3.setNormalIndex(newNormals.size());
 
                     // preserve current normal
-                    newNormals.add(normalV3);
+                    newNormals.add(normalV1);
                 }
             }
         }
