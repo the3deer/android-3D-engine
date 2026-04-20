@@ -453,7 +453,7 @@ public class Object3D {
         final Dimensions dimensions = new Dimensions();
 
         // Do nothing if there are no vertices
-        if (vertexArrayBuffer == null || vertexArrayBuffer.capacity() == 0) {
+        if (vertexArrayBuffer == null || vertexArrayBuffer.limit() == 0) {
             this.dimensions = dimensions;
             return;
         }
@@ -471,10 +471,10 @@ public class Object3D {
                     if (indexBuffer != null) {
                         int originalIdxPos = indexBuffer.position();
                         indexBuffer.position(0);
-                        for (int i = 0; i < indexBuffer.capacity(); i++) {
+                        for (int i = 0; i < indexBuffer.limit(); i++) {
                             final int idx = IOUtils.getIntBufferValue(indexBuffer, i);
 
-                            if (idx < 0 || idx >= vertexArrayBuffer.capacity() / 3) {
+                            if (idx < 0 || idx >= vertexArrayBuffer.limit() / 3) {
                                 logger.warning("Wrong index '" + idx + "' while getting dimensions for '" + getId() + "'");
                                 continue;
                             }
@@ -488,10 +488,10 @@ public class Object3D {
               else if (indexBuffer != null) {
                 int originalIdxPos = indexBuffer.position();
                 indexBuffer.position(0);
-                for (int i = 0; i < indexBuffer.capacity(); i++) {
+                for (int i = 0; i < indexBuffer.limit(); i++) {
                     final int idx = IOUtils.getIntBufferValue(indexBuffer, i);
 
-                    if (idx < 0 || idx >= vertexArrayBuffer.capacity() / 3) {
+                    if (idx < 0 || idx >= vertexArrayBuffer.limit() / 3) {
                         logger.warning("Wrong index '" + idx + "' while getting dimensions for '" + getId() + "'");
                         continue;
                     }
@@ -501,7 +501,7 @@ public class Object3D {
                 indexBuffer.position(originalIdxPos);
             } else {
                 // No elements/indices defined, fallback to processing all vertices
-                for (int i = 0; i < vertexArrayBuffer.capacity() / 3; i++) {
+                for (int i = 0; i < vertexArrayBuffer.limit() / 3; i++) {
                     dimensions.update(vertexArrayBuffer.get(i * 3), vertexArrayBuffer.get(i * 3 + 1), vertexArrayBuffer.get(i * 3 + 2));
                 }
             }
