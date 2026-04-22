@@ -216,8 +216,9 @@ public class GltfLoader {
 
             Camera camera = new Camera(cameraName);
             if ("perspective".equals(cameraDto.type)) {
+                float yfovDegrees = cameraDto.yfov != null ? (float) Math.toDegrees(cameraDto.yfov) : 60.0f;
                 camera.setProjection(new PerspectiveProjection(
-                        cameraDto.yfov != null ? cameraDto.yfov : 60.0f,
+                        yfovDegrees,
                         cameraDto.aspectRatio != null ? cameraDto.aspectRatio : 1.0f,
                         cameraDto.znear != null ? cameraDto.znear : 0.1f,
                         cameraDto.zfar != null ? cameraDto.zfar : 1000.0f
