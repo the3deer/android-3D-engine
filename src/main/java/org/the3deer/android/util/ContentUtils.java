@@ -14,11 +14,12 @@ import android.provider.OpenableColumns;
 import androidx.annotation.NonNull;
 
 import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -234,22 +235,52 @@ public class ContentUtils {
         return sb.toString();
     }
 
-    public static Map<String, byte[]> readFiles(URI url) {
-        Map<String, byte[]> ret = new HashMap<>();
-        try (ZipInputStream zis = new ZipInputStream(new BufferedInputStream(url.toURL().openStream()))) {
+    public static long getAvailableMemory() {
+        final Runtime runtime = Runtime.getRuntime();
+        final long usedMemory = runtime.totalMemory() - runtime.freeMemory();
+        return runtime.maxMemory() - usedMemory;
+    }
+
+    /**
+     * Extract a zip file to the application internal cache directory
+     * @param uri zip file uri
+     * @return map of entry name to file uri
+     * @throws IOException if extraction fails
+     */
+    public static Map<String, URI> extract(URI uri) throws IOException {
+        final Map<String, URI> ret = new HashMap<>();
+        if (context == null) throw new IllegalStateException("Context not set");
+
+        // Create a unique cache directory for this zip
+        final String fileName = getFileName(context, uri);
+        final String folderName = fileName != null ? fileName.replace(".", "_") : "temp_zip_" + System.currentTimeMillis();
+        final File cacheDir = new File(context.getCacheDir(), "models/" + folderName);
+        if (!cacheDir.exists() && !cacheDir.mkdirs()) {
+            throw new IOException("Failed to create cache directory: " + cacheDir);
+        }
+
+        try (InputStream is = getInputStream(uri);
+             ZipInputStream zis = new ZipInputStream(new BufferedInputStream(is))) {
             ZipEntry ze;
             while ((ze = zis.getNextEntry()) != null) {
-                String name = ze.getName();
-                ByteArrayOutputStream bos = new ByteArrayOutputStream();
-                byte[] buffer = new byte[1024];
-                int readed;
-                while ((readed = zis.read(buffer)) > 0) {
-                    bos.write(buffer, 0, readed);
+                if (ze.isDirectory()) {
+                    new File(cacheDir, ze.getName()).mkdirs();
+                    continue;
                 }
-                ret.put(name, bos.toByteArray());
+                
+                final File outFile = new File(cacheDir, ze.getName());
+                outFile.getParentFile().mkdirs();
+
+                try (BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(outFile))) {
+                    final byte[] buffer = new byte[8192];
+                    int read;
+                    while ((read = zis.read(buffer)) != -1) {
+                        bos.write(buffer, 0, read);
+                    }
+                }
+                ret.put(ze.getName(), outFile.toURI());
+                logger.fine("Extracted: " + ze.getName() + " to " + outFile.getAbsolutePath());
             }
-        } catch (IOException e) {
-            logger.log(Level.SEVERE, "Error reading zip from " + url, e);
         }
         return ret;
     }
@@ -347,20 +378,27 @@ public class ContentUtils {
     }
 
 
-
     public static InputStream getInputStream(String uriString) throws IOException {
         uriString = uriString.replace('\\','/');
         URI uri = getUri(uriString);
         if (uri == null) uri = getUri("models/"+uriString);
         if (uri == null) uri = getUri("models/"+uriString.replace(' ', '+'));
         if (uri == null && currentDir != null) {
-            uri = URI.create("file://" + new File(currentDir, uriString).getAbsolutePath());
+            File relativeFile = new File(currentDir, uriString);
+            if (relativeFile.exists()) {
+                uri = relativeFile.toURI();
+            }
         }
         if (uri != null) return getInputStream(uri);
-        else {
+        
+        // try direct URI
+        try {
             uri = URI.create(uriString);
-            InputStream inputStream = getInputStream(uri);
-            if (inputStream != null) return inputStream;
+            if (uri.getScheme() != null) {
+                return getInputStream(uri);
+            }
+        } catch (Exception e) {
+            // not a valid URI, ignore
         }
 
         // If we have a resolver and we are not on the main thread, we can try to resolve it

@@ -56,15 +56,13 @@ public abstract class LoaderTask {
 
     private void executeImpl() {
         try {
-            // FIXME: why we need to use a handler here?
             callback.onLoadStart();
             build();
             callback.onLoadComplete();
-        } catch (final Exception ex) {
-            logger.log(Level.SEVERE,  "Error loading model: " + ex.getMessage(), ex);
-            callback.onLoadError(ex);
-        } catch (final OutOfMemoryError err) {
-            callback.onLoadError(new RuntimeException("Out Of Memory Error", err));
+        } catch (final Throwable t) {
+            logger.log(Level.SEVERE, "Error loading model: " + t.getMessage(), t);
+            callback.onLoadError(t instanceof Exception ? (Exception) t : new RuntimeException(t));
+            throw (t instanceof RuntimeException) ? (RuntimeException) t : new RuntimeException(t);
         }
     }
 

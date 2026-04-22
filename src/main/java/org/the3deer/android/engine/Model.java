@@ -17,6 +17,7 @@ import org.the3deer.android.util.ContentUtils;
 import org.the3deer.util.event.EventManager;
 import org.the3deer.util.io.IOUtils;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.util.ArrayList;
@@ -243,48 +244,29 @@ public class Model implements LoadListener {
             // update model
             setStatus(Model.Status.LOADING, "Loading model: " + modelUri);
 
-            // if the model is a zip file, we need to extract it and register the entries as content urls
-            if (modelUri.toString().toLowerCase().endsWith(".zip")) {
+            // if the model is a zip file, we need to extract it to the cache directory
+            if ("zip".equalsIgnoreCase(modelType) || modelUri.toString().toLowerCase().endsWith(".zip")) {
 
-                // pseudo filename
-                String pseudoFileName = modelUri.getPath();
-                if (modelUri.getPath().contains("/")) {
-                    pseudoFileName = modelUri.getPath().substring(modelUri.getPath().lastIndexOf('/') + 1);
+                // extract zip to disk
+                final Map<String, URI> zipFiles = ContentUtils.extract(modelUri);
+                if (zipFiles.isEmpty()) {
+                    throw new IOException("Failed to extract zip file or zip is empty: " + modelUri);
                 }
 
-                // create uri
-                final URI dataUri = URI.create("android://org.the3deer.android.engine/binary/" + pseudoFileName);
-
-                // register resource
-                ContentUtils.addUri(pseudoFileName, dataUri);
-
-                // FIXME: potential out of memory error
-                final Map<String, byte[]> zipFiles = ContentUtils.readFiles(URI.create(uri.toString()));
                 URI modelFile = null;
-                for (Map.Entry<String, byte[]> zipFile : zipFiles.entrySet()) {
-
-                    final String zipFilename = zipFile.getKey();
+                for (Map.Entry<String, URI> zipEntry : zipFiles.entrySet()) {
+                    final String zipFilename = zipEntry.getKey();
                     if (zipFilename.startsWith("__MACOSX") || zipFilename.contains("/._") || zipFilename.startsWith("._")) {
                         continue;
                     }
 
                     final int dotIndex = zipFilename.lastIndexOf('.');
-                    final String fileExtension;
-                    if (dotIndex != -1) {
-                        fileExtension = zipFilename.substring(dotIndex).toLowerCase();
-                    } else {
-                        continue; // it's probably a folder. ignore it
-                    }
+                    if (dotIndex == -1) continue;
 
-                    // sanitize filename
-                    final String fileNameEntrySanitized = zipFilename.replaceAll(" ", "+");
+                    final String fileExtension = zipFilename.substring(dotIndex).toLowerCase();
 
-                    // build uri
-                    final URI pseudoUri = dataUri.resolve(fileNameEntrySanitized);
-
-                    // register all zip entries
-                    ContentUtils.addUri(fileNameEntrySanitized, pseudoUri);
-                    ContentUtils.addData(pseudoUri, zipFile.getValue());
+                    // register the file URI so it can be found by name later
+                    ContentUtils.addUri(zipFilename, zipEntry.getValue());
 
                     // detect model
                     switch (fileExtension) {
@@ -294,26 +276,33 @@ public class Model implements LoadListener {
                         case ".gltf":
                         case ".fbx":
                         case ".glb":
-                            modelFile = pseudoUri;
-                            logger.info("Found model in zip:");
+                            modelFile = zipEntry.getValue();
                             modelType = fileExtension.substring(1);
                             break;
                     }
                 }
+
                 if (modelFile != null) {
                     modelUri = modelFile;
                     this.uriModel = modelFile;
-                    logger.info("Found model in zip: " + modelFile);
+                    logger.info("Using model from cache: " + modelFile);
+
+                    // Set current directory for relative path resolution
+                    ContentUtils.setCurrentDir(new java.io.File(modelFile.getPath()).getParentFile());
                 } else {
-                    logger.severe("Model file found in zip: " + modelFile);
-                    setStatus(Status.ERROR, "No model found in zip: " + modelUri);
-                    //throw new IllegalArgumentException("No model found in zip file: " + uri);
-                    return;
+                    throw new IllegalArgumentException("No supported model found in zip: " + modelUri);
                 }
             }
 
             final LoaderTask loaderTask = LoaderRegistry.get(modelType, modelUri, this);
             if (loaderTask != null) {
+
+                // check memory
+                if (ContentUtils.getAvailableMemory() < 32 * 1024 * 1024) {
+                    logger.warning("Low memory before loading task. Requesting cleanup...");
+                    setStatus(Status.WARNING, "Low memory. Cleaning up...");
+                    // The ViewModel will react to this status if it's listening
+                }
 
                 logger.info("Loading " + modelType + " object from: " + modelUri);
                 loaderTask.execute(false);
@@ -330,6 +319,10 @@ public class Model implements LoadListener {
                 //throw new UnsupportedOperationException("No loader registered for type: " + modelType);
             }
 
+        } catch (final Throwable t) {
+            logger.log(Level.SEVERE, "Critical error loading model: " + t.getMessage(), t);
+            onLoadError(t instanceof Exception ? (Exception) t : new RuntimeException(t));
+            throw (t instanceof RuntimeException) ? (RuntimeException) t : new RuntimeException(t);
         } finally {
             // unregister current model from the thread
             // we don't remove it here because the loader tasks might still be running in background threads

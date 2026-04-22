@@ -234,8 +234,14 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
                 // update engine status
                 updateEngineStatus(uriString, ModelEngine.Status.OK, "Info: Engine started successfully");
 
-                // Start the model loading process (previously in SceneLoader)
-                engine.getModel().load();
+                try {
+                    // Start the model loading process (previously in SceneLoader)
+                    engine.getModel().load();
+                } catch (Throwable t) {
+                    logger.log(Level.SEVERE, "Critical error during model load: " + t.getMessage(), t);
+                    updateEngineStatus(uriString, ModelEngine.Status.ERROR, "Error: " + t.getMessage());
+                    freeMemory(false);
+                }
 
             });
         } catch (Exception ex) {
@@ -336,17 +342,17 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
         engine.add("modelEngineViewModelListener", (EventListener) event -> {
             if (event instanceof ModelEvent) {
                 final ModelEvent modelEvent = (ModelEvent) event;
-                final Model.Status status = modelEvent.getData("status", Model.Status.class, Model.Status.UNKNOWN);
                 if (modelEvent.getCode() == ModelEvent.Code.STATUS_CHANGED) {
-                    switch (status) {
-                        case LOADING:
-                            notifyStatusChange(finalUriString);
-                            break;
-                        case OK:
-                        case ERROR:
-                            notifyStatusChange(finalUriString);
+                    final Model.Status status = modelEvent.getData("status", Model.Status.class, Model.Status.UNKNOWN);
+                    if (status == Model.Status.ERROR) {
+                        handler.post(() -> {
                             updateMemoryStatus();
+                            freeMemory(false);
+                        });
+                    } else if (status == Model.Status.WARNING) {
+                        handler.post(this::updateMemoryStatus);
                     }
+                    notifyStatusChange(finalUriString);
                 }
             }
             return false;
