@@ -150,36 +150,25 @@ public class CameraUtils {
         );
 
         // --- ROBUST CLIPPING PLANE LOGIC ---
-        // We set near to a balanced fraction of the distance (1%),
+        // We set near to a balanced fraction of the distance,
         // but we must ensure it's closer than the front of the model.
-        float suggestedNear = Math.min(distance * 0.01f, Math.max(0.001f, (distance - radius) * 0.5f));
+        float suggestedNear = (distance - radius) * 0.9f;
+        float suggestedFar = distance + radius * 1.1f;
 
-        // Floors to avoid numerical instability
-        final float floor = (radius < 0.1f) ? 0.0001f : 0.01f;
-        suggestedNear = Math.max(suggestedNear, floor);
-
-        // Set far plane to capture the model plus a generous headroom (2.0x radius).
-        // DO NOT include the skybox/universe here; it will be handled by a private projection pass.
-        float suggestedFar = distance + radius * 2.0f;
+        // Minimum near plane to avoid numerical issues (0.1% of radius or 0.01)
+        final float floor = Math.max(0.001f, radius * 0.001f);
+        if (suggestedNear < floor) {
+            suggestedNear = floor;
+        }
 
         // --- HARDWARE-AWARE DEPTH PRECISION ---
         final int[] depthBits = new int[1];
         android.opengl.GLES20.glGetIntegerv(android.opengl.GLES20.GL_DEPTH_BITS, depthBits, 0);
-        final float maxHealthyRatio = (depthBits[0] >= 24) ? 10000f : 1000f;
+        final float maxHealthyRatio = (depthBits[0] >= 24) ? 100000f : 10000f; // Increased for better handling
 
         if (suggestedFar / suggestedNear > maxHealthyRatio) {
             // If the ratio is too high, we must increase 'near' to preserve depth precision.
-            // This might clip the very front of the model, which is usually acceptable.
             suggestedNear = suggestedFar / maxHealthyRatio;
-
-            // But don't increase 'near' so much that we clip the center of the model!
-            final float maxNearLimit = distance - radius * 0.1f;
-            if (suggestedNear > maxNearLimit) {
-                suggestedNear = Math.max(floor, maxNearLimit);
-                suggestedFar = suggestedNear * maxHealthyRatio;
-            }
-        } else {
-            suggestedFar = suggestedNear * maxHealthyRatio;
         }
 
         // Apply to projection

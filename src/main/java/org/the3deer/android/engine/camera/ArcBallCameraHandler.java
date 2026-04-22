@@ -61,7 +61,7 @@ public class ArcBallCameraHandler implements Camera.Controller {
                 rotate(touchEvent.getAngle());
                 return true;
             case PINCH:
-                zoom(touchEvent.getZoom() * camera.getDistance() * 0.01f);
+                zoom(touchEvent.getZoom());
                 return true;
             case SPREAD:
                 pan(-touchEvent.getdX(), touchEvent.getdY());
@@ -84,6 +84,19 @@ public class ArcBallCameraHandler implements Camera.Controller {
         final float[] localCenter = selected.getDimensions().getCenter();
         // Transform the local center to world space using its final transform
         return Math3DUtils.transform(localCenter[0], localCenter[1], localCenter[2], selected.getModelMatrix());
+    }
+
+    private float getSensitivity(float base) {
+        float sensitivity = base;
+        final Scene scene = model.getActiveScene();
+        if (scene != null && scene.getDimensions() != null) {
+            final float sceneScale = scene.getDimensions().getLargest();
+            if (sceneScale > 0) {
+                // Dampen sensitivity for very large scenes to keep control
+                sensitivity /= (1.0f + (float) Math.log10(Math.max(1.0f, sceneScale)));
+            }
+        }
+        return sensitivity;
     }
 
     @Override
@@ -163,11 +176,21 @@ public class ArcBallCameraHandler implements Camera.Controller {
         final float distance = Math3DUtils.length(look);
         Math3DUtils.normalizeVector(look);
 
-        if (distance < 0.1f && direction > 0) return;
+        // Calculate world-space zoom amount
+        // We use a base sensitivity of 0.005f (half of the previous 0.01f for smoother feel)
+        final float amount = direction * distance * getSensitivity(0.005f);
 
-        final float nx = pos[0] + look[0] * direction;
-        final float ny = pos[1] + look[1] * direction;
-        final float nz = pos[2] + look[2] * direction;
+        // Scale-aware minimum distance to prevent flying through the model
+        float minDistance = 0.01f;
+        if (model.getActiveScene() != null && model.getActiveScene().getDimensions() != null) {
+            minDistance = Math.max(minDistance, model.getActiveScene().getDimensions().getLargest() * 0.01f);
+        }
+
+        if (distance < minDistance && amount > 0) return;
+
+        final float nx = pos[0] + look[0] * amount;
+        final float ny = pos[1] + look[1] * amount;
+        final float nz = pos[2] + look[2] * amount;
 
         if (camera.isOutOfBounds(nx, ny, nz)) return;
 
@@ -182,8 +205,6 @@ public class ArcBallCameraHandler implements Camera.Controller {
         if (dX == 0 && dY == 0) return;
 
         // If an object is selected, we usually disable free panning to keep focus on the object.
-        // Alternatively, we could allow panning but then subsequent rotations would snap back to center.
-        // For a "gravitating" camera, it's better to keep the target locked to the selection.
         if (model.getActiveScene().getSelectedObject() != null) return;
 
         final float[] pos = camera.getPos();
@@ -195,17 +216,7 @@ public class ArcBallCameraHandler implements Camera.Controller {
         final float[] cameraUp = Math3DUtils.crossProduct(right, look);
 
         final float distance = Math3DUtils.length(Math3DUtils.substract(view, pos));
-
-
-        float baseSensitivity = 0.0015f;
-        if (model.getActiveScene() != null && model.getActiveScene().getDimensions() != null) {
-            final float sceneScale = model.getActiveScene().getDimensions().getLargest();
-            if (sceneScale > 0) {
-                baseSensitivity /= (1.0f + (float) Math.log10(Math.max(1.0f, sceneScale)));
-            }
-        }
-
-        final float sensitivity = distance * baseSensitivity;
+        final float sensitivity = distance * getSensitivity(0.0015f);
 
         final float tx = -right[0] * dX * sensitivity + cameraUp[0] * dY * sensitivity;
         final float ty = -right[1] * dX * sensitivity + cameraUp[1] * dY * sensitivity;
