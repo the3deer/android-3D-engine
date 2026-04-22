@@ -7,13 +7,11 @@ import org.the3deer.android.engine.model.Object3D;
 import org.the3deer.android.engine.model.Scene;
 import org.the3deer.android.engine.services.LoadListener;
 import org.the3deer.android.engine.services.LoaderTask;
-import org.the3deer.android.engine.services.collada.entities.MeshData;
+import org.the3deer.util.io.IOUtils;
 
 import java.io.IOException;
 import java.net.URI;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.util.ArrayList;
+import java.nio.FloatBuffer;
 import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
@@ -59,8 +57,8 @@ public final class STLLoaderTask extends LoaderTask {
             logger.info("Parsing messages: " + stlFileReader.getParsingMessages());
 
             // primitive data
-            final List<float[]> vertices = new ArrayList<>();
-            final List<float[]> normals = new ArrayList<>();
+            final FloatBuffer vertices = IOUtils.createFloatBuffer(totalFaces * 3 * 3);
+            final FloatBuffer normals = IOUtils.createFloatBuffer(totalFaces * 3 * 3);
 
             // Parse all facets...
             double[] normal = new double[3];
@@ -70,26 +68,33 @@ public final class STLLoaderTask extends LoaderTask {
             super.publishProgress("Loading facets...");
 
             // load data
-            while (stlFileReader.getNextFacet(normal, triangle) && counter++ < totalFaces) {
+            while (stlFileReader.getNextFacet(normal, triangle) && counter < totalFaces) {
+                counter++;
 
-                normals.add(new float[]{(float)normal[0], (float)normal[1], (float)normal[2]});
-                normals.add(new float[]{(float)normal[0], (float)normal[1], (float)normal[2]});
-                normals.add(new float[]{(float)normal[0], (float)normal[1], (float)normal[2]});
+                float nx = (float) normal[0];
+                float ny = (float) normal[1];
+                float nz = (float) normal[2];
+                normals.put(nx).put(ny).put(nz);
+                normals.put(nx).put(ny).put(nz);
+                normals.put(nx).put(ny).put(nz);
 
-                vertices.add(new float[]{(float)triangle[0][0],(float)triangle[0][1],(float)triangle[0][2]});
-                vertices.add(new float[]{(float)triangle[1][0],(float)triangle[1][1],(float)triangle[1][2]});
-                vertices.add(new float[]{(float)triangle[2][0],(float)triangle[2][1],(float)triangle[2][2]});
+                vertices.put((float) triangle[0][0]).put((float) triangle[0][1]).put((float) triangle[0][2]);
+                vertices.put((float) triangle[1][0]).put((float) triangle[1][1]).put((float) triangle[1][2]);
+                vertices.put((float) triangle[2][0]).put((float) triangle[2][1]).put((float) triangle[2][2]);
             }
+            vertices.flip();
+            normals.flip();
 
             // log event
-            logger.info("Loaded model. Facets: " + counter + ", vertices:" +vertices.size()+", normals: "+normals.size());
+            logger.info("Loaded model. Facets: " + counter + ", vertices:" + vertices.limit() / 3 + ", normals: " + normals.limit() / 3);
 
             // build data
-            final MeshData mesh = new MeshData.Builder().vertices(vertices).normals(normals).build();
+            final STLMeshData mesh = new STLMeshData(vertices, normals);
 
             // fix missing or wrong normals
             super.publishProgress("Validating data...");
             mesh.fixNormals();
+            mesh.smooth();
 
             // notify succeded!
             Object3D data = new Object3D(mesh.getVertexBuffer()).setVertexNormalsArrayBuffer(mesh.getNormalsBuffer());
@@ -116,13 +121,5 @@ public final class STLLoaderTask extends LoaderTask {
                 throw e;
             }
         }
-    }
-
-    private static ByteBuffer createNativeByteBuffer(int length) {
-        // initialize vertex byte buffer for shape coordinates
-        ByteBuffer bb = ByteBuffer.allocateDirect(length);
-        // use the device hardware's native byte order
-        bb.order(ByteOrder.nativeOrder());
-        return bb;
     }
 }
