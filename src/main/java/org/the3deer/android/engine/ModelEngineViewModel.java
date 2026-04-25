@@ -166,17 +166,12 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
                 gc();
 
             } catch (OutOfMemoryError e) {
-                // We don't call the callback here to avoid further operations on a failed engine
                 logger.log(Level.SEVERE, "OutOfMemoryError while activating engine for " + uriString, e);
                 updateEngineStatus(uriString, ModelEngine.Status.ERROR, "Error: Out of memory");
-                clearCache(false);
-            } catch (Exception e) {
-                logger.log(Level.SEVERE, "Failed to activate engine for " + uriString, e);
-                try {
-                    updateEngineStatus(uriString, ModelEngine.Status.ERROR, "Error: " + e.getMessage());
-                } catch (Exception ex) {
-                    logger.severe("Failed to update engine status for " + uriString);
-                }
+                freeMemory(false);
+            } catch (Throwable t) {
+                logger.log(Level.SEVERE, "Failed to load engine for " + uriString, t);
+                updateEngineStatus(uriString, ModelEngine.Status.ERROR, "Error: " + t.getMessage());
             }
         });
     }
@@ -237,10 +232,13 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
                 try {
                     // Start the model loading process (previously in SceneLoader)
                     engine.getModel().load();
+                } catch (OutOfMemoryError e) {
+                    logger.log(Level.SEVERE, "OutOfMemoryError during model load: " + uriString, e);
+                    updateEngineStatus(uriString, ModelEngine.Status.ERROR, "Error: Out of memory");
+                    freeMemory(false);
                 } catch (Throwable t) {
                     logger.log(Level.SEVERE, "Critical error during model load: " + t.getMessage(), t);
                     updateEngineStatus(uriString, ModelEngine.Status.ERROR, "Error: " + t.getMessage());
-                    freeMemory(false);
                 }
 
             });
@@ -345,10 +343,7 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
                 if (modelEvent.getCode() == ModelEvent.Code.STATUS_CHANGED) {
                     final Model.Status status = modelEvent.getData("status", Model.Status.class, Model.Status.UNKNOWN);
                     if (status == Model.Status.ERROR) {
-                        handler.post(() -> {
-                            updateMemoryStatus();
-                            freeMemory(false);
-                        });
+                        handler.post(this::updateMemoryStatus);
                     } else if (status == Model.Status.WARNING) {
                         handler.post(this::updateMemoryStatus);
                     }
@@ -373,7 +368,10 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
 
         // get engine
         ModelEngine engine = getEngine(uri);
-        if (engine == null) throw new IllegalArgumentException("Engine not initialized");
+        if (engine == null) {
+            logger.severe("Engine not initialized. uri: "+uri);
+            return;
+        }
 
         // set status
         engine.setStatus(status);

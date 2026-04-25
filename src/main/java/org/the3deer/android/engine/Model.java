@@ -223,110 +223,98 @@ public class Model implements LoadListener {
         return memory;
     }
 
-    public void load() {
+    public void load() throws IOException {
 
         logger.info("Loading model... uri: " + getUri() + ", type: " + getType() + " ---------------------------------- ");
 
         // register current model to the thread
         CURRENT.set(this);
 
-        try {
+        // default uri
+        URI modelUri = getUri();
 
-            // default uri
-            URI modelUri = getUri();
+        // default type
+        String modelType = getType();
 
-            // default type
-            String modelType = getType();
+        // load model
+        logger.info("Loading model... uri: " + modelUri);
 
-            // load model
-            logger.info("Loading model... uri: " + modelUri);
+        // update model
+        setStatus(Model.Status.LOADING, "Loading model: " + modelUri);
+
+        // if the model is a zip file, we need to extract it to the cache directory
+        if ("zip".equalsIgnoreCase(modelType) || modelUri.toString().toLowerCase().endsWith(".zip")) {
+
+            // extract zip to disk
+            final Map<String, URI> zipFiles = ContentUtils.extract(modelUri);
+            if (zipFiles.isEmpty()) {
+                throw new IOException("Failed to extract zip file or zip is empty: " + modelUri);
+            }
+
+            URI modelFile = null;
+            for (Map.Entry<String, URI> zipEntry : zipFiles.entrySet()) {
+                final String zipFilename = zipEntry.getKey();
+                if (zipFilename.startsWith("__MACOSX") || zipFilename.contains("/._") || zipFilename.startsWith("._")) {
+                    continue;
+                }
+
+                final int dotIndex = zipFilename.lastIndexOf('.');
+                if (dotIndex == -1) continue;
+
+                final String fileExtension = zipFilename.substring(dotIndex).toLowerCase();
+
+                // register the file URI so it can be found by name later
+                ContentUtils.addUri(zipFilename, zipEntry.getValue());
+
+                // detect model
+                switch (fileExtension) {
+                    case ".obj":
+                    case ".stl":
+                    case ".dae":
+                    case ".gltf":
+                    case ".fbx":
+                    case ".glb":
+                        modelFile = zipEntry.getValue();
+                        modelType = fileExtension.substring(1);
+                        break;
+                }
+            }
+
+            if (modelFile != null) {
+                modelUri = modelFile;
+                this.uriModel = modelFile;
+                logger.info("Using model from cache: " + modelFile);
+
+                // Set current directory for relative path resolution
+                ContentUtils.setCurrentDir(new java.io.File(modelFile.getPath()).getParentFile());
+            } else {
+                throw new IllegalArgumentException("No supported model found in zip: " + modelUri);
+            }
+        }
+
+        final LoaderTask loaderTask = LoaderRegistry.get(modelType, modelUri, this);
+        if (loaderTask != null) {
+
+            // check memory
+            if (ContentUtils.getAvailableMemory() < 32 * 1024 * 1024) {
+                logger.warning("Low memory before loading task. Requesting cleanup...");
+                setStatus(Status.WARNING, "Low memory. Cleaning up...");
+                // The ViewModel will react to this status if it's listening
+            }
+
+            logger.info("Loading " + modelType + " object from: " + modelUri);
+            loaderTask.execute(false);
+
+            // log success
+            logger.info("Loading model finished -------------------------------------- ");
 
             // update model
-            setStatus(Model.Status.LOADING, "Loading model: " + modelUri);
+            setStatus(Model.Status.OK, "Loading Model finished successfully");
 
-            // if the model is a zip file, we need to extract it to the cache directory
-            if ("zip".equalsIgnoreCase(modelType) || modelUri.toString().toLowerCase().endsWith(".zip")) {
-
-                // extract zip to disk
-                final Map<String, URI> zipFiles = ContentUtils.extract(modelUri);
-                if (zipFiles.isEmpty()) {
-                    throw new IOException("Failed to extract zip file or zip is empty: " + modelUri);
-                }
-
-                URI modelFile = null;
-                for (Map.Entry<String, URI> zipEntry : zipFiles.entrySet()) {
-                    final String zipFilename = zipEntry.getKey();
-                    if (zipFilename.startsWith("__MACOSX") || zipFilename.contains("/._") || zipFilename.startsWith("._")) {
-                        continue;
-                    }
-
-                    final int dotIndex = zipFilename.lastIndexOf('.');
-                    if (dotIndex == -1) continue;
-
-                    final String fileExtension = zipFilename.substring(dotIndex).toLowerCase();
-
-                    // register the file URI so it can be found by name later
-                    ContentUtils.addUri(zipFilename, zipEntry.getValue());
-
-                    // detect model
-                    switch (fileExtension) {
-                        case ".obj":
-                        case ".stl":
-                        case ".dae":
-                        case ".gltf":
-                        case ".fbx":
-                        case ".glb":
-                            modelFile = zipEntry.getValue();
-                            modelType = fileExtension.substring(1);
-                            break;
-                    }
-                }
-
-                if (modelFile != null) {
-                    modelUri = modelFile;
-                    this.uriModel = modelFile;
-                    logger.info("Using model from cache: " + modelFile);
-
-                    // Set current directory for relative path resolution
-                    ContentUtils.setCurrentDir(new java.io.File(modelFile.getPath()).getParentFile());
-                } else {
-                    throw new IllegalArgumentException("No supported model found in zip: " + modelUri);
-                }
-            }
-
-            final LoaderTask loaderTask = LoaderRegistry.get(modelType, modelUri, this);
-            if (loaderTask != null) {
-
-                // check memory
-                if (ContentUtils.getAvailableMemory() < 32 * 1024 * 1024) {
-                    logger.warning("Low memory before loading task. Requesting cleanup...");
-                    setStatus(Status.WARNING, "Low memory. Cleaning up...");
-                    // The ViewModel will react to this status if it's listening
-                }
-
-                logger.info("Loading " + modelType + " object from: " + modelUri);
-                loaderTask.execute(false);
-
-                // log success
-                logger.info("Loading model finished -------------------------------------- ");
-
-                // update model
-                setStatus(Model.Status.OK, "Loading Model finished successfully");
-
-            } else {
-                logger.severe("No loader registered for type: " + modelType);
-                setStatus(Status.ERROR, "No loader registered for type: " + modelType);
-                //throw new UnsupportedOperationException("No loader registered for type: " + modelType);
-            }
-
-        } catch (final Throwable t) {
-            logger.log(Level.SEVERE, "Critical error loading model: " + t.getMessage(), t);
-            onLoadError(t instanceof Exception ? (Exception) t : new RuntimeException(t));
-            throw (t instanceof RuntimeException) ? (RuntimeException) t : new RuntimeException(t);
-        } finally {
-            // unregister current model from the thread
-            // we don't remove it here because the loader tasks might still be running in background threads
-            // FIXME: CURRENT.remove();
+        } else {
+            logger.severe("No loader registered for type: " + modelType);
+            setStatus(Status.ERROR, "No loader registered for type: " + modelType);
+            //throw new UnsupportedOperationException("No loader registered for type: " + modelType);
         }
     }
 
