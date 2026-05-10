@@ -64,6 +64,7 @@ public final class CameraManager implements EventListener {
         }
 
         this.activeController = this.controllersMap.values().iterator().next(); // Set the first controller as active by default
+        this.defaultCamera.setController(this.activeController);
     }
 
     /**
@@ -132,7 +133,7 @@ public final class CameraManager implements EventListener {
         }
 
         // check
-        if (defaultCamera == null) {
+        if (activeCamera == null) {
             logger.warning("No active camera found in the current scene.");
             return false;
         }
