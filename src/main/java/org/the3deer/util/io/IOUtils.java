@@ -1,17 +1,27 @@
 package org.the3deer.util.io;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.URI;
+import java.net.URL;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.nio.ShortBuffer;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 public final class IOUtils {
 
@@ -114,5 +124,69 @@ public final class IOUtils {
             ret = Byte.toUnsignedInt(((ByteBuffer) indexBuffer).get(i));
         }
         return ret;
+    }
+
+    public static List<String> readLines(String uriString) {
+        List<String> ret = new ArrayList<>();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(URI.create(uriString).toURL().openStream()))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                ret.add(line);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return ret;
+    }
+
+    public static String read(URL url) throws IOException {
+        StringBuilder sb = new StringBuilder();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(url.openStream()))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                sb.append(line).append("\n");
+            }
+        }
+        return sb.toString();
+    }
+
+    public static String read(URI uri) throws IOException {
+        StringBuilder sb = new StringBuilder();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(uri.toURL().openStream()))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                sb.append(line).append("\n");
+            }
+        }
+        return sb.toString();
+    }
+
+    public static long getAvailableMemory() {
+        final Runtime runtime = Runtime.getRuntime();
+        final long usedMemory = runtime.totalMemory() - runtime.freeMemory();
+        return runtime.maxMemory() - usedMemory;
+    }
+
+    public static void extract(InputStream is, File cacheDir) throws IOException {
+        try (ZipInputStream zis = new ZipInputStream(new BufferedInputStream(is))) {
+            ZipEntry ze;
+            while ((ze = zis.getNextEntry()) != null) {
+                if (ze.isDirectory()) {
+                    new File(cacheDir, ze.getName()).mkdirs();
+                    continue;
+                }
+
+                final File outFile = new File(cacheDir, ze.getName());
+                outFile.getParentFile().mkdirs();
+
+                try (BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(outFile))) {
+                    final byte[] buffer = new byte[8192];
+                    int read;
+                    while ((read = zis.read(buffer)) != -1) {
+                        bos.write(buffer, 0, read);
+                    }
+                }
+            }
+        }
     }
 }

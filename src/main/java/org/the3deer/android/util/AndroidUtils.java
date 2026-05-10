@@ -1,15 +1,9 @@
 package org.the3deer.android.util;
 
-import android.app.Activity;
-import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.net.Uri;
 import android.webkit.MimeTypeMap;
-
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
 
 import org.the3deer.util.io.ByteBufferInputStream;
 import org.the3deer.util.event.EventListener;
@@ -53,23 +47,6 @@ public class AndroidUtils {
         return mimeType;
     }
 
-    public static void logd(String sb){
-        sb = sb.replaceAll("android_asset", System.getProperty("user.local.dir")+"/app/src/main/assets");
-        if (sb.length() > 4000) {
-            int chunkCount = sb.length() / 4000;     // integer division
-            for (int i = 0; i <= chunkCount; i++) {
-                int max = 4000 * (i + 1);
-                if (max >= sb.length()) {
-                    logger.config(sb.substring(4000 * i));
-                } else {
-                    logger.config(sb.substring(4000 * i, max));
-                }
-            }
-        } else {
-            logger.config(sb);
-        }
-    }
-
     /**
      * Fires the event to all listeners
      * @param listeners the listener list
@@ -109,29 +86,6 @@ public class AndroidUtils {
             ret = true;
         }
         return ret;
-    }
-
-    public static boolean checkPermission(Activity context, String permission, int callback) {
-        if (checkPermission(context, permission)) {
-            return true;
-        }
-        requestPermission(context, permission, callback);
-        return false;
-    }
-
-    public static boolean checkPermission(Activity context, String permission) {
-        int permissionCheck = ContextCompat.checkSelfPermission(context, permission);
-        return permissionCheck == PackageManager.PERMISSION_GRANTED;
-    }
-
-    public static void requestPermission(Activity context, String permission, int callback) {
-        ActivityCompat.requestPermissions(context, new String[]{permission}, callback);
-    }
-
-    public static void openUrl(Activity activity, String url){
-        Intent i = new Intent(Intent.ACTION_VIEW);
-        i.setData(Uri.parse(url));
-        activity.startActivity(i);
     }
 
     // url = file path or whatever suitable URL you want.
