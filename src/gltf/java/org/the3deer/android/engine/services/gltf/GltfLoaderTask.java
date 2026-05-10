@@ -42,7 +42,7 @@ public class GltfLoaderTask extends LoaderTask {
     @NonNull
     private List<Scene> buildNew() throws Exception {
         GltfLoader loader = new GltfLoader();
-        GltfSceneData sceneData = loader.load(uri, model.getTextureBaseUri(), callback);
+        GltfSceneData sceneData = loader.load(model, callback);
         return loader.createScenes(sceneData);
     }
 }

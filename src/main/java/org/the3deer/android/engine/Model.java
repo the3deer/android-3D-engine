@@ -62,9 +62,9 @@ public class Model {
     private String description;
     private String author;
     private String license;
+    private String provider;
     private long size;
     private URI screenshot;
-    private URI textureBaseUri;
 
     @Inject
     private EventManager _eventManager;
@@ -80,7 +80,7 @@ public class Model {
 
     private File cacheDir;
     private File currentDir;
-    private final Map<String, URI> documentsProvided = new HashMap<>();
+    private final Map<String, URI> includes = new HashMap<>();
 
     public Model(URI uri) {
         this.uri = uri;
@@ -158,6 +158,14 @@ public class Model {
         this.license = license;
     }
 
+    public String getProvider() {
+        return provider;
+    }
+
+    public void setProvider(String provider) {
+        this.provider = provider;
+    }
+
     public long getSize() {
         return size;
     }
@@ -172,14 +180,6 @@ public class Model {
 
     public void setScreenshot(URI screenshot) {
         this.screenshot = screenshot;
-    }
-
-    public URI getTextureBaseUri() {
-        return textureBaseUri;
-    }
-
-    public void setTextureBaseUri(URI textureBaseUri) {
-        this.textureBaseUri = textureBaseUri;
     }
 
     public Status getStatus() {
@@ -268,14 +268,18 @@ public class Model {
         return memory;
     }
 
+    public Map<String, URI> getIncludes() {
+        return includes;
+    }
+
     public void addUri(String name, URI uri) {
-        documentsProvided.put(name, uri);
+        includes.put(name, uri);
     }
 
     public URI getUri(String name) {
-        URI uri = documentsProvided.get(name);
+        URI uri = includes.get(name);
         if (uri != null) return uri;
-        uri = documentsProvided.get(name.replaceAll("\\\\","/"));
+        uri = includes.get(name.replaceAll("\\\\","/"));
         if (uri != null) return uri;
 
         if (currentDir != null) {

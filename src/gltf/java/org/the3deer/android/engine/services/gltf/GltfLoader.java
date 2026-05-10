@@ -3,8 +3,8 @@ package org.the3deer.android.engine.services.gltf;
 import android.graphics.Bitmap;
 import android.opengl.GLES20;
 
+import org.the3deer.android.engine.Model;
 import org.the3deer.android.engine.model.Object3D;
-
 import org.the3deer.android.util.AndroidUtils;
 import org.the3deer.android.engine.animation.Animation;
 import org.the3deer.android.engine.animation.JointTransform;
@@ -36,6 +36,7 @@ import org.the3deer.util.math.Quaternion;
 
 import java.io.InputStream;
 import java.net.URI;
+import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -47,6 +48,7 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -55,8 +57,10 @@ import de.javagl.jgltf.model.GltfModels;
 import de.javagl.jgltf.model.io.Buffers;
 import de.javagl.jgltf.model.io.GltfAsset;
 import de.javagl.jgltf.model.io.GltfAssetReader;
+import de.javagl.jgltf.model.io.GltfReference;
 import de.javagl.jgltf.model.io.GltfReferenceResolver;
 import de.javagl.jgltf.model.io.IO;
+import de.javagl.jgltf.model.io.UriResolvers;
 
 public class GltfLoader {
 
@@ -65,8 +69,9 @@ public class GltfLoader {
     public GltfLoader() {
     }
 
-    public GltfSceneData load(URI url, LoadListener callback) throws Exception {
+    public GltfSceneData load(Model model, LoadListener callback) throws Exception {
 
+        final URI url = model.getUriModel();
         try (InputStream stream = url.toURL().openStream()) {
             logger.info("Loading and parsing model file... " + url);
             callback.onProgress("Parsing " + url);
@@ -74,7 +79,27 @@ public class GltfLoader {
             GltfAssetReader gltfAssetReader = new GltfAssetReader();
             GltfAsset gltfAsset = gltfAssetReader.readWithoutReferences(stream);
             URI baseUri = IO.getParent(URI.create(url.toString()));
-            GltfReferenceResolver.resolveAll(gltfAsset.getReferences(), baseUri);
+
+            // Resolve references.
+            // We prioritize URIs registered in the Model entity (which handles Poly Haven's mapping)
+            for (GltfReference reference : gltfAsset.getReferences()) {
+                URI resolved = model.getUri(reference.getUri());
+                if (resolved != null) {
+                    logger.config("Using pre-registered mapping for reference: " + reference.getUri() + " -> " + resolved);
+                    GltfReferenceResolver.resolve(reference, s -> {
+                        try {
+                            return Buffers.create(IO.readStream(resolved.toURL().openStream()));
+                        } catch (Exception e) {
+                            logger.warning("Failed to load pre-registered URI: " + resolved);
+                            return null;
+                        }
+                    });
+                } else {
+                    Function<String, ByteBuffer> uriResolver = UriResolvers.createBaseUriResolver(baseUri);
+                    GltfReferenceResolver.resolve(reference, uriResolver);
+                }
+            }
+
             GltfModel gltfModel = GltfModels.create(gltfAsset);
             GltfParser parser = new GltfParser(gltfAsset, gltfModel);
             GltfDto dto = parser.parse();

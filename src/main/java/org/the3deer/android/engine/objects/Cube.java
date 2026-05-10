@@ -13,14 +13,14 @@ public final class Cube {
 
     final static float[] cubeVertices = new float[]{
             // @formatter:off
-            -1f, 1f, 1f, // top left front
-            -1f, -1f, 1f, // bottom left front
-            1f, -1f, 1f, // bottom right front
-            1f, 1f, 1f, // upper right front
-            -1f, 1f, -1f, // top left back
-            -1f, -1f, -1f, // bottom left back
-            1f, -1f, -1f, // bottom right back
-            1f, 1f, -1f // upper right back
+            -0.5f, 0.5f, 0.5f, // top left front
+            -0.5f, -0.5f, 0.5f, // bottom left front
+            0.5f, -0.5f, 0.5f, // bottom right front
+            0.5f, 0.5f, 0.5f, // upper right front
+            -0.5f, 0.5f, -0.5f, // top left back
+            -0.5f, -0.5f, -0.5f, // bottom left back
+            0.5f, -0.5f, -0.5f, // bottom right back
+            0.5f, 0.5f, -0.5f // upper right back
             // @formatter:on
     };
 
@@ -46,55 +46,55 @@ public final class Cube {
             7, 3, 6
             // @formatter:on
     };
-    private final static float[] cubePositionData = {
+    public final static float[] cubePositionData = {
             //@formatter:off
             // Front face
-            -1.0f, 1.0f, 1.0f,
-            -1.0f, -1.0f, 1.0f,
-            1.0f, 1.0f, 1.0f,
-            -1.0f, -1.0f, 1.0f,
-            1.0f, -1.0f, 1.0f,
-            1.0f, 1.0f, 1.0f,
+            -0.5f, 0.5f, 0.5f,
+            -0.5f, -0.5f, 0.5f,
+            0.5f, 0.5f, 0.5f,
+            -0.5f, -0.5f, 0.5f,
+            0.5f, -0.5f, 0.5f,
+            0.5f, 0.5f, 0.5f,
 
             // Right face
-            1.0f, 1.0f, 1.0f,
-            1.0f, -1.0f, 1.0f,
-            1.0f, 1.0f, -1.0f,
-            1.0f, -1.0f, 1.0f,
-            1.0f, -1.0f, -1.0f,
-            1.0f, 1.0f, -1.0f,
+            0.5f, 0.5f, 0.5f,
+            0.5f, -0.5f, 0.5f,
+            0.5f, 0.5f, -0.5f,
+            0.5f, -0.5f, 0.5f,
+            0.5f, -0.5f, -0.5f,
+            0.5f, 0.5f, -0.5f,
 
             // Back face
-            1.0f, 1.0f, -1.0f,
-            1.0f, -1.0f, -1.0f,
-            -1.0f, 1.0f, -1.0f,
-            1.0f, -1.0f, -1.0f,
-            -1.0f, -1.0f, -1.0f,
-            -1.0f, 1.0f, -1.0f,
+            0.5f, 0.5f, -0.5f,
+            0.5f, -0.5f, -0.5f,
+            -0.5f, 0.5f, -0.5f,
+            0.5f, -0.5f, -0.5f,
+            -0.5f, -0.5f, -0.5f,
+            -0.5f, 0.5f, -0.5f,
 
             // Left face
-            -1.0f, 1.0f, -1.0f,
-            -1.0f, -1.0f, -1.0f,
-            -1.0f, 1.0f, 1.0f,
-            -1.0f, -1.0f, -1.0f,
-            -1.0f, -1.0f, 1.0f,
-            -1.0f, 1.0f, 1.0f,
+            -0.5f, 0.5f, -0.5f,
+            -0.5f, -0.5f, -0.5f,
+            -0.5f, 0.5f, 0.5f,
+            -0.5f, -0.5f, -0.5f,
+            -0.5f, -0.5f, 0.5f,
+            -0.5f, 0.5f, 0.5f,
 
             // Top face
-            -1.0f, 1.0f, -1.0f,
-            -1.0f, 1.0f, 1.0f,
-            1.0f, 1.0f, -1.0f,
-            -1.0f, 1.0f, 1.0f,
-            1.0f, 1.0f, 1.0f,
-            1.0f, 1.0f, -1.0f,
+            -0.5f, 0.5f, -0.5f,
+            -0.5f, 0.5f, 0.5f,
+            0.5f, 0.5f, -0.5f,
+            -0.5f, 0.5f, 0.5f,
+            0.5f, 0.5f, 0.5f,
+            0.5f, 0.5f, -0.5f,
 
             // Bottom face
-            1.0f, -1.0f, -1.0f,
-            1.0f, -1.0f, 1.0f,
-            -1.0f, -1.0f, -1.0f,
-            1.0f, -1.0f, 1.0f,
-            -1.0f, -1.0f, 1.0f,
-            -1.0f, -1.0f, -1.0f
+            0.5f, -0.5f, -0.5f,
+            0.5f, -0.5f, 0.5f,
+            -0.5f, -0.5f, -0.5f,
+            0.5f, -0.5f, 0.5f,
+            -0.5f, -0.5f, 0.5f,
+            -0.5f, -0.5f, -0.5f
     };
     private final static float[] cubeColorData = {
 
@@ -196,7 +196,7 @@ public final class Cube {
             1.0f, 0.0f, 1.0f, 0.5f,
             1.0f, 0.0f, 1.0f, 0.5f
     };
-    private final static float[] cubeNormalData =
+    public final static float[] cubeNormalData =
             {
                     // Front face
                     0.0f, 0.0f, 1.0f,

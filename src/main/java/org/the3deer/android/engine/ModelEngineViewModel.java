@@ -3,9 +3,11 @@ package org.the3deer.android.engine;
 import android.app.Application;
 import android.content.ComponentCallbacks2;
 import android.content.res.Configuration;
+import android.database.Cursor;
 import android.opengl.GLSurfaceView;
 import android.os.Handler;
 import android.os.Looper;
+import android.provider.OpenableColumns;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -15,23 +17,45 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
 import org.jetbrains.annotations.NotNull;
+import org.the3deer.android.engine.api.EngineAPI;
+import org.the3deer.android.engine.camera.CameraUtils;
 import org.the3deer.android.engine.event.EngineEvent;
+import org.the3deer.android.engine.model.Camera;
+import org.the3deer.android.engine.model.Dimensions;
 import org.the3deer.android.engine.model.ModelEvent;
+import org.the3deer.android.engine.model.Node;
+import org.the3deer.android.engine.model.Object3D;
+import org.the3deer.android.engine.model.Scene;
 import org.the3deer.android.engine.model.Screen;
+import org.the3deer.android.engine.model.Texture;
+import org.the3deer.android.engine.services.LoadListener;
+import org.the3deer.android.engine.services.LoaderRegistry;
+import org.the3deer.android.engine.services.LoaderTask;
 import org.the3deer.util.event.EventListener;
+import org.the3deer.util.io.IOUtils;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class ModelEngineViewModel extends AndroidViewModel implements ComponentCallbacks2 {
+public class ModelEngineViewModel extends AndroidViewModel implements ComponentCallbacks2, EngineAPI {
 
     private static final Logger logger = Logger.getLogger(ModelEngineViewModel.class.getSimpleName());
+
+    /**
+     * Singleton-like access for non-UI components (e.g. AI Assistants, AppFunctions)
+     */
+    public static ModelEngineViewModel INSTANCE;
 
     /**
      * OpenGL Screen. Shared across all models to ensure consistent UI. Initialized with some safe value
@@ -64,7 +88,7 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
     public ModelEngineViewModel(Application application) {
         super(application);
         application.registerComponentCallbacks(this);
-        //initTestModels();
+        INSTANCE = this;
     }
 
     public ModelEngine getEngine(@NotNull String uri) {
@@ -73,20 +97,20 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
     }
 
     /**
-     * Initialize the engine for the given URI.
+     * Initialize the engine for the given model.
      *
-     * @param uriString the model id/uri
+     * @param model the model entity
      * @param callback the callback to invoke when the engine is initialized
      */
-    public ModelEngine initEngine(@NotNull String uriString, Runnable callback) {
+    public ModelEngine initEngine(@NotNull Model model, Runnable callback) {
 
         if (callback == null) {
             // sync
-            return initEngineImpl(uriString);
+            return initEngineImpl(model);
         } else {
             // async
             executor.execute(() -> {
-                initEngineImpl(uriString);
+                initEngineImpl(model);
                 handler.post(callback);
             });
             return null;
@@ -94,13 +118,14 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
     }
 
     @Nullable
-    private ModelEngine initEngineImpl(@NonNull String uriString) {
-        // get
-        Model model = getModel(uriString);
+    private ModelEngine initEngineImpl(@NonNull Model model) {
+        final String uriString = model.getUri().toString();
 
-        // init if needed
-        if (model == null) {
-            model = createModel(uriString);
+        // Ensure the model is registered in our map
+        Map<String, Model> models = _models.getValue();
+        if (models != null && !models.containsKey(uriString)) {
+            models.put(uriString, model);
+            _models.postValue(models);
         }
 
         ModelEngine engine = getEngine(uriString);
@@ -277,14 +302,9 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
 
     private void freeMemory(boolean freeActive) {
         logger.warning("Low memory detected");
-
-
-        // FIXME: make this an EngineEvent
         handler.post(() ->
                 Toast.makeText(getApplication(), "Unloading inactive models to free memory...", Toast.LENGTH_SHORT).show()
         );
-
-        // Clear cache and try again
         clearCache(freeActive);
     }
 
@@ -382,12 +402,6 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
      * @param uri
      */
     private void notifyStatusChange(String uri) {
-
-        // get engine
-        Model model = getModel(uri);
-        if (model == null) throw new IllegalArgumentException("Engine not initialized");
-
-        // notify
         _models.postValue(_models.getValue());
 
         // get engine
@@ -525,4 +539,172 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
     public Screen getGlScreen() {
         return glScreen;
     }
+
+    // --- Loading Implementation ---
+
+    private void loadModel(ModelEngine engine) throws IOException {
+        Model model = engine.getModel();
+
+        if (model.getType() == null || model.getType().isEmpty()) {
+            String fileName = getFileName(model.getUri());
+            if (fileName != null && fileName.contains(".")) {
+                model.setType(fileName.substring(fileName.lastIndexOf('.') + 1).toLowerCase());
+            }
+        }
+
+        logger.info("Loading model... uri: " + model.getUriModel() + ", type: " + model.getType());
+        Model.CURRENT.set(model);
+        model.setStatus(Model.Status.LOADING, "Loading model: " + model.getUriModel());
+
+        // ZIP extraction logic
+        if ("zip".equalsIgnoreCase(model.getType()) || model.getUriModel().toString().toLowerCase().endsWith(".zip")) {
+
+            if (model.getCacheDir() == null) throw new IllegalStateException("Cache directory not set for ZIP extraction");
+
+            // Create a unique cache directory for this zip
+            final String folderName = (model.getName() != null) 
+                ? model.getName().replace(".", "_") : "temp_zip_" + System.currentTimeMillis();
+            final File zipCacheDir = new File(model.getCacheDir(), "models/" + folderName);
+            if (!zipCacheDir.exists() && !zipCacheDir.mkdirs()) throw new IOException("Failed to create cache directory");
+
+            try (InputStream is = model.getUriModel().toURL().openStream()) {
+                IOUtils.extract(is, zipCacheDir);
+            }
+
+            URI modelFile = null;
+            List<File> allFiles = new ArrayList<>();
+            scanFiles(zipCacheDir, allFiles);
+            for (File file : allFiles) {
+                final String relativePath = zipCacheDir.toURI().relativize(file.toURI()).getPath();
+                if (relativePath.startsWith("__MACOSX") || relativePath.contains("/._")) continue;
+                model.addUri(relativePath, file.toURI());
+                if (modelFile == null && file.getName().matches("(?i).*\\.(obj|stl|dae|gltf|fbx|glb)")) {
+                    modelFile = file.toURI();
+                    model.setType(file.getName().substring(file.getName().lastIndexOf('.') + 1).toLowerCase());
+                }
+            }
+            if (modelFile != null) {
+                model.setUriModel(modelFile);
+                model.setCurrentDir(new File(modelFile.getPath()).getParentFile());
+            } else {
+                throw new IllegalArgumentException("No supported model found in zip");
+            }
+        } else if ("file".equals(model.getUri().getScheme())) {
+            model.setCurrentDir(new File(model.getUri().getPath()).getParentFile());
+        }
+
+        final LoaderTask loaderTask = LoaderRegistry.get(model, new LoadListener() {
+            @Override public void onLoadStart() { model.setStatus(Model.Status.LOADING, "Loading started..."); }
+            @Override public void onProgress(String progress) { model.setStatus(Model.Status.LOADING, progress); }
+            @Override public void onLoadCamera(Scene scene, Camera camera) { if (glScreen != null) camera.getProjection().setAspectRatio(glScreen.getRatio()); }
+            @Override public void onLoadError(Exception ex) { model.setStatus(Model.Status.ERROR, ex.getMessage()); Model.CURRENT.remove(); }
+            @Override public void onLoadObject(Scene scene, Object3D data) { scene.addObject(data); }
+            @Override public void onLoadScene(Scene scene) {
+                // Ensure the scene has a camera to work with
+                if (scene.getActiveCamera() == null) {
+                    final Camera defaultCamera = engine.getBeanFactory().get("camera.default", Camera.class);
+                    if (defaultCamera != null) {
+                        scene.setActiveCamera(defaultCamera);
+                        scene.addCamera(defaultCamera);
+                    }
+                }
+
+                for (Object3D obj : scene.getObjects()) {
+                    if (obj.getMaterial() != null) {
+                        if (obj.getMaterial().getColorTexture() != null) loadTextureDatas(model, obj.getMaterial().getColorTexture());
+                        if (obj.getMaterial().getNormalTexture() != null) loadTextureDatas(model, obj.getMaterial().getNormalTexture());
+                    }
+                }
+                if (scene.getRootNodes().isEmpty()) {
+                    for (Object3D obj : scene.getObjects()) {
+                        Node node = new Node();
+                        node.setMesh(obj);
+                        obj.setParentNode(node);
+                        scene.getRootNodes().add(node);
+                    }
+                }
+                Dimensions dimensions = new Dimensions();
+                for (Object3D object : scene.getObjects()) {
+                    if (object.isDecorator()) continue;
+                    final Dimensions objDimensions = object.getCurrentDimensions();
+                    if (objDimensions != null) {
+                        float[] min = objDimensions.getMin();
+                        float[] max = objDimensions.getMax();
+                        dimensions.update(min[0], min[1], min[2]);
+                        dimensions.update(max[0], max[1], max[2]);
+                    }
+                }
+                scene.setDimensions(dimensions);
+                scene.update();
+                CameraUtils.frameModel(scene.getActiveCamera(), scene.getObjects());
+                model.addScene(scene);
+            }
+            @Override public void onLoadComplete() {
+                if (model.getScenes().isEmpty()) {
+                    logger.warning("No scenes available");
+                } else if (model.getActiveScene() == null) {
+                    model.setActiveScene(model.getScenes().get(0));
+                    model.getActiveScene().update();
+                }
+                model.update();
+                model.setStatus(Model.Status.OK, "Loading Model finished successfully");
+                Model.CURRENT.remove();
+            }
+        });
+
+        if (loaderTask != null) {
+            loaderTask.execute(false);
+        } else {
+            model.setStatus(Model.Status.ERROR, "No loader registered for type: " + model.getType());
+        }
+    }
+
+    private String getFileName(URI uri) {
+        if ("content".equals(uri.getScheme())) {
+            try (Cursor cursor = getApplication().getContentResolver().query(android.net.Uri.parse(uri.toString()), null, null, null, null)) {
+                if (cursor != null && cursor.moveToFirst()) {
+                    int index = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+                    if (index != -1) return cursor.getString(index);
+                }
+            } catch (Exception e) {
+                logger.log(Level.SEVERE, "Error querying content filename", e);
+            }
+        }
+        return IOUtils.getFileName(uri);
+    }
+
+    private void scanFiles(File dir, List<File> result) {
+        File[] files = dir.listFiles();
+        if (files != null) for (File file : files) if (file.isDirectory()) scanFiles(file, result); else result.add(file);
+    }
+
+    private void loadTextureDatas(Model model, Texture texture) {
+        if (texture == null || texture.getData() != null || texture.getFile() == null) return;
+        final URI textureUri = model.getUriModel().resolve(texture.getFile().replace('\\', '/').replace(' ', '+'));
+        try (InputStream stream = textureUri.toURL().openStream()) {
+            texture.setUri(textureUri);
+            texture.setData(IOUtils.read(stream));
+        } catch (Exception ex) {
+            logger.log(Level.SEVERE, "Error loading texture file", ex);
+        }
+    }
+
+    // --- EngineAPI Implementation ---
+
+    @Override public void zoom(float factor) { if (getActiveEngine() != null && getActiveEngine().getModel().getActiveScene() != null) getActiveEngine().getModel().getActiveScene().getActiveCamera().zoom(factor); }
+    @Override public void rotateCamera(float x, float y, float z) {}
+    @Override public void setWireframe(boolean enabled) {}
+    @Override public void createObject(String type, String id, Map<String, Object> attributes) {}
+    @Override public Map<String, Object> readObject(String id) { return null; }
+    @Override public void updateObject(String id, Map<String, Object> attributes) {}
+    @Override public void deleteObject(String id) {}
+    @Override public void executeSceneCommand(String command) {
+        ModelEngine engine = getActiveEngine();
+        if (engine == null) return;
+        Object assistant = engine.getBeanFactory().get("ai.system");
+        if (assistant != null) try { assistant.getClass().getMethod("processSystemPrompt", String.class).invoke(assistant, command); } catch (Exception e) {}
+    }
+    @Override public void executeTechnicalCommand(String command) {}
+    @Override public String getSceneSummary() { return ""; }
+    @Override public String exportToGltf() { return ""; }
 }
