@@ -13,15 +13,16 @@ import org.the3deer.android.engine.model.Texture;
 import org.the3deer.android.engine.services.LoadListener;
 import org.the3deer.android.engine.services.LoaderRegistry;
 import org.the3deer.android.engine.services.LoaderTask;
-import org.the3deer.android.util.ContentUtils;
 import org.the3deer.util.event.EventManager;
 import org.the3deer.util.io.IOUtils;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -66,7 +67,7 @@ public class Model implements LoadListener {
     // uri of the model
     private URI uriModel;
     private final String name;
-    private final String type;
+    private String type;
     private final Map<String, Object> extras;
 
     @Inject
@@ -80,6 +81,10 @@ public class Model implements LoadListener {
 
     private Map<String, Scene> scenesMap;
     private Scene activeScene;
+
+    private File cacheDir;
+    private File currentDir;
+    private final Map<String, URI> documentsProvided = new HashMap<>();
 
     // other variables
     private long startTime;
@@ -223,18 +228,36 @@ public class Model implements LoadListener {
         return memory;
     }
 
-    public void load() throws IOException {
+    public void setCacheDir(File cacheDir) {
+        this.cacheDir = cacheDir;
+    }
 
-        logger.info("Loading model... uri: " + getUri() + ", type: " + getType() + " ---------------------------------- ");
+    public void addUri(String name, URI uri) {
+        documentsProvided.put(name, uri);
+    }
+
+    public URI getUri(String name) {
+        URI uri = documentsProvided.get(name);
+        if (uri != null) return uri;
+        return documentsProvided.get(name.replaceAll("\\\\","/"));
+    }
+
+    public void load() throws IOException {
+        this.load(getUri(), getType());
+    }
+
+    public void load(URI modelUri, String modelType) throws IOException {
+
+        logger.info("Loading model... uri: " + modelUri + ", type: " + modelType + " ---------------------------------- ");
 
         // register current model to the thread
         CURRENT.set(this);
 
         // default uri
-        URI modelUri = getUri();
+        //URI modelUri = getUri();
 
         // default type
-        String modelType = getType();
+        //String modelType = getType();
 
         // load model
         logger.info("Loading model... uri: " + modelUri);
@@ -245,38 +268,52 @@ public class Model implements LoadListener {
         // if the model is a zip file, we need to extract it to the cache directory
         if ("zip".equalsIgnoreCase(modelType) || modelUri.toString().toLowerCase().endsWith(".zip")) {
 
-            // extract zip to disk
-            final Map<String, URI> zipFiles = ContentUtils.extract(modelUri);
-            if (zipFiles.isEmpty()) {
-                throw new IOException("Failed to extract zip file or zip is empty: " + modelUri);
+            if (cacheDir == null) throw new IllegalStateException("Cache directory not set for ZIP extraction");
+
+            // Create a unique cache directory for this zip
+            final String fileName = name != null ? name.replace(".", "_") : "temp_zip_" + System.currentTimeMillis();
+            final File zipCacheDir = new File(cacheDir, "models/" + fileName);
+            if (!zipCacheDir.exists() && !zipCacheDir.mkdirs()) {
+                throw new IOException("Failed to create cache directory: " + zipCacheDir);
             }
 
+            // extract zip to disk
+            try (InputStream is = modelUri.toURL().openStream()) {
+                IOUtils.extract(is, zipCacheDir);
+            }
+
+            // scan files
             URI modelFile = null;
-            for (Map.Entry<String, URI> zipEntry : zipFiles.entrySet()) {
-                final String zipFilename = zipEntry.getKey();
-                if (zipFilename.startsWith("__MACOSX") || zipFilename.contains("/._") || zipFilename.startsWith("._")) {
+            List<File> allFiles = new ArrayList<>();
+            scanFiles(zipCacheDir, allFiles);
+
+            for (File file : allFiles) {
+                final String relativePath = zipCacheDir.toURI().relativize(file.toURI()).getPath();
+                if (relativePath.startsWith("__MACOSX") || relativePath.contains("/._") || relativePath.startsWith("._")) {
                     continue;
                 }
 
-                final int dotIndex = zipFilename.lastIndexOf('.');
+                final int dotIndex = relativePath.lastIndexOf('.');
                 if (dotIndex == -1) continue;
 
-                final String fileExtension = zipFilename.substring(dotIndex).toLowerCase();
+                final String fileExtension = relativePath.substring(dotIndex).toLowerCase();
 
                 // register the file URI so it can be found by name later
-                ContentUtils.addUri(zipFilename, zipEntry.getValue());
+                this.addUri(relativePath, file.toURI());
 
                 // detect model
-                switch (fileExtension) {
-                    case ".obj":
-                    case ".stl":
-                    case ".dae":
-                    case ".gltf":
-                    case ".fbx":
-                    case ".glb":
-                        modelFile = zipEntry.getValue();
-                        modelType = fileExtension.substring(1);
-                        break;
+                if (modelFile == null) {
+                    switch (fileExtension) {
+                        case ".obj":
+                        case ".stl":
+                        case ".dae":
+                        case ".gltf":
+                        case ".fbx":
+                        case ".glb":
+                            modelFile = file.toURI();
+                            modelType = fileExtension.substring(1);
+                            break;
+                    }
                 }
             }
 
@@ -286,7 +323,7 @@ public class Model implements LoadListener {
                 logger.info("Using model from cache: " + modelFile);
 
                 // Set current directory for relative path resolution
-                ContentUtils.setCurrentDir(new java.io.File(modelFile.getPath()).getParentFile());
+                this.currentDir = new File(modelFile.getPath()).getParentFile();
             } else {
                 throw new IllegalArgumentException("No supported model found in zip: " + modelUri);
             }
@@ -296,7 +333,7 @@ public class Model implements LoadListener {
         if (loaderTask != null) {
 
             // check memory
-            if (ContentUtils.getAvailableMemory() < 32 * 1024 * 1024) {
+            if (IOUtils.getAvailableMemory() < 32 * 1024 * 1024) {
                 logger.warning("Low memory before loading task. Requesting cleanup...");
                 setStatus(Status.WARNING, "Low memory. Cleaning up...");
                 // The ViewModel will react to this status if it's listening
@@ -468,10 +505,19 @@ public class Model implements LoadListener {
 
         // unregister current model from the thread
         CURRENT.remove();
+    }
 
-        ContentUtils.clearDocumentsProvided();
-
-        CURRENT.remove();
+    private void scanFiles(File dir, List<File> result) {
+        File[] files = dir.listFiles();
+        if (files != null) {
+            for (File file : files) {
+                if (file.isDirectory()) {
+                    scanFiles(file, result);
+                } else {
+                    result.add(file);
+                }
+            }
+        }
     }
 
     private void loadTextureDatas(Texture texture) {
@@ -502,7 +548,7 @@ public class Model implements LoadListener {
         logger.info("Loading texture file: " + textureFile);
 
         // download texture
-        try (InputStream stream = ContentUtils.getInputStream(textureUri)) {
+        try (InputStream stream = textureUri.toURL().openStream()) {
 
             // update model
             texture.setUri(textureUri);

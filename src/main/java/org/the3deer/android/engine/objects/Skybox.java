@@ -6,7 +6,6 @@ import org.the3deer.android.engine.model.CubeMap;
 import org.the3deer.android.engine.model.Material;
 import org.the3deer.android.engine.model.Object3D;
 import org.the3deer.android.engine.model.Texture;
-import org.the3deer.android.util.ContentUtils;
 import org.the3deer.util.io.IOUtils;
 
 import java.io.IOException;
@@ -86,12 +85,12 @@ public class Skybox {
         }
 
         cubeMap = new CubeMap(
-                IOUtils.read(ContentUtils.getInputStream(images[0])),
-                IOUtils.read(ContentUtils.getInputStream(images[1])),
-                IOUtils.read(ContentUtils.getInputStream(images[2])),
-                IOUtils.read(ContentUtils.getInputStream(images[3])),
-                IOUtils.read(ContentUtils.getInputStream(images[4])),
-                IOUtils.read(ContentUtils.getInputStream(images[5])));
+                IOUtils.read(images[0].toURL().openStream()),
+                IOUtils.read(images[1].toURL().openStream()),
+                IOUtils.read(images[2].toURL().openStream()),
+                IOUtils.read(images[3].toURL().openStream()),
+                IOUtils.read(images[4].toURL().openStream()),
+                IOUtils.read(images[5].toURL().openStream()));
 
         return cubeMap;
     }

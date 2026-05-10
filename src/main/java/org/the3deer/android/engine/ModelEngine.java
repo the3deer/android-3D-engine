@@ -37,15 +37,11 @@ import org.the3deer.android.engine.shader.ShaderManager;
 import org.the3deer.android.engine.shader.v3.GpuManager;
 import org.the3deer.android.engine.shadow.ShadowDrawer;
 import org.the3deer.android.engine.touch.TouchController;
-import org.the3deer.android.util.AndroidURLStreamHandlerFactory;
-import org.the3deer.android.util.ContentUtils;
 import org.the3deer.util.bean.BeanManager;
 import org.the3deer.util.event.EventManager;
 
-import java.net.URL;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -66,13 +62,6 @@ public final class ModelEngine {
 
     // Custom handler: org/the3deer/util/android/assets/Handler.class
     static {
-        System.setProperty("java.protocol.handler.pkgs", "org.the3deer.android.engine.util");
-        try {
-            URL.setURLStreamHandlerFactory(new AndroidURLStreamHandlerFactory());
-        } catch (Error ex) {
-            logger.log(Level.SEVERE, "Exception registering the android:// protocol", ex);
-        }
-
         // Register the LogInterceptor to intercept java.util.logging and redirect to Logcat + Model.messages
         final Logger rootLogger = Logger.getLogger("");
         rootLogger.addHandler(new LogInterceptor());
@@ -122,6 +111,10 @@ public final class ModelEngine {
         this.screen = screen;
         this.model = model;
         this.context = context;
+
+        if (this.model != null && context != null) {
+            this.model.setCacheDir(context.getCacheDir());
+        }
 
         //this.surface = new GLSurfaceView(activity);
 
@@ -366,7 +359,6 @@ public final class ModelEngine {
             }
             beanManager.close();
         }
-        ContentUtils.clearDocumentsProvided();
     }
 
     @Override
