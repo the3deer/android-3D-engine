@@ -189,4 +189,18 @@ public final class IOUtils {
             }
         }
     }
+
+    public static String getFileName(URI uri) {
+        if (uri == null) return null;
+        String path = uri.getPath();
+        if (path == null) {
+            String s = uri.toString();
+            int cut = s.lastIndexOf('/');
+            if (cut != -1) return s.substring(cut + 1);
+            return s;
+        }
+        int cut = path.lastIndexOf('/');
+        if (cut != -1) return path.substring(cut + 1);
+        return path;
+    }
 }

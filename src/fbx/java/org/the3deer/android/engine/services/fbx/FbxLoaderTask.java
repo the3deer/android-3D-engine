@@ -1,11 +1,11 @@
 package org.the3deer.android.engine.services.fbx;
 
+import org.the3deer.android.engine.Model;
 import org.the3deer.android.engine.model.Object3D;
 import org.the3deer.android.engine.model.Scene;
 import org.the3deer.android.engine.services.LoadListener;
 import org.the3deer.android.engine.services.LoaderTask;
 
-import java.net.URI;
 import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
@@ -23,8 +23,8 @@ public final class FbxLoaderTask extends LoaderTask {
 
     private FbxLoader loader = new FbxLoader();
 
-    public FbxLoaderTask(URI url, LoadListener callback) {
-        super(url, callback);
+    public FbxLoaderTask(Model model, LoadListener callback) {
+        super(model, callback);
     }
 
     @Override

@@ -1,24 +1,12 @@
 package org.the3deer.android.engine;
 
-import org.the3deer.android.engine.camera.CameraUtils;
 import org.the3deer.android.engine.model.Camera;
-import org.the3deer.android.engine.model.Dimensions;
-import org.the3deer.android.engine.model.Material;
 import org.the3deer.android.engine.model.ModelEvent;
-import org.the3deer.android.engine.model.Node;
-import org.the3deer.android.engine.model.Object3D;
 import org.the3deer.android.engine.model.Scene;
 import org.the3deer.android.engine.model.Screen;
-import org.the3deer.android.engine.model.Texture;
-import org.the3deer.android.engine.services.LoadListener;
-import org.the3deer.android.engine.services.LoaderRegistry;
-import org.the3deer.android.engine.services.LoaderTask;
 import org.the3deer.util.event.EventManager;
-import org.the3deer.util.io.IOUtils;
 
 import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -34,10 +22,11 @@ import javax.inject.Inject;
 /**
  * <p>Main model class representing a 3D model resource and its environment.</p>
  * <p>
- * The model holds the model uri, the arguments and the scene model.  It has also
+ * This is the ultimate model entity where the URI is the primary identifier.
+ * It is used both by the App (UI/Catalogs) and the Engine (Rendering).
  * </p>
  */
-public class Model implements LoadListener {
+public class Model {
 
 
     private final static Logger logger = Logger.getLogger(Model.class.getSimpleName());
@@ -62,13 +51,20 @@ public class Model implements LoadListener {
      */
     private final Map<Level, String> messages = new TreeMap<>((l1, l2) -> Integer.compare(l2.intValue(), l1.intValue()));
 
-    // uri of the model. it can be a zip
+    // uri of the model (Primary Identifier)
     private final URI uri;
-    // uri of the model
+    // resolved model uri (e.g. if extracted from zip)
     private URI uriModel;
-    private final String name;
+
+    // Discovery & Technical information
+    private String name;
     private String type;
-    private final Map<String, Object> extras;
+    private String description;
+    private String author;
+    private String license;
+    private long size;
+    private URI screenshot;
+    private URI textureBaseUri;
 
     @Inject
     private EventManager _eventManager;
@@ -86,43 +82,111 @@ public class Model implements LoadListener {
     private File currentDir;
     private final Map<String, URI> documentsProvided = new HashMap<>();
 
-    // other variables
-    private long startTime;
-
-    public Model(URI uri, String name, String type) {
-        this(uri, name, type, null);
-    }
-
-    public Model(URI uri, String name, String type, Map<String, Object> extras) {
+    public Model(URI uri) {
         this.uri = uri;
-        this.name = name;
-        this.type = type;
-        this.extras = extras;
-
         if (this.uri == null) throw new IllegalArgumentException("Model URI cannot be null");
-        if (this.name == null) throw new IllegalArgumentException("Model name cannot be null");
     }
 
-    public String getName() {
-        return name;
+    public File getCacheDir() {
+        return cacheDir;
+    }
+
+    public void setCacheDir(File cacheDir) {
+        this.cacheDir = cacheDir;
+    }
+
+    public File getCurrentDir() {
+        return currentDir;
+    }
+
+    public void setCurrentDir(File currentDir) {
+        this.currentDir = currentDir;
     }
 
     public URI getUri() {
+        return uri;
+    }
+
+    public URI getUriModel() {
         if (uriModel != null) {
             return uriModel;
         }
         return uri;
     }
 
+    public void setUriModel(URI uriModel) {
+        this.uriModel = uriModel;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
     public String getType() {
         return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public String getAuthor() {
+        return author;
+    }
+
+    public void setAuthor(String author) {
+        this.author = author;
+    }
+
+    public String getLicense() {
+        return license;
+    }
+
+    public void setLicense(String license) {
+        this.license = license;
+    }
+
+    public long getSize() {
+        return size;
+    }
+
+    public void setSize(long size) {
+        this.size = size;
+    }
+
+    public URI getScreenshot() {
+        return screenshot;
+    }
+
+    public void setScreenshot(URI screenshot) {
+        this.screenshot = screenshot;
+    }
+
+    public URI getTextureBaseUri() {
+        return textureBaseUri;
+    }
+
+    public void setTextureBaseUri(URI textureBaseUri) {
+        this.textureBaseUri = textureBaseUri;
     }
 
     public Status getStatus() {
         return status;
     }
 
-    private void setStatus(Status status, String message) {
+    public void setStatus(Status status, String message) {
         this.status = status;
         this.message = message;
 
@@ -149,17 +213,8 @@ public class Model implements LoadListener {
         return messages;
     }
 
-    public Map<String, Object> getExtras() {
-        return extras;
-    }
-
-
     public List<Scene> getScenes() {
-
-        // check
         if (scenesMap == null) return Collections.emptyList();
-
-        // return scenes
         return new ArrayList<>(scenesMap.values());
     }
 
@@ -178,29 +233,17 @@ public class Model implements LoadListener {
     }
 
     public void addScene(Scene scene) {
-
-        // check duplicates
         if (scenesMap != null && scenesMap.containsKey(scene.getName())) {
             logger.severe("Scene with name '" + scene.getName() + "' already exists");
             throw new IllegalArgumentException("Scene with name '" + scene.getName() + "' already exists");
         }
 
-        // log event
         logger.info("addScene: " + scene.getName() + ", objects: " + scene.getObjects().size());
-
-        // init map
         if (scenesMap == null) scenesMap = new TreeMap<>();
-
-        // register
         scenesMap.put(scene.getName(), scene);
 
-        // check active scene
         if (activeScene == null) {
-
-            // log event
             logger.info("Activating scene: " + scene.getName());
-
-            // activate default scene
             activeScene = scene;
         }
     }
@@ -217,19 +260,12 @@ public class Model implements LoadListener {
     }
 
     public long getMemoryUsage() {
-        // check
         if (scenesMap == null) return 0;
-
-        // calculate memory usage
         long memory = 0;
         for (Scene scene : scenesMap.values()) {
             memory += scene.getMemoryUsage();
         }
         return memory;
-    }
-
-    public void setCacheDir(File cacheDir) {
-        this.cacheDir = cacheDir;
     }
 
     public void addUri(String name, URI uri) {
@@ -239,345 +275,19 @@ public class Model implements LoadListener {
     public URI getUri(String name) {
         URI uri = documentsProvided.get(name);
         if (uri != null) return uri;
-        return documentsProvided.get(name.replaceAll("\\\\","/"));
-    }
+        uri = documentsProvided.get(name.replaceAll("\\\\","/"));
+        if (uri != null) return uri;
 
-    public void load() throws IOException {
-        this.load(getUri(), getType());
-    }
-
-    public void load(URI modelUri, String modelType) throws IOException {
-
-        logger.info("Loading model... uri: " + modelUri + ", type: " + modelType + " ---------------------------------- ");
-
-        // register current model to the thread
-        CURRENT.set(this);
-
-        // default uri
-        //URI modelUri = getUri();
-
-        // default type
-        //String modelType = getType();
-
-        // load model
-        logger.info("Loading model... uri: " + modelUri);
-
-        // update model
-        setStatus(Model.Status.LOADING, "Loading model: " + modelUri);
-
-        // if the model is a zip file, we need to extract it to the cache directory
-        if ("zip".equalsIgnoreCase(modelType) || modelUri.toString().toLowerCase().endsWith(".zip")) {
-
-            if (cacheDir == null) throw new IllegalStateException("Cache directory not set for ZIP extraction");
-
-            // Create a unique cache directory for this zip
-            final String fileName = name != null ? name.replace(".", "_") : "temp_zip_" + System.currentTimeMillis();
-            final File zipCacheDir = new File(cacheDir, "models/" + fileName);
-            if (!zipCacheDir.exists() && !zipCacheDir.mkdirs()) {
-                throw new IOException("Failed to create cache directory: " + zipCacheDir);
-            }
-
-            // extract zip to disk
-            try (InputStream is = modelUri.toURL().openStream()) {
-                IOUtils.extract(is, zipCacheDir);
-            }
-
-            // scan files
-            URI modelFile = null;
-            List<File> allFiles = new ArrayList<>();
-            scanFiles(zipCacheDir, allFiles);
-
-            for (File file : allFiles) {
-                final String relativePath = zipCacheDir.toURI().relativize(file.toURI()).getPath();
-                if (relativePath.startsWith("__MACOSX") || relativePath.contains("/._") || relativePath.startsWith("._")) {
-                    continue;
-                }
-
-                final int dotIndex = relativePath.lastIndexOf('.');
-                if (dotIndex == -1) continue;
-
-                final String fileExtension = relativePath.substring(dotIndex).toLowerCase();
-
-                // register the file URI so it can be found by name later
-                this.addUri(relativePath, file.toURI());
-
-                // detect model
-                if (modelFile == null) {
-                    switch (fileExtension) {
-                        case ".obj":
-                        case ".stl":
-                        case ".dae":
-                        case ".gltf":
-                        case ".fbx":
-                        case ".glb":
-                            modelFile = file.toURI();
-                            modelType = fileExtension.substring(1);
-                            break;
-                    }
-                }
-            }
-
-            if (modelFile != null) {
-                modelUri = modelFile;
-                this.uriModel = modelFile;
-                logger.info("Using model from cache: " + modelFile);
-
-                // Set current directory for relative path resolution
-                this.currentDir = new File(modelFile.getPath()).getParentFile();
-            } else {
-                throw new IllegalArgumentException("No supported model found in zip: " + modelUri);
+        if (currentDir != null) {
+            File file = new File(currentDir, name);
+            if (file.exists()) {
+                return file.toURI();
             }
         }
-
-        final LoaderTask loaderTask = LoaderRegistry.get(modelType, modelUri, this);
-        if (loaderTask != null) {
-
-            // check memory
-            if (IOUtils.getAvailableMemory() < 32 * 1024 * 1024) {
-                logger.warning("Low memory before loading task. Requesting cleanup...");
-                setStatus(Status.WARNING, "Low memory. Cleaning up...");
-                // The ViewModel will react to this status if it's listening
-            }
-
-            logger.info("Loading " + modelType + " object from: " + modelUri);
-            loaderTask.execute(false);
-
-            // log success
-            logger.info("Loading model finished -------------------------------------- ");
-
-            // update model
-            setStatus(Model.Status.OK, "Loading Model finished successfully");
-
-        } else {
-            logger.severe("No loader registered for type: " + modelType);
-            setStatus(Status.ERROR, "No loader registered for type: " + modelType);
-            //throw new UnsupportedOperationException("No loader registered for type: " + modelType);
-        }
-    }
-
-    @Override
-    public void onLoadStart() {
-        // register current model to the thread
-        CURRENT.set(this);
-
-        // mark start time
-        this.startTime = System.nanoTime();
-
-        setStatus(Model.Status.LOADING, "Loading started...");
-    }
-
-    @Override
-    public void onProgress(String progress) {
-        // update model
-        setStatus(Model.Status.LOADING, progress);
-    }
-
-    @Override
-    public void onLoadCamera(Scene scene, Camera camera) {
-        // fix aspect ratio
-        if (screen != null) {
-            camera.getProjection().setAspectRatio(screen.getRatio());
-        }
-    }
-
-    @Override
-    public void onLoadError(Exception ex) {
-        logger.log(Level.SEVERE, ex.getMessage(), ex);
-        // update model
-        setStatus(Model.Status.ERROR, ex.getMessage());
-
-        CURRENT.remove();
-    }
-
-    @Override
-    public void onLoadObject(Scene scene, Object3D data) {
-        scene.addObject(data);
-    }
-
-    @Override
-    public void onLoadScene(Scene scene) {
-        // configure default camera
-        logger.fine("Initializing scene... name: " + scene.getName());
-
-        // initialize cameras
-        if (this.cameras != null && !this.cameras.isEmpty()) {
-            scene.setActiveCamera(cameras.get(0));
-        }
-
-        // get objects
-        final List<Object3D> objects = scene.getObjects();
-
-        // check
-        if (objects.isEmpty()) {
-            logger.warning("No objects were loaded");
-        } else {
-            logger.fine("onLoadScene: " + scene.getName() + ", Objects: " + objects.size());
-        }
-
-        for (int i = 0; i < objects.size(); i++) {
-            for (int m = 0; m < objects.size(); m++) {
-
-                // get material
-                final Material material = objects.get(m).getMaterial();
-                if (material == null) continue;
-
-                // init color texture
-                final Texture colorTexture = material.getColorTexture();
-                if (colorTexture != null) loadTextureDatas(colorTexture);
-
-                final Texture normalTexture = material.getNormalTexture();
-                if (normalTexture != null) loadTextureDatas(normalTexture);
-            }
-        }
-
-
-        // show object errors
-        List<String> allErrors = new ArrayList<>();
-        for (Object3D data : objects) {
-            allErrors.addAll(data.getErrors());
-        }
-        if (!allErrors.isEmpty()) {
-            //makeToastText(allErrors.toString(), Toast.LENGTH_LONG);
-        }
-
-        // Ensure all objects have a parent node to unify the rendering pipeline.
-        if (scene.getRootNodes() == null || scene.getRootNodes().isEmpty()) {
-            logger.info("Scene has no root nodes. Creating default nodes for all objects.");
-            List<Node> rootNodes = new ArrayList<>();
-            for (Object3D obj : objects) {
-                // Create a new node and assign the object to it.
-                Node node = new Node();
-                node.setMesh(obj); // Link the visible object to this node.
-                //node.setMatrix(obj.getModelMatrix());
-                obj.setParentNode(node);
-                //obj.setParentBound(true);
-                rootNodes.add(node);
-            }
-            scene.getRootNodes().addAll(rootNodes);
-        }
-
-        // calculate scene dimensions
-        final Dimensions dimensions = new Dimensions();
-        for (Object3D object : scene.getObjects()) {
-            if (object.isDecorator()) continue;
-            final Dimensions objDimensions = object.getCurrentDimensions();
-            if (objDimensions != null) {
-                float[] min = objDimensions.getMin();
-                float[] max = objDimensions.getMax();
-                dimensions.update(min[0], min[1], min[2]);
-                dimensions.update(max[0], max[1], max[2]);
-            }
-        }
-        scene.setDimensions(dimensions);
-        logger.info("Scene dimensions: " + dimensions);
-
-        // initialize scene
-        scene.update();
-
-        // fame camera
-        CameraUtils.frameModel(scene.getActiveCamera(), scene.getObjects());
-
-        // register scene
-        this.addScene(scene);
-
-
-        // notify user
-        /*final String elapsed = (System.nanoTime() - startTime) / 1000000 + " secs";
-        makeToastText("Load complete (" + elapsed + ")", Toast.LENGTH_SHORT);*/
-    }
-
-    @Override
-    public void onLoadComplete() {
-        // initialize model
-        if (scenesMap == null || scenesMap.isEmpty()) {
-            logger.warning("No scenes available");
-        } else if (this.getActiveScene() == null) {
-            logger.info("No active scene. Setting first scene as active.");
-            this.setActiveScene(scenesMap.values().iterator().next());
-            this.getActiveScene().update();
-        }
-
-        // update model
-        this.update();
-
-        // log success
-        logger.info("Model loaded successfully");
-
-        // unregister current model from the thread
-        CURRENT.remove();
-    }
-
-    private void scanFiles(File dir, List<File> result) {
-        File[] files = dir.listFiles();
-        if (files != null) {
-            for (File file : files) {
-                if (file.isDirectory()) {
-                    scanFiles(file, result);
-                } else {
-                    result.add(file);
-                }
-            }
-        }
-    }
-
-    private void loadTextureDatas(Texture texture) {
-
-        // check texture
-        if (texture == null) throw new IllegalArgumentException("Texture cannot be null");
-        ;
-
-        // check texture data
-        if (texture.getData() != null) return; // already loaded
-
-        // check file
-        if (texture.getFile() == null) return;
-
-        // get texture file
-        final String textureFile = texture.getFile();
-
-        // sanitize filename
-        final String textureFileSanitized = textureFile.replace('\\', '/').replace(' ', '+').replace("./", "");
-
-       // Create the full texture URI
-        final URI textureUri = getUri().resolve(textureFileSanitized);
-
-        // debug
-        logger.fine("Downloading texture... file: " + textureFile + ", uri: " + textureUri);
-
-        // debug
-        logger.info("Loading texture file: " + textureFile);
-
-        // download texture
-        try (InputStream stream = textureUri.toURL().openStream()) {
-
-            // update model
-            texture.setUri(textureUri);
-            texture.setData(IOUtils.read(stream));
-
-            // debug
-            logger.info("Texture successfully loaded: " + textureFile);
-
-        } catch (Exception ex) {
-            logger.log(Level.SEVERE, "Error loading texture file '" + textureFile + "': " + ex.getMessage(), ex);
-            //makeToastText("Error loading texture file '" + textureFile + "': " + ex.getMessage(), Toast.LENGTH_LONG);
-        }
-    }
-
-    private void makeToastText(final String text, final int toastDuration) {
-        // FIXME: how to show toast from here?
+        return null;
     }
 
     public void dispose() {
         this.messages.clear();
-    }
-
-    public static class Metadata {
-        public final String type;
-        public final Map<String, Object> extras;
-
-        public Metadata(String type, Map<String, Object> extras) {
-            this.type = type;
-            this.extras = extras;
-        }
     }
 }

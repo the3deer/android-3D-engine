@@ -1,6 +1,7 @@
 package org.the3deer.android.engine.services;
 
-import java.net.URI;
+import org.the3deer.android.engine.Model;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -16,7 +17,7 @@ public final class LoaderRegistry {
      * Interface for loader factories.
      */
     public interface LoaderFactory {
-        LoaderTask create(URI uri, LoadListener listener);
+        LoaderTask create(Model model, LoadListener listener);
     }
 
     /**
@@ -35,19 +36,21 @@ public final class LoaderRegistry {
     }
 
     /**
-     * Get a loader task for the specified type and URI.
+     * Get a loader task for the specified model.
      *
-     * @param type     the model type or extension
-     * @param uri      the URI to the model
+     * @param model    the model entity
      * @param listener the load listener
      * @return the loader task, or null if no loader is registered for the type
      */
-    public static LoaderTask get(final String type, final URI uri, final LoadListener listener) {
-        final LoaderFactory factory = loaders.get(type.toLowerCase());
+    public static LoaderTask get(final Model model, final LoadListener listener) {
+        if (model == null || model.getType() == null) {
+            return null;
+        }
+        final LoaderFactory factory = loaders.get(model.getType().toLowerCase());
         if (factory == null) {
             return null;
         }
-        return factory.create(uri, listener);
+        return factory.create(model, listener);
     }
 
     private LoaderRegistry() {

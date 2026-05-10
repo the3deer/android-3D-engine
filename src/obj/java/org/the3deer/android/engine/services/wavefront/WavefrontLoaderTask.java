@@ -2,8 +2,8 @@ package org.the3deer.android.engine.services.wavefront;
 
 import android.opengl.GLES20;
 
+import org.the3deer.android.engine.Model;
 import org.the3deer.android.engine.model.Object3D;
-
 import org.the3deer.android.engine.services.LoadListener;
 import org.the3deer.android.engine.services.LoaderTask;
 
@@ -19,8 +19,8 @@ import java.util.List;
 
 public class WavefrontLoaderTask extends LoaderTask {
 
-    public WavefrontLoaderTask(final URI url, final LoadListener callback) {
-        super(url, callback);
+    public WavefrontLoaderTask(final Model model, final LoadListener callback) {
+        super(model, callback);
     }
 
     @Override

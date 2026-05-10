@@ -2,15 +2,14 @@ package org.the3deer.android.engine.services.stl;
 
 import android.opengl.GLES20;
 
+import org.the3deer.android.engine.Model;
 import org.the3deer.android.engine.model.Object3D;
-
 import org.the3deer.android.engine.model.Scene;
 import org.the3deer.android.engine.services.LoadListener;
 import org.the3deer.android.engine.services.LoaderTask;
 import org.the3deer.util.io.IOUtils;
 
 import java.io.IOException;
-import java.net.URI;
 import java.nio.FloatBuffer;
 import java.util.Collections;
 import java.util.List;
@@ -25,8 +24,8 @@ public final class STLLoaderTask extends LoaderTask {
 
     private STLFileReader stlFileReader;
 
-    public STLLoaderTask(URI url, LoadListener callback) {
-        super(url, callback);
+    public STLLoaderTask(Model model, LoadListener callback) {
+        super(model, callback);
     }
 
     @Override

@@ -114,8 +114,9 @@ public class Material {
         this.ambient = ambient;
     }
 
-    public void setColor(float[] color) {
+    public Material setColor(float[] color) {
         setDiffuse(color);
+        return this;
     }
 
     public float[] getDiffuse() {

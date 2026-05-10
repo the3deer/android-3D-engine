@@ -73,22 +73,20 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
     }
 
     /**
-     * Initialize the engine for the given URI. If <code>callback</code> is <code>null</code>, the engine will be initialized synchronously. Otherwise, it will be initialized asynchronously
+     * Initialize the engine for the given URI.
      *
-     * @param uriString the model id
-     * @param name the model name
-     * @param type the model type
-     * @param callback the callback to invoke when the engine is initialized or <code>null</code>
+     * @param uriString the model id/uri
+     * @param callback the callback to invoke when the engine is initialized
      */
-    public ModelEngine initEngine(@NotNull String uriString, String name, String type, Runnable callback) {
+    public ModelEngine initEngine(@NotNull String uriString, Runnable callback) {
 
         if (callback == null) {
             // sync
-            return initEngineImpl(uriString, name, type);
+            return initEngineImpl(uriString);
         } else {
             // async
             executor.execute(() -> {
-                initEngineImpl(uriString, name, type);
+                initEngineImpl(uriString);
                 handler.post(callback);
             });
             return null;
@@ -96,13 +94,13 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
     }
 
     @Nullable
-    private ModelEngine initEngineImpl(@NonNull String uriString, String name, String type) {
+    private ModelEngine initEngineImpl(@NonNull String uriString) {
         // get
         Model model = getModel(uriString);
 
         // init if needed
         if (model == null) {
-            model = createModel(uriString, name, type);
+            model = createModel(uriString);
         }
 
         ModelEngine engine = getEngine(uriString);
@@ -135,23 +133,18 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
         executor.execute(() -> {
 
             try {
-                // Initialize engine components (Lightweight)
-                final ModelEngine modelEngine = getEngine(uriString);
-                if (modelEngine == null)
-                    throw new IllegalArgumentException("Engine not initialized");
-
                 // update status
                 updateEngineStatus(uriString, ModelEngine.Status.LOADING, "Info: Loading Engine...");
 
-                // Load 3D model data (Heavyweight) - now handled by the engine itself
-                modelEngine.load();
+                // Load engine beans
+                engine.load();
 
                 if (isMemoryExhausted()){
                     logger.warning("Engine load aborted. Low memory (MB): "+getAvailableMemory());
                     return;
                 }
 
-                // update engine status
+                // update status
                 updateEngineStatus(uriString, ModelEngine.Status.OK, "Info: Engine loaded successfully");
 
                 // log success
@@ -230,8 +223,8 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
                 updateEngineStatus(uriString, ModelEngine.Status.OK, "Info: Engine started successfully");
 
                 try {
-                    // Start the model loading process (previously in SceneLoader)
-                    engine.getModel().load();
+                    // Start the model loading process
+                    loadModel(engine);
                 } catch (OutOfMemoryError e) {
                     logger.log(Level.SEVERE, "OutOfMemoryError during model load: " + uriString, e);
                     updateEngineStatus(uriString, ModelEngine.Status.ERROR, "Error: Out of memory");
@@ -304,11 +297,7 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
     }
 
     public void updateMemoryStatus() {
-        Runtime runtime = Runtime.getRuntime();
-        long usedMemory = (runtime.totalMemory() - runtime.freeMemory());
-        long maxMemory = runtime.maxMemory();
-        long availableMemory = maxMemory - usedMemory;
-
+        long availableMemory = getAvailableMemory() * 1024 * 1024;
         ModelEngine active = _activeEngine.getValue();
         if (active != null && active.getModel() != null) {
             // Update status based on available memory
@@ -342,9 +331,7 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
                 final ModelEvent modelEvent = (ModelEvent) event;
                 if (modelEvent.getCode() == ModelEvent.Code.STATUS_CHANGED) {
                     final Model.Status status = modelEvent.getData("status", Model.Status.class, Model.Status.UNKNOWN);
-                    if (status == Model.Status.ERROR) {
-                        handler.post(this::updateMemoryStatus);
-                    } else if (status == Model.Status.WARNING) {
+                    if (status == Model.Status.ERROR || status == Model.Status.WARNING) {
                         handler.post(this::updateMemoryStatus);
                     }
                     notifyStatusChange(finalUriString);
@@ -425,19 +412,12 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
     }
 
     public Model createModel(String uriString) {
-        return createModel(uriString, null, null);
-    }
-
-
-    public Model createModel(String uriString, String name, String type) {
-
-        // debug
         logger.info("Building Model... uri: " + uriString);
 
         // create
         Model model = null;
         try {
-            model = new Model(URI.create(uriString), name, type);
+            model = new Model(URI.create(uriString));
         } catch (Exception e) {
             logger.log(Level.SEVERE, "Failed to create model from uri: " + uriString, e);
         }

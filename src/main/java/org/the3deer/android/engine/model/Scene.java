@@ -93,6 +93,11 @@ public class Scene {
         return activeCamera;
     }
 
+
+    public void addCamera(Camera camera) {
+        this.cameras.add(camera);
+    }
+
     public void setActiveCamera(Camera activeCamera) {
         this.activeCamera = activeCamera;
     }
