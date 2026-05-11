@@ -18,15 +18,15 @@ public class Constants {
     /**
      * Bean name for the Screen
      */
-    public static String BEAN_ID_SCREEN = "screen";
+    public static final String BEAN_ID_SCREEN = "screen";
     /**
      * Bean name for the Engine Controller
      */
-    public static String BEAN_ID_CONTROLLER = "controller";
+    public static final String BEAN_ID_CONTROLLER = "controller";
     /**
      * Bean for the Android Context
      */
-    public static String BEAN_ID_CONTEXT = "context";
+    public static final String BEAN_ID_CONTEXT = "context";
 
     /**
      * <p>Debug low level information. Will affect performance, so should be false in production
