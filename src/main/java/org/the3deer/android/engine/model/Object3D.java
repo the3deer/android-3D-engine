@@ -65,6 +65,10 @@ public class Object3D {
         return this;
     }
 
+    public float[] getPosition() {
+        return getLocation();
+    }
+
     public static class ChangeEvent extends EventObject {
         public ChangeEvent(Object3D source) {
             super(source);
