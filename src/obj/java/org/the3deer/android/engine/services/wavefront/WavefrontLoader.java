@@ -120,6 +120,7 @@ public class WavefrontLoader {
                 // create 3D object
                 Object3D data3D = new Object3D(meshData.getId(), meshData.getVertexBuffer());
                 data3D.setUri(modelURI);
+                data3D.setId(meshData.getId());
                 data3D.setName(meshData.getName());
                 data3D.setVertexNormalsArrayBuffer(meshData.getNormalsBuffer());
                 data3D.setTextureCoordsArrayBuffer(meshData.getTextureBuffer());
@@ -302,7 +303,7 @@ public class WavefrontLoader {
                             meshes.add(meshData);
 
                             // start new mesh
-                            meshCurrent = new WavefrontMeshData.Builder().id(line.substring(1).trim());
+                            meshCurrent = new WavefrontMeshData.Builder().id(line.substring(1).trim()).name(line.substring(1));
                             elementCurrent = new Element.Builder().id("default");
                             indicesCurrent = IOUtils.createIntBuffer(config.faceCount - (verticesAttributes.position() / 3));
                             meshAttributesStart = verticesAttributes.position();
