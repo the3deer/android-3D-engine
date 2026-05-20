@@ -5,7 +5,7 @@ plugins {
 
 android {
     namespace = "org.the3deer.android.engine"
-    compileSdk = 36
+    compileSdk = 35
     version = "2.0.2"
 
     defaultConfig {
