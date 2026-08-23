@@ -5,13 +5,19 @@ plugins {
 
 android {
     namespace = "org.the3deer.android.engine"
-    compileSdk = 35
-    version = "2.0.2"
+    compileSdk = 36
+    version = "2.0.3"
 
     defaultConfig {
         minSdk = 24
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")
+
+        externalNativeBuild {
+            cmake {
+                arguments += listOf("-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON")
+            }
+        }
     }
 
     buildTypes {
