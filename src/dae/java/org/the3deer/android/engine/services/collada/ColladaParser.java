@@ -386,13 +386,9 @@ public class ColladaParser {
                     int count = Integer.parseInt(countStr);
                     floatData = new float[count];
                     String textData = parser.nextText();
-
-                    try (java.util.Scanner scanner = new java.util.Scanner(textData)) {
-                        for (int i = 0; i < count; i++) {
-                            if (scanner.hasNextFloat()) {
-                                floatData[i] = scanner.nextFloat();
-                            }
-                        }
+                    String[] floatStrings = textData.trim().split("\\s+");
+                    for (int i = 0; i < count && i < floatStrings.length; i++) {
+                        floatData[i] = Float.parseFloat(floatStrings[i]);
                     }
                     break;
 
@@ -401,12 +397,9 @@ public class ColladaParser {
                     int nameCount = Integer.parseInt(nameCountStr);
                     stringData = new String[nameCount];
                     String namesTextData = parser.nextText();
-                    try (java.util.Scanner scanner = new java.util.Scanner(namesTextData)) {
-                        for (int i = 0; i < nameCount; i++) {
-                            if (scanner.hasNext()) {
-                                stringData[i] = scanner.next();
-                            }
-                        }
+                    String[] nameStrings = namesTextData.trim().split("\\s+");
+                    for (int i = 0; i < nameCount && i < nameStrings.length; i++) {
+                        stringData[i] = nameStrings[i];
                     }
                     break;
 

@@ -39,6 +39,8 @@ public class ColladaLoaderTask extends LoaderTask {
         // invoke the handler
         callback.onLoadScene(scene);
 
+        callback.onLoadComplete();
+
         return loadNew;
     }
 
