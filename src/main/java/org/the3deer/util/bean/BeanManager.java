@@ -93,7 +93,7 @@ public class BeanManager {
         isStarted = started;
     }
 
-    public Map<String, BeanPropertyInfo> getProperties(Object bean) {
+    public static Map<String, BeanPropertyInfo> getProperties(Object bean) {
 
         final Map<String, BeanPropertyInfo> ret = new TreeMap<>();
 
@@ -120,15 +120,15 @@ public class BeanManager {
                 String propertyName = (ann.name() != null && !ann.name().isEmpty()) ? ann.name() : fieldName;
 
                 // get values method
-                Method valuesMethod = findBeanValuesMethod(bean.getClass(), fieldName, propertyName);
+                Method valuesMethod = findBeanValuesMethod(currentClass, fieldName, propertyName);
 
                 // get setter/getter
-                Method setter = findSetterMethod(bean.getClass(), fieldName, propertyName, field.getType());
-                Method getter = findGetterMethod(bean.getClass(), fieldName, propertyName, field.getType());
+                Method setter = findSetterMethod(currentClass, fieldName, propertyName, field.getType());
+                Method getter = findGetterMethod(currentClass, fieldName, propertyName, field.getType());
 
                 logger.finest("Bean Property found. propertyId: " + propertyId + ", propertyName: " + propertyName + ", bean: " + beanId + " - " + setter + " - " + getter);
 
-                ret.put(propertyId, new BeanPropertyInfo(propertyId, fieldName, beanName, propertyName, ann.values(), field.getType(), field, getter, setter, valuesMethod));
+                ret.put(propertyId, new BeanPropertyInfo(propertyId, fieldName, beanName, propertyName, ann.description(), ann.values(), field.getType(), field, getter, setter, valuesMethod));
             }
             for (Method method : currentClass.getDeclaredMethods()) {
 
@@ -167,7 +167,7 @@ public class BeanManager {
                 }
 
                 // find getter/setter methods
-                Method getter = findGetterMethod(bean.getClass(), propertyName, propertyName, Object.class);
+                Method getter = findGetterMethod(currentClass, propertyName, propertyName, Object.class);
 
                 // check
                 if (getter == null) {
@@ -176,7 +176,7 @@ public class BeanManager {
                 }
 
                 // get setter
-                Method setter = findSetterMethod(bean.getClass(), propertyName, propertyName, getter.getReturnType());
+                Method setter = findSetterMethod(currentClass, propertyName, propertyName, getter.getReturnType());
 
                 // check
                 if (setter == null) {
@@ -185,11 +185,11 @@ public class BeanManager {
                 }
 
                 // get values method
-                Method valuesMethod = findBeanValuesMethod(bean.getClass(), propertyName, propertyName);
+                Method valuesMethod = findBeanValuesMethod(currentClass, propertyName, propertyName);
 
                 logger.finest("Bean Property found. propertyId: " + propertyId + ", propertyName: " + propertyName + ", bean: " + beanId + ", setter: " + setter + ", getter: " + getter);
 
-                ret.put(propertyId, new BeanPropertyInfo(propertyId, null, beanName, propertyName, ann.values(), getter.getReturnType(), null, getter, setter, valuesMethod));
+                ret.put(propertyId, new BeanPropertyInfo(propertyId, null, beanName, propertyName, ann.description(), ann.values(), getter.getReturnType(), null, getter, setter, valuesMethod));
             }
             currentClass = currentClass.getSuperclass();
         }
@@ -204,7 +204,7 @@ public class BeanManager {
      * @param returnType   the return type
      * @return the method
      */
-    private Method findGetterMethod(Class<?> clazz, String fieldName, String propertyName, Class<?> returnType) {
+    private static Method findGetterMethod(Class<?> clazz, String fieldName, String propertyName, Class<?> returnType) {
 
         // get all methods
         final Method[] methods = clazz.getMethods();
@@ -257,7 +257,7 @@ public class BeanManager {
         return null;
     }
 
-    private Method findSetterMethod(Class<?> clazz, String fieldName, String propertyName, Class<?> parameterType) {
+    private static Method findSetterMethod(Class<?> clazz, String fieldName, String propertyName, Class<?> parameterType) {
 
         // get all methods
         final Method[] methods = clazz.getMethods();
@@ -300,7 +300,7 @@ public class BeanManager {
         return null;
     }
 
-    private Method findBeanValuesMethod(Class<?> clazz, String fieldName, String propertyName) {
+    private static Method findBeanValuesMethod(Class<?> clazz, String fieldName, String propertyName) {
         for (Method method : clazz.getMethods()) {
             // Naming convention fallback
             if (method.getName().equals(propertyName + "Values") ||

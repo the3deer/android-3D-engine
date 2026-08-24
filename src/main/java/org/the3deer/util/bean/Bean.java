@@ -9,6 +9,7 @@ import java.lang.annotation.Target;
 @Target(ElementType.TYPE)
 public @interface Bean {
     String name() default "";
+    String description() default "";
     String category() default "";
     boolean experimental() default false;
 }

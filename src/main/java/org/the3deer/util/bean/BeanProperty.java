@@ -15,6 +15,11 @@ public @interface BeanProperty {
      * @return the name (id) of the property.
      */
     String name() default "";
+
+    /**
+     * @return the description of this field
+     */
+    String description() default "";
     /**
      * @return an array with the list of allowed String values
      */

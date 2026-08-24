@@ -1,10 +1,11 @@
 package org.the3deer.util.bean;
 
-import android.content.Context;
-
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Information about a bean property.
@@ -17,19 +18,31 @@ public class BeanPropertyInfo {
     private final String fieldName;
     private final String beanName;
     private final String name;
-    private final String[] values;
+    private String label;
+    private String description;
+    private List<String> options;
     private final Class<?> type;
+    
+    @JsonIgnore
     private final Field field;
+    @JsonIgnore
     private final Method getter;
+    @JsonIgnore
     private final Method setter;
+    @JsonIgnore
     private final Method valuesMethod;
 
-    public BeanPropertyInfo(String id, String fieldName, String beanName, String name, String[] values, Class<?> type, Field field, Method getter, Method setter, Method valuesMethod) {
+    private Object value;
+    private List<CharSequence> optionLabels;
+
+    public BeanPropertyInfo(String id, String fieldName, String beanName, String name, String description, String[] values, Class<?> type, Field field, Method getter, Method setter, Method valuesMethod) {
         this.id = id;
         this.fieldName = fieldName;
         this.beanName = beanName;
         this.name = name;
-        this.values = values;
+        this.label = name;
+        this.description = description;
+        this.options = values != null ? Arrays.asList(values) : null;
         this.type = type;
         this.field = field;
         this.getter = getter;
@@ -53,95 +66,28 @@ public class BeanPropertyInfo {
         return name;
     }
 
-    /**
-     * Resolve the label for this property.
-     * @param context The context
-     * @return The localized label or null if not found
-     */
-    public String resolveLabel(Context context) {
-        if (beanName != null && !beanName.isEmpty()) {
-            String propertyName = (name != null && !name.isEmpty()) ? name : fieldName;
-            int resId = context.getResources().getIdentifier("property_" + beanName + "_" + propertyName + "_label", "string", context.getPackageName());
-            if (resId != 0) {
-                return context.getString(resId);
-            }
-            // fallback to user's example naming convention
-            resId = context.getResources().getIdentifier("bean_" + beanName + "_" + propertyName + "_label", "string", context.getPackageName());
-            if (resId != 0) {
-                return context.getString(resId);
-            }
-        }
-        return null;
+    public String getLabel() {
+        return label != null ? label : name;
     }
 
-    /**
-     * Resolve the description for this property.
-     * @param context The context
-     * @return The localized description or null if not found
-     */
-    public String resolveDescription(Context context) {
-        if (beanName != null && !beanName.isEmpty()) {
-            String propertyName = (name != null && !name.isEmpty()) ? name : fieldName;
-            int resId = context.getResources().getIdentifier("property_" + beanName + "_" + propertyName + "_description", "string", context.getPackageName());
-            if (resId != 0) {
-                return context.getString(resId);
-            }
-        }
-        return null;
+    public void setLabel(String label) {
+        this.label = label;
     }
 
-    /**
-     * Resolve labels for a list of values.
-     * @param context The context
-     * @return The localized labels or null if not found
-     */
-    public String[] resolveValues(Context context) {
-        if (beanName != null && !beanName.isEmpty()) {
-            int resId = context.getResources().getIdentifier("property_" + beanName + "_" + name + "_values", "array", context.getPackageName());
-            if (resId != 0) {
-                return context.getResources().getStringArray(resId);
-            }
-        }
-        return null;
+    public String getDescription() {
+        return description;
     }
 
-    /**
-     * Resolve labels for a list of values.
-     * @param context The context
-     * @return The localized labels or null if not found
-     */
-    public String[] resolveDescriptions(Context context) {
-        if (beanName != null && !beanName.isEmpty()) {
-            String propertyName = (name != null && !name.isEmpty()) ? name : fieldName;
-            int resId = context.getResources().getIdentifier("property_" + beanName + "_" + propertyName + "_values_descriptions", "array", context.getPackageName());
-            if (resId != 0) {
-                return context.getResources().getStringArray(resId);
-            }
-        }
-        return null;
+    public void setDescription(String description) {
+        this.description = description;
     }
 
-    /**
-     * Resolve a label for a specific value.
-     * @param context The context
-     * @param valueId The value ID
-     * @return The localized label or the valueId itself
-     */
-    public String resolveValueLabel(Context context, String valueId) {
-        if (beanName != null && !beanName.isEmpty()) {
-            String propertyName = (name != null && !name.isEmpty()) ? name : fieldName;
-            // sanitize valueId for resource lookup (e.g. default.renderer -> default_renderer)
-            String sanitizedValueId = valueId.replace(".", "_");
-            int resId = context.getResources().getIdentifier("value_" + beanName + "_" + propertyName + "_" + sanitizedValueId, "string", context.getPackageName());
-            if (resId != 0) {
-                return context.getString(resId);
-            }
-        }
-        return valueId;
+    public List<String> getOptions() {
+        return options;
     }
 
-    public String[] getValues() {
-        return values;
+    public void setOptions(List<String> options) {
+        this.options = options;
     }
 
     public Class<?> getType() {
@@ -152,15 +98,57 @@ public class BeanPropertyInfo {
         return valuesMethod;
     }
 
+    public Object getValue() {
+        return value;
+    }
+
+    public void setValue(Object value) {
+        this.value = value;
+    }
+
+    public List<CharSequence> getOptionLabels() {
+        return optionLabels;
+    }
+
+    public void setOptionLabels(List<CharSequence> optionLabels) {
+        this.optionLabels = optionLabels;
+    }
+
+    /**
+     * Returns the allowed values for this property.
+     * It first tries to invoke the valuesMethod on the bean, 
+     * then falls back to the static options.
+     */
     public String[] getValues(Object bean) {
         if (valuesMethod != null) {
             try {
-                return (String[]) valuesMethod.invoke(bean);
+                Object result = valuesMethod.invoke(bean);
+                if (result instanceof String[]) {
+                    return (String[]) result;
+                } else if (result instanceof List) {
+                    List<?> list = (List<?>) result;
+                    String[] arr = new String[list.size()];
+                    for (int i = 0; i < list.size(); i++) {
+                        Object item = list.get(i);
+                        arr[i] = item != null ? item.toString() : null;
+                    }
+                    return arr;
+                } else if (result instanceof Set){
+                    Set<?> set = (Set<?>) result;
+                    return set.toArray(new String[0]);
+                }
             } catch (Exception e) {
-                return values;
+                return getValues();
             }
         }
-        return values;
+        return getValues();
+    }
+
+    /**
+     * Returns the static allowed values for this property.
+     */
+    public String[] getValues() {
+        return options != null ? options.toArray(new String[0]) : null;
     }
 
     public Object getValue(Object bean) throws Exception {
@@ -189,7 +177,8 @@ public class BeanPropertyInfo {
                 ", fieldName='" + fieldName + '\'' +
                 ", beanName='" + beanName + '\'' +
                 ", name='" + name + '\'' +
-                ", values=" + Arrays.toString(values) +
+                ", description='" + description + '\'' +
+                ", options=" + options +
                 ", type=" + type +
                 ", field=" + field +
                 ", getter=" + getter +
