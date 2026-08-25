@@ -20,4 +20,7 @@
  *  }
  * </pre>
  */
+@Feature(category = "rendering")
 package org.the3deer.android.engine.shader;
+
+import org.the3deer.util.bean.Feature;

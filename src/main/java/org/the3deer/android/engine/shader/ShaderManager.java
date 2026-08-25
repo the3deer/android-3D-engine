@@ -15,7 +15,7 @@ import javax.inject.Inject;
 /**
  * This class manages the shaders of the application
  */
-@Bean(category = "general")
+@Bean
 public class ShaderManager {
 
     private static final Logger logger = Logger.getLogger(ShaderManager.class.getSimpleName());

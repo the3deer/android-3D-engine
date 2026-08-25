@@ -14,6 +14,7 @@ public class BeanInfo {
     private String name;
     private String description;
     private String category;
+    private String categoryDescription;
     private final Map<String, BeanPropertyInfo> properties = new LinkedHashMap<>();
 
     public BeanInfo(String id, String name, String description) {
@@ -48,6 +49,14 @@ public class BeanInfo {
 
     public void setCategory(String category) {
         this.category = category;
+    }
+
+    public String getCategoryDescription() {
+        return categoryDescription;
+    }
+
+    public void setCategoryDescription(String categoryDescription) {
+        this.categoryDescription = categoryDescription;
     }
 
     public Map<String, BeanPropertyInfo> getProperties() {
