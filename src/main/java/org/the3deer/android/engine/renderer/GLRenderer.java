@@ -15,7 +15,6 @@ import org.the3deer.util.bean.Bean;
 import org.the3deer.util.bean.BeanProperty;
 import org.the3deer.util.event.EventManager;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -45,13 +44,13 @@ public class GLRenderer implements GLSurfaceView.Renderer {
     @Inject
     private Map<String, Renderer> renderers;
 
-    @BeanProperty(name = "renderer")
-    private String activeRenderer;
+    @BeanProperty
+    private String renderer = "renderer.default";
 
     @Inject
     private ShaderManager shaderFactory;
 
-    private Renderer renderer;
+    private Renderer rendererObject;
 
     /**
      * Background GL clear color. Default is light gray
@@ -104,8 +103,8 @@ public class GLRenderer implements GLSurfaceView.Renderer {
     }
 
     @BeanProperty
-    public List<String> getActiveRendererValues() {
-        return new ArrayList<>(renderers.keySet());
+    public String[] getRendererValues() {
+        return renderers != null ? renderers.keySet().toArray(new String[0]) : null;
     }
 
     public void setShaders(Map<String, Renderer> renderers) {
@@ -121,26 +120,38 @@ public class GLRenderer implements GLSurfaceView.Renderer {
     }
 
     @BeanProperty
-    public String getActiveRenderer() {
-        return activeRenderer;
+    public String getRenderer() {
+        return renderer;
     }
 
     @BeanProperty
-    public void setActiveRenderer(String rendererId) {
+    public void setRenderer(String rendererId) {
 
         // check
         if (rendererId == null) throw new IllegalArgumentException("Renderer id cannot be null");
 
-        // get renderer
-        final Renderer renderer = renderers.get(rendererId);
+        // register active renderer
+        this.renderer = rendererId;
+
+        // init
+        initRenderer();
+    }
+
+    private void initRenderer() {
 
         // check
-        if (renderer == null) throw new IllegalStateException("Renderer not found: " + rendererId +
+        if (this.renderer == null || renderers == null) return;  // engine still loading
+
+        // get renderer
+        final Renderer renderer = renderers.get(this.renderer);
+
+        // check
+        if (renderer == null) throw new IllegalStateException("Renderer not found: " + this.renderer +
                 ", available renderers: " + renderers.keySet() +
-                ", active renderer: " + activeRenderer);
+                ", active renderer: " + this.renderer);
 
         // disable current renderer
-        if (this.renderer != null) this.renderer.setEnabled(false);
+        if (this.rendererObject != null) this.rendererObject.setEnabled(false);
 
         // reset new renderer
         renderer.reset();
@@ -149,10 +160,10 @@ public class GLRenderer implements GLSurfaceView.Renderer {
         renderer.setEnabled(true);
 
         // update active renderer
-        this.renderer = renderer;
+        this.rendererObject = renderer;
 
         // debug
-        logger.config("Active renderer: " + rendererId);
+        logger.config("Active renderer: " + this.renderer);
     }
 
     @Override
@@ -228,14 +239,13 @@ public class GLRenderer implements GLSurfaceView.Renderer {
     @Override
     public void onDrawFrame(GL10 unused) {
 
-        // check
-        if (renderer == null && renderers != null) {
-            renderer = renderers.get("renderer.default");
-            logger.info("- Renderer default: " + renderer);
+        //  deferred renderer init
+        if (this.rendererObject == null) {
+            initRenderer();
         }
 
         // check
-        if (renderer == null || !renderer.isEnabled()) return;
+        if (rendererObject == null || !rendererObject.isEnabled()) return;
 
         // Default viewport
         GLES20.glViewport(0, 0, width, height);
@@ -268,8 +278,8 @@ public class GLRenderer implements GLSurfaceView.Renderer {
                     //logger.log(Level.SEVERE, "onPrepareFrame ("+i+"): "+listeners.get(i));
                     listeners.get(i).onPrepareFrame();
                 } catch (Exception ex) {
-                    logger.log(Level.SEVERE, "Exception on delegate: " + renderer, ex);
-                    renderer.setEnabled(false);
+                    logger.log(Level.SEVERE, "Exception on delegate: " + rendererObject, ex);
+                    rendererObject.setEnabled(false);
                     break;
                 }
             }
@@ -281,10 +291,21 @@ public class GLRenderer implements GLSurfaceView.Renderer {
         }
 
         try {
-            renderer.onDrawFrame();
+            rendererObject.onDrawFrame();
         } catch (Exception ex) {
-            logger.log(Level.SEVERE, "Exception on delegate: " + renderer, ex);
-            renderer.setEnabled(false);
+            logger.log(Level.SEVERE, "Exception on delegate: " + rendererObject, ex);
+            rendererObject.setEnabled(false);
+        }
+
+        // post listeners
+        if (listeners != null) {
+            for (int i = 0; i < listeners.size(); i++) {
+                try {
+                    listeners.get(i).onPostFrame();
+                } catch (Exception ex) {
+                    logger.log(Level.SEVERE, "Exception on delegate (post): " + listeners.get(i), ex);
+                }
+            }
         }
 
         if (eventManager != null) {
@@ -321,9 +342,9 @@ public class GLRenderer implements GLSurfaceView.Renderer {
         logger.info("Resetting GLRenderer references...");
 
         // 1. Clear the active renderer to release its internal model references
-        if (this.renderer != null) {
-            this.renderer.setEnabled(false);
-            this.renderer = null;
+        if (this.rendererObject != null) {
+            this.rendererObject.setEnabled(false);
+            this.rendererObject = null;
         }
 
         // 2. Clear the collections.
@@ -336,7 +357,7 @@ public class GLRenderer implements GLSurfaceView.Renderer {
         }
 
         // 3. Clear the screen or event manager if they hold stateful data
-        this.activeRenderer = null;
+        this.renderer = null;
 
         // Note: Do NOT nullify 'viewModel' if the renderer instance is reused,
         // but do ensure the 'activeEngine' inside it is also reset.

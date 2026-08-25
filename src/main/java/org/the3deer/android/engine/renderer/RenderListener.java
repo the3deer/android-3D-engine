@@ -7,4 +7,5 @@ public interface RenderListener {
 
     default void onSurfaceChanged(int width, int height){}
     default void onPrepareFrame(){}
+    default void onPostFrame(){}
 }
