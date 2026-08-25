@@ -3,7 +3,6 @@ package org.the3deer.android.engine.shader.v3;
 import android.opengl.GLES30;
 import android.util.SparseArray;
 
-import org.the3deer.android.engine.util.GLUtil;
 import org.the3deer.android.engine.model.AnimatedModel;
 import org.the3deer.android.engine.model.Constants;
 import org.the3deer.android.engine.model.Element;
@@ -13,6 +12,7 @@ import org.the3deer.android.engine.model.Skin;
 import org.the3deer.android.engine.model.Texture;
 import org.the3deer.android.engine.shader.Program;
 import org.the3deer.android.engine.shader.Shader;
+import org.the3deer.android.engine.util.GLUtil;
 import org.the3deer.util.math.Math3DUtils;
 
 import java.util.ArrayList;
@@ -230,7 +230,7 @@ public class ShaderImplV3 implements Shader {
                 setUniformInt(material.getAlphaMode().ordinal(), "u_AlphaMode");
                 setUniform1(material.getAlphaCutoff(), "u_AlphaCutoff");
             } else {
-                setUniformInt(Material.AlphaMode.OPAQUE.ordinal(), "u_AlphaMode");
+                setUniformInt(Material.AlphaMode.BLEND.ordinal(), "u_AlphaMode");
                 setUniform1(0.5f, "u_AlphaCutoff");
             }
         }

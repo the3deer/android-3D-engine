@@ -1,10 +1,10 @@
 package org.the3deer.android.engine.shader;
 
+import org.the3deer.android.engine.shader.v2.ShaderImplV2;
+import org.the3deer.android.engine.shader.v3.ShaderImplV3;
 import org.the3deer.util.bean.Bean;
 import org.the3deer.util.bean.BeanInit;
 import org.the3deer.util.bean.BeanProperty;
-import org.the3deer.android.engine.shader.v2.ShaderImplV2;
-import org.the3deer.android.engine.shader.v3.ShaderImplV3;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -117,6 +117,9 @@ public class ShaderManager {
     }*/
 
     private Shader loadShader(int programId) {
+
+        // check
+        if (programsMap == null) return null; // still loading
 
         // find program
         Program program = null;
