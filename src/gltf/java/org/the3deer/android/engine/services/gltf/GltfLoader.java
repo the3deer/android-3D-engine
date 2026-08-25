@@ -4,8 +4,6 @@ import android.graphics.Bitmap;
 import android.opengl.GLES20;
 
 import org.the3deer.android.engine.Model;
-import org.the3deer.android.engine.model.Object3D;
-import org.the3deer.android.util.AndroidUtils;
 import org.the3deer.android.engine.animation.Animation;
 import org.the3deer.android.engine.animation.JointTransform;
 import org.the3deer.android.engine.animation.KeyFrame;
@@ -13,6 +11,7 @@ import org.the3deer.android.engine.model.AnimatedModel;
 import org.the3deer.android.engine.model.Camera;
 import org.the3deer.android.engine.model.Material;
 import org.the3deer.android.engine.model.Node;
+import org.the3deer.android.engine.model.Object3D;
 import org.the3deer.android.engine.model.OrthographicProjection;
 import org.the3deer.android.engine.model.PerspectiveProjection;
 import org.the3deer.android.engine.model.Scene;
@@ -32,6 +31,7 @@ import org.the3deer.android.engine.services.gltf.dto.GltfSamplerDto;
 import org.the3deer.android.engine.services.gltf.dto.GltfSceneData;
 import org.the3deer.android.engine.services.gltf.dto.GltfSceneDto;
 import org.the3deer.android.engine.services.gltf.dto.GltfSkinDto;
+import org.the3deer.android.util.AndroidUtils;
 import org.the3deer.util.math.Quaternion;
 
 import java.io.InputStream;

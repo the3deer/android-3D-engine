@@ -4,6 +4,7 @@ import android.app.Application;
 import android.content.ComponentCallbacks2;
 import android.content.res.Configuration;
 import android.database.Cursor;
+import android.graphics.Bitmap;
 import android.opengl.GLSurfaceView;
 import android.os.Handler;
 import android.os.Looper;
@@ -21,7 +22,6 @@ import org.the3deer.android.engine.api.EngineAPI;
 import org.the3deer.android.engine.camera.CameraUtils;
 import org.the3deer.android.engine.event.EngineEvent;
 import org.the3deer.android.engine.model.Camera;
-import org.the3deer.android.engine.model.Dimensions;
 import org.the3deer.android.engine.model.ModelEvent;
 import org.the3deer.android.engine.model.Node;
 import org.the3deer.android.engine.model.Object3D;
@@ -43,12 +43,13 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class ModelEngineViewModel extends AndroidViewModel implements ComponentCallbacks2, EngineAPI {
+public class ModelEngineViewModel extends AndroidViewModel implements ComponentCallbacks2 {
 
     private static final Logger logger = Logger.getLogger(ModelEngineViewModel.class.getSimpleName());
 
@@ -75,6 +76,12 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
     private final MutableLiveData<ModelEngine> _activeEngine = new MutableLiveData<>();
     public final LiveData<ModelEngine> activeEngine = _activeEngine;
 
+    /**
+     * Request to load a new model and navigate to it.
+     */
+    private final MutableLiveData<Model> _loadRequest = new MutableLiveData<>();
+    public final LiveData<Model> loadRequest = _loadRequest;
+
 
     /**
      * Background executor for heavy loading operations.
@@ -84,6 +91,11 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
      * Main thread handler for UI updates and callbacks.
      */
     private final Handler handler = new Handler(Looper.getMainLooper());
+
+    /**
+     * Screenshot request
+     */
+    private CompletableFuture<Bitmap> screenshotRequest;
 
     public ModelEngineViewModel(Application application) {
         super(application);
@@ -450,6 +462,21 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
         return activeEngine.getValue();
     }
 
+    @NotNull
+    public List<URI> getLoadedModels() {
+        final Map<String, ModelEngine> engines = _engines.getValue();
+        final List<URI> ret = new ArrayList<>();
+        if (engines != null) {
+            for (String uri : engines.keySet()) {
+                try {
+                    ret.add(URI.create(uri));
+                } catch (Exception ignored) {
+                }
+            }
+        }
+        return ret;
+    }
+
     public void clearCache(boolean deleteActive) {
 
         final ModelEngine active = _activeEngine.getValue();
@@ -540,6 +567,56 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
         return glScreen;
     }
 
+    public synchronized CompletableFuture<Bitmap> requestScreenshot() {
+        this.screenshotRequest = new CompletableFuture<>();
+        return this.screenshotRequest;
+    }
+
+    public synchronized CompletableFuture<Bitmap> getScreenshotRequest() {
+        return this.screenshotRequest;
+    }
+
+    public synchronized void fulfillScreenshotRequest(Bitmap bitmap) {
+        if (this.screenshotRequest != null) {
+            this.screenshotRequest.complete(bitmap);
+            this.screenshotRequest = null;
+        }
+    }
+
+    // --- Helpers ---
+
+    /**
+     * Returns the EngineAPI for the currently active engine.
+     */
+    @Nullable
+    public EngineAPI getApi() {
+        ModelEngine active = getActiveEngine();
+        return active != null ? active.getBeanFactory().find(EngineAPI.class) : null;
+    }
+
+    /**
+     * Request to load a new model. This will trigger navigation to HomeFragment in the UI.
+     * @param model the model to load
+     */
+    public void loadModel(@NotNull Model model) {
+        _loadRequest.postValue(model);
+    }
+
+    /**
+     * Triggers a reload of the current model for the given engine.
+     * Useful when model technical data (like URI or glTF content) has changed.
+     */
+    public void reloadModel(@NotNull ModelEngine engine) {
+        executor.execute(() -> {
+            try {
+                loadModel(engine);
+            } catch (Exception e) {
+                logger.log(Level.SEVERE, "Failed to reload model", e);
+                updateEngineStatus(engine.id, ModelEngine.Status.ERROR, "Error: " + e.getMessage());
+            }
+        });
+    }
+
     // --- Loading Implementation ---
 
     private void loadModel(ModelEngine engine) throws IOException {
@@ -593,7 +670,7 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
             model.setCurrentDir(new File(model.getUri().getPath()).getParentFile());
         }
 
-        final LoaderTask loaderTask = LoaderRegistry.get(model, new LoadListener() {
+        final LoadListener listener = new LoadListener() {
             @Override public void onLoadStart() { model.setStatus(Model.Status.LOADING, "Loading started..."); }
             @Override public void onProgress(String progress) { model.setStatus(Model.Status.LOADING, progress); }
             @Override public void onLoadCamera(Scene scene, Camera camera) { if (glScreen != null) camera.getProjection().setAspectRatio(glScreen.getRatio()); }
@@ -623,18 +700,7 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
                         scene.getRootNodes().add(node);
                     }
                 }
-                Dimensions dimensions = new Dimensions();
-                for (Object3D object : scene.getObjects()) {
-                    if (object.isDecorator()) continue;
-                    final Dimensions objDimensions = object.getCurrentDimensions();
-                    if (objDimensions != null) {
-                        float[] min = objDimensions.getMin();
-                        float[] max = objDimensions.getMax();
-                        dimensions.update(min[0], min[1], min[2]);
-                        dimensions.update(max[0], max[1], max[2]);
-                    }
-                }
-                scene.setDimensions(dimensions);
+
                 scene.update();
                 CameraUtils.frameModel(scene.getActiveCamera(), scene.getObjects());
                 model.addScene(scene);
@@ -650,10 +716,24 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
                 model.setStatus(Model.Status.OK, "Loading Model finished successfully");
                 Model.CURRENT.remove();
             }
-        });
+        };
+
+        final LoaderTask loaderTask = LoaderRegistry.get(model, listener);
 
         if (loaderTask != null) {
             loaderTask.execute(false);
+        } else if ("custom".equalsIgnoreCase(model.getType()) || !model.getScenes().isEmpty()) {
+            // Manual trigger for pre-populated models (CSG/AI)
+            logger.info("Triggering manual load sequence for custom model...");
+            listener.onLoadStart();
+            if (model.getScenes().isEmpty()) {
+                logger.log(Level.WARNING, "No scenes loaded. Creating 'default' scene...");
+                model.getScenes().put("default", new Scene("default"));
+            }
+            for (Scene scene : model.getScenes().values()) {
+                listener.onLoadScene(scene);
+            }
+            listener.onLoadComplete();
         } else {
             model.setStatus(Model.Status.ERROR, "No loader registered for type: " + model.getType());
         }
@@ -688,23 +768,4 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
             logger.log(Level.SEVERE, "Error loading texture file", ex);
         }
     }
-
-    // --- EngineAPI Implementation ---
-
-    @Override public void zoom(float factor) { if (getActiveEngine() != null && getActiveEngine().getModel().getActiveScene() != null) getActiveEngine().getModel().getActiveScene().getActiveCamera().zoom(factor); }
-    @Override public void rotateCamera(float x, float y, float z) {}
-    @Override public void setWireframe(boolean enabled) {}
-    @Override public void createObject(String type, String id, Map<String, Object> attributes) {}
-    @Override public Map<String, Object> readObject(String id) { return null; }
-    @Override public void updateObject(String id, Map<String, Object> attributes) {}
-    @Override public void deleteObject(String id) {}
-    @Override public void executeSceneCommand(String command) {
-        ModelEngine engine = getActiveEngine();
-        if (engine == null) return;
-        Object assistant = engine.getBeanFactory().get("ai.system");
-        if (assistant != null) try { assistant.getClass().getMethod("processSystemPrompt", String.class).invoke(assistant, command); } catch (Exception e) {}
-    }
-    @Override public void executeTechnicalCommand(String command) {}
-    @Override public String getSceneSummary() { return ""; }
-    @Override public String exportToGltf() { return ""; }
 }

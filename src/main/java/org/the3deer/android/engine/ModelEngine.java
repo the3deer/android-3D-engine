@@ -15,7 +15,6 @@ import org.the3deer.android.engine.decorator.SkeletonDrawer;
 import org.the3deer.android.engine.decorator.SkyboxDrawer;
 import org.the3deer.android.engine.decorator.WireframeDrawer;
 import org.the3deer.android.engine.gui.Axis;
-import org.the3deer.android.engine.gui.FontFactory;
 import org.the3deer.android.engine.gui.GUI;
 import org.the3deer.android.engine.gui.GUIDrawer;
 import org.the3deer.android.engine.logger.LogInterceptor;
@@ -38,8 +37,12 @@ import org.the3deer.android.engine.shader.v3.GpuManager;
 import org.the3deer.android.engine.shadow.ShadowDrawer;
 import org.the3deer.android.engine.touch.TouchController;
 import org.the3deer.util.bean.BeanManager;
+import org.the3deer.util.bean.BeanPropertyInfo;
 import org.the3deer.util.event.EventManager;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Logger;
@@ -193,6 +196,9 @@ public final class ModelEngine {
         beanManager.add("shader.manager", ShaderManager.class);
         beanManager.add(Constants.BEAN_ID_CONTROLLER, eventManager);
 
+        // Technical engine API implementation
+        beanManager.add("engine.api", org.the3deer.android.engine.api.EngineAPIImpl.class);
+
         // system
         beanManager.add("10.gpuManager", GpuManager.class);
         beanManager.add("10.touchController", TouchController.class);
@@ -205,6 +211,7 @@ public final class ModelEngine {
         beanManager.add("camera.2firstPerson", FirstPersonCameraHandler.class);
 
         // objects
+        beanManager.add("20.scene.primitiveManager", org.the3deer.android.engine.objects.PrimitiveManager.class);
         beanManager.add("20.scene.light", new Light(new float[]{50f, 100f, 50f}));
 
         // projections
@@ -218,6 +225,7 @@ public final class ModelEngine {
         // drawers
         beanManager.add("40.drawer0.SkyboxDrawer", SkyboxDrawer.class);
         beanManager.add("40.drawer1.SceneDrawer", SceneDrawer.class);
+        beanManager.add("40.drawer1.screenshotDrawer", org.the3deer.android.engine.renderer.ScreenshotDrawer.class);
         beanManager.add("40.drawer2.boundingBoxDrawer", BoundingBoxDrawer.class);
         beanManager.add("40.drawer3.lightBulb", Point.build(Constants.VECTOR_ZERO)
                 .setId("light").setColor(Constants.COLOR_YELLOW));
@@ -231,18 +239,25 @@ public final class ModelEngine {
         beanManager.add("renderer.default", DefaultRenderer.class);
         beanManager.add("renderer.anaglyph", AnaglyphRenderer.class);
         beanManager.add("renderer.stereoscopic", StereoscopicRenderer.class);
+
+        // utilities
+        beanManager.add("font_factory", org.the3deer.android.engine.text.FontFactoryHershey.class);
+        beanManager.add("font_factory1", org.the3deer.android.engine.text.FontFactory1.class);
+        beanManager.add("font_factory2", org.the3deer.android.engine.text.FontFactorySystem.class);
+        beanManager.add("font_factory4", org.the3deer.android.engine.text.FontFactory2.class);
+        beanManager.add("font_factory5", org.the3deer.android.engine.text.FontFactoryIBM75.class);
+        beanManager.add("font_manager", org.the3deer.android.engine.text.FontManager.class);
     }
 
     private void initUserInterface() {
 
         // visualization
         beanManager.add("gui.projection", OrthographicProjection.class);
-        beanManager.add("gui.camera", new Camera("gui", new float[]{0, 0, 10}));
+        beanManager.add("gui.camera", new Camera("gui", new float[]{0, 0, 1}));
 
         final GUIDrawer guiDrawer = new GUIDrawer();
         beanManager.add("gui.renderer", guiDrawer);
 
-        beanManager.add("gui.1font_factory", FontFactory.class);
         beanManager.add("gui.2axis", Axis.class);
         beanManager.add("gui.3default", GUI.class);
     }
@@ -328,7 +343,7 @@ public final class ModelEngine {
 
         // 3. Reset Textures and Object IDs
         if (model != null && model.getScenes() != null) {
-            for (Scene scene : model.getScenes()) {
+            for (Scene scene : model.getScenes().values()) {
                 if (scene.getObjects() != null) {
                     for (Object3D obj : scene.getObjects()) {
                         if (obj.getMaterial() != null) {
@@ -349,10 +364,90 @@ public final class ModelEngine {
         logger.info("Engine reset finished");
     }
 
+    public void setConfig(String key, Object value) {
+        String beanId = key.substring(0, key.lastIndexOf("."));
+        Object bean = beanManager.get(beanId);
+        if (bean == null) {
+            try {
+                Class<?> clazz = Class.forName(beanId);
+                bean = beanManager.find(clazz);
+            } catch (Exception ignored) {}
+        }
+
+        if (bean != null) {
+            Map<String, BeanPropertyInfo> props = beanManager.getProperties(bean);
+            BeanPropertyInfo info = props.get(key);
+            if (info != null) {
+
+                Object convertedValue = value;
+
+                // Handle String values from SharedPreferences/AI needing conversion
+                if (value instanceof String) {
+                    String valueStr = (String) value;
+                    Class<?> targetType = info.getType();
+
+                    if (targetType == int.class || targetType == Integer.class) {
+                        convertedValue = Integer.parseInt(valueStr);
+                    } else if (targetType == float.class || targetType == Float.class) {
+                        convertedValue = Float.parseFloat(valueStr);
+                    } else if (targetType == boolean.class || targetType == Boolean.class) {
+                        convertedValue = Boolean.parseBoolean(valueStr);
+                    } else {
+                        // Check for list preference choice mapping
+                        List<String> values = getPropertyValues(context, bean, info);
+                        if (!values.isEmpty()) {
+                            int index = values.indexOf(valueStr);
+                            if (index == -1) {
+                                try {
+                                    index = Integer.parseInt(valueStr);
+                                } catch (NumberFormatException ignored) {}
+                            }
+
+                            if (index >= 0 && index < values.size()) {
+                                String selectedValue = values.get(index);
+                                if (targetType == int.class || targetType == Integer.class) {
+                                    convertedValue = Integer.parseInt(selectedValue);
+                                } else if (targetType == float.class || targetType == Float.class) {
+                                    convertedValue = Float.parseFloat(selectedValue);
+                                } else {
+                                    convertedValue = selectedValue;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                try {
+                    info.setValue(bean, convertedValue);
+                } catch (Exception e) {
+                    logger.log(java.util.logging.Level.SEVERE, "Error setting property " + key, e);
+                }
+            }
+        }
+    }
+
+    private static List<String> getPropertyValues(Context context, Object bean, BeanPropertyInfo info) {
+        try {
+            // Priority 1: Method provider
+            if (info.getValuesMethod() != null) {
+                List<?> values = (List<?>) info.getValuesMethod().invoke(bean);
+                List<String> ret = new java.util.ArrayList<>();
+                for (Object o : values) if (o != null) ret.add(o.toString());
+                return ret;
+            }
+
+            // Priority 2: Static values in annotation
+            if (info.getValues() != null && info.getValues().length > 0) {
+                return java.util.Arrays.asList(info.getValues());
+            }
+        } catch (Exception ignored) {}
+        return Collections.emptyList();
+    }
+
     public void close() {
         executor.shutdown();
         if (model != null) {
-            for (Scene scene : model.getScenes()) {
+            for (Scene scene : model.getScenes().values()) {
                 for (Object3D object : scene.getObjects()) {
                     object.dispose();
                 }
