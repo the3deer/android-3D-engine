@@ -76,7 +76,7 @@ public final class Cube {
             -0.5f, 0.5f, -0.5f,
             -0.5f, -0.5f, -0.5f,
             -0.5f, 0.5f, 0.5f,
-            -0.5f, -0.5f, -0.5f,
+            -0.5f, -0.5f, 0.5f,
             -0.5f, -0.5f, 0.5f,
             -0.5f, 0.5f, 0.5f,
 
@@ -296,6 +296,12 @@ public final class Cube {
                     1.0f, 1.0f,
                     1.0f, 0.0f
             };
+
+    public static Object3D build() {
+        return new Object3D(IOUtils.createFloatBuffer(cubePositionData.length).put(cubePositionData))
+                .setVertexNormalsArrayBuffer(IOUtils.createFloatBuffer(cubeNormalData.length).put(cubeNormalData))
+                .setDrawMode(GLES20.GL_TRIANGLES);
+    }
 
     public static Object3D buildCubeV1() {
         return new Object3D(
