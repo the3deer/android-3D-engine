@@ -12,6 +12,7 @@ public class Scene {
 
     private final Logger logger = Logger.getLogger(this.getClass().getName());
 
+    private String id;
     private String name;
 
     private final float[] worldMatrix = new float[16];
@@ -55,6 +56,14 @@ public class Scene {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String aDefault) {
+        this.id = aDefault;
     }
 
     public float[] getWorldMatrix() {
@@ -119,6 +128,21 @@ public class Scene {
     }
 
     public Dimensions getDimensions() {
+        if (dimensions == null) {
+            Dimensions dimensions = new Dimensions();
+            for (Object3D object : getObjects()) {
+                if (object.isDecorator()) continue;
+                final Dimensions objDimensions = object.getCurrentDimensions();
+                if (objDimensions != null) {
+                    float[] min = objDimensions.getMin();
+                    float[] max = objDimensions.getMax();
+                    dimensions.update(min[0], min[1], min[2]);
+                    dimensions.update(max[0], max[1], max[2]);
+                }
+            }
+            this.dimensions = (dimensions);
+
+        }
         return dimensions;
     }
 
