@@ -10,8 +10,10 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
+import java.net.URLConnection;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -20,6 +22,7 @@ import java.nio.IntBuffer;
 import java.nio.ShortBuffer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -127,11 +130,25 @@ public final class IOUtils {
     }
 
     public static List<String> readLines(String uriString) {
+        return readLines(uriString, null);
+    }
+
+    public static List<String> readLines(String uriString, Map<String, String> headers) {
         List<String> ret = new ArrayList<>();
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(URI.create(uriString).toURL().openStream()))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                ret.add(line);
+        try {
+            final URL url = URI.create(uriString).toURL();
+            final URLConnection conn = url.openConnection();
+            if (headers != null && conn instanceof HttpURLConnection) {
+                final HttpURLConnection httpConn = (HttpURLConnection) conn;
+                for (Map.Entry<String, String> header : headers.entrySet()) {
+                    httpConn.setRequestProperty(header.getKey(), header.getValue());
+                }
+            }
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    ret.add(line);
+                }
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -140,8 +157,19 @@ public final class IOUtils {
     }
 
     public static String read(URL url) throws IOException {
-        StringBuilder sb = new StringBuilder();
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(url.openStream()))) {
+        return read(url, null);
+    }
+
+    public static String read(URL url, Map<String, String> headers) throws IOException {
+        final StringBuilder sb = new StringBuilder();
+        final URLConnection conn = url.openConnection();
+        if (headers != null && conn instanceof HttpURLConnection) {
+            final HttpURLConnection httpConn = (HttpURLConnection) conn;
+            for (Map.Entry<String, String> header : headers.entrySet()) {
+                httpConn.setRequestProperty(header.getKey(), header.getValue());
+            }
+        }
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()))) {
             String line;
             while ((line = reader.readLine()) != null) {
                 sb.append(line).append("\n");
@@ -151,14 +179,11 @@ public final class IOUtils {
     }
 
     public static String read(URI uri) throws IOException {
-        StringBuilder sb = new StringBuilder();
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(uri.toURL().openStream()))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                sb.append(line).append("\n");
-            }
-        }
-        return sb.toString();
+        return read(uri, null);
+    }
+
+    public static String read(URI uri, Map<String, String> headers) throws IOException {
+        return read(uri.toURL(), headers);
     }
 
     public static long getAvailableMemory() {
