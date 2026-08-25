@@ -86,12 +86,9 @@ public class CameraUtils {
             distance = distance * 0.8f; // Get a bit closer for tiny things
         }
 
-        // 4. Update Projection Clipping Planes
-        updateProjection(camera, centerX, centerY, centerZ, radius);
+        logger.info("Framing model: center=(" + centerX + "," + centerY + "," + centerZ + "), radius="+radius+", distance=" + distance);
 
-        logger.info("Framing model: center=(" + centerX + "," + centerY + "," + centerZ + "), distance=" + distance);
-
-        // 5. Position the camera
+        // 4. Position the camera
         float[] lookDir = new float[]{
                 camera.getView()[0] - camera.getPos()[0],
                 camera.getView()[1] - camera.getPos()[1],
@@ -114,6 +111,9 @@ public class CameraUtils {
         logger.info("- New Camera position: "+newPosX+","+newPosY+","+newPosZ);
 
         camera.set(newPosX, newPosY, newPosZ, centerX, centerY, centerZ, 0, 1, 0);
+
+        // 5. Update Projection Clipping Planes (MUST happen after camera is positioned)
+        updateProjection(camera, centerX, centerY, centerZ, radius);
     }
 
     /**
@@ -162,19 +162,22 @@ public class CameraUtils {
         }
 
         // --- HARDWARE-AWARE DEPTH PRECISION ---
-        final int[] depthBits = new int[1];
-        android.opengl.GLES20.glGetIntegerv(android.opengl.GLES20.GL_DEPTH_BITS, depthBits, 0);
-        final float maxHealthyRatio = (depthBits[0] >= 24) ? 100000f : 10000f; // Increased for better handling
+        // Note: We avoid direct GL calls here as this may be called from non-GL threads (e.g. background loaders)
+        final float maxHealthyRatio = 10000f;
 
         if (suggestedFar / suggestedNear > maxHealthyRatio) {
             // If the ratio is too high, we must increase 'near' to preserve depth precision.
             suggestedNear = suggestedFar / maxHealthyRatio;
+        } else {
+            // If we have "extra" precision, let's expand the far plane to the healthy limit.
+            // This ensures background elements like skyboxes/grids are never clipped.
+            suggestedFar = suggestedNear * maxHealthyRatio;
         }
 
         // Apply to projection
         projection.setNear(suggestedNear);
         projection.setFar(suggestedFar);
 
-        // logger.finest("- Scene projection updated: near=" + suggestedNear + ", far=" + suggestedFar);
+        //logger.info("- Scene projection updated: near=" + suggestedNear + ", far=" + suggestedFar);
     }
 }
