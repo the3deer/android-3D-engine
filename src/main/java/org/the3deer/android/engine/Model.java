@@ -9,7 +9,6 @@ import org.the3deer.util.event.EventManager;
 import java.io.File;
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -59,6 +58,7 @@ public class Model {
     // Discovery & Technical information
     private String name;
     private String type;
+    private String gltf;
     private String description;
     private String author;
     private String license;
@@ -75,9 +75,11 @@ public class Model {
     @Inject
     private Screen screen;
 
-    private Map<String, Scene> scenesMap;
+    // runtime
+    private Map<String, Scene> scenesMap = new HashMap<>();
     private Scene activeScene;
 
+    // configuration
     private File cacheDir;
     private File currentDir;
     private final Map<String, URI> includes = new HashMap<>();
@@ -130,8 +132,17 @@ public class Model {
         return type;
     }
 
-    public void setType(String type) {
+    public Model setType(String type) {
         this.type = type;
+        return this;
+    }
+
+    public String getGltf() {
+        return gltf;
+    }
+
+    public void setGltf(String gltf) {
+        this.gltf = gltf;
     }
 
     public String getDescription() {
@@ -162,8 +173,9 @@ public class Model {
         return provider;
     }
 
-    public void setProvider(String provider) {
+    public Model setProvider(String provider) {
         this.provider = provider;
+        return this;
     }
 
     public long getSize() {
@@ -213,9 +225,8 @@ public class Model {
         return messages;
     }
 
-    public List<Scene> getScenes() {
-        if (scenesMap == null) return Collections.emptyList();
-        return new ArrayList<>(scenesMap.values());
+    public Map<String, Scene> getScenes() {
+        return scenesMap;
     }
 
     public Scene getActiveScene() {
@@ -234,8 +245,7 @@ public class Model {
 
     public void addScene(Scene scene) {
         if (scenesMap != null && scenesMap.containsKey(scene.getName())) {
-            logger.severe("Scene with name '" + scene.getName() + "' already exists");
-            throw new IllegalArgumentException("Scene with name '" + scene.getName() + "' already exists");
+            logger.warning("Scene with name '" + scene.getName() + "' already exists");
         }
 
         logger.info("addScene: " + scene.getName() + ", objects: " + scene.getObjects().size());
