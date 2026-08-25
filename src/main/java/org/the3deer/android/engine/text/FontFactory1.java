@@ -1,7 +1,8 @@
-package org.the3deer.android.engine.gui;
+package org.the3deer.android.engine.text;
 
-import org.the3deer.util.bean.BeanInit;
 import org.the3deer.android.engine.model.Screen;
+import org.the3deer.util.bean.Bean;
+import org.the3deer.util.bean.BeanInit;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -10,15 +11,16 @@ import java.util.logging.Logger;
 import javax.inject.Inject;
 
 /**
- * Mono-size glyph
- * <p>
+ * Mono-size glyph implementation based on IBM 8x8 font.
+ * 
  * height:  8 points
  * width:   8 points
  * max vertices: 75
  */
-public class FontFactory {
+@Bean(name = "ibm8x8")
+public class FontFactory1 implements FontFactory {
 
-    private static final Logger logger = Logger.getLogger(FontFactory.class.getSimpleName());
+    private static final Logger logger = Logger.getLogger(FontFactory1.class.getSimpleName());
 
     @Inject
     private Screen screen;
@@ -53,6 +55,7 @@ public class FontFactory {
 
     private final Map<String, float[]> symbols = new HashMap<>();
 
+    @Override
     public void setScreen(Screen screen) {
         this.screen = screen;
         setUp();
@@ -60,13 +63,10 @@ public class FontFactory {
 
     @BeanInit
     public void setUp() {
-        // final Screen screen = BeanFactory.getInstance().find(Screen.class);
-
         this.screen_width = screen.width;
         this.screen_height = screen.height;
         this.screen_ratio = screen_width / screen_height;
 
-        // static
         final int rows;
         final int columns;
         if (screen_width > screen_height) {  // horizontal layout
@@ -80,15 +80,11 @@ public class FontFactory {
             columns = 60;
         }
 
-        // glyph
-        /*charWidth = screen_ratio / columns;
-        charHeight = 2f / rows;*/
         charWidth = screen_width / columns;
         charHeight = screen_height / rows;
 
         charWidth = charHeight = 48;
 
-        logger.finest("glyph g_width: " + charWidth + ", g_height:" + charHeight);
         final float gXS = charWidth / (g_xpoints - 1);
         g_x0 = 0;
         g_x1 = gXS;
@@ -98,7 +94,6 @@ public class FontFactory {
         g_x5 = gXS * 5;
         g_x6 = gXS * 6;
         g_x7 = gXS * 7;
-        logger.finest("glyph gXS: " + gXS + ", g_x4:" + g_x6);
         final float gYS = charHeight / (g_ypoints - 1);
         g_y0 = 0;
         g_y1 = gYS;
@@ -108,15 +103,16 @@ public class FontFactory {
         g_y5 = gYS * 5;
         g_y6 = gYS * 6;
         g_y7 = gYS * 7;
-        logger.finest( "glyph gYS: " + gYS + ", g_y6:" + g_y6);
 
         init();
     }
 
+    @Override
     public float getCharWidth() {
         return charWidth;
     }
 
+    @Override
     public float getCharHeight() {
         return charHeight;
     }
@@ -129,7 +125,7 @@ public class FontFactory {
         return g_y1;
     }
 
-
+    @Override
     public float[] getChar(char c) {
         return this.chars.get(c);
     }
@@ -139,15 +135,11 @@ public class FontFactory {
     }
 
     private void init() {
-
-        // numbers
         chars.put('0', _0());
         chars.put('1', _1());
         chars.put('2', _2());
         chars.put('3', _3());
         chars.put('4', _4());
-
-        // letters - lower case
         chars.put('a', _a());
         chars.put('c', _c());
         chars.put('e', _e());
@@ -166,23 +158,16 @@ public class FontFactory {
         chars.put('u', _u());
         chars.put('w', _w());
         chars.put('x', _x());
-
-        // letters - upper case
         chars.put('F', _F());
         chars.put('P', _P());
         chars.put('S', _S());
         chars.put('X', _X());
-
-        // symbols - letters
         chars.put('.', _dot());
         chars.put('[', _squareBracketLeft());
         chars.put(']', _squareBracketRight());
         chars.put('(', _curlyBracketLeft());
         chars.put(')', _curlyBracketRight());
-
-        // symbols
         symbols.put("burger", _burger());
-
     }
 
     private float[] _0() {
@@ -210,7 +195,6 @@ public class FontFactory {
         };
     }
 
-
     private float[] _2() {
         return new float[]{
                 g_x1, g_y6, 0f,
@@ -222,18 +206,6 @@ public class FontFactory {
                 g_x6, g_y1, 0f
         };
     }
-    final static float[] _3 = new float[]{
-            0.0f, 0.6f, 0f,
-            0.4f, 0.6f, 0f,
-            0.2f, 0.4f, 0f,
-            0.4f, 0.2f, 0f,
-            0.4f, 0.1f, 0f,
-            0.3f, 0.0f, 0f,
-            0.1f, 0.0f, 0f,
-            0.0f, 0.1f, 0f
-    };
-
-    // In FontFactory.java
 
     private float[] _3() {
         return new float[]{
@@ -318,7 +290,6 @@ public class FontFactory {
                 g_x4, g_y7, 0f,
                 g_x5, g_y6, 0f
         };
-
     }
 
     private float[] _g() {
@@ -498,8 +469,6 @@ public class FontFactory {
         };
     }
 
-    // UPERCASE
-
     private float[] _F() {
         return new float[]{
                 g_x1, g_y1, 0,
@@ -545,8 +514,6 @@ public class FontFactory {
                 g_x0, g_y1, 0
         };
     }
-
-    // symbols
 
     private float[] _dot() {
         return new float[]{
@@ -602,18 +569,12 @@ public class FontFactory {
         return new float[]{
                 g_x2, g_y5, 0,
                 g_x6, g_y5, 0,
-
-                // transparency
                 g_x6, g_y5, 0,
                 g_x2, g_y3, 0,
-
                 g_x2, g_y3, 0,
                 g_x6, g_y3, 0,
-
-                // transparency
                 g_x6, g_y3, 0,
                 g_x2, g_y1, 0,
-
                 g_x2, g_y1, 0,
                 g_x6, g_y1, 0
         };

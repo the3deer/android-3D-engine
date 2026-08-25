@@ -1,6 +1,8 @@
 package org.the3deer.android.engine.gui;
 
 import org.the3deer.android.engine.model.Dimensions;
+import org.the3deer.android.engine.text.FontFactory;
+import org.the3deer.android.engine.text.Text;
 import org.the3deer.util.io.IOUtils;
 
 import java.nio.Buffer;
@@ -30,6 +32,15 @@ public class Label extends Widget {
         setText(text);
         this.currentText = text;
     }
+
+    public Label(Widget parent, int columns, int rows, FontFactory fontFactory) {
+        super(parent);
+        this.fontFactory = fontFactory;
+        this.columns = columns;
+        this.rows = rows;
+        init();
+    }
+
     public Label(FontFactory fontFactory, int columns, int rows) {
         super();
         this.fontFactory = fontFactory;
@@ -44,16 +55,21 @@ public class Label extends Widget {
 
         super.init();
 
-        setVertexBuffer(IOUtils.createFloatBuffer(columns * rows * 12 * 3));
-        setVertexColorsArrayBuffer(IOUtils.createFloatBuffer(columns * rows * 12 * 4));
+        // Increased budget for high-resolution Hershey fonts (64 points per char)
+        int floats = columns * rows * 64 * 3;
+        final FloatBuffer floatBuffer = IOUtils.createFloatBuffer(floats);
+        logger.info("Buffer with floats: "+floats+", capacity: "+floatBuffer.capacity());
+        setVertexBuffer(floatBuffer);
+        FloatBuffer floatBuffer1 = IOUtils.createFloatBuffer(columns * rows * 64 * 4);
+        setVertexColorsArrayBuffer(floatBuffer1);
 
-        IOUtils.fill(vertexArrayBuffer, 0, vertexArrayBuffer.capacity(), new float[]{0,0, GUIConstants.UI_TEXT_Z_HIDDEN});
-        IOUtils.fill(vertexColorsArrayBuffer, 0, vertexColorsArrayBuffer.capacity(), new float[]{1,0,0,0});
+        IOUtils.fill(floatBuffer, 0, floatBuffer.capacity(), new float[]{0,0, Text.UI_TEXT_Z_HIDDEN});
+        IOUtils.fill(floatBuffer1, 0, floatBuffer1.capacity(), new float[]{1,0,0,0});
 
         // dimensions initialized because there isn't any vertex yet
         setDimensions(new Dimensions(0,
                 columns * fontFactory.getCharWidth(), rows * fontFactory.getCharHeight(), 0, 0, 0));
-        logger.config("Created text: " + getDimensions());
+        logger.info("Created text: " + getDimensions());
     }
 
     public static Label forSymbol(FontFactory fontFactory) {
@@ -66,11 +82,15 @@ public class Label extends Widget {
         float[] data = fontFactory.getSymbol(symbol);
 
         logger.finest("About to paint symbol");
-        int idx = Glyph.build(getVertexBuffer(), 0, getColorsBuffer(), 0, 0, data, getColor());
+        int idx = org.the3deer.android.engine.text.Text.build(getVertexBuffer(), 0, getColorsBuffer(), 0, 0, data, getColor());
         IOUtils.fill(getVertexBuffer(), idx, getVertexBuffer().capacity(), 0);
         IOUtils.fill(getColorsBuffer(), idx/3*4, getColorsBuffer().capacity(), 0);
 
         this.currentText = symbol;
+    }
+
+    public Label update(String text) {
+        return (Label) setText(text);
     }
 
     public Widget setText(String text) {
@@ -84,8 +104,8 @@ public class Label extends Widget {
         int idx = 0;
         for (int row = 0; row < this.rows && row < lines.length; row++) {
             for (int column = 0; column < this.columns && column < lines[row].length(); column++) {
-                float offsetX = column * fontFactory.getCharWidth();
-                float offsetY = (this.rows - 1) * fontFactory.getCharHeight() - row * fontFactory.getCharHeight();
+                final float offsetX = column * fontFactory.getCharWidth();
+                final float offsetY = (this.rows - 1) * fontFactory.getCharHeight() - row * fontFactory.getCharHeight();
 
                 final char letter = lines[row].charAt(column);
                 if (letter == '\n') {
@@ -95,7 +115,7 @@ public class Label extends Widget {
                 final float[] data = fontFactory.getChar(letter);
                 if (data == null) continue;
 
-                idx = Glyph.build(vertexBuffer, idx, colorBuffer, offsetX, offsetY, data, getColor());
+                idx = Text.build(vertexBuffer, idx, colorBuffer, offsetX, offsetY, data, getColor());
             }
         }
 

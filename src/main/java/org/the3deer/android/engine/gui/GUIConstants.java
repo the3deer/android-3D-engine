@@ -11,7 +11,7 @@ public final class GUIConstants
 
     static final float UI_BACKGROUND_Z_HIDDEN = 0.0f;
     static final float UI_WINDOW_Z_HIDDEN = 0.00f;
-    static final float UI_TEXT_Z_HIDDEN = -0.001f;
+
 
     static final float UI_WINDOW_Z_POS =  0.0f;
     static final float UI_WIDGET_CHILD_Z = 0.01f;

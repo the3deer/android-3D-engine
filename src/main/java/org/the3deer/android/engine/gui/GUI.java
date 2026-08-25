@@ -2,11 +2,6 @@ package org.the3deer.android.engine.gui;
 
 import androidx.annotation.NonNull;
 
-import org.the3deer.util.bean.Bean;
-import org.the3deer.util.bean.BeanInit;
-import org.the3deer.util.bean.BeanManaged;
-import org.the3deer.util.bean.BeanManager;
-import org.the3deer.util.bean.BeanProperty;
 import org.the3deer.android.engine.event.FPSEvent;
 import org.the3deer.android.engine.event.GLEvent;
 import org.the3deer.android.engine.event.SceneEvent;
@@ -17,6 +12,12 @@ import org.the3deer.android.engine.model.ModelEvent;
 import org.the3deer.android.engine.model.Object3D;
 import org.the3deer.android.engine.model.Scene;
 import org.the3deer.android.engine.model.Screen;
+import org.the3deer.android.engine.text.FontManager;
+import org.the3deer.util.bean.Bean;
+import org.the3deer.util.bean.BeanInit;
+import org.the3deer.util.bean.BeanManaged;
+import org.the3deer.util.bean.BeanManager;
+import org.the3deer.util.bean.BeanProperty;
 import org.the3deer.util.event.EventListener;
 
 import java.lang.reflect.Field;
@@ -38,7 +39,7 @@ public class GUI extends Widget implements EventListener, BeanManaged {
     private boolean showFPS = true;
 
     private Label fps;
-    private Text info;
+    private Label info;
     private Rotator rotator;
     private Widget mainMenu;
     private Widget window;
@@ -55,7 +56,7 @@ public class GUI extends Widget implements EventListener, BeanManaged {
     @Inject
     private Screen screen;
     @Inject
-    private FontFactory fontFactory;
+    private FontManager fontManager;
 
     @BeanInit
     public void setUp() {
@@ -102,7 +103,6 @@ public class GUI extends Widget implements EventListener, BeanManaged {
 
         } catch (Exception e) {
             logger.log(Level.SEVERE,  e.getMessage(), e);
-            throw new RuntimeException(e);
         }
     }
 
@@ -132,7 +132,7 @@ public class GUI extends Widget implements EventListener, BeanManaged {
         // frame-per-second
         if (showFPS) {
             if (fps == null) {
-                fps = new Label(fontFactory, 7, 1);
+                fps = new Label(fontManager.getFactoryObject(), 7, 1);
                 fps.setId("fps");
                 //fps.setPadding(1);
                 fps.setText("0 fps");
@@ -151,7 +151,7 @@ public class GUI extends Widget implements EventListener, BeanManaged {
     private void initInfo() {
         // model info
         if (info == null) {
-            info = Text.allocate(this, 15, 3, Text.PADDING_01);
+            info = new Label(this, 15, 3, fontManager.getFactoryObject());
             info.setId("info");
             info.setVisible(true);
             info.setScreen(screen);
@@ -197,6 +197,7 @@ public class GUI extends Widget implements EventListener, BeanManaged {
                 final Object3D selected = ((SceneEvent) event).getData("object", Object3D.class);
                 if (selected != null) {
                     final StringBuilder info = new StringBuilder();
+                    info.append("name: ");
                     if (selected.getId() != null) {
                         if (selected.getId().indexOf('/') == -1) {
                             info.append(selected.getId());
@@ -216,8 +217,12 @@ public class GUI extends Widget implements EventListener, BeanManaged {
                     //info.append(df.format(selected.getScaleX()));
                     info.append("x");
 
-                    logger.finest("Selected object info: " + info);
+                    logger.info("Selected object info:\n" + info);
+                    logger.info("Widget info:\n" + this.info);
+
+                    // FIXME: not rendering
                     this.info.update(info.toString().toLowerCase());
+
                    this.info.setVisible(true);
                 } else {
                    this.info.setVisible(false);
@@ -261,7 +266,7 @@ public class GUI extends Widget implements EventListener, BeanManaged {
         container.setPadding(new float[]{16,16,16});
         container.setRelativeLocation(Widget.POSITION_TOP_RIGHT);
         //container.setMovable(true);
-        container.addChild(new Label(fontFactory, "Entities"));
+        container.addChild(new Label(fontManager.getFactoryObject(), "Entities"));
         //container.setId("container_test");
 
         // main menu
@@ -274,7 +279,7 @@ public class GUI extends Widget implements EventListener, BeanManaged {
             //optionPanel.setId("panel_test");
             container.addOption(new Menu.Option(entry.getKey(), optionPanel, entry.getValue()));
 
-            Label widget = new Label(fontFactory, entry.getKey());
+            Label widget = new Label(fontManager.getFactoryObject(), entry.getKey());
             optionPanel.addChild(widget);
             /*List<Field> fields = BeanFactory.getFields(entry.getValue(), BeanProperty.class);
             for (Field field : fields) {
@@ -310,7 +315,7 @@ public class GUI extends Widget implements EventListener, BeanManaged {
         try {
             if (option != null) {
                 final List<Field> fields = BeanManager.getFields(option.getObject(), BeanProperty.class);
-                if (fields.isEmpty()) return new Label(fontFactory, "empty: "+option.getId());
+                if (fields.isEmpty()) return new Label(fontManager.getFactoryObject(), "empty: "+option.getId());
 
                 final GridPanel container = new GridPanel(fields.size(), 2);
                 container.setFloating(true);
@@ -320,8 +325,8 @@ public class GUI extends Widget implements EventListener, BeanManaged {
                 for (Field field : fields) {
 
                     field.setAccessible(true);
-                    final Label fieldLabel = new Label(fontFactory, field.getName());
-                    final Label fieldValue = new Label(fontFactory, String.valueOf(field.get(option.getObject()))){
+                    final Label fieldLabel = new Label(fontManager.getFactoryObject(), field.getName());
+                    final Label fieldValue = new Label(fontManager.getFactoryObject(), String.valueOf(field.get(option.getObject()))){
                         @Override
                         public boolean onEvent(EventObject event) {
                             if (event instanceof ChangeEvent && event.getSource() == GUI.this)
@@ -341,8 +346,8 @@ public class GUI extends Widget implements EventListener, BeanManaged {
                             final Menu menuValue = new Menu(Menu.Type.Button);
                             menuValue.setMargin(new float[]{24,24,24});
                             menuValue.setPadding(new float[]{16,16,16});
-                            menuValue.addOption(new Menu.Option("true", new Label(fontFactory, "true"), Boolean.TRUE));
-                            menuValue.addOption(new Menu.Option("false", new Label(fontFactory, "false"), Boolean.FALSE));
+                            menuValue.addOption(new Menu.Option("true", new Label(fontManager.getFactoryObject(), "true"), Boolean.TRUE));
+                            menuValue.addOption(new Menu.Option("false", new Label(fontManager.getFactoryObject(), "false"), Boolean.FALSE));
                             menuValue.setRelativeLocation(Widget.POSITION_CHILD_BOTTOM);
 
                             final Widget backgroundValue = new Background(menuValue);
@@ -381,9 +386,9 @@ public class GUI extends Widget implements EventListener, BeanManaged {
             }
 
         } catch (IllegalAccessException e) {
-            return new Label(fontFactory, "Error ("+item.getOption().getId()+"): "+e.getMessage());
+            return new Label(fontManager.getFactoryObject(), "Error ("+item.getOption().getId()+"): "+e.getMessage());
         }
-        return new Label(fontFactory, "Error ("+item.getOption().getId()+")");
+        return new Label(fontManager.getFactoryObject(), "Error ("+item.getOption().getId()+")");
     }
 
     /*@NonNull

@@ -1,6 +1,7 @@
 package org.the3deer.android.engine.gui;
 
 import org.the3deer.android.engine.model.Constants;
+import org.the3deer.android.engine.text.FontFactory;
 import org.the3deer.util.io.IOUtils;
 
 import java.nio.Buffer;
@@ -60,6 +61,11 @@ public class CheckList extends Widget {
         private List<Style> styles = new ArrayList<>();
         private List<Boolean> states = new ArrayList<>();
         private List<Object> items = new ArrayList<>();
+        private final FontFactory fontFactory;
+
+        public Builder(FontFactory fontFactory) {
+            this.fontFactory = fontFactory;
+        }
 
         public Builder add(String text, Style style, boolean selected) {
             items.add(text);
@@ -74,7 +80,7 @@ public class CheckList extends Widget {
 
         public CheckList build(Widget parent) {
             if (items.isEmpty()) throw new IllegalArgumentException();
-            return new CheckList(parent, items, styles, states);
+            return new CheckList(parent, items, styles, states, fontFactory);
         }
 
     }
@@ -82,16 +88,18 @@ public class CheckList extends Widget {
     private final List<Object> items;
     private final List<Style> styles;
     private final List<Boolean> states;
+    private final FontFactory fontFactory;
 
     private final int totalGlyphs;
     private final int rows;
     private final int cols;
 
-    private CheckList(Widget parent, List<Object> items, List<Style> styles, List<Boolean> states) {
+    private CheckList(Widget parent, List<Object> items, List<Style> styles, List<Boolean> states, FontFactory fontFactory) {
         super(parent);
         this.items = items;
         this.states = states;
         this.styles = styles;
+        this.fontFactory = fontFactory;
         // count total chars
         int max = 0;
         int count = 0;
@@ -147,9 +155,9 @@ public class CheckList extends Widget {
         getVertexBuffer().position(mark);
         getColorsBuffer().position(mark2);
         if (states.get(idx)) {
-            Glyph.build(getVertexBuffer(), mark, getColorsBuffer(), Glyph.CHECKBOX_ON, Constants.COLOR_WHITE, offsetX, offsetY, 0);
+            org.the3deer.android.engine.text.Text.build(getVertexBuffer(), mark, getColorsBuffer(), org.the3deer.android.engine.text.Text.CHECKBOX_ON, Constants.COLOR_WHITE, offsetX, offsetY, 0, fontFactory);
         } else {
-            Glyph.build(getVertexBuffer(), mark, getColorsBuffer(), Glyph.CHECKBOX_OFF, Constants.COLOR_WHITE, offsetX, offsetY, 0);
+            org.the3deer.android.engine.text.Text.build(getVertexBuffer(), mark, getColorsBuffer(), org.the3deer.android.engine.text.Text.CHECKBOX_OFF, Constants.COLOR_WHITE, offsetX, offsetY, 0, fontFactory);
         }
         setVertexBuffer(getVertexBuffer());
     }
@@ -211,7 +219,7 @@ public class CheckList extends Widget {
                     float offsetY = (rows * GLYPH_SIZE) - ((row + 1) * GLYPH_SIZE);
 
                     final char character = text.charAt(column);
-                    data = Glyph.getChar(character);
+                    data = fontFactory.getChar(character);
                     if (data == null) continue;
 
                     vertexBuffer.put(data[0] + offsetX);

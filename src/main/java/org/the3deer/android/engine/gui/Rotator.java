@@ -3,6 +3,7 @@ package org.the3deer.android.engine.gui;
 import org.the3deer.android.engine.animation.JointTransform;
 import org.the3deer.android.engine.model.Dimensions;
 import org.the3deer.android.engine.model.Object3D;
+import org.the3deer.android.engine.text.FontFactory;
 import org.the3deer.util.io.IOUtils;
 
 import java.nio.FloatBuffer;
@@ -13,11 +14,13 @@ public class Rotator extends Widget {
 
     private final Widget widget;
     private final Dimensions widget_dimensions;
+    private final FontFactory fontFactory;
 
-    private Rotator(Widget parent, Widget widget) {
+    private Rotator(Widget parent, Widget widget, FontFactory fontFactory) {
         super(parent);
         this.widget = widget;
         this.widget_dimensions = widget.getCurrentDimensions();
+        this.fontFactory = fontFactory;
         try {
             // buffers
             final FloatBuffer vertexBuffer = IOUtils.createFloatBuffer(10 * 3);
@@ -34,8 +37,8 @@ public class Rotator extends Widget {
         }
     }
 
-    public static Rotator build(Widget parent, Widget widget) {
-        Rotator rotator = new Rotator(parent, widget);
+    public static Rotator build(Widget parent, Widget widget, FontFactory fontFactory) {
+        Rotator rotator = new Rotator(parent, widget, fontFactory);
         rotator.setParent(widget);
         return rotator;
     }
@@ -98,7 +101,7 @@ public class Rotator extends Widget {
         return true;
     }
 
-    private static void build(FloatBuffer vertexBuffer, FloatBuffer colorBuffer, float[] color, Dimensions dimensions) {
+    private void build(FloatBuffer vertexBuffer, FloatBuffer colorBuffer, float[] color, Dimensions dimensions) {
 
         float[] min = dimensions.getMin();
         float[] max = dimensions.getMax();
@@ -109,9 +112,9 @@ public class Rotator extends Widget {
         vertexBuffer.position(0);
         colorBuffer.position(0);
 
-        Glyph.build(vertexBuffer, 0, colorBuffer, Glyph.GLYPH_LESS_THAN_CODE,
-                color, min[0] - 1f, centerY - 0.3f, maxZ);
-        Glyph.build(vertexBuffer, 0, colorBuffer, Glyph.GLYPH_GREATER_THAN_CODE,
-                color, max[0] + 0.5f, centerY - 0.3f, maxZ);
+        org.the3deer.android.engine.text.Text.build(vertexBuffer, 0, colorBuffer, org.the3deer.android.engine.text.Text.GLYPH_LESS_THAN_CODE,
+                color, min[0] - 1f, centerY - 0.3f, maxZ, fontFactory);
+        org.the3deer.android.engine.text.Text.build(vertexBuffer, 0, colorBuffer, org.the3deer.android.engine.text.Text.GLYPH_GREATER_THAN_CODE,
+                color, max[0] + 0.5f, centerY - 0.3f, maxZ, fontFactory);
     }
 }

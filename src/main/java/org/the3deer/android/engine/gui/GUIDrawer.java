@@ -4,10 +4,6 @@ import android.opengl.GLES20;
 
 import androidx.fragment.app.FragmentActivity;
 
-import org.the3deer.util.bean.Bean;
-import org.the3deer.util.bean.BeanInit;
-import org.the3deer.util.bean.BeanOrder;
-import org.the3deer.util.bean.BeanProperty;
 import org.the3deer.android.engine.collision.Collision;
 import org.the3deer.android.engine.collision.CollisionDetection;
 import org.the3deer.android.engine.event.TouchEvent;
@@ -20,6 +16,10 @@ import org.the3deer.android.engine.renderer.Renderer;
 import org.the3deer.android.engine.shader.Program;
 import org.the3deer.android.engine.shader.Shader;
 import org.the3deer.android.engine.shader.ShaderManager;
+import org.the3deer.util.bean.Bean;
+import org.the3deer.util.bean.BeanInit;
+import org.the3deer.util.bean.BeanOrder;
+import org.the3deer.util.bean.BeanProperty;
 import org.the3deer.util.event.EventListener;
 import org.the3deer.util.event.EventManager;
 import org.the3deer.util.math.Math3DUtils;
@@ -259,21 +259,22 @@ public class GUIDrawer implements EventListener, Drawer {
 
         //final Camera camera = widget.camera != null? widget.camera : this.camera;
 
-        if (Constants.DEBUG_UI) {
-            if (!debug.contains(widget.getId())) {
-                logger.finest("Rendering widget... : " + widget.getId() +
-                        ", loc: " + Arrays.toString(widget.getLocation()));
-                logger.finest("Rendering with cam " + camera.getProjection());
-                debug.add(widget.getId());
-            }
-        }
-
         if (shaderFactory == null) return;
 
         final Shader shader = shaderFactory.getShader(Program.BASIC);
 
         if (shader == null){
             return;
+        }
+
+        if (Constants.DEBUG_UI) {
+            if (!debug.contains(widget.getId())) {
+                logger.info("Rendering widget... : " + widget.getId() +
+                        ", loc: " + Arrays.toString(widget.getLocation()));
+                logger.info("Rendering with screen " + screen);
+                logger.info("Rendering with cam " + camera.getProjection());
+                debug.add(widget.getId());
+            }
         }
 
         shader.draw(widget, camera.getProjectionMatrix(), camera.getViewMatrix(), null, null,

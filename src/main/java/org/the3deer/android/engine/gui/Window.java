@@ -3,6 +3,7 @@ package org.the3deer.android.engine.gui;
 import org.the3deer.android.engine.model.Constants;
 import org.the3deer.android.engine.model.Dimensions;
 import org.the3deer.android.engine.model.Object3D;
+import org.the3deer.android.engine.text.FontFactory;
 import org.the3deer.util.io.IOUtils;
 
 import java.nio.Buffer;
@@ -57,8 +58,8 @@ public class Window extends Widget {
         try {
             // allocate buffers
             final int total = 5;
-            final FloatBuffer vertexBuffer = IOUtils.createFloatBuffer(total * Glyph.VSIZE);
-            final FloatBuffer colorBuffer = IOUtils.createFloatBuffer(total * Glyph.CSIZE);
+            final FloatBuffer vertexBuffer = IOUtils.createFloatBuffer(total * org.the3deer.android.engine.text.Text.VSIZE);
+            final FloatBuffer colorBuffer = IOUtils.createFloatBuffer(total * org.the3deer.android.engine.text.Text.CSIZE);
 
             // window
             final int voffset = build(vertexBuffer, 0, colorBuffer);
@@ -124,7 +125,7 @@ public class Window extends Widget {
         float offsetX = width - fontFactory.getCharWidth();
         float offsetY = height - fontFactory.getCharHeight();
 
-        idx = Glyph.build(vertexBuffer, idx, colorBuffer, offsetX, offsetY, data, Constants.COLOR_WHITE);
+        idx = org.the3deer.android.engine.text.Text.build(vertexBuffer, idx, colorBuffer, offsetX, offsetY, data, Constants.COLOR_WHITE);
         //for (int i = 0; i < 4; i++) colorBuffer.put(coffset++, 0f);
 
         // transparent link
@@ -197,15 +198,15 @@ public class Window extends Widget {
             float x = clickEvent.getX();
             x -= getLocationX();
             x /= getScaleX();
-            x /= Glyph.SIZE_H;
+            x /= fontFactory.getCharWidth();
             int idxX = (int) x;
-            int last = (int) (width / Glyph.SIZE_H) - 1;
+            int last = (int) (width / fontFactory.getCharWidth()) - 1;
 
             float y = clickEvent.getY();
             y -= getLocationY();
             y /= getScaleY();
-            y /= Glyph.SIZE_V;
-            int idxY = (int) (height / Glyph.SIZE_V) - 1 - (int) y;
+            y /= fontFactory.getCharHeight();
+            int idxY = (int) (height / fontFactory.getCharHeight()) - 1 - (int) y;
 
             // logger.finest(can handle: " + (idxY == 0 && idxX == last));
             if (idxY == 0 && idxX == last) {
