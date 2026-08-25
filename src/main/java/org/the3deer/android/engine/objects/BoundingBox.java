@@ -2,11 +2,10 @@ package org.the3deer.android.engine.objects;
 
 import android.opengl.GLES20;
 
-import org.the3deer.android.engine.model.Object3D;
-
 import org.the3deer.android.engine.model.AnimatedModel;
 import org.the3deer.android.engine.model.Dimensions;
 import org.the3deer.android.engine.model.Node;
+import org.the3deer.android.engine.model.Object3D;
 import org.the3deer.android.engine.model.Skin;
 import org.the3deer.util.io.IOUtils;
 
@@ -37,6 +36,7 @@ public final class BoundingBox {
         // override attributes
         boundingBox.setId(sourcePrimitive.getId() + "_boundingBox_skinned");
         boundingBox.setParent(sourcePrimitive);
+        boundingBox.setParentBound(true);
         boundingBox.setDecorator(true);
         boundingBox.setTextureCoordsArrayBuffer(null);
 
@@ -75,6 +75,7 @@ public final class BoundingBox {
             return buildStatic(sourcePrimitive); // Fallback to a static box
         }
         boundingBox.setParentNode(rootJoint);
+
 
         logger.info("- BoundingBox Root Node: " + rootJoint.getId()+", Joint Index: "+rootJoint.getJointIndex());
         int rootJointId = Math.max(rootJoint.getJointIndex(), 0);
@@ -158,6 +159,6 @@ public final class BoundingBox {
                 .setDrawMode(GLES20.GL_LINES)
                 .setIndexed(true)
                 .setDecorator(true)
-                .setId(obj.getId() + "_boundingBox_static").setParent(obj).setParentNode(parentNode);
+                .setId(obj.getId() + "_boundingBox_static").setParent(obj).setParentBound(true).setParentNode(parentNode);
     }
 }

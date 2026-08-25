@@ -1,9 +1,9 @@
 package org.the3deer.android.engine.model;
 
-import org.the3deer.android.util.AndroidUtils;
 import org.the3deer.android.engine.collision.Octree;
-import org.the3deer.android.util.Matrix;
 import org.the3deer.android.engine.shader.ShaderManager;
+import org.the3deer.android.util.AndroidUtils;
+import org.the3deer.android.util.Matrix;
 import org.the3deer.util.event.EventListener;
 import org.the3deer.util.io.IOUtils;
 import org.the3deer.util.math.Math3DUtils;
@@ -262,11 +262,6 @@ public class Object3D {
         this(IOUtils.createFloatBuffer(vertexArray));
     }
 
-    /**
-     *
-     * use {@link #Object3D(float[])} instead
-     */
-    @Deprecated
     public Object3D(FloatBuffer vertexArrayBuffer) {
         this(vertexArrayBuffer, null);
     }
@@ -868,10 +863,8 @@ public class Object3D {
         Matrix.setIdentityM(modelMatrix, 0);
         Matrix.setIdentityM(modelMatrix2, 0);
 
-        if (getLocation() != null) {
-            Matrix.translateM(modelMatrix, 0, getLocationX(), getLocationY(), getLocationZ());
-        }
-
+        // 1. Rotation (Outermost)
+        // This allows multiple objects to be rotated together around the origin
         if (getRotation() != null) {
             Matrix.rotateM(modelMatrix, 0, getRotation()[2], 0, 0, 1f);
             Matrix.rotateM(modelMatrix, 0, getRotation()[1], 0, 1f, 0f);
@@ -881,13 +874,20 @@ public class Object3D {
             Matrix.rotateM(modelMatrix2, 0, getRotation()[0], 1f, 0f, 0f);
         }
 
-        if (orientation != null) {
-            Matrix.multiplyMM(modelMatrix, 0, modelMatrix, 0, orientation.getMatrix(), 0);
+        // 2. Location (Middle)
+        if (getLocation() != null) {
+            Matrix.translateM(modelMatrix, 0, getLocationX(), getLocationY(), getLocationZ());
         }
 
+        // 3. Scale (Inner)
         if (getScale() != null) {
             Matrix.scaleM(modelMatrix, 0, getScaleX(), getScaleY(), getScaleZ());
             Matrix.scaleM(modelMatrix2, 0, getScaleX(), getScaleY(), getScaleZ());
+        }
+
+        // 4. Orientation (Innermost)
+        if (orientation != null) {
+            Matrix.multiplyMM(modelMatrix, 0, modelMatrix, 0, orientation.getMatrix(), 0);
         }
 
         /*if (this.worldTransform != null) {
@@ -922,6 +922,10 @@ public class Object3D {
 /*        if (isParentBound && parent != null) {
             return parent.getModelMatrix();
         }*/
+
+        if (parent != null && isParentBound ){
+            return parent.getModelMatrix();
+        }
 
         if (parentNode != null) {
             // If this mesh is attached to a node in the scene graph...
@@ -1038,7 +1042,7 @@ public class Object3D {
     }
 
     /**
-     * @deprecated use instead {@link #setNormalsBuffer(FloatBuffer)} ()}
+     * @deprecated use instead {@link #setNormalsBuffer(FloatBuffer)}
      */
     @Deprecated
     public Object3D setVertexNormalsArrayBuffer(FloatBuffer vertexNormalsArrayBuffer) {
