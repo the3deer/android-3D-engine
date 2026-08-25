@@ -1,7 +1,5 @@
 package org.the3deer.android.engine.decorator;
 
-import org.the3deer.util.bean.Bean;
-import org.the3deer.util.bean.BeanProperty;
 import org.the3deer.android.engine.model.Camera;
 import org.the3deer.android.engine.model.Constants;
 import org.the3deer.android.engine.model.Light;
@@ -11,13 +9,14 @@ import org.the3deer.android.engine.renderer.Renderer;
 import org.the3deer.android.engine.shader.Program;
 import org.the3deer.android.engine.shader.Shader;
 import org.the3deer.android.engine.shader.ShaderManager;
+import org.the3deer.util.bean.Bean;
+import org.the3deer.util.bean.BeanProperty;
 import org.the3deer.util.event.EventListener;
 
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.EventObject;
 import java.util.List;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.inject.Inject;
@@ -79,9 +78,7 @@ public class LightBulbDrawer implements Drawer, EventListener {
         // Use the new custom SUN shader for a beautiful glowing effect
         final Shader drawer = shaderFactory.getShader(Program.SUN);
         if (drawer == null) {
-            logger.log(Level.SEVERE, "No sun drawer found");
-            setEnabled(false);
-            return;
+            return; // not ready
         }
 
         // 1. Calculate Sun Position (Sync with Skybox)
