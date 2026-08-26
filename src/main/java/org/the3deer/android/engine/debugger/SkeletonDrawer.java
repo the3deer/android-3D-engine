@@ -1,4 +1,4 @@
-package org.the3deer.android.engine.decorator;
+package org.the3deer.android.engine.debugger;
 
 import android.opengl.GLES20;
 

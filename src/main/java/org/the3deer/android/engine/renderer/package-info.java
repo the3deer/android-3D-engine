@@ -4,7 +4,7 @@
  * <p>This package contains the core rendering abstractions and orchestrators that
  * handle the OpenGL ES drawing calls, shader management, and the rendering loop.</p>
  */
-@Feature(category = "rendering")
+@Feature(category = "opengl")
 package org.the3deer.android.engine.renderer;
 
 import org.the3deer.util.bean.Feature;

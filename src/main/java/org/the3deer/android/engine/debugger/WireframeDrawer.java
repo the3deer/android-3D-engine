@@ -1,4 +1,4 @@
-package org.the3deer.android.engine.decorator;
+package org.the3deer.android.engine.debugger;
 
 import org.the3deer.util.bean.Bean;
 import org.the3deer.util.bean.BeanProperty;

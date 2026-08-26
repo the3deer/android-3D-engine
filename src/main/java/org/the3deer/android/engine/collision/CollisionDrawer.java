@@ -24,7 +24,7 @@ import java.util.logging.Logger;
 
 import javax.inject.Inject;
 
-@Bean(category = "decorators")
+@Bean(category = "debugging")
 public class CollisionDrawer implements Drawer, EventListener {
 
     private static final Logger logger = Logger.getLogger(CollisionDrawer.class.getSimpleName());
