@@ -21,6 +21,7 @@ import org.jetbrains.annotations.NotNull;
 import org.the3deer.android.engine.api.EngineAPI;
 import org.the3deer.android.engine.camera.CameraUtils;
 import org.the3deer.android.engine.event.EngineEvent;
+import org.the3deer.android.engine.logger.LogInterceptor;
 import org.the3deer.android.engine.model.Camera;
 import org.the3deer.android.engine.model.ModelEvent;
 import org.the3deer.android.engine.model.Node;
@@ -52,6 +53,19 @@ import java.util.logging.Logger;
 public class ModelEngineViewModel extends AndroidViewModel implements ComponentCallbacks2 {
 
     private static final Logger logger = Logger.getLogger(ModelEngineViewModel.class.getSimpleName());
+
+    static {
+        // Configure Global Java Logging Interceptor
+        final Logger rootLogger = Logger.getLogger("");
+        rootLogger.setLevel(Level.INFO);
+        // Remove existing instances if any (e.g. during dev/re-deploy)
+        for (java.util.logging.Handler handler : rootLogger.getHandlers()) {
+            if (handler instanceof LogInterceptor) {
+                rootLogger.removeHandler(handler);
+            }
+        }
+        rootLogger.addHandler(new LogInterceptor());
+    }
 
     /**
      * Singleton-like access for non-UI components (e.g. AI Assistants, AppFunctions)

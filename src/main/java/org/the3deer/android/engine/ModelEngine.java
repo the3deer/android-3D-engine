@@ -17,7 +17,6 @@ import org.the3deer.android.engine.decorator.WireframeDrawer;
 import org.the3deer.android.engine.gui.Axis;
 import org.the3deer.android.engine.gui.GUI;
 import org.the3deer.android.engine.gui.GUIDrawer;
-import org.the3deer.android.engine.logger.LogInterceptor;
 import org.the3deer.android.engine.model.Camera;
 import org.the3deer.android.engine.model.Constants;
 import org.the3deer.android.engine.model.Light;
@@ -61,14 +60,6 @@ import java.util.logging.Logger;
 public final class ModelEngine {
 
     private static final Logger logger = Logger.getLogger(ModelEngine.class.getSimpleName());
-
-
-    // Custom handler: org/the3deer/util/android/assets/Handler.class
-    static {
-        // Register the LogInterceptor to intercept java.util.logging and redirect to Logcat + Model.messages
-        final Logger rootLogger = Logger.getLogger("");
-        rootLogger.addHandler(new LogInterceptor());
-    }
 
     public void setStatus(Status status) {
         this.status = status;
