@@ -153,7 +153,7 @@ public class GUI extends Widget implements EventListener, BeanManaged {
         if (info == null) {
             info = new Label(this, 15, 3, fontManager.getFactoryObject());
             info.setId("info");
-            info.setVisible(true);
+            info.setVisible(false);
             info.setScreen(screen);
             //info.setParent(this);
             addChild(info);
@@ -193,39 +193,37 @@ public class GUI extends Widget implements EventListener, BeanManaged {
                 //logger.finest("FPS: "+fpsEvent.getFps());
             }
         } else if (event instanceof SceneEvent) {
+            final SceneEvent sceneEvent = (SceneEvent) event;
             if (this.info != null) {
-                final Object3D selected = ((SceneEvent) event).getData("object", Object3D.class);
-                if (selected != null) {
-                    final StringBuilder info = new StringBuilder();
-                    info.append("name: ");
-                    if (selected.getId() != null) {
-                        if (selected.getId().indexOf('/') == -1) {
-                            info.append(selected.getId());
+                if (sceneEvent.code == SceneEvent.Code.OBJECT_SELECTED) {
+                    final Object3D selected = sceneEvent.getData("object", Object3D.class);
+                    if (selected != null) {
+                        final StringBuilder info = new StringBuilder();
+                        info.append("name: ");
+                        if (selected.getId() != null) {
+                            if (selected.getId().indexOf('/') == -1) {
+                                info.append(selected.getId());
+                            } else {
+                                info.append(selected.getId().substring(selected.getId().lastIndexOf('/') + 1));
+                            }
                         } else {
-                            info.append(selected.getId().substring(selected.getId().lastIndexOf('/') + 1));
+                            info.append("unnamed");
                         }
-                    } else {
-                        info.append("unnamed");
+                        info.append('\n');
+                        info.append("size: ");
+                        info.append(String.format(Locale.getDefault(), "%.2f", selected.getDimensions().getLargest()));
+                        info.append('\n');
+                        info.append("scale: ");
+                        info.append(String.format(Locale.getDefault(), "%.2f", selected.getScaleX()));
+                        //final DecimalFormat df = new DecimalFormat("0.##");
+                        //info.append(df.format(selected.getScaleX()));
+                        info.append("x");
+
+                        this.info.update(info.toString().toLowerCase());
+                        this.info.setVisible(true);
                     }
-                    info.append('\n');
-                    info.append("size: ");
-                    info.append(String.format(Locale.getDefault(), "%.2f", selected.getDimensions().getLargest()));
-                    info.append('\n');
-                    info.append("scale: ");
-                    info.append(String.format(Locale.getDefault(), "%.2f", selected.getScaleX()));
-                    //final DecimalFormat df = new DecimalFormat("0.##");
-                    //info.append(df.format(selected.getScaleX()));
-                    info.append("x");
-
-                    // logger.info("Selected object info:\n" + info);
-                    // logger.info("Widget info:\n" + this.info);
-
-                    // FIXME: not rendering
-                    this.info.update(info.toString().toLowerCase());
-
-                   this.info.setVisible(true);
-                } else {
-                   this.info.setVisible(false);
+                } else if (sceneEvent.code == SceneEvent.Code.OBJECT_UNSELECTED) {
+                    this.info.setVisible(false);
                 }
             }
         } else if (event instanceof Window.WindowClosed) {
