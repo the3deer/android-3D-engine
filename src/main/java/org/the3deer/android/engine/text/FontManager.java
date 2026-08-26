@@ -2,7 +2,6 @@ package org.the3deer.android.engine.text;
 
 import org.the3deer.util.bean.Bean;
 import org.the3deer.util.bean.BeanInit;
-import org.the3deer.util.bean.BeanProperty;
 
 import java.util.Collections;
 import java.util.Map;
@@ -14,7 +13,7 @@ import javax.inject.Inject;
 public class FontManager
 {
 
-    @BeanProperty
+    // @BeanProperty
     private String factory = "font_factory";
 
     @Inject

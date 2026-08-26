@@ -233,10 +233,10 @@ public final class ModelEngine {
 
         // utilities
         beanManager.add("font_factory", org.the3deer.android.engine.text.FontFactoryHershey.class);
-        beanManager.add("font_factory1", org.the3deer.android.engine.text.FontFactory1.class);
+        /*beanManager.add("font_factory1", org.the3deer.android.engine.text.FontFactory1.class);
         beanManager.add("font_factory2", org.the3deer.android.engine.text.FontFactorySystem.class);
         beanManager.add("font_factory4", org.the3deer.android.engine.text.FontFactory2.class);
-        beanManager.add("font_factory5", org.the3deer.android.engine.text.FontFactoryIBM75.class);
+        beanManager.add("font_factory5", org.the3deer.android.engine.text.FontFactoryIBM75.class);*/
         beanManager.add("font_manager", org.the3deer.android.engine.text.FontManager.class);
     }
 
