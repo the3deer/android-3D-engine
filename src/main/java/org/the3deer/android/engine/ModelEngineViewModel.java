@@ -709,7 +709,7 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
                 if (model.getScenes().isEmpty()) {
                     logger.warning("No scenes available");
                 } else if (model.getActiveScene() == null) {
-                    model.setActiveScene(model.getScenes().get(0));
+                    model.setActiveScene(model.getScenes().values().iterator().next());
                     model.getActiveScene().update();
                 }
                 model.update();

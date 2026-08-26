@@ -217,8 +217,8 @@ public class GUI extends Widget implements EventListener, BeanManaged {
                     //info.append(df.format(selected.getScaleX()));
                     info.append("x");
 
-                    logger.info("Selected object info:\n" + info);
-                    logger.info("Widget info:\n" + this.info);
+                    // logger.info("Selected object info:\n" + info);
+                    // logger.info("Widget info:\n" + this.info);
 
                     // FIXME: not rendering
                     this.info.update(info.toString().toLowerCase());

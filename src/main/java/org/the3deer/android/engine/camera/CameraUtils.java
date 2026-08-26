@@ -1,5 +1,6 @@
 package org.the3deer.android.engine.camera;
 
+import org.the3deer.android.engine.model.BoundingBox;
 import org.the3deer.android.engine.model.Camera;
 import org.the3deer.android.engine.model.Object3D;
 import org.the3deer.android.engine.model.Projection;
@@ -40,12 +41,14 @@ public class CameraUtils {
             if (obj.isDecorator()) continue;
 
             // Use the object's world-space bounding box
-            float objMinX = obj.getCurrentBoundingBox().getxMin();
-            float objMaxX = obj.getCurrentBoundingBox().getxMax();
-            float objMinY = obj.getCurrentBoundingBox().getyMin();
-            float objMaxY = obj.getCurrentBoundingBox().getyMax();
-            float objMinZ = obj.getCurrentBoundingBox().getzMin();
-            float objMaxZ = obj.getCurrentBoundingBox().getzMax();
+            final BoundingBox currentBoundingBox = obj.getCurrentBoundingBox();
+
+            float objMinX = currentBoundingBox.getxMin();
+            float objMaxX = currentBoundingBox.getxMax();
+            float objMinY = currentBoundingBox.getyMin();
+            float objMaxY = currentBoundingBox.getyMax();
+            float objMinZ = currentBoundingBox.getzMin();
+            float objMaxZ = currentBoundingBox.getzMax();
 
             minX = Math.min(minX, objMinX);
             maxX = Math.max(maxX, objMaxX);
