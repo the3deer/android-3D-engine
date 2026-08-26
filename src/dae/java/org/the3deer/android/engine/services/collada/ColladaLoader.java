@@ -522,7 +522,7 @@ public class ColladaLoader {
     private static void buildModelElements(Geometry geometry, Map<String, Material> materials, Object3D model) {
         // build elements
         if (geometry.getMeshes().isEmpty()) {
-            if (geometry.getMaterialId() != null && !materials.containsKey(geometry.getMaterialId())) {
+            if (geometry.getMaterialId() == null || !materials.containsKey(geometry.getMaterialId())) {
                 logger.warning("Geometry '" + geometry.getId()
                         + "' references unknown material '" + geometry.getMaterialId() + "'");
             } else {

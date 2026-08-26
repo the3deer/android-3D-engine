@@ -16,6 +16,7 @@ import org.the3deer.android.engine.services.collada.entities.Source;
 import org.the3deer.android.engine.services.collada.entities.Vertex;
 import org.the3deer.android.engine.services.collada.entities.VertexWeights;
 import org.the3deer.android.engine.util.HoleCutter;
+import org.the3deer.util.math.Math3DUtils;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserFactory;
 
@@ -388,7 +389,7 @@ public class ColladaParser {
                     String textData = parser.nextText();
                     String[] floatStrings = textData.trim().split("\\s+");
                     for (int i = 0; i < count && i < floatStrings.length; i++) {
-                        floatData[i] = Float.parseFloat(floatStrings[i]);
+                        floatData[i] = Math3DUtils.parseFloat(floatStrings[i]);
                     }
                     break;
 
@@ -1266,10 +1267,10 @@ public class ColladaParser {
                         if (parts.length >= 3) // Must have at least R, G, B
                         {
                             float[] color = new float[4];
-                            color[0] = Float.parseFloat(parts[0]);
-                            color[1] = Float.parseFloat(parts[1]);
-                            color[2] = Float.parseFloat(parts[2]);
-                            color[3] = (parts.length > 3) ? Float.parseFloat(parts[3]) : 1.0f; // Default alpha to 1.0
+                            color[0] = Math3DUtils.parseFloat(parts[0]);
+                            color[1] = Math3DUtils.parseFloat(parts[1]);
+                            color[2] = Math3DUtils.parseFloat(parts[2]);
+                            color[3] = (parts.length > 3) ? Math3DUtils.parseFloat(parts[3]) : 1.0f; // Default alpha to 1.0
 
                             // Set the color on the correct property based on the parent tag name
                             if ("diffuse".equals(propertyName)) {
@@ -1339,7 +1340,7 @@ public class ColladaParser {
                             // The transparency value in COLLADA (0=opaque, 1=transparent) is the
                             // inverse of what is commonly used for alpha in OpenGL (1=opaque, 0=transparent).
                             // We calculate the alpha value here.
-                            float transparency = Float.parseFloat(floatString);
+                            float transparency = Math3DUtils.parseFloat(floatString);
                             currentEffect.transparency = transparency; // Assuming you have a setter for this
                         } catch (Exception e) {
                             logger.log(Level.SEVERE, "Failed to parse <float> for transparency", e);
@@ -1460,7 +1461,7 @@ public class ColladaParser {
 
         float[] matrix = new float[16];
         for (int i = 0; i < 16; i++) {
-            matrix[i] = Float.parseFloat(floatStrings[i]);
+            matrix[i] = Math3DUtils.parseFloat(floatStrings[i]);
         }
         return matrix;
     }
@@ -1512,9 +1513,9 @@ public class ColladaParser {
             switch (tagName) {
                 case "translate": {
                     String[] values = parser.nextText().trim().split("\\s+");
-                    float x = Float.parseFloat(values[0]);
-                    float y = Float.parseFloat(values[1]);
-                    float z = Float.parseFloat(values[2]);
+                    float x = Math3DUtils.parseFloat(values[0]);
+                    float y = Math3DUtils.parseFloat(values[1]);
+                    float z = Math3DUtils.parseFloat(values[2]);
                     float[] translationMatrix = new float[16];
                     Matrix.setIdentityM(translationMatrix, 0);
                     Matrix.translateM(translationMatrix, 0, x, y, z);
@@ -1523,10 +1524,10 @@ public class ColladaParser {
                 }
                 case "rotate": {
                     String[] values = parser.nextText().trim().split("\\s+");
-                    float x = Float.parseFloat(values[0]);
-                    float y = Float.parseFloat(values[1]);
-                    float z = Float.parseFloat(values[2]);
-                    float angle = Float.parseFloat(values[3]);
+                    float x = Math3DUtils.parseFloat(values[0]);
+                    float y = Math3DUtils.parseFloat(values[1]);
+                    float z = Math3DUtils.parseFloat(values[2]);
+                    float angle = Math3DUtils.parseFloat(values[3]);
                     float[] rotationMatrix = new float[16];
                     Matrix.setIdentityM(rotationMatrix, 0);
                     Matrix.setRotateM(rotationMatrix, 0, angle, x, y, z);
@@ -1535,9 +1536,9 @@ public class ColladaParser {
                 }
                 case "scale": {
                     String[] values = parser.nextText().trim().split("\\s+");
-                    float x = Float.parseFloat(values[0]);
-                    float y = Float.parseFloat(values[1]);
-                    float z = Float.parseFloat(values[2]);
+                    float x = Math3DUtils.parseFloat(values[0]);
+                    float y = Math3DUtils.parseFloat(values[1]);
+                    float z = Math3DUtils.parseFloat(values[2]);
                     float[] scaleMatrix = new float[16];
                     Matrix.setIdentityM(scaleMatrix, 0);
                     Matrix.scaleM(scaleMatrix, 0, x, y, z);
@@ -1547,7 +1548,7 @@ public class ColladaParser {
                 case "matrix": {
                     String[] values = parser.nextText().trim().split("\\s+");
                     float[] matrix = new float[16];
-                    for (int i = 0; i < 16; i++) matrix[i] = Float.parseFloat(values[i]);
+                    for (int i = 0; i < 16; i++) matrix[i] = Math3DUtils.parseFloat(values[i]);
                     // COLLADA matrices are column-major, Android's are too. But we need to transpose
                     // when reading from the file because of the order.
                     float[] transposedMatrix = new float[16];
@@ -1801,7 +1802,7 @@ public class ColladaParser {
                 String[] floatStrings = text.trim().split("\\s+");
                 float[] data = new float[floatStrings.length];
                 for (int i = 0; i < floatStrings.length; i++) {
-                    data[i] = Float.parseFloat(floatStrings[i]);
+                    data[i] = Math3DUtils.parseFloat(floatStrings[i]);
                 }
                 return data;
             }

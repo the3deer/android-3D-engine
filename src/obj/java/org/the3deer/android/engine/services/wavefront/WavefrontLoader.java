@@ -11,6 +11,7 @@ import org.the3deer.android.engine.model.Object3D;
 import org.the3deer.android.engine.model.Scene;
 import org.the3deer.android.engine.services.LoadListener;
 import org.the3deer.util.io.IOUtils;
+import org.the3deer.util.math.Math3DUtils;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -210,7 +211,7 @@ public class WavefrontLoader {
                             logger.info("Reading texture file... " + elementMaterial.getColorTexture().getFile());
 
                             // build color url
-                            final URL diffuseUrl = modelURI.resolve(elementMaterial.getColorTexture().getFile()).toURL();
+                            final URL diffuseUrl = modelURI.resolve(elementMaterial.getColorTexture().getFile().replace('\\', '/')).toURL();
 
                             // read texture data
                             try (InputStream stream = diffuseUrl.openStream()) {
@@ -228,7 +229,7 @@ public class WavefrontLoader {
                     }
                 }
             }
-        } catch (IOException ex) {
+        } catch (Exception ex) {
             logger.log(Level.SEVERE,  "Error loading materials... file: " + meshData.getMaterialFile()+", error: "+ex.getMessage());
         }
     }
@@ -458,7 +459,7 @@ public class WavefrontLoader {
             final StringTokenizer st = new StringTokenizer(line, " ");
             int i = 0;
             while (st.hasMoreTokens() && i < 3) {
-                vectorBuffer.put(Float.parseFloat(st.nextToken()));
+                vectorBuffer.put(Math3DUtils.parseFloat(st.nextToken()));
                 i++;
             }
             // Fill remaining if less than 3 tokens
@@ -480,11 +481,11 @@ public class WavefrontLoader {
             final StringTokenizer st = new StringTokenizer(line, " ");
             int i = 0;
             if (st.hasMoreTokens()) {
-                textureBuffer.put(Float.parseFloat(st.nextToken()));
+                textureBuffer.put(Math3DUtils.parseFloat(st.nextToken()));
                 i++;
             }
             if (st.hasMoreTokens()) {
-                textureBuffer.put(Float.parseFloat(st.nextToken()));
+                textureBuffer.put(Math3DUtils.parseFloat(st.nextToken()));
                 i++;
             }
             // Fill remaining if less than 2 tokens

@@ -95,7 +95,7 @@ final class WavefrontMaterialsParser {
                 } else if (line.startsWith("Ns ")) {
 
                     // shininess
-                    float val = Float.parseFloat(line.substring(3));
+                    float val = Math3DUtils.parseFloat(line.substring(3));
                     currMaterial.setShininess(val);
 
                     // log event
@@ -104,7 +104,7 @@ final class WavefrontMaterialsParser {
                 } else if (line.charAt(0) == 'd') {
 
                     // alpha
-                    float val = Float.parseFloat(line.substring(2));
+                    float val = Math3DUtils.parseFloat(line.substring(2));
                     currMaterial.setAlpha(val);
 
                     // log event
@@ -113,7 +113,7 @@ final class WavefrontMaterialsParser {
                 } else if (line.startsWith("Tr ")) {
 
                     // Transparency (inverted)
-                    currMaterial.setAlpha(1 - Float.parseFloat(line.substring(3)));
+                    currMaterial.setAlpha(1 - Math3DUtils.parseFloat(line.substring(3)));
 
                     // log event
                     logger.finest("Transparency (1-Alpha): " + currMaterial.getAlpha());

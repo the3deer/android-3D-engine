@@ -424,10 +424,15 @@ public class Math3DUtils {
         return ret.toString();
     }
 
+    public static float parseFloat(String value) {
+        if (value == null) return 0f;
+        return Float.parseFloat(value.replace(',', '.'));
+    }
+
     public static float[] parseFloat(String[] rawData) {
         float[] matrixData = new float[rawData.length];
         for (int i = 0; i < rawData.length; i++) {
-            matrixData[i] = Float.parseFloat(rawData[i]);
+            matrixData[i] = parseFloat(rawData[i]);
         }
         return matrixData;
     }
