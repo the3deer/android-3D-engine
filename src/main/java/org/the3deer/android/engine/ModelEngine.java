@@ -10,11 +10,10 @@ import org.the3deer.android.engine.camera.FirstPersonCameraHandler;
 import org.the3deer.android.engine.collision.CollisionController;
 import org.the3deer.android.engine.collision.CollisionDrawer;
 import org.the3deer.android.engine.debugger.BoundingBoxDrawer;
-import org.the3deer.android.engine.decorator.LightBulbDrawer;
 import org.the3deer.android.engine.debugger.SkeletonDrawer;
-import org.the3deer.android.engine.decorator.SkyboxDrawer;
 import org.the3deer.android.engine.debugger.WireframeDrawer;
-import org.the3deer.android.engine.gui.Axis;
+import org.the3deer.android.engine.decorator.LightBulbDrawer;
+import org.the3deer.android.engine.decorator.SkyboxDrawer;
 import org.the3deer.android.engine.gui.GUI;
 import org.the3deer.android.engine.gui.GUIDrawer;
 import org.the3deer.android.engine.model.Camera;
@@ -245,11 +244,7 @@ public final class ModelEngine {
         // visualization
         beanManager.add("gui.projection", OrthographicProjection.class);
         beanManager.add("gui.camera", new Camera("gui", new float[]{0, 0, 1}));
-
-        final GUIDrawer guiDrawer = new GUIDrawer();
-        beanManager.add("gui.renderer", guiDrawer);
-
-        beanManager.add("gui.2axis", Axis.class);
+        beanManager.add("gui.renderer", new GUIDrawer());
         beanManager.add("gui.3default", GUI.class);
     }
 

@@ -463,9 +463,10 @@ public class Widget extends Object3D implements EventListener {
                 // We respect both the system safe area and the explicit Toolbar/BottomBar heights
                 int totalTop = screen.getTop() + screen.getToolbarHeight();
                 int totalBottom = screen.getBottom() + screen.getBottomBarHeight();
-                
-                topOffset = (float) totalTop / screen.getHeight() * 2.0f;
-                bottomOffset = (float) totalBottom / screen.getHeight() * 2.0f;
+
+                float totalHeight = parentDim.getHeight();
+                topOffset = (float) totalTop / screen.getHeight() * totalHeight;
+                bottomOffset = (float) totalBottom / screen.getHeight() * totalHeight;
             }
         }
 

@@ -10,6 +10,7 @@ import org.the3deer.android.engine.model.Constants;
 import org.the3deer.android.engine.model.Dimensions;
 import org.the3deer.android.engine.model.ModelEvent;
 import org.the3deer.android.engine.model.Object3D;
+import org.the3deer.android.engine.model.PerspectiveProjection;
 import org.the3deer.android.engine.model.Scene;
 import org.the3deer.android.engine.model.Screen;
 import org.the3deer.android.engine.text.FontManager;
@@ -88,12 +89,14 @@ public class GUI extends Widget implements EventListener, BeanManaged {
             icon.addListener(this);
             logger.finest("icon location: " + Arrays.toString(icon.getLocation()));*/
 
-            if (axis !=  null) {
-                addChild(axis);
-                axis.setRelativeLocation(Widget.POSITION_TOP_RIGHT);
-                axis.setRelativeScale(new float[]{0.1f, 0.1f, 0.1f});
+            if (axis ==  null) {
+                axis = new Axis();
                 axis.setVisible(true);
                 axis.setScreen(screen);
+                addChild(axis);
+
+                axis.setRelativeScale(new float[]{0.1f, 0.1f, 0.1f});
+                axis.setRelativeLocation(Widget.POSITION_TOP_RIGHT);
             }
 
             initFPS();
@@ -109,12 +112,24 @@ public class GUI extends Widget implements EventListener, BeanManaged {
     @NonNull
     private Dimensions calculateScreenDimensions() {
 
-        // check
-        if (screen == null){
-            return new Dimensions(-Constants.UNIT * Constants.SCREEN_DEFAULT_RATIO, Constants.UNIT * Constants.SCREEN_DEFAULT_RATIO, Constants.UNIT, -Constants.UNIT, 1, 0);
+        float ratio = screen != null ? screen.getRatio() : Constants.SCREEN_DEFAULT_RATIO;
+        float halfWidth;
+        float halfHeight;
+
+        if (camera != null && camera.getProjection() instanceof PerspectiveProjection) {
+            PerspectiveProjection proj = (PerspectiveProjection) camera.getProjection();
+            // GUI widgets are usually at z=0, camera at z=distance.
+            // We need the visible bounds at the origin.
+            float distance = Math.abs(camera.getPos()[2]);
+            halfHeight = (float) (distance * Math.tan(Math.toRadians(proj.getFov() / 2)));
+            halfWidth = halfHeight * ratio;
         } else {
-            return new Dimensions(-Constants.UNIT * screen.getRatio(), Constants.UNIT * screen.getRatio(), Constants.UNIT, -Constants.UNIT, 1, 0);
+            // Fallback for Orthographic
+            halfHeight = Constants.UNIT;
+            halfWidth = halfHeight * ratio;
         }
+
+        return new Dimensions(-halfWidth, halfWidth, halfHeight, -halfHeight, 1, -1);
     }
 
     public void setShowFPS(boolean enable){
@@ -174,6 +189,9 @@ public class GUI extends Widget implements EventListener, BeanManaged {
             final ModelEvent rev = (ModelEvent) event;
             if (rev.getCode() == ModelEvent.Code.SCREEN_CHANGED) {
                 setDimensions(calculateScreenDimensions());
+                if (camera != null && screen != null) {
+                    camera.getProjection().setAspectRatio((float) screen.getWidth() / screen.getHeight());
+                }
                 refresh();
                 logger.info("Refreshed after screen changed");
             }
@@ -181,6 +199,9 @@ public class GUI extends Widget implements EventListener, BeanManaged {
             final GLEvent rev = (GLEvent) event;
             if (rev.getCode() == GLEvent.Code.SURFACE_CHANGED) {
                 setDimensions(calculateScreenDimensions());
+                if (camera != null && screen != null) {
+                    camera.getProjection().setAspectRatio((float) screen.getWidth() / screen.getHeight());
+                }
                 refresh();
                 logger.info("Refreshed after surface changed");
             }
