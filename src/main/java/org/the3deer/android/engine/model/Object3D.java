@@ -886,8 +886,11 @@ public class Object3D {
         }
 
         // 4. Orientation (Innermost)
+        float[] temp = new float[16];
         if (orientation != null) {
-            Matrix.multiplyMM(modelMatrix, 0, modelMatrix, 0, orientation.getMatrix(), 0);
+            Matrix.setIdentityM(temp, 0);
+            Matrix.multiplyMM(temp, 0, modelMatrix, 0, orientation.getMatrix(), 0);
+            System.arraycopy(temp, 0, modelMatrix, 0, 16);
         }
 
         /*if (this.worldTransform != null) {
@@ -897,9 +900,9 @@ public class Object3D {
 
         // normal matrix calculation
         Matrix.setIdentityM(normalMatrix, 0);
-        final float[] inverted = new float[16];
-        if (Matrix.invertM(inverted, 0, modelMatrix, 0)) {
-            Matrix.transposeM(normalMatrix, 0, inverted, 0);
+        Matrix.setIdentityM(temp, 0);
+        if (Matrix.invertM(temp, 0, modelMatrix, 0)) {
+            Matrix.transposeM(normalMatrix, 0, temp, 0);
         }
 
         propagate(new ChangeEvent(this));
