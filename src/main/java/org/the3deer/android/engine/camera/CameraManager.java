@@ -9,6 +9,7 @@ import org.the3deer.android.engine.event.SceneEvent;
 import org.the3deer.android.engine.event.TouchEvent;
 import org.the3deer.android.engine.model.Camera;
 import org.the3deer.android.engine.model.Object3D;
+import org.the3deer.android.engine.model.Scene;
 import org.the3deer.util.bean.BeanInit;
 import org.the3deer.util.bean.BeanProperty;
 import org.the3deer.util.event.EventListener;
@@ -21,7 +22,6 @@ import java.util.Map;
 import java.util.logging.Logger;
 
 import javax.inject.Inject;
-import javax.inject.Named;
 
 
 public final class CameraManager implements EventListener {
@@ -31,14 +31,13 @@ public final class CameraManager implements EventListener {
     // dependencies
     @Inject
     private Model model;
-    @Inject @Named("camera.default")
+    @Inject
     private Camera defaultCamera;
-    @Inject @Named("camera.fps")
-    private Camera fpsCamera;
     @Inject
     private Map<String, Camera.Controller> controllersMap;
     @Inject
     private EventManager eventManager;
+
     private Camera.Controller activeController;
     
     public CameraManager() {
@@ -59,12 +58,22 @@ public final class CameraManager implements EventListener {
 
         // check
         if (this.controllersMap == null || this.controllersMap.isEmpty()){
-            logger.severe("No CameraController implementations found. Please ensure at least one is defined in the BeanManager.");
+            logger.warning("No Camera.Controller implementations found. Register 1 controller to handle the Camera movement.");
             return;
         }
 
-        this.activeController = this.controllersMap.values().iterator().next(); // Set the first controller as active by default
-        this.defaultCamera.setController(this.activeController);
+        // register system cameras in the model
+        for (Camera.Controller controller : controllersMap.values()){
+            final Camera camera = controller.getCamera();
+            if (camera != null) {
+                camera.setController(controller);
+                model.addCamera(camera);
+            }
+        }
+
+        // Set the first controller as active by default
+        final String firstId = this.controllersMap.keySet().iterator().next();
+        this.setActiveController(firstId);
     }
 
     /**
@@ -79,6 +88,11 @@ public final class CameraManager implements EventListener {
         if (isMovingToFPV) {
             // 1. Switch to FPS Handler
             activeController = controllersMap.get("camera.2firstPerson");
+            if (activeController == null) return;
+
+            final Camera fpsCamera = activeController.getCamera();
+            if (fpsCamera == null) return;
+
             fpsCamera.setController(activeController);
 
             // 2. Teleport FPS camera to current camera's position to avoid jump
@@ -93,10 +107,15 @@ public final class CameraManager implements EventListener {
         } else {
             // 1. Switch back to ArcBall Handler
             activeController = controllersMap.get("camera.1arcBall");
-            defaultCamera.setController(activeController);
+            if (activeController == null) return;
+
+            final Camera arcballCamera = activeController.getCamera();
+            if (arcballCamera == null) return;
+
+            arcballCamera.setController(activeController);
 
             // 2. Set Default camera as active
-            model.getActiveScene().setActiveCamera(defaultCamera);
+            model.getActiveScene().setActiveCamera(arcballCamera);
         }
 
         // Notify UI to update buttons/joysticks
@@ -116,7 +135,40 @@ public final class CameraManager implements EventListener {
         final Camera.Controller controller = controllersMap.get(controllerId);
         if (controller == null) throw new IllegalArgumentException("No CameraController found with ID: " + controllerId);
 
+        // Identify which camera should be used with this controller
+        final Camera camera = controller.getCamera();
+
+        // Link the controller to the camera
+        if (camera != null) {
+            camera.setController(controller);
+
+            // Update the active scene camera
+            if (model != null && model.getActiveScene() != null) {
+                model.getActiveScene().setActiveCamera(camera);
+            }
+        }
+
         this.activeController = controller;
+
+        // Notify UI to update buttons/joysticks
+        eventManager.propagate(new CameraEvent(this, camera, CameraEvent.Code.HANDLER_UPDATED));
+    }
+
+    public void setActiveCamera(Camera camera) {
+        if (camera == null) return;
+
+        // 1. Update the active scene camera
+        if (model != null && model.getActiveScene() != null) {
+            model.getActiveScene().setActiveCamera(camera);
+        }
+
+        // 2. Activate controller
+        if (camera.getController() != null) {
+            this.activeController = camera.getController();
+        }
+
+        // 3. Notify UI
+        eventManager.propagate(new CameraEvent(this, camera, CameraEvent.Code.HANDLER_UPDATED));
     }
 
     @Override
@@ -145,6 +197,35 @@ public final class CameraManager implements EventListener {
             }
         }
         else if (event instanceof SceneEvent) {
+
+            final SceneEvent sceneEvent = (SceneEvent) event;
+
+            if (sceneEvent.code == SceneEvent.Code.SCENE_UPDATED) {
+                final Scene scene = model.getActiveScene();
+                if (scene != null && scene.getDimensions() != null) {
+                    final float[] center = scene.getDimensions().getCenter();
+                    for (Camera.Controller controller : controllersMap.values()) {
+                        controller.setTarget(center);
+                    }
+                }
+            } else if (sceneEvent.code == SceneEvent.Code.OBJECT_SELECTED) {
+                final Object3D object = sceneEvent.getData("object", Object3D.class);
+                if (object != null && object.getDimensions() != null) {
+                    final float[] localCenter = object.getDimensions().getCenter();
+                    final float[] worldCenter = Math3DUtils.transform(localCenter[0], localCenter[1], localCenter[2], object.getModelMatrix());
+                    for (Camera.Controller controller : controllersMap.values()) {
+                        controller.setTarget(worldCenter);
+                    }
+                }
+            } else if (sceneEvent.code == SceneEvent.Code.OBJECT_UNSELECTED) {
+                final Scene scene = model.getActiveScene();
+                if (scene != null && scene.getDimensions() != null) {
+                    final float[] center = scene.getDimensions().getCenter();
+                    for (Camera.Controller controller : controllersMap.values()) {
+                        controller.setTarget(center);
+                    }
+                }
+            }
 
             // get object hit
             final Object3D objectHit = ((SceneEvent) event).getData("object", Object3D.class);

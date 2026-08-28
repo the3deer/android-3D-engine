@@ -8,9 +8,8 @@ import org.the3deer.util.event.EventManager;
 
 import java.io.File;
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.logging.Level;
@@ -69,8 +68,8 @@ public class Model {
     @Inject
     private EventManager _eventManager;
 
-    @Inject
-    private List<Camera> cameras;
+    //@Inject
+    private final Map<String,Camera> cameras = new LinkedHashMap<>();
 
     @Inject
     private Screen screen;
@@ -235,6 +234,9 @@ public class Model {
 
     public void setActiveScene(Scene activeScene) {
         this.activeScene = activeScene;
+        if (_eventManager != null) {
+            _eventManager.propagate(new org.the3deer.android.engine.event.SceneEvent(this, org.the3deer.android.engine.event.SceneEvent.Code.SCENE_UPDATED));
+        }
     }
 
     public void update() {
@@ -258,15 +260,17 @@ public class Model {
         }
     }
 
-    public List<Camera> getCameras() {
-        List<Camera> cameras = new ArrayList<>();
-        if (this.cameras != null) {
-            cameras.addAll(this.cameras);
-        }
+    public Map<String,Camera> getCameras() {
+        final Map<String, Camera> cameras = new LinkedHashMap<>(this.cameras);
         if (activeScene != null) {
-            cameras.addAll(activeScene.getCameras());
+            cameras.putAll(activeScene.getCameras());
         }
         return cameras;
+    }
+
+    public void addCamera(Camera camera) {
+        if (camera.getName() == null) throw new IllegalArgumentException("camera name is null");
+        this.cameras.put(camera.getName(), camera);
     }
 
     public long getMemoryUsage() {

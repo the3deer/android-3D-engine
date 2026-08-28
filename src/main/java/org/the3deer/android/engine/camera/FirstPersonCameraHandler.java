@@ -22,7 +22,34 @@ public class FirstPersonCameraHandler implements Camera.Controller {
     @Inject
     private Screen screen;
 
+    private Camera camera;
+
+    private float[] target = new float[]{0, 0, 0};
+
     private boolean gravity = true;
+
+    @Override
+    public Camera getCamera() {
+        if (camera == null) {
+            camera = new Camera("fps", org.the3deer.android.engine.model.Constants.DEFAULT_CAMERA_POSITION);
+        }
+        return camera;
+    }
+
+    @Override
+    public void setCamera(Camera camera) {
+        this.camera = camera;
+    }
+
+    @Override
+    public float[] getTarget() {
+        return target;
+    }
+
+    @Override
+    public void setTarget(float[] target) {
+        this.target = target;
+    }
 
     public boolean isGravity() {
         return gravity;
@@ -39,9 +66,8 @@ public class FirstPersonCameraHandler implements Camera.Controller {
         }
 
         final TouchEvent touchEvent = (TouchEvent) event;
-        final Camera camera = model.getActiveScene().getActiveCamera();
         if (camera == null) {
-            return false;
+            getCamera();
         }
 
         switch (touchEvent.getAction()) {
@@ -55,7 +81,7 @@ public class FirstPersonCameraHandler implements Camera.Controller {
                 rotate(touchEvent.getAngle());
                 return true;
             case PINCH:
-                zoom(touchEvent.getZoom() * camera.getDistance() * 0.01f);
+                zoom(touchEvent.getZoom());
                 return true;
             case SPREAD:
                 pan(-touchEvent.getdX(), touchEvent.getdY());
@@ -66,8 +92,7 @@ public class FirstPersonCameraHandler implements Camera.Controller {
 
     @Override
     public void move(final float dX, final float dY) {
-        final Camera camera = model.getActiveScene().getActiveCamera();
-        if (camera == null) return;
+        if (camera == null) getCamera();
 
         // Apply sensitivity scaling to rotation (Look Around).
         // We factor in the scene dimensions to ensure the rotation "grooves" with the world's scale.
@@ -124,7 +149,8 @@ public class FirstPersonCameraHandler implements Camera.Controller {
     @Override
     public void zoom(final float direction) {
         // Pinch can still be used for fast-forward/backward movement (Walk)
-        walk(direction * 10f);
+        final float sensitivity = 0.01f;
+        walk(direction * sensitivity);
     }
 
     @Override
@@ -139,8 +165,7 @@ public class FirstPersonCameraHandler implements Camera.Controller {
      */
     @Override
     public void pan(final float dX, final float dY) {
-        final Camera camera = model.getActiveScene().getActiveCamera();
-        if (camera == null) return;
+        if (camera == null) getCamera();
 
         // Calculate current orientation vectors
         final float[] look = Math3DUtils.substract(camera.getView(), camera.getPos());
@@ -206,8 +231,7 @@ public class FirstPersonCameraHandler implements Camera.Controller {
     }
 
     private void walk(final float distance) {
-        final Camera camera = model.getActiveScene().getActiveCamera();
-        if (camera == null) return;
+        if (camera == null) getCamera();
 
         final float[] look = Math3DUtils.substract(camera.getView(), camera.getPos());
         Math3DUtils.normalizeVector(look);

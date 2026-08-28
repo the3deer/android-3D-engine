@@ -8,12 +8,10 @@ public final class OrthographicProjection implements Projection {
     private final float[] matrix = new float[16];
 
     private float aspectRatio = 1.0f;
-    private float xmag = 1.0f;
-    private float ymag = 1.0f;
+    private float xmag = Constants.UNIT;
+    private float ymag = Constants.UNIT;
     private float znear = Constants.near;
     private float zfar = Constants.far;
-
-    private boolean custom = false;
 
     public OrthographicProjection(){
         Matrix.setIdentityM(matrix, 0);
@@ -24,7 +22,6 @@ public final class OrthographicProjection implements Projection {
         this.ymag = ymag;
         this.znear = znear;
         this.zfar = zfar;
-        this.custom = true;
     }
 
     @Override
@@ -67,6 +64,22 @@ public final class OrthographicProjection implements Projection {
         this.aspectRatio = aspectRatio;
     }
 
+    public float getXmag() {
+        return xmag;
+    }
+
+    public void setXmag(float xmag) {
+        this.xmag = xmag;
+    }
+
+    public float getYmag() {
+        return ymag;
+    }
+
+    public void setYmag(float ymag) {
+        this.ymag = ymag;
+    }
+
     @Override
     public void refresh() {
         // not used - we use dynamic update in #getMatrix()
@@ -74,16 +87,12 @@ public final class OrthographicProjection implements Projection {
 
     @Override
     public float[] getMatrix(){
-        if (custom) {
-            Matrix.orthoM(matrix, 0, -xmag, xmag, -ymag, ymag, znear, zfar);
-        } else {
-            Matrix.orthoM(matrix, 0,
-                    -aspectRatio,
-                    aspectRatio,
-                    -Constants.UNIT,
-                    Constants.UNIT,
-                    Constants.near, Constants.far);
-        }
+        Matrix.orthoM(matrix, 0,
+                -xmag * aspectRatio,
+                xmag * aspectRatio,
+                -ymag,
+                ymag,
+                znear, zfar);
         return matrix;
     }
 }

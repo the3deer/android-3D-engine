@@ -5,7 +5,9 @@ import org.the3deer.android.util.Matrix;
 import org.the3deer.util.math.Math3DUtils;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Logger;
 
 public class Scene {
@@ -32,7 +34,7 @@ public class Scene {
     private final List<Texture> textures = new ArrayList<>();
 
     // Camera Management
-    private final List<Camera> cameras = new ArrayList<>();
+    private final Map<String, Camera> cameras = new LinkedHashMap<>();
     private Camera activeCamera;
 
     // Animation Management
@@ -94,7 +96,7 @@ public class Scene {
         return textures;
     }
 
-    public List<Camera> getCameras() {
+    public Map<String, Camera> getCameras() {
         return cameras;
     }
 
@@ -104,7 +106,7 @@ public class Scene {
 
 
     public void addCamera(Camera camera) {
-        this.cameras.add(camera);
+        this.cameras.put(camera.getName(), camera);
     }
 
     public void setActiveCamera(Camera activeCamera) {

@@ -26,6 +26,14 @@ public class Camera {
      */
     public interface Controller extends EventListener {
 
+        Camera getCamera();
+
+        void setCamera(Camera camera);
+
+        float[] getTarget();
+
+        void setTarget(float[] target);
+
         default void move(float dX, float dY) {
         }
 

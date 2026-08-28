@@ -716,18 +716,32 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
                 }
 
                 scene.update();
-                CameraUtils.frameModel(scene.getActiveCamera(), scene.getObjects());
+                for (Camera camera : model.getCameras().values()) {
+                    CameraUtils.frameModel(camera, scene.getObjects());
+                }
                 model.addScene(scene);
             }
             @Override public void onLoadComplete() {
+
                 if (model.getScenes().isEmpty()) {
                     logger.warning("No scenes available");
                 } else if (model.getActiveScene() == null) {
                     model.setActiveScene(model.getScenes().values().iterator().next());
                     model.getActiveScene().update();
                 }
+
+                if (model.getActiveScene() != null && model.getActiveScene().getActiveCamera() == null) {
+                    if (model.getCameras().isEmpty()) {
+                        logger.warning("No cameras available");
+                    } else {
+                        model.getActiveScene().setActiveCamera(model.getCameras().values().iterator().next());
+                    }
+                }
+
                 model.update();
+
                 model.setStatus(Model.Status.OK, "Loading Model finished successfully");
+
                 Model.CURRENT.remove();
             }
         };

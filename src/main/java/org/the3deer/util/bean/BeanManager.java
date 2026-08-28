@@ -11,6 +11,7 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -399,7 +400,19 @@ public class BeanManager {
                         named = Objects.requireNonNull(field.getAnnotation(Named.class)).value();
                     }
                     if (named != null) {
-                        candidate = get(named) != null ? get(named) : get(getNamespace(id) + "." + named);
+                        Object lookup = get(named);
+                        if (lookup == null) {
+                            lookup = get(getNamespace(id) + "." + named);
+                        }
+                        if (lookup == null) {
+                            for (Map.Entry<String, Object> entry : beans.entrySet()) {
+                                if (entry.getKey().matches(named) && field.getType().isInstance(entry.getValue())) {
+                                    lookup = entry.getValue();
+                                    break;
+                                }
+                            }
+                        }
+                        candidate = lookup;
                     } else if (field.getType().isAssignableFrom(Map.class) && field.getGenericType() instanceof ParameterizedType) {
                         Type actualTypeArgument = ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[1];
                         candidate = findAll2((Class<?>) actualTypeArgument, null);
@@ -733,7 +746,7 @@ public class BeanManager {
     }
 
     public <T> Map<String, T> findAll2(Class<T> clazz, String parent) {
-        Map<String, T> ret = new HashMap<>();
+        final Map<String, T> ret = new LinkedHashMap<>();
         for (Map.Entry<String, Object> entry : beans.entrySet()) {
             if (parent == null || entry.getKey().startsWith(parent)) {
                 if (clazz.isAssignableFrom(entry.getValue().getClass()))

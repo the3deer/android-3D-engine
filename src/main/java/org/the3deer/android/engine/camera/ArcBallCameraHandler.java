@@ -3,7 +3,6 @@ package org.the3deer.android.engine.camera;
 import org.the3deer.android.engine.Model;
 import org.the3deer.android.engine.event.TouchEvent;
 import org.the3deer.android.engine.model.Camera;
-import org.the3deer.android.engine.model.Object3D;
 import org.the3deer.android.engine.model.Projection;
 import org.the3deer.android.engine.model.Scene;
 import org.the3deer.android.engine.model.Screen;
@@ -28,10 +27,35 @@ public class ArcBallCameraHandler implements Camera.Controller {
     private Model model;
 
     @Inject
+    private Camera camera;
+
+    @Inject
     private Projection projection;
 
     @Inject
     private Screen screen;
+
+    private float[] target = new float[]{0, 0, 0};
+
+    @Override
+    public Camera getCamera() {
+        return camera;
+    }
+
+    @Override
+    public void setCamera(Camera camera) {
+        this.camera = camera;
+    }
+
+    @Override
+    public float[] getTarget() {
+        return target;
+    }
+
+    @Override
+    public void setTarget(float[] target) {
+        this.target = target;
+    }
 
     /**
      * Transform touch events to camera actions.
@@ -45,7 +69,6 @@ public class ArcBallCameraHandler implements Camera.Controller {
         }
 
         final TouchEvent touchEvent = (TouchEvent) event;
-        final Camera camera = model.getActiveScene().getActiveCamera();
         if (camera == null) {
             return false;
         }
@@ -70,22 +93,6 @@ public class ArcBallCameraHandler implements Camera.Controller {
         return false;
     }
 
-    /**
-     * Calculates the current target point for the camera.
-     * @return The world-space center of the selected object, or the current camera view if none selected.
-     */
-    private float[] getTarget(Scene scene, Camera camera) {
-        final Object3D selected = scene.getSelectedObject();
-        if (selected == null) {
-            return camera.getView();
-        }
-
-        // Get the center of the object in its local space
-        final float[] localCenter = selected.getDimensions().getCenter();
-        // Transform the local center to world space using its final transform
-        return Math3DUtils.transform(localCenter[0], localCenter[1], localCenter[2], selected.getModelMatrix());
-    }
-
     private float getSensitivity(float base) {
         float sensitivity = base;
         final Scene scene = model.getActiveScene();
@@ -101,12 +108,10 @@ public class ArcBallCameraHandler implements Camera.Controller {
 
     @Override
     public void move(final float dX, final float dY) {
-        final Camera camera = model.getActiveScene().getActiveCamera();
         if (camera == null) return;
         if (dX == 0 && dY == 0) return;
 
         // Update camera's view point to follow selection target
-        final float[] target = getTarget(model.getActiveScene(), camera);
         camera.getView()[0] = target[0];
         camera.getView()[1] = target[1];
         camera.getView()[2] = target[2];
@@ -159,12 +164,10 @@ public class ArcBallCameraHandler implements Camera.Controller {
 
     @Override
     public void zoom(final float direction) {
-        final Camera camera = model.getActiveScene().getActiveCamera();
         if (camera == null) return;
         if (direction == 0) return;
 
         // Ensure target is up to date
-        final float[] target = getTarget(model.getActiveScene(), camera);
         camera.getView()[0] = target[0];
         camera.getView()[1] = target[1];
         camera.getView()[2] = target[2];
@@ -200,7 +203,6 @@ public class ArcBallCameraHandler implements Camera.Controller {
 
     @Override
     public void pan(final float dX, final float dY) {
-        final Camera camera = model.getActiveScene().getActiveCamera();
         if (camera == null) return;
         if (dX == 0 && dY == 0) return;
 
@@ -230,7 +232,6 @@ public class ArcBallCameraHandler implements Camera.Controller {
 
     @Override
     public void rotate(final float angle) {
-        final Camera camera = model.getActiveScene().getActiveCamera();
         if (camera == null) return;
         if (angle == 0) return;
 

@@ -3,6 +3,7 @@ package org.the3deer.android.engine.camera;
 import org.the3deer.android.engine.model.BoundingBox;
 import org.the3deer.android.engine.model.Camera;
 import org.the3deer.android.engine.model.Object3D;
+import org.the3deer.android.engine.model.OrthographicProjection;
 import org.the3deer.android.engine.model.Projection;
 import org.the3deer.android.engine.model.Scene;
 
@@ -77,7 +78,7 @@ public class CameraUtils {
 
         // 3. Calculate distance based on FOV
         Projection projection = camera.getProjection();
-        float fov = (projection != null) ? projection.getFov() : 60.0f; 
+        float fov = (projection != null && projection.getFov() > 0) ? projection.getFov() : 60.0f; 
 
         // distance = radius / sin(fov / 2)
         // Adding 20% padding for a comfortable view
@@ -114,6 +115,14 @@ public class CameraUtils {
         logger.info("- New Camera position: "+newPosX+","+newPosY+","+newPosZ);
 
         camera.set(newPosX, newPosY, newPosZ, centerX, centerY, centerZ, 0, 1, 0);
+
+        // Update orthographic magnification if applicable
+        if (projection instanceof OrthographicProjection) {
+            final OrthographicProjection ortho = (OrthographicProjection) projection;
+            final float mag = (float) (distance * Math.tan(halfFovRad));
+            ortho.setXmag(mag);
+            ortho.setYmag(mag);
+        }
 
         // 5. Update Projection Clipping Planes (MUST happen after camera is positioned)
         updateProjection(camera, centerX, centerY, centerZ, radius);
