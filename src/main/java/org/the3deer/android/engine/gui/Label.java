@@ -68,7 +68,7 @@ public class Label extends Widget {
 
         // dimensions initialized because there isn't any vertex yet
         setDimensions(new Dimensions(0,
-                columns * fontFactory.getCharWidth(), rows * fontFactory.getCharHeight(), 0, 0, 0));
+                columns * fontFactory.getCharWidth(), 0, rows * fontFactory.getCharHeight(), 0, 0));
         logger.info("Created text: " + getDimensions());
     }
 
