@@ -10,7 +10,6 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -25,7 +24,25 @@ import javax.inject.Inject;
 import javax.inject.Named;
 
 /**
- * A simple CDI (Component Dependency Injection) implementation
+ * A simple CDI (Component Dependency Injection) implementation.
+ *
+ * <p>The BeanManager manages a collection of beans, providing dependency injection,
+ * dynamic bean creation, and lifecycle management.</p>
+ *
+ * <ul>
+ *   <li><b>Order of Addition:</b> Beans are processed in the order they are added.</li>
+ *   <li><b>Dependency Order:</b> Dependent beans must be defined before the beans that depend on them.</li>
+ *   <li><b>Dynamic Creation:</b> Supports dynamic bean creation via {@link BeanFactory}.</li>
+ *   <li><b>Lifecycle:</b> Supports post-initialization logic via {@link BeanInit} and {@link BeanStart}.</li>
+ *   <li><b>Namespace Isolation:</b> Beans are identified by a key (e.g., "namespace.beanName").</li>
+ *   <li><b>Lookup Priority:</b> When injecting a bean without a regex, the manager first searches
+ *       the current namespace, then parent namespaces up to the root. If still not found, it
+ *       performs a global search.</li>
+ *   <li><b>Explicit Privacy:</b> Beans whose key ends with a hyphen (e.g., "gui.camera-") are private.
+ *       They are only visible within their own namespace or its children.</li>
+ *   <li><b>Regex Bypass:</b> To inject private beans from other namespaces, or to perform a broad
+ *       lookup, use the {@link Named} annotation with a regular expression (e.g., "@Named(\".*\")").</li>
+ * </ul>
  */
 public class BeanManager {
 
@@ -48,9 +65,9 @@ public class BeanManager {
      */
     private static final Integer STATUS_STARTED = 3;
 
-    private final Map<String, Class<?>> definitions = new TreeMap<>();
-    private final Map<String, Object> beans = new TreeMap<>();
-    private final Map<String, Integer> status = new HashMap<>();
+    private final Map<String, Class<?>> definitions = new LinkedHashMap<>();
+    private final Map<String, Object> beans = new LinkedHashMap<>();
+    private final Map<String, Integer> status = new LinkedHashMap<>();
 
     private final ExecutorService executorService = Executors.newSingleThreadScheduledExecutor(r -> {
         Thread thread = new Thread(r);
@@ -70,6 +87,7 @@ public class BeanManager {
     public static BeanManager getInstance() {
         BeanManager instance = new BeanManager();
         instance.beans.put("beanFactory", instance);
+        instance.definitions.put("beanFactory", BeanManager.class);
         instance.status.put("beanFactory", STATUS_INITIALIZED);
         return instance;
     }
@@ -152,8 +170,8 @@ public class BeanManager {
                 // build property name
                 final String propertyName = annotatedName != null && !annotatedName.isEmpty() ? annotatedName :
                         (methodName.startsWith("get") || methodName.startsWith("set")) ?
-                                methodName.substring(3, 4).toLowerCase() + methodName.substring(4) :
-                                (methodName.startsWith("is") ? methodName.substring(2, 3).toLowerCase() + methodName.substring(3) : methodName);
+                        methodName.substring(3, 4).toLowerCase() + methodName.substring(4) :
+                        (methodName.startsWith("is") ? methodName.substring(2, 3).toLowerCase() + methodName.substring(3) : methodName);
 
                 // build property id
                 final String propertyId = beanId + "." + propertyName;
@@ -350,7 +368,7 @@ public class BeanManager {
         }
 
         // get annotated method
-        final Method annotatedMethod = findAnnotatedMethod(bean, BeanStart.class);
+        final Method annotatedMethod = findAnnotatedMethod(bean.getClass(), BeanStart.class);
 
         if (annotatedMethod == null) return false;
 
@@ -394,38 +412,38 @@ public class BeanManager {
                 for (Field field : currentClass.getDeclaredFields()) {
                     field.setAccessible(true);
                     if (field.getAnnotation(Inject.class) == null) continue;
+
+                    final String named = field.getAnnotation(Named.class) != null ?
+                            field.getAnnotation(Named.class).value() : null;
+
                     final Object candidate;
-                    String named = null;
-                    if (field.getAnnotation(Named.class) != null) {
-                        named = Objects.requireNonNull(field.getAnnotation(Named.class)).value();
-                    }
-                    if (named != null) {
-                        Object lookup = get(named);
-                        if (lookup == null) {
-                            lookup = get(getNamespace(id) + "." + named);
+                    if (field.getType().isAssignableFrom(Map.class) && field.getGenericType() instanceof ParameterizedType) {
+                        final Class<?> type = (Class<?>) ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[1];
+                        if (named != null) {
+                            candidate = findAllByRegex(type, named);
+                        } else {
+                            candidate = findAll2(type, getNamespace(id));
                         }
-                        if (lookup == null) {
-                            for (Map.Entry<String, Object> entry : beans.entrySet()) {
-                                if (entry.getKey().matches(named) && field.getType().isInstance(entry.getValue())) {
-                                    lookup = entry.getValue();
-                                    break;
-                                }
-                            }
-                        }
-                        candidate = lookup;
-                    } else if (field.getType().isAssignableFrom(Map.class) && field.getGenericType() instanceof ParameterizedType) {
-                        Type actualTypeArgument = ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[1];
-                        candidate = findAll2((Class<?>) actualTypeArgument, null);
                     } else if (field.getType().isAssignableFrom(List.class) && field.getGenericType() instanceof ParameterizedType) {
-                        candidate = findAll((Class<?>) ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[0], null);
+                        final Class<?> type = (Class<?>) ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[0];
+                        if (named != null) {
+                            candidate = findAllByRegex(type, named);
+                        } else {
+                            candidate = findAll(type, getNamespace(id));
+                        }
                     } else {
-                        candidate = find(field.getType(), getNamespace(id));
+                        if (named != null) {
+                            candidate = findByRegex(field.getType(), named);
+                        } else {
+                            candidate = find(field.getType(), getNamespace(id));
+                        }
                     }
+
                     if (candidate != null) {
                         field.set(bean, candidate);
                     } else {
                         if (field.getName().startsWith("_")) {
-                            throw new IllegalStateException("Dependency not found. bean: " + bean + ", field: " + field.getName());
+                            throw new IllegalStateException("Dependency not found. bean: " + id + ", field: " + field.getName());
                         }
                     }
                     field.setAccessible(false);
@@ -465,10 +483,10 @@ public class BeanManager {
         return true;
     }
 
-    public Method findAnnotatedMethod(Object bean, Class<? extends Annotation> annotationClass) {
+    public Method findAnnotatedMethod(Class<?> clazz, Class<? extends Annotation> annotationClass) {
 
         // check bean
-        if (bean == null) throw new IllegalArgumentException("bean cannot be null");
+        if (clazz == null) throw new IllegalArgumentException("class cannot be null");
 
         // check annotation
         if (annotationClass == null)
@@ -476,7 +494,7 @@ public class BeanManager {
 
         // invoke
         Method methodFound = null;
-        for (Method method : bean.getClass().getDeclaredMethods()) {
+        for (Method method : clazz.getDeclaredMethods()) {
             method.setAccessible(true);
             if (method.getAnnotation(annotationClass) != null) {
                 methodFound = method;
@@ -536,11 +554,8 @@ public class BeanManager {
         // check
         if (beans.isEmpty()) return;
 
-        // clone beans
-        final Map<String, Object> beans = new TreeMap<>(this.beans);
-
         // instantiate factory beans
-        for (Map.Entry<String, Object> entry : beans.entrySet()) {
+        for (Map.Entry<String, Class<?>> entry : definitions.entrySet().toArray(new Map.Entry[0])) {
 
             // get factory method
             final Method annotatedMethod = findAnnotatedMethod(entry.getValue(), BeanFactory.class);
@@ -551,11 +566,12 @@ public class BeanManager {
             // configure beforehand
             configureBean(entry.getKey());
 
-            // setup beforehand
-            setUpBean(entry.getKey());
+            // get bean
+            final Object bean = beans.get(entry.getKey());
+            if (bean == null) throw new IllegalStateException("bean not found: " + entry.getKey());
 
             // invoke
-            final Map<String, Object> newBeans = (Map<String, Object>) invokeAnnotatedMethod(entry.getValue(), BeanFactory.class);
+            final Map<String, Object> newBeans = (Map<String, Object>) invokeAnnotatedMethod(bean, BeanFactory.class);
 
             // log event
             if (newBeans == null || newBeans.isEmpty()) {
@@ -582,7 +598,7 @@ public class BeanManager {
         int max = 3;
         do {
             definitionsUpdated = false;
-            for (Map.Entry<String, Class<?>> entry : definitions.entrySet()) {
+            for (Map.Entry<String, Class<?>> entry : definitions.entrySet().toArray(new Map.Entry[0])) {
                 String id = entry.getKey();
                 if (!status.containsKey(id)) instantiateBean(id);
             }
@@ -591,15 +607,17 @@ public class BeanManager {
             // Pre-Processor
             buildBeans();
 
-            for (String id : beans.keySet().toArray(new String[0])) {
+            for (String id : definitions.keySet().toArray(new String[0])) {
                 if (!status.containsKey(id) || status.get(id) < STATUS_CONFIGURED)
                     configureBean(id);
             }
-            for (String id : beans.keySet().toArray(new String[0])) {
-                if (!status.containsKey(id) || status.get(id) < STATUS_INITIALIZED) setUpBean(id);
+            for (String id : definitions.keySet().toArray(new String[0])) {
+                if (!status.containsKey(id) || status.get(id) < STATUS_INITIALIZED)
+                    setUpBean(id);
             }
-            for (String id : beans.keySet().toArray(new String[0])) {
-                if (!status.containsKey(id) || status.get(id) < STATUS_STARTED) startBean(id);
+            for (String id : definitions.keySet().toArray(new String[0])) {
+                if (!status.containsKey(id) || status.get(id) < STATUS_STARTED)
+                    startBean(id);
             }
         } while ((definitionsUpdated || beansUpdated) && max-- > 0);
     }
@@ -609,27 +627,51 @@ public class BeanManager {
             throw new IllegalArgumentException("id or bean not found: " + id);
         final Object beanUpdated = beans.get(id);
         if (beanUpdated == null) return;
-        final List<?> duplicates = findAll(beanUpdated.getClass(), null);
-        int beanIdx = duplicates.indexOf(beanUpdated);
         for (Map.Entry<String, Object> entry : beans.entrySet()) {
             final Object bean = entry.getValue();
-            if (bean == null) continue;
+            if (bean == null || bean == beanUpdated) continue;
             try {
                 Class<?> currentClass = bean.getClass();
                 while (currentClass != null) {
                     for (Field field : currentClass.getDeclaredFields()) {
                         field.setAccessible(true);
                         if (field.getAnnotation(Inject.class) == null) continue;
-                        String named = field.getAnnotation(Named.class) != null ? field.getAnnotation(Named.class).value() : null;
+
+                        final String named = field.getAnnotation(Named.class) != null ?
+                                field.getAnnotation(Named.class).value() : null;
+
                         if (field.getType().isAssignableFrom(beanUpdated.getClass())) {
-                            if (id.equals(named) || duplicates.size() == 1 || beanIdx == 0) {
-                                field.set(bean, beanUpdated);
-                                onBeanUpdateCallback(id, bean, beanUpdated);
+                            if (named != null) {
+                                if (id.matches(named)) {
+                                    field.set(bean, beanUpdated);
+                                    onBeanUpdateCallback(entry.getKey(), bean, beanUpdated);
+                                }
+                            } else {
+                                // If no regex, only update if this bean is now the "best" match
+                                Object bestMatch = find(field.getType(), getNamespace(entry.getKey()));
+                                if (bestMatch == beanUpdated) {
+                                    field.set(bean, beanUpdated);
+                                    onBeanUpdateCallback(entry.getKey(), bean, beanUpdated);
+                                }
                             }
                         } else if (field.getType().isAssignableFrom(List.class) && field.getGenericType() instanceof ParameterizedType) {
                             final Class<?> type = (Class<?>) ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[0];
                             if (type.isAssignableFrom(beanUpdated.getClass())) {
-                                field.set(bean, findAll(type, null));
+                                if (named != null) {
+                                    field.set(bean, findAllByRegex(type, named));
+                                } else {
+                                    field.set(bean, findAll(type, getNamespace(entry.getKey())));
+                                }
+                                onBeanUpdateCallback(entry.getKey(), bean, beanUpdated);
+                            }
+                        } else if (field.getType().isAssignableFrom(Map.class) && field.getGenericType() instanceof ParameterizedType) {
+                            final Class<?> type = (Class<?>) ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[1];
+                            if (type.isAssignableFrom(beanUpdated.getClass())) {
+                                if (named != null) {
+                                    field.set(bean, findAll2ByRegex(type, named));
+                                } else {
+                                    field.set(bean, findAll2(type, getNamespace(entry.getKey())));
+                                }
                                 onBeanUpdateCallback(entry.getKey(), bean, beanUpdated);
                             }
                         }
@@ -689,6 +731,7 @@ public class BeanManager {
         Object old = this.beans.put(id, object);
 
         // update model
+        this.definitions.put(id, object.getClass());
         this.status.put(id, STATUS_INSTANTIATED);
         this.beansUpdated = true;
 
@@ -704,22 +747,65 @@ public class BeanManager {
         return old;
     }
 
+    private <T> T findByRegex(Class<T> clazz, String regex) {
+        for (Map.Entry<String, Object> entry : beans.entrySet()) {
+            if (entry.getKey().matches(regex) && clazz.isInstance(entry.getValue())) {
+                return clazz.cast(entry.getValue());
+            }
+        }
+        return null;
+    }
+
+    private <T> List<T> findAllByRegex(Class<T> clazz, String regex) {
+        final List<T> ret = new ArrayList<>();
+        for (Map.Entry<String, Object> entry : beans.entrySet()) {
+            if (entry.getKey().matches(regex) && clazz.isInstance(entry.getValue())) {
+                ret.add(clazz.cast(entry.getValue()));
+            }
+        }
+        sort(ret);
+        return ret;
+    }
+
+    private <T> Map<String, T> findAll2ByRegex(Class<T> clazz, String regex) {
+        final Map<String, T> ret = new LinkedHashMap<>();
+        for (Map.Entry<String, Object> entry : beans.entrySet()) {
+            if (entry.getKey().matches(regex) && clazz.isInstance(entry.getValue())) {
+                ret.put(entry.getKey(), clazz.cast(entry.getValue()));
+            }
+        }
+        return ret;
+    }
+
     public <T> T find(Class<T> clazz) {
         return find(clazz, null);
     }
 
-    private <T> T find(Class<T> clazz, String namespace) {
-        for (Map.Entry<String, Object> entry : beans.entrySet()) {
-            String entryNamespace = getNamespace(entry.getKey());
-            if (namespace == null || (entryNamespace != null && namespace.startsWith(entryNamespace))) {
-                if (clazz.isAssignableFrom(entry.getValue().getClass()))
+    public <T> T find(Class<T> clazz, String namespace) {
+
+        // check
+        if (clazz == null) return null;
+
+        // Step 1: Search for the bean in the specified namespace or its parents (includes private beans)
+        String currentNamespace = namespace;
+        while (true) {
+            for (Map.Entry<String, Object> entry : beans.entrySet()) {
+                if (Objects.equals(currentNamespace, getNamespace(entry.getKey())) &&
+                        clazz.isInstance(entry.getValue())) {
                     return clazz.cast(entry.getValue());
+                }
+            }
+            if (currentNamespace == null) break;
+            currentNamespace = getNamespace(currentNamespace);
+        }
+
+        // Step 2: Global search (excludes private beans from other namespaces)
+        for (Map.Entry<String, Object> entry : beans.entrySet()) {
+            if (clazz.isInstance(entry.getValue()) && !entry.getKey().endsWith("-")) {
+                return clazz.cast(entry.getValue());
             }
         }
-        if (namespace != null) return find(clazz, getNamespace(namespace));
-        for (Object bean : beans.values()) {
-            if (clazz.isAssignableFrom(bean.getClass())) return clazz.cast(bean);
-        }
+
         return null;
     }
 
@@ -727,33 +813,66 @@ public class BeanManager {
         return findAll(clazz, null);
     }
 
-    public <T> List<T> findAll(Class<T> clazz, String parent) {
-        List<T> ret = new ArrayList<>();
+    private <T> List<T> findAll(Class<T> clazz, String namespace) {
+        final Map<String, T> matches = new LinkedHashMap<>();
+
+        // Step 1: Hierarchy search
+        String currentNamespace = namespace;
+        while (true) {
+            for (Map.Entry<String, Object> entry : beans.entrySet()) {
+                if (Objects.equals(currentNamespace, getNamespace(entry.getKey())) &&
+                        clazz.isInstance(entry.getValue())) {
+                    matches.putIfAbsent(entry.getKey(), clazz.cast(entry.getValue()));
+                }
+            }
+            if (currentNamespace == null) break;
+            currentNamespace = getNamespace(currentNamespace);
+        }
+
+        // Step 2: Global search (public only)
         for (Map.Entry<String, Object> entry : beans.entrySet()) {
-            if (parent == null || entry.getKey().startsWith(parent)) {
-                if (clazz.isAssignableFrom(entry.getValue().getClass()))
-                    ret.add(clazz.cast(entry.getValue()));
+            if (clazz.isInstance(entry.getValue()) && !entry.getKey().endsWith("-")) {
+                matches.putIfAbsent(entry.getKey(), clazz.cast(entry.getValue()));
             }
         }
-        if (!ret.isEmpty()) {
-            ret.sort((o1, o2) -> {
-                BeanOrder a1 = o1.getClass().getAnnotation(BeanOrder.class);
-                BeanOrder a2 = o2.getClass().getAnnotation(BeanOrder.class);
-                return (a1 != null ? a1.order() : 0) - (a2 != null ? a2.order() : 0);
-            });
-        }
+
+        final List<T> ret = new ArrayList<>(matches.values());
+        sort(ret);
         return ret;
     }
 
-    public <T> Map<String, T> findAll2(Class<T> clazz, String parent) {
-        final Map<String, T> ret = new LinkedHashMap<>();
+    private <T> void sort(List<T> list) {
+        if (list.isEmpty()) return;
+        list.sort((o1, o2) -> {
+            BeanOrder a1 = o1.getClass().getAnnotation(BeanOrder.class);
+            BeanOrder a2 = o2.getClass().getAnnotation(BeanOrder.class);
+            return (a1 != null ? a1.order() : 0) - (a2 != null ? a2.order() : 0);
+        });
+    }
+
+    public <T> Map<String, T> findAll2(Class<T> clazz, String namespace) {
+        final Map<String, T> matches = new LinkedHashMap<>();
+
+        // Step 1: Hierarchy search
+        String currentNamespace = namespace;
+        while (true) {
+            for (Map.Entry<String, Object> entry : beans.entrySet()) {
+                if (Objects.equals(currentNamespace, getNamespace(entry.getKey())) &&
+                        clazz.isInstance(entry.getValue())) {
+                    matches.putIfAbsent(entry.getKey(), clazz.cast(entry.getValue()));
+                }
+            }
+            if (currentNamespace == null) break;
+            currentNamespace = getNamespace(currentNamespace);
+        }
+
+        // Step 2: Global search (public only)
         for (Map.Entry<String, Object> entry : beans.entrySet()) {
-            if (parent == null || entry.getKey().startsWith(parent)) {
-                if (clazz.isAssignableFrom(entry.getValue().getClass()))
-                    ret.put(entry.getKey(), clazz.cast(entry.getValue()));
+            if (clazz.isInstance(entry.getValue()) && !entry.getKey().endsWith("-")) {
+                matches.putIfAbsent(entry.getKey(), clazz.cast(entry.getValue()));
             }
         }
-        return ret;
+        return matches;
     }
 
     public Object get(String key) {
