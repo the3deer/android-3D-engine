@@ -15,7 +15,7 @@ import org.the3deer.android.engine.collision.CollisionDrawer;
 import org.the3deer.android.engine.debugger.BoundingBoxDrawer;
 import org.the3deer.android.engine.debugger.SkeletonDrawer;
 import org.the3deer.android.engine.debugger.WireframeDrawer;
-import org.the3deer.android.engine.decorator.LightBulbDrawer;
+import org.the3deer.android.engine.debugger.LightBulbDrawer;
 import org.the3deer.android.engine.decorator.SkyboxDrawer;
 import org.the3deer.android.engine.gui.GUI;
 import org.the3deer.android.engine.gui.GUIDrawer;
@@ -216,16 +216,16 @@ public final class ModelEngine {
         // drawers
         beanManager.add("drawer.skybox", SkyboxDrawer.class);
         beanManager.add("drawer.scene", SceneDrawer.class);
-        beanManager.add("drawer.lightBulb-", Point.build(Constants.VECTOR_ZERO)
-                .setId("light").setColor(Constants.COLOR_YELLOW));
-        beanManager.add("drawer.lightBulbDrawer", LightBulbDrawer.class);
         beanManager.add("drawer.shadow", ShadowDrawer.class);
 
         // debuggers
         beanManager.add("debugger.wireframe", WireframeDrawer.class);
         beanManager.add("debugger.skeleton", SkeletonDrawer.class);
-        beanManager.add("debugger.boundingBox", BoundingBoxDrawer.class);
         beanManager.add("debugger.collision", CollisionDrawer.class);
+        beanManager.add("debugger.boundingBox", BoundingBoxDrawer.class);
+        beanManager.add("debugger.lightBulb-", Point.build(Constants.VECTOR_ZERO)
+                .setId("light").setColor(Constants.COLOR_YELLOW));
+        beanManager.add("debugger.lightBulbDrawer", LightBulbDrawer.class);
         beanManager.add("debugger.screenshot", org.the3deer.android.engine.renderer.ScreenshotDrawer.class);
 
         // renderer

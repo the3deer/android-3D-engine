@@ -1,4 +1,4 @@
-package org.the3deer.android.engine.decorator;
+package org.the3deer.android.engine.debugger;
 
 import org.the3deer.android.engine.Model;
 import org.the3deer.android.engine.model.Camera;
@@ -15,7 +15,6 @@ import org.the3deer.util.bean.Bean;
 import org.the3deer.util.bean.BeanProperty;
 import org.the3deer.util.event.EventListener;
 
-import java.util.Calendar;
 import java.util.Collections;
 import java.util.EventObject;
 import java.util.List;
@@ -80,26 +79,17 @@ public class LightBulbDrawer implements Drawer, EventListener {
             return;
         }
 
-        // Use the new custom SUN shader for a beautiful glowing effect
-        final Shader drawer = shaderFactory.getShader(Program.SUN);
-        if (drawer == null) {
-            return; // not ready
-        }
-
-        // 1. Calculate Sun Position (Sync with Skybox)
-        final Calendar calendar = Calendar.getInstance();
-        final float dayProgress = (calendar.get(Calendar.HOUR_OF_DAY) * 3600f +
-                             calendar.get(Calendar.MINUTE) * 60f +
-                             calendar.get(Calendar.SECOND)) / 86400f;
-        
-        final float[] sunPos = getSunPosition(dayProgress);
-        
-        // 2. Update Light and Bulb location
-        light.setLocation(sunPos);
-        lightBulb.setLocation(sunPos);
-
         // 3. Draw the "Sun" Bulb
-        if (light.isEnabled() && sunPos[1] > -0.1f) { // Only draw if sun is above horizon
+        if (light.isEnabled()) { // Only draw if sun is above horizon
+
+            lightBulb.setLocation(light.getLocation());
+
+            // Use the new custom SUN shader for a beautiful glowing effect
+            final Shader drawer = shaderFactory.getShader(Program.BASIC);
+            if (drawer == null) {
+                return; // not ready
+            }
+
             drawer.draw(lightBulb, camera.getProjectionMatrix(), camera.getViewMatrix(),
                     light.getLocation(), null, camera.getPos(), lightBulb.getDrawMode(), lightBulb.getDrawSize());
         }
