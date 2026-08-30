@@ -10,6 +10,7 @@ import org.the3deer.android.engine.model.OrthographicProjection;
 import org.the3deer.android.engine.model.Projection;
 import org.the3deer.android.engine.model.Screen;
 import org.the3deer.util.bean.BeanInit;
+import org.the3deer.util.event.EventManager;
 import org.the3deer.util.math.Math3DUtils;
 
 import java.util.EventObject;
@@ -59,6 +60,9 @@ public class IsometricCameraHandler implements Camera.Controller {
     private AnimationController animationController;
 
     @Inject
+    private EventManager eventManager;
+
+    @Inject
     private Screen screen;
 
     private float[] target = new float[]{0, 0, 0};
@@ -88,7 +92,6 @@ public class IsometricCameraHandler implements Camera.Controller {
 
         camera.setProjection(projection);
         camera.setController(this);
-        camera.addListener(this);
         model.addCamera(camera);
 
         updateCameraImmediate();
@@ -113,6 +116,9 @@ public class IsometricCameraHandler implements Camera.Controller {
     public void setTarget(float[] target) {
         this.target = target;
         updateCameraImmediate();
+        if (eventManager != null) {
+            eventManager.propagate(new CameraEvent(this, camera, CameraEvent.Code.CAMERA_UPDATED));
+        }
     }
 
     @Override
@@ -196,6 +202,9 @@ public class IsometricCameraHandler implements Camera.Controller {
                 ortho.setYmag(ortho.getYmag() * factor);
             }
             updateCameraImmediate();
+            if (eventManager != null) {
+                eventManager.propagate(new CameraEvent(this, camera, CameraEvent.Code.CAMERA_UPDATED));
+            }
         }
     }
 
@@ -219,7 +228,7 @@ public class IsometricCameraHandler implements Camera.Controller {
                 target[0], target[1], target[2]};
 
         if (animationController != null) {
-            animationController.add(new CameraAnimation(camera, args));
+            animationController.add(new CameraAnimation(camera, args, eventManager));
         }
     }
 

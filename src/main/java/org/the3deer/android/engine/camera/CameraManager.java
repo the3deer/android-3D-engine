@@ -238,7 +238,10 @@ public final class CameraManager implements EventListener {
                         activeCamera.getView()[1] = activeCamera.getPos()[1] + lookDir[1];
                         activeCamera.getView()[2] = activeCamera.getPos()[2] + lookDir[2];
 
-                        activeCamera.setChanged(true);
+                        activeCamera.refresh();
+                        if (eventManager != null) {
+                            eventManager.propagate(new CameraEvent(this, activeCamera, CameraEvent.Code.CAMERA_UPDATED));
+                        }
                     }
                 }
             }

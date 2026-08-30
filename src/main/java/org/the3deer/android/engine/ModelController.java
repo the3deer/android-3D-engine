@@ -6,6 +6,7 @@ import android.util.Log;
 import org.the3deer.android.engine.camera.CameraManager;
 import org.the3deer.android.engine.collision.CollisionController;
 import org.the3deer.android.engine.collision.CollisionEvent;
+import org.the3deer.android.engine.event.CameraEvent;
 import org.the3deer.android.engine.event.GLEvent;
 import org.the3deer.android.engine.event.MotionEvent;
 import org.the3deer.android.engine.event.SceneEvent;
@@ -92,6 +93,12 @@ public class ModelController implements EventManager, TouchHandler {
             });
             return true;
         }
+
+        // Camera events are processed synchronously to avoid UI lag (e.g. Axis gizmo)
+        if (event instanceof CameraEvent) {
+            return propagateInternal(event);
+        }
+
         executor.execute(() -> propagateInternal(event));
         return true;
     }

@@ -25,7 +25,7 @@ public class Axis extends Widget {
 
             // check
             final Camera camera = ((CameraEvent) event).getCamera();
-            if (camera == null) return false;
+            if (camera == null || "gui".equals(camera.getName())) return false;
 
             // update
             setOrientation(camera.getOrientation());

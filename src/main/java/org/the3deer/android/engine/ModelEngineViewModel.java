@@ -20,6 +20,7 @@ import androidx.lifecycle.MutableLiveData;
 import org.jetbrains.annotations.NotNull;
 import org.the3deer.android.engine.api.EngineAPI;
 import org.the3deer.android.engine.camera.CameraUtils;
+import org.the3deer.android.engine.event.CameraEvent;
 import org.the3deer.android.engine.event.EngineEvent;
 import org.the3deer.android.engine.logger.LogInterceptor;
 import org.the3deer.android.engine.model.Camera;
@@ -33,6 +34,7 @@ import org.the3deer.android.engine.services.LoadListener;
 import org.the3deer.android.engine.services.LoaderRegistry;
 import org.the3deer.android.engine.services.LoaderTask;
 import org.the3deer.util.event.EventListener;
+import org.the3deer.util.event.EventManager;
 import org.the3deer.util.io.IOUtils;
 
 import java.io.File;
@@ -741,9 +743,14 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
                     }
                 }
 
-                if (model.getActiveScene() != null && model.getActiveScene().getActiveCamera() != null){
+                // frame system cameras
+                if (model.getActiveScene() != null){
+                    final EventManager eventManager = engine.getBeanFactory().find(EventManager.class);
                     for (Camera camera : model.getCameras().values()) {
                         CameraUtils.frameModel(camera, model.getActiveScene().getObjects(), false);
+                        if (eventManager != null) {
+                            eventManager.propagate(new CameraEvent(this, camera, CameraEvent.Code.CAMERA_UPDATED));
+                        }
                     }
                 }
 

@@ -4,17 +4,13 @@ package org.the3deer.android.engine.model;
 
 import androidx.annotation.NonNull;
 
-import org.the3deer.android.engine.event.CameraEvent;
-import org.the3deer.android.util.AndroidUtils;
 import org.the3deer.android.util.Matrix;
 import org.the3deer.util.bean.BeanInit;
 import org.the3deer.util.event.EventListener;
 import org.the3deer.util.math.Math3DUtils;
 import org.the3deer.util.math.Quaternion;
 
-import java.util.ArrayList;
 import java.util.EventObject;
-import java.util.List;
 import java.util.logging.Logger;
 
 import javax.inject.Inject;
@@ -78,9 +74,6 @@ public class Camera {
     @Inject
     private Projection projection = new PerspectiveProjection();
 
-    // default listeners (inject only works for managed objects - like the default engine camera)
-    @Inject
-    private List<EventListener> listeners = new ArrayList<>();
     /**
      * The new orientation of the device.
      * <p>
@@ -97,8 +90,6 @@ public class Camera {
 
     //@Inject
     private Controller controller;
-
-    private boolean changed = false;
 
     // stereoscopic handlers
     private Camera[] stereoCam;
@@ -183,10 +174,6 @@ public class Camera {
         refresh();
     }
 
-    public void addListener(EventListener eventListener) {
-        this.listeners.add(eventListener);
-    }
-
     public void move(float dX, float dY) {
         if (controller != null)
             controller.move(dX, dY);
@@ -217,7 +204,7 @@ public class Camera {
             controller.joystickLook(dX, dY);
     }
 
-    protected void refresh() {
+    public void refresh() {
         // update orientation
         Matrix.setLookAtM(this.orientationMatrix, 0,
                 0, 0, 0,
@@ -259,16 +246,6 @@ public class Camera {
     }
 
     public synchronized void translateCamera(float dX, float dY) {
-    }
-
-    public boolean hasChanged() {
-        return changed;
-    }
-
-    public void setChanged(boolean changed) {
-        this.changed = changed;
-        refresh();
-        AndroidUtils.fireEvent(listeners, new CameraEvent(this, this, CameraEvent.Code.CAMERA_UPDATED));
     }
 
 
@@ -371,7 +348,7 @@ public class Camera {
         this.up[1] = yUp;
         this.up[2] = zUp;
 
-        setChanged(true);
+        refresh();
     }
 
     public void set(float[] pos, float[] view, float[] up) {
@@ -408,18 +385,19 @@ public class Camera {
      */
     public void setDeviceOrientation(int angle) {
 
-        if (angle == this.deviceOrientation) return;
-        else if (Math.abs(this.deviceOrientation - angle) < 5) return;
+        int newAngle = angle;
+        if (newAngle == this.deviceOrientation) return;
+        else if (Math.abs(this.deviceOrientation - newAngle) < 5) return;
         else {
             int previous = this.deviceOrientation;
-            this.deviceOrientation = angle;
-            angle = previous - angle;
+            this.deviceOrientation = newAngle;
+            angle = previous - newAngle;
         }
 
         // rotation matrix
         float[] matrix = new float[16];
         Matrix.setIdentityM(matrix, 0);
-        Matrix.setRotateM(matrix, 0, angle, getxPos(), getyPos(), getzPos());
+        Matrix.setRotateM(matrix, 0, newAngle, getxPos(), getyPos(), getzPos());
 
         float[] newUp = new float[4];
         Matrix.multiplyMV(newUp, 0, matrix, 0, up, 0);
@@ -429,21 +407,21 @@ public class Camera {
         this.up[1] = newUp[1];
         this.up[2] = newUp[2];
 
-        setChanged(true);
+        refresh();
     }
 
     public float[] getViewMatrix() {
         // If this camera is attached to a node in the scene graph...
         if (this.node != null) {
             // Get the node's current world-space transformation matrix
-            float[] nodeTransform = this.node.getAnimatedWorldTransform();
-            if (nodeTransform == null){
-                nodeTransform = this.node.getWorldTransform();
+            float[] transform = this.node.getAnimatedWorldTransform();
+            if (transform == null){
+                transform = this.node.getWorldTransform();
             }
 
             // A camera's view matrix is the INVERSE of its world transform.
-            if (nodeTransform != null) {
-                Matrix.invertM(viewMatrix, 0, nodeTransform, 0);
+            if (transform != null) {
+                Matrix.invertM(viewMatrix, 0, transform, 0);
             }
         } else {
             Matrix.setLookAtM(this.viewMatrix, 0, getxPos(), getyPos(), getzPos(),

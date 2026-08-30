@@ -1,11 +1,12 @@
 package org.the3deer.android.engine.camera;
 
+import org.the3deer.android.engine.event.CameraEvent;
 import org.the3deer.android.engine.model.Animation;
 import org.the3deer.android.engine.model.Camera;
 import org.the3deer.android.engine.model.Constants;
 import org.the3deer.android.util.Matrix;
+import org.the3deer.util.event.EventManager;
 
-import java.util.Arrays;
 import java.util.logging.Logger;
 
 public class CameraAnimation extends Animation<Camera> {
@@ -13,11 +14,17 @@ public class CameraAnimation extends Animation<Camera> {
     private static final Logger logger = Logger.getLogger(CameraAnimation.class.getSimpleName());
 
     private final Object[] args;
+    private final EventManager eventManager;
     private int animationCounter;
 
     public CameraAnimation(Camera camera, Object[] args) {
+        this(camera, args, null);
+    }
+
+    public CameraAnimation(Camera camera, Object[] args, EventManager eventManager) {
         super(camera);
         this.args = args;
+        this.eventManager = eventManager;
     }
 
     public synchronized void animate() {
@@ -112,6 +119,10 @@ public class CameraAnimation extends Animation<Camera> {
                 getTarget().set(xPos, yPos, zPos,
                         xView, yView, zView,
                         xUp, yUp, zUp);
+
+                if (eventManager != null) {
+                    eventManager.propagate(new CameraEvent(this, getTarget(), CameraEvent.Code.CAMERA_UPDATED));
+                }
             }
         }
         /*else if (method.equals("translate")) {

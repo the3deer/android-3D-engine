@@ -2,12 +2,14 @@ package org.the3deer.android.engine.camera;
 
 import org.the3deer.android.engine.Model;
 import org.the3deer.android.engine.event.TouchEvent;
+import org.the3deer.android.engine.event.CameraEvent;
 import org.the3deer.android.engine.model.Camera;
 import org.the3deer.android.engine.model.PerspectiveProjection;
 import org.the3deer.android.engine.model.Projection;
 import org.the3deer.android.engine.model.Scene;
 import org.the3deer.android.engine.model.Screen;
 import org.the3deer.util.bean.BeanInit;
+import org.the3deer.util.event.EventManager;
 import org.the3deer.util.math.Math3DUtils;
 
 import java.util.EventObject;
@@ -36,6 +38,9 @@ public class ArcBallCameraHandler implements Camera.Controller {
 
     @Inject
     private Screen screen;
+
+    @Inject
+    private EventManager eventManager;
 
     private float[] target = new float[]{0, 0, 0};
 
@@ -69,6 +74,9 @@ public class ArcBallCameraHandler implements Camera.Controller {
     @Override
     public void setTarget(float[] target) {
         this.target = target;
+        if (eventManager != null) {
+            eventManager.propagate(new CameraEvent(this, camera, CameraEvent.Code.CAMERA_UPDATED));
+        }
     }
 
     /**
@@ -173,7 +181,11 @@ public class ArcBallCameraHandler implements Camera.Controller {
         up[0] = newUp[0]; up[1] = newUp[1]; up[2] = newUp[2];
         Math3DUtils.normalizeVector(up);
         
-        camera.setChanged(true);
+        camera.refresh();
+
+        if (eventManager != null) {
+            eventManager.propagate(new CameraEvent(this, camera, CameraEvent.Code.CAMERA_UPDATED));
+        }
     }
 
     @Override
@@ -212,7 +224,11 @@ public class ArcBallCameraHandler implements Camera.Controller {
         if (camera.isOutOfBounds(nx, ny, nz)) return;
 
         pos[0] = nx; pos[1] = ny; pos[2] = nz;
-        camera.setChanged(true);
+        camera.refresh();
+
+        if (eventManager != null) {
+            eventManager.propagate(new CameraEvent(this, camera, CameraEvent.Code.CAMERA_UPDATED));
+        }
     }
 
     @Override
@@ -241,7 +257,11 @@ public class ArcBallCameraHandler implements Camera.Controller {
         pos[0] += tx; pos[1] += ty; pos[2] += tz;
         view[0] += tx; view[1] += ty; view[2] += tz;
 
-        camera.setChanged(true);
+        camera.refresh();
+
+        if (eventManager != null) {
+            eventManager.propagate(new CameraEvent(this, camera, CameraEvent.Code.CAMERA_UPDATED));
+        }
     }
 
     @Override
@@ -264,6 +284,10 @@ public class ArcBallCameraHandler implements Camera.Controller {
         up[0] = newUp[0]; up[1] = newUp[1]; up[2] = newUp[2];
         Math3DUtils.normalizeVector(up);
 
-        camera.setChanged(true);
+        camera.refresh();
+
+        if (eventManager != null) {
+            eventManager.propagate(new CameraEvent(this, camera, CameraEvent.Code.CAMERA_UPDATED));
+        }
     }
 }

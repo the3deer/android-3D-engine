@@ -7,7 +7,9 @@ import org.the3deer.android.engine.model.PerspectiveProjection;
 import org.the3deer.android.engine.model.Projection;
 import org.the3deer.android.engine.model.Screen;
 import org.the3deer.util.bean.BeanInit;
+import org.the3deer.util.event.EventManager;
 import org.the3deer.util.math.Math3DUtils;
+import org.the3deer.android.engine.event.CameraEvent;
 
 import java.util.EventObject;
 
@@ -30,6 +32,9 @@ public class FirstPersonCameraHandler implements Camera.Controller {
 
     @Inject
     private Camera camera = new Camera("fps", org.the3deer.android.engine.model.Constants.DEFAULT_CAMERA_POSITION);
+
+    @Inject
+    private EventManager eventManager;
 
     private float[] target = new float[]{0, 0, 0};
 
@@ -65,6 +70,9 @@ public class FirstPersonCameraHandler implements Camera.Controller {
     @Override
     public void setTarget(float[] target) {
         this.target = target;
+        if (eventManager != null) {
+            eventManager.propagate(new CameraEvent(this, camera, CameraEvent.Code.CAMERA_UPDATED));
+        }
     }
 
     public boolean isGravity() {
@@ -159,7 +167,11 @@ public class FirstPersonCameraHandler implements Camera.Controller {
         camera.getUp()[1] = 1;
         camera.getUp()[2] = 0;
 
-        camera.setChanged(true);
+        camera.refresh();
+
+        if (eventManager != null) {
+            eventManager.propagate(new CameraEvent(this, camera, CameraEvent.Code.CAMERA_UPDATED));
+        }
     }
 
     @Override
@@ -230,7 +242,11 @@ public class FirstPersonCameraHandler implements Camera.Controller {
         camera.getUp()[1] = 1;
         camera.getUp()[2] = 0;
 
-        camera.setChanged(true);
+        camera.refresh();
+
+        if (eventManager != null) {
+            eventManager.propagate(new CameraEvent(this, camera, CameraEvent.Code.CAMERA_UPDATED));
+        }
     }
 
     @Override
@@ -278,6 +294,6 @@ public class FirstPersonCameraHandler implements Camera.Controller {
         camera.getView()[1] += moveY;
         camera.getView()[2] += moveZ;
 
-        camera.setChanged(true);
+        camera.refresh();
     }
 }

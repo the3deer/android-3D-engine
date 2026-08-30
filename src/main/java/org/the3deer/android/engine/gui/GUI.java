@@ -91,13 +91,13 @@ public class GUI extends Widget implements EventListener, BeanManaged {
 
             if (axis ==  null) {
                 axis = new Axis();
-                axis.setVisible(true);
-                axis.setScreen(screen);
-                addChild(axis);
-
-                axis.setRelativeScale(new float[]{0.1f, 0.1f, 0.1f});
-                axis.setRelativeLocation(Widget.POSITION_TOP_RIGHT);
             }
+            axis.setVisible(true);
+            axis.setScreen(screen);
+            addChild(axis);
+
+            axis.setRelativeScale(new float[]{0.1f, 0.1f, 0.1f});
+            axis.setRelativeLocation(Widget.POSITION_TOP_RIGHT);
 
             initFPS();
             initInfo();
