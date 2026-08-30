@@ -860,37 +860,40 @@ public class Object3D {
 
         if (isReadOnly()) return;
 
-        Matrix.setIdentityM(modelMatrix, 0);
-        Matrix.setIdentityM(modelMatrix2, 0);
+        // Use a temporary matrix for calculations to avoid "flickering" identity state
+        // during rendering on the GL thread.
+        float[] tempModelMatrix = new float[16];
+        float[] tempModelMatrix2 = new float[16];
+        Matrix.setIdentityM(tempModelMatrix, 0);
+        Matrix.setIdentityM(tempModelMatrix2, 0);
 
         // 1. Rotation (Outermost)
         // This allows multiple objects to be rotated together around the origin
         if (getRotation() != null) {
-            Matrix.rotateM(modelMatrix, 0, getRotation()[2], 0, 0, 1f);
-            Matrix.rotateM(modelMatrix, 0, getRotation()[1], 0, 1f, 0f);
-            Matrix.rotateM(modelMatrix, 0, getRotation()[0], 1f, 0f, 0f);
-            Matrix.rotateM(modelMatrix2, 0, getRotation()[2], 0, 0, 1f);
-            Matrix.rotateM(modelMatrix2, 0, getRotation()[1], 0, 1f, 0f);
-            Matrix.rotateM(modelMatrix2, 0, getRotation()[0], 1f, 0f, 0f);
+            Matrix.rotateM(tempModelMatrix, 0, getRotation()[2], 0, 0, 1f);
+            Matrix.rotateM(tempModelMatrix, 0, getRotation()[1], 0, 1f, 0f);
+            Matrix.rotateM(tempModelMatrix, 0, getRotation()[0], 1f, 0f, 0f);
+            Matrix.rotateM(tempModelMatrix2, 0, getRotation()[2], 0, 0, 1f);
+            Matrix.rotateM(tempModelMatrix2, 0, getRotation()[1], 0, 1f, 0f);
+            Matrix.rotateM(tempModelMatrix2, 0, getRotation()[0], 1f, 0f, 0f);
         }
 
         // 2. Location (Middle)
         if (getLocation() != null) {
-            Matrix.translateM(modelMatrix, 0, getLocationX(), getLocationY(), getLocationZ());
+            Matrix.translateM(tempModelMatrix, 0, getLocationX(), getLocationY(), getLocationZ());
         }
 
         // 3. Scale (Inner)
         if (getScale() != null) {
-            Matrix.scaleM(modelMatrix, 0, getScaleX(), getScaleY(), getScaleZ());
-            Matrix.scaleM(modelMatrix2, 0, getScaleX(), getScaleY(), getScaleZ());
+            Matrix.scaleM(tempModelMatrix, 0, getScaleX(), getScaleY(), getScaleZ());
+            Matrix.scaleM(tempModelMatrix2, 0, getScaleX(), getScaleY(), getScaleZ());
         }
 
         // 4. Orientation (Innermost)
-        float[] temp = new float[16];
         if (orientation != null) {
-            Matrix.setIdentityM(temp, 0);
-            Matrix.multiplyMM(temp, 0, modelMatrix, 0, orientation.getMatrix(), 0);
-            System.arraycopy(temp, 0, modelMatrix, 0, 16);
+            float[] temp = new float[16];
+            Matrix.multiplyMM(temp, 0, tempModelMatrix, 0, orientation.getMatrix(), 0);
+            System.arraycopy(temp, 0, tempModelMatrix, 0, 16);
         }
 
         /*if (this.worldTransform != null) {
@@ -898,12 +901,18 @@ public class Object3D {
             Matrix.multiplyMM(modelMatrix, 0, modelMatrix, 0, this.worldTransform, 0);
         }*/
 
+        // Atomic update of the public matrices
+        System.arraycopy(tempModelMatrix, 0, this.modelMatrix, 0, 16);
+        System.arraycopy(tempModelMatrix2, 0, this.modelMatrix2, 0, 16);
+
         // normal matrix calculation
-        Matrix.setIdentityM(normalMatrix, 0);
-        Matrix.setIdentityM(temp, 0);
-        if (Matrix.invertM(temp, 0, modelMatrix, 0)) {
-            Matrix.transposeM(normalMatrix, 0, temp, 0);
+        float[] tempNormal = new float[16];
+        float[] invertTemp = new float[16];
+        Matrix.setIdentityM(tempNormal, 0);
+        if (Matrix.invertM(invertTemp, 0, modelMatrix, 0)) {
+            Matrix.transposeM(tempNormal, 0, invertTemp, 0);
         }
+        System.arraycopy(tempNormal, 0, this.normalMatrix, 0, 16);
 
         propagate(new ChangeEvent(this));
     }

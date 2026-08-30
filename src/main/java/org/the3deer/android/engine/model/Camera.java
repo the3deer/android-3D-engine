@@ -206,10 +206,14 @@ public class Camera {
 
     public void refresh() {
         // update orientation
-        Matrix.setLookAtM(this.orientationMatrix, 0,
+        float[] tempMatrix = new float[16];
+        Matrix.setLookAtM(tempMatrix, 0,
                 0, 0, 0,
                 -getxPos() + getxView(), -getyPos() + getyView(), -getzPos() + getzView(),
                 getxUp(), getyUp(), getzUp());
+        
+        // Atomic update of orientation data
+        System.arraycopy(tempMatrix, 0, this.orientationMatrix, 0, 16);
         this.orientation.setMatrix(orientationMatrix);
 
         // projection
@@ -424,8 +428,10 @@ public class Camera {
                 Matrix.invertM(viewMatrix, 0, transform, 0);
             }
         } else {
-            Matrix.setLookAtM(this.viewMatrix, 0, getxPos(), getyPos(), getzPos(),
+            float[] temp = new float[16];
+            Matrix.setLookAtM(temp, 0, getxPos(), getyPos(), getzPos(),
                     getxView(), getyView(), getzView(), getxUp(), getyUp(), getzUp());
+            System.arraycopy(temp, 0, viewMatrix, 0, 16);
         }
 
         return viewMatrix;
