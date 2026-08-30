@@ -71,7 +71,7 @@ public final class CameraManager implements EventListener {
 
         if (isMovingToFPV) {
             // 1. Switch to FPS Handler
-            activeController = controllersMap.get("camera.2firstPerson");
+            activeController = controllersMap.get("camera.firstPerson");
             if (activeController == null) return;
 
             final Camera fpsCamera = activeController.getCamera();
@@ -90,7 +90,7 @@ public final class CameraManager implements EventListener {
             model.getActiveScene().setActiveCamera(fpsCamera);
         } else {
             // 1. Switch back to ArcBall Handler
-            activeController = controllersMap.get("camera.1arcBall");
+            activeController = controllersMap.get("camera.arcBall");
             if (activeController == null) return;
 
             final Camera arcballCamera = activeController.getCamera();
