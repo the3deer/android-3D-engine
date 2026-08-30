@@ -32,7 +32,7 @@ public class CollisionController implements EventListener {
     @Inject
     private EventManager eventManager;
 
-    private boolean enabled = false;
+    private boolean enabled = true;
 
     public CollisionController() {
     }

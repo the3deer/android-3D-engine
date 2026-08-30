@@ -73,11 +73,11 @@ public class Octree {
         
         if (object.getIndexBuffer() == null) {
             // vertex array contains vertex in sequence
-            final List<float[]> triangles = new ArrayList<>(buffer.capacity() / 3 * 4);
+            final List<float[]> triangles = new ArrayList<>(buffer.limit() / 3 * 4);
             //final float[] modelMatrix = object.getModelMatrix();
             //final float[] modelMatrix = Math3DUtils.IDENTITY_MATRIX;
             buffer.position(0);
-            for (int i = 0; i <= buffer.capacity()-9; i += 9) {
+            for (int i = 0; i <= buffer.limit()-9; i += 9) {
                 float[] triangle = new float[]{
                         buffer.get(), buffer.get(), buffer.get(), 1,
                         buffer.get(), buffer.get(), buffer.get(), 1,
@@ -89,7 +89,7 @@ public class Octree {
         } else {
             // Indexed: use indices to jump to the correct XYZ coordinates
             final Buffer drawOrder = object.getIndexBuffer();
-            for (int i = 0; i < drawOrder.capacity()-2; i += 3) {
+            for (int i = 0; i < drawOrder.limit()-2; i += 3) {
                 int idx1, idx2, idx3;
                 if (drawOrder instanceof IntBuffer) {
                     idx1 = ((IntBuffer)drawOrder).get(i);

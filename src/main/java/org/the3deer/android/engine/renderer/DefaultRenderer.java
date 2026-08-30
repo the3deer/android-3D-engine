@@ -55,9 +55,6 @@ public class DefaultRenderer implements Renderer, EventListener {
     @Inject
     private Screen screen;
 
-    @Inject
-    private Camera defaultCamera;
-
     /**
      * Default drawer configuration
      */
@@ -99,7 +96,10 @@ public class DefaultRenderer implements Renderer, EventListener {
 
         // update camera projection dynamically to fit the model
         if (sceneManager != null && sceneManager.getActiveScene() != null) {
-            CameraUtils.updateProjection(defaultCamera, sceneManager.getActiveScene());
+            final Camera activeCamera = sceneManager.getActiveScene().getActiveCamera();
+            if (activeCamera != null) {
+                CameraUtils.updateProjection(activeCamera, sceneManager.getActiveScene());
+            }
         }
 
         // prepare frame
@@ -111,6 +111,12 @@ public class DefaultRenderer implements Renderer, EventListener {
 
         // check
         if (!enabled) return;
+
+        // update viewport
+        if (screen != null){
+            defaultConfig.viewPortWidth = screen.width;
+            defaultConfig.viewPortHeigth = screen.height;
+        }
 
         drawFrame(this.defaultConfig);
     }
@@ -125,16 +131,17 @@ public class DefaultRenderer implements Renderer, EventListener {
             config = this.defaultConfig;
         }
 
-        if (config.viewPortWidth == 0 || config.viewPortHeigth == 0) {
-            config.viewPortWidth = screen.width;
-            config.viewPortHeigth = screen.height;
-            logger.info("- Viewport (default) configured . width: "+screen.width+", height: "+screen.height);
+        // check
+        if (config.camera == null && sceneManager != null && sceneManager.getActiveScene() != null) {
+            config.camera = sceneManager.getActiveScene().getActiveCamera();
         }
 
-        // check
-        if (config.camera == null) {
-            config.camera = defaultCamera;
-        }
+        // Global State Reset: Ensure standard depth testing and culling are active.
+        // This prevents specific drawers (like shadow map passes) from leaking GL states.
+        GLES20.glEnable(GLES20.GL_DEPTH_TEST);
+        GLES20.glDepthFunc(GLES20.GL_LESS);
+        GLES20.glEnable(GLES20.GL_CULL_FACE);
+        GLES20.glCullFace(GLES20.GL_BACK);
 
         // configure viewport
         GLES20.glViewport(config.viewPortX, config.viewPortY, config.viewPortWidth, config.viewPortHeigth);

@@ -45,7 +45,7 @@ public class Wireframe {
                     Element element = objData.getElements().get(i);
                     Element newElement = ret.getElements().get(i);
 
-                    int totalIndex = element.getIndexBuffer().capacity();
+                    int totalIndex = element.getIndexBuffer().limit();
                     if (totalIndex % 3 != 0){
                         logger.warning("Element "+i+" has " + totalIndex + " indices. That is not a x3 factor. Fixing...");
                         totalIndex = totalIndex - (totalIndex % 3);
@@ -95,13 +95,13 @@ public class Wireframe {
             } else {
 
                 final FloatBuffer vertexBuffer = ret.getVertexBuffer();
-                logger.info("Building wireframe... Total vertices: " + vertexBuffer.capacity()/3);
+                logger.info("Building wireframe... Total vertices: " + vertexBuffer.limit()/3);
 
-                final IntBuffer newBuffer = IOUtils.createIntBuffer(vertexBuffer.capacity()/3 * 2);
+                final IntBuffer newBuffer = IOUtils.createIntBuffer(vertexBuffer.limit()/3 * 2);
                 ret.setIndexBuffer(newBuffer);
-                logger.info("Wireframe: Total indices: " + newBuffer.capacity());
+                logger.info("Wireframe: Total indices: " + newBuffer.limit());
 
-                for (int i = 0; i < vertexBuffer.capacity() / 3 - 2; i += 3) {
+                for (int i = 0; i < vertexBuffer.limit() / 3 - 2; i += 3) {
                     newBuffer.put(i);
                     newBuffer.put(i + 1);
                     newBuffer.put(i + 1);

@@ -22,7 +22,7 @@ public class Rescaler {
         }
 
         logger.finest("Rescaling '" + object3D.getId() + "...");
-        for (int i = 0; i < vertexBuffer.capacity(); i += 3) {
+        for (int i = 0; i < vertexBuffer.limit(); i += 3) {
             if (vertexBuffer.get(i) > rightPt)
                 rightPt = vertexBuffer.get(i);
             else if (vertexBuffer.get(i) < leftPt)
@@ -71,7 +71,7 @@ public class Rescaler {
         if (object3D instanceof AnimatedModel) {
             object3D.setScale(new float[]{scaleFactor, scaleFactor, scaleFactor});
         } else {
-            for (int i = 0; i < vertexBuffer.capacity(); i += 3) {
+            for (int i = 0; i < vertexBuffer.limit(); i += 3) {
                 float x = vertexBuffer.get(i);
                 float y = vertexBuffer.get(i + 1);
                 float z = vertexBuffer.get(i + 2);

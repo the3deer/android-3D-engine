@@ -30,8 +30,6 @@ public class SceneDrawer implements Drawer, EventListener {
     private Model sceneManager;
     @Inject
     private Light light;
-    @Inject
-    private Camera defaultCamera;
 
     private boolean enabled = true;
 

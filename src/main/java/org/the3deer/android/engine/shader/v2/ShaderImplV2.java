@@ -769,8 +769,8 @@ public class ShaderImplV2 implements Shader {
             if (!drawUsingInt && drawOrderBuffer instanceof IntBuffer) {
                 ShortBuffer indexShortBuffer;
                 drawOrderBuffer.position(0);
-                indexShortBuffer = IOUtils.createShortBuffer(drawOrderBuffer.capacity());
-                for (int j = 0; j < indexShortBuffer.capacity(); j++) {
+                indexShortBuffer = IOUtils.createShortBuffer(drawOrderBuffer.limit());
+                for (int j = 0; j < indexShortBuffer.limit(); j++) {
                     indexShortBuffer.put((short) ((IntBuffer) drawOrderBuffer).get(j));
                 }
                 drawOrderBuffer = indexShortBuffer;
@@ -796,7 +796,7 @@ public class ShaderImplV2 implements Shader {
             }
         } else {
             if (!obj.isIndexed()) {
-                drawTrianglesUsingArrays(drawMode, drawSize, vertexBuffer.capacity() / COORDS_PER_VERTEX);
+                drawTrianglesUsingArrays(drawMode, drawSize, vertexBuffer.limit() / COORDS_PER_VERTEX);
             } else {
                 drawTrianglesUsingIndex(obj, element, drawMode, drawSize, drawOrderBuffer, drawBufferType);
             }
@@ -882,7 +882,7 @@ public class ShaderImplV2 implements Shader {
             }
 
         } else {
-            for (int i = 0; i < drawOrderBuffer.capacity(); i += drawSize) {
+            for (int i = 0; i < drawOrderBuffer.limit(); i += drawSize) {
                 drawOrderBuffer.position(i);
                 GLES20.glDrawElements(drawMode, drawSize, drawBufferType, drawOrderBuffer);
                 boolean error = GLUtil.checkGlError("glDrawElements");
@@ -903,8 +903,8 @@ public class ShaderImplV2 implements Shader {
         if (!drawUsingInt && drawOrderBuffer instanceof IntBuffer) {
             ShortBuffer indexShortBuffer;
             drawOrderBuffer.position(0);
-            indexShortBuffer = IOUtils.createShortBuffer(drawOrderBuffer.capacity());
-            for (int j = 0; j < indexShortBuffer.capacity(); j++) {
+            indexShortBuffer = IOUtils.createShortBuffer(drawOrderBuffer.limit());
+            for (int j = 0; j < indexShortBuffer.limit(); j++) {
                 indexShortBuffer.put((short) ((IntBuffer) drawOrderBuffer).get(j));
             }
             drawOrderBuffer = indexShortBuffer;
@@ -1024,7 +1024,7 @@ public class ShaderImplV2 implements Shader {
 
         // draw element
         drawOrderBuffer.position(0);
-        GLES20.glDrawElements(drawMode, drawOrderBuffer.capacity(), drawBufferType,
+        GLES20.glDrawElements(drawMode, drawOrderBuffer.limit(), drawBufferType,
                 drawOrderBuffer);
 
 

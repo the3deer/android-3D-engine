@@ -33,7 +33,7 @@ public class Exploder {
         }
 
         logger.finest("Calculating dimensions for '" + object3D.getId() + "...");
-        for (int i = 0; i < vertexBuffer.capacity(); i += 3) {
+        for (int i = 0; i < vertexBuffer.limit(); i += 3) {
             if (vertexBuffer.get(i) > rightPt)
                 rightPt = vertexBuffer.get(i);
             else if (vertexBuffer.get(i) < leftPt)
@@ -71,8 +71,8 @@ public class Exploder {
         logger.finest("Exploding '" + object3D.getId() + "' to '" + xc + "," + yc + "," + zc + "' '" + scaleFactor + "'");
 
         // modify the model's vertices
-        FloatBuffer vertexBufferNew = IOUtils.createFloatBuffer(vertexBuffer.capacity());
-        for (int i = 0; i < vertexBuffer.capacity(); i += 3) {
+        FloatBuffer vertexBufferNew = IOUtils.createFloatBuffer(vertexBuffer.limit());
+        for (int i = 0; i < vertexBuffer.limit(); i += 3) {
             float x = vertexBuffer.get(i);
             float y = vertexBuffer.get(i + 1);
             float z = vertexBuffer.get(i + 2);
@@ -92,7 +92,7 @@ public class Exploder {
             return;
         }
 
-        for (int i = 0; i < vertexBuffer.capacity(); i += 9) {
+        for (int i = 0; i < vertexBuffer.limit(); i += 9) {
             float x1 = vertexBuffer.get(i);
             float y1 = vertexBuffer.get(i + 1);
             float z1 = vertexBuffer.get(i + 2);

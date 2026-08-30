@@ -2,12 +2,11 @@ package org.the3deer.android.engine.objects;
 
 import android.opengl.GLES20;
 
-import org.the3deer.android.engine.model.Object3D;
-
 import androidx.annotation.NonNull;
 
 import org.the3deer.android.engine.model.AnimatedModel;
 import org.the3deer.android.engine.model.Element;
+import org.the3deer.android.engine.model.Object3D;
 import org.the3deer.util.io.IOUtils;
 import org.the3deer.util.math.Math3DUtils;
 
@@ -87,7 +86,7 @@ public final class Normals {
 
             final
             Buffer indices = element.getIndexBuffer();
-            for (int i = 0; i < indices.capacity(); i += 3) {
+            for (int i = 0; i < indices.limit(); i += 3) {
                 final int offsetV1;
                 final int offsetV2;
                 final int offsetV3;
@@ -166,12 +165,12 @@ public final class Normals {
 
         // copy original vertex buffer to reuse positions
         final List<float[]> newVertexArray = new ArrayList<>();
-        for (int i = 0; i < obj.getVertexBuffer().capacity(); i += 3) {
+        for (int i = 0; i < obj.getVertexBuffer().limit(); i += 3) {
             newVertexArray.add(new float[]{obj.getVertexBuffer().get(i), obj.getVertexBuffer().get(i + 1), obj.getVertexBuffer().get(i + 2)});
         }
 
         final List<float[]> newNormalsArray = new ArrayList<>();
-        for (int i = 0; i < obj.getVertexNormalsArrayBuffer().capacity(); i += 3) {
+        for (int i = 0; i < obj.getVertexNormalsArrayBuffer().limit(); i += 3) {
             newNormalsArray.add(new float[]{obj.getVertexNormalsArrayBuffer().get(i), obj.getVertexNormalsArrayBuffer().get(i + 1), obj.getVertexNormalsArrayBuffer().get(i + 2)});
         }
 
@@ -190,7 +189,7 @@ public final class Normals {
             // new lines indices
             final List<Integer> normalsIndices = new ArrayList<>();
 
-            for (int i = 0; i < indexBuffer.capacity(); i += 3) {
+            for (int i = 0; i < indexBuffer.limit(); i += 3) {
 
                 final int idxV1;
                 final int idxV2;
@@ -296,9 +295,9 @@ public final class Normals {
     private static Object3D calculateNormalsLines(Object3D obj) {
         logger.config("Calculating normals for '" + obj.getId() + "' using array...");
 
-        FloatBuffer normalsLines = IOUtils.createFloatBuffer(obj.getVertexBuffer().capacity() / 3 * 2);
+        FloatBuffer normalsLines = IOUtils.createFloatBuffer(obj.getVertexBuffer().limit() / 3 * 2);
 
-        for (int i = 0; i < obj.getVertexBuffer().capacity(); i += 9) {
+        for (int i = 0; i < obj.getVertexBuffer().limit(); i += 9) {
             float[][] normalLine = Math3DUtils.calculateNormalLine(
                     new float[]{obj.getVertexBuffer().get(i), obj.getVertexBuffer().get(i + 1), obj.getVertexBuffer().get(i + 2)},
                     new float[]{obj.getVertexBuffer().get(i + 3), obj.getVertexBuffer().get(i + 4), obj.getVertexBuffer().get(i + 5)},
@@ -325,9 +324,9 @@ public final class Normals {
     private static Object3D calculateNormalsLinesByIndices(Object3D obj) {
         logger.info("Calculating normals for '" + obj.getId() + "' using indices...");
 
-        FloatBuffer normalsLines = IOUtils.createFloatBuffer(obj.getIndexBuffer().capacity() * 3);
+        FloatBuffer normalsLines = IOUtils.createFloatBuffer(obj.getIndexBuffer().limit() * 3);
 
-        for (int i = 0; i < obj.getIndexBuffer().capacity(); i += 3) {
+        for (int i = 0; i < obj.getIndexBuffer().limit(); i += 3) {
             final int v1;
             final int v2;
             final int v3;
@@ -370,9 +369,9 @@ public final class Normals {
     private static Object3D buildNormalLines(Object3D obj) {
         logger.finest("Building normals for '" + obj.getId() + "'...");
 
-        FloatBuffer normalsLines = IOUtils.createFloatBuffer(obj.getVertexBuffer().capacity() * 2);
+        FloatBuffer normalsLines = IOUtils.createFloatBuffer(obj.getVertexBuffer().limit() * 2);
 
-        for (int i = 0; i < obj.getVertexNormalsArrayBuffer().capacity(); i += 3) {
+        for (int i = 0; i < obj.getVertexNormalsArrayBuffer().limit(); i += 3) {
 
             // vertex is first vertex of line
             normalsLines.put(obj.getVertexBuffer().get(i));

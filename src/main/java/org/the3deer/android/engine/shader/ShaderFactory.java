@@ -28,11 +28,9 @@ public class ShaderFactory {
         ANIMATED_v2("shader.v2.animated", Program.ANIMATED, 2, R.raw.shader_v2_animated_vert, R.raw.shader_v2_animated_frag),
         ANIMATED_v3("shader.v3.animated", Program.ANIMATED, 3, R.raw.shader_v3_animated_vert, R.raw.shader_v3_animated_frag),
         SHADOW_MAP_v2("shader.v2.shadow_map", Program.SHADOW_MAP, 2, R.raw.shader_v2_shadow_depth_map_vert, R.raw.shader_v2_shadow_depth_map_frag),
-        // FIXME: upgrade to OpenGL 3
-        SHADOW_MAP_v3("shader.v3.shadow_map", Program.SHADOW_MAP, 3, R.raw.shader_v2_shadow_depth_map_vert, R.raw.shader_v3_shadow_depth_map_frag),
+        SHADOW_MAP_v3("shader.v3.shadow_map", Program.SHADOW_MAP, 3, R.raw.shader_v3_shadow_depth_map_vert, R.raw.shader_v3_shadow_depth_map_frag),
         SHADOW_v2("shader.v2.shadow",  Program.SHADOW, 2, R.raw.shader_v2_shadow_vert, R.raw.shader_v2_shadow_frag),
-        // FIXME: upgrade to OpenGL 3
-        SHADOW_v3("shader.v3.shadow",  Program.SHADOW, 3, R.raw.shader_v2_shadow_vert, R.raw.shader_v2_shadow_frag);
+        SHADOW_v3("shader.v3.shadow",  Program.SHADOW, 3, R.raw.shader_v3_shadow_vert, R.raw.shader_v3_shadow_frag);
 
         final String beanId;
         final int programId;

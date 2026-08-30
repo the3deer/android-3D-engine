@@ -70,7 +70,7 @@ public class AnimatedModel extends Object3D {
 
         float[] vertex = new float[]{0, 0, 0, 1};
         float[] shaped = new float[]{0, 0, 0, 1};
-        for (int i = 0; i < this.vertexArrayBuffer.capacity(); i += 3) {
+        for (int i = 0; i < this.vertexArrayBuffer.limit(); i += 3) {
             vertex[0] = this.vertexArrayBuffer.get(i);
             vertex[1] = this.vertexArrayBuffer.get(i + 1);
             vertex[2] = this.vertexArrayBuffer.get(i + 2);

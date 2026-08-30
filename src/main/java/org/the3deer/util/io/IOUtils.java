@@ -95,7 +95,7 @@ public final class IOUtils {
 
 
     public static void fill(Buffer buffer, int offset, int length, float value) {
-        for (int i = offset; i < buffer.capacity() && i < (offset + length); i++) {
+        for (int i = offset; i < buffer.limit() && i < (offset + length); i++) {
             if (buffer instanceof ShortBuffer){
                 ((ShortBuffer)buffer).put(i, (short) value);
             } else if (buffer instanceof FloatBuffer) {
@@ -105,7 +105,7 @@ public final class IOUtils {
     }
 
     public static void fill(Buffer buffer, int offset, int length, float[] value) {
-        for (int i = offset; i < buffer.capacity() && i < (offset + length); i+=value.length) {
+        for (int i = offset; i < buffer.limit() && i < (offset + length); i+=value.length) {
             for (int j=0; j<value.length; j++) {
                 if (buffer instanceof ShortBuffer){
                     // FIXME

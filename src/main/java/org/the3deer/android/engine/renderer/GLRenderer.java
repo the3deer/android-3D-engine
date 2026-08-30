@@ -146,9 +146,7 @@ public class GLRenderer implements GLSurfaceView.Renderer {
         final Renderer renderer = renderers.get(this.renderer);
 
         // check
-        if (renderer == null) throw new IllegalStateException("Renderer not found: " + this.renderer +
-                ", available renderers: " + renderers.keySet() +
-                ", active renderer: " + this.renderer);
+        if (renderer == null) return;
 
         // disable current renderer
         if (this.rendererObject != null) this.rendererObject.setEnabled(false);
