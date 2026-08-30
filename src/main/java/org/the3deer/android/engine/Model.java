@@ -261,6 +261,10 @@ public class Model {
     }
 
     public Map<String,Camera> getCameras() {
+        return this.cameras;
+    }
+
+    public Map<String,Camera> getAllCameras() {
         final Map<String, Camera> cameras = new LinkedHashMap<>(this.cameras);
         if (activeScene != null) {
             cameras.putAll(activeScene.getCameras());

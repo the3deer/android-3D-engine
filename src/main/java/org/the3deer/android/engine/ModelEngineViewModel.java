@@ -721,9 +721,7 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
                 }
 
                 scene.update();
-                for (Camera camera : model.getCameras().values()) {
-                    CameraUtils.frameModel(camera, scene.getObjects(), false);
-                }
+
                 model.addScene(scene);
             }
             @Override public void onLoadComplete() {
@@ -740,6 +738,12 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
                         logger.warning("No cameras available");
                     } else {
                         model.getActiveScene().setActiveCamera(model.getCameras().values().iterator().next());
+                    }
+                }
+
+                if (model.getActiveScene() != null && model.getActiveScene().getActiveCamera() != null){
+                    for (Camera camera : model.getCameras().values()) {
+                        CameraUtils.frameModel(camera, model.getActiveScene().getObjects(), false);
                     }
                 }
 
