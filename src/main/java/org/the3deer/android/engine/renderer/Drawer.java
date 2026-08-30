@@ -22,4 +22,9 @@ public interface Drawer extends RenderListener {
      * @param config preferred rendering configuration
      */
     void onDrawFrame(Renderer.Config config);
+
+    /**
+     * Resets the drawer's state and internal resources.
+     */
+    default void reset() {}
 }

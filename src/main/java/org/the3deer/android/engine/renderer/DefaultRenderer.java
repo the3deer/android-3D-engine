@@ -86,6 +86,11 @@ public class DefaultRenderer implements Renderer, EventListener {
     @Override
     public void reset() {
         this.traced = false;
+        if (drawers != null) {
+            for (int i = 0; i < drawers.size(); i++) {
+                drawers.get(i).reset();
+            }
+        }
     }
 
     @Override

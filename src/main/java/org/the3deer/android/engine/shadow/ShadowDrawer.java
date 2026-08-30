@@ -61,6 +61,13 @@ public class ShadowDrawer implements Drawer {
     }
 
     @Override
+    public void reset() {
+        if (shadowsRenderer != null) {
+            shadowsRenderer.reset();
+        }
+    }
+
+    @Override
     public void onDrawFrame() {
         this.onDrawFrame(null);
     }
@@ -90,19 +97,13 @@ public class ShadowDrawer implements Drawer {
         // check
         if (scene.getObjects().isEmpty()) return;
 
-        // Front-Face Culling for the Shadow Map
-        // A very effective trick to reduce acne is to render only the back faces of your objects
-        // when creating the depth map. This ensures the depth stored in the map is always slightly
-        // "behind" the surface visible to the camera.
+        // 1. Shadow Map Pass: Cull front faces to reduce shadow acne
+        GLES20.glEnable(GLES20.GL_CULL_FACE);
         GLES20.glCullFace(GLES20.GL_FRONT);
-
-        // shadow buffer
         shadowsRenderer.onPrepareFrame(shaderFactory, config, camera.getProjectionMatrix(), camera.getViewMatrix(), light.getLocation(), scene);
 
-        // ... render objects to depth FBO ...
-        GLES20.glCullFace(GLES20.GL_FRONT); // Restore for normal rendering (was GLES20.glCullFace(GLES20.GL_BACK) in original code, but restoring the state)
-
-        // render with shadows
+        // 2. Main Render Pass: Restore standard back-face culling
+        GLES20.glCullFace(GLES20.GL_BACK);
         shadowsRenderer.onDrawFrame(shaderFactory, config, camera.getProjectionMatrix(), camera.getViewMatrix(), light.getLocation(), scene);
     }
 }

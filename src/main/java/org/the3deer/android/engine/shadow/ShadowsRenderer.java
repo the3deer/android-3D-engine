@@ -375,4 +375,10 @@ public class ShadowsRenderer {
     public int getProgram() {
         return mActiveRenderer.getProgram();
     }
+
+    public void reset() {
+        fboId = null;
+        depthTextureId = null;
+        renderTextureId = null;
+    }
 }
