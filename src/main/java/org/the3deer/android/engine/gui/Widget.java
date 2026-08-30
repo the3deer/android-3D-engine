@@ -212,7 +212,7 @@ public class Widget extends Object3D implements EventListener {
         this.parent = parent;
         this.width = width;
         this.height = height;
-        setDimensions(new Dimensions(0, width, height, 0, 0, 0));
+        setDimensions(new Dimensions(0, width, 0, height, 0, 0));
     }
 
     public Widget(Object3D source) {

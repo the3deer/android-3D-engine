@@ -129,7 +129,7 @@ public class GUI extends Widget implements EventListener, BeanManaged {
             halfWidth = halfHeight * ratio;
         }
 
-        return new Dimensions(-halfWidth, halfWidth, halfHeight, -halfHeight, 1, -1);
+        return new Dimensions(-halfWidth, halfWidth, -halfHeight, halfHeight, -1, 1);
     }
 
     public void setShowFPS(boolean enable){

@@ -53,13 +53,13 @@ public class Dimensions {
     }
 
     // called from the UI
-    public Dimensions(float leftPt, float rightPt, float topPt, float bottomPt, float nearPt, float farPt) {
-        this.leftPt = leftPt;
-        this.rightPt = rightPt;
-        this.topPt = topPt;
-        this.bottomPt = bottomPt;
-        this.nearPt = nearPt;
-        this.farPt = farPt;
+    public Dimensions(float xMin, float xMax, float yMin, float yMax, float zMin, float zMax) {
+        this.leftPt = xMin;
+        this.rightPt = xMax;
+        this.bottomPt = yMin;
+        this.topPt = yMax;
+        this.farPt = zMin;
+        this.nearPt = zMax;
         refresh();
     }
 
@@ -71,13 +71,13 @@ public class Dimensions {
         return max;
     }
 
-    public void set(float leftPt, float rightPt, float topPt, float bottomPt, float nearPt, float farPt){
-        this.leftPt = leftPt;
-        this.rightPt = rightPt;
-        this.topPt = topPt;
-        this.bottomPt = bottomPt;
-        this.nearPt = nearPt;
-        this.farPt = farPt;
+    public void set(float xMin, float xMax, float yMin, float yMax, float zMin, float zMax){
+        this.leftPt = xMin;
+        this.rightPt = xMax;
+        this.bottomPt = yMin;
+        this.topPt = yMax;
+        this.farPt = zMin;
+        this.nearPt = zMax;
         refresh();
     }
 
@@ -193,14 +193,14 @@ public class Dimensions {
 
     public Dimensions translate(float[] diff) {
         return new Dimensions(leftPt + diff[0], rightPt + diff[0],
-                topPt + diff[1], bottomPt + diff[1],
-                nearPt + diff[2], farPt + diff[2]);
+                bottomPt + diff[1], topPt + diff[1],
+                farPt + diff[2], nearPt + diff[2]);
     }
 
     public Dimensions scale(float scale) {
         return new Dimensions(leftPt * scale, rightPt * scale,
-                topPt * scale, bottomPt * scale,
-                nearPt * scale, farPt * scale);
+                bottomPt * scale, topPt * scale,
+                farPt * scale, nearPt * scale);
     }
 
     @Override
