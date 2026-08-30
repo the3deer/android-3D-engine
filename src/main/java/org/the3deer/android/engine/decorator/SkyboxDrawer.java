@@ -50,9 +50,6 @@ public class SkyboxDrawer implements Drawer {
     @Inject
     private Screen screen;
 
-    @Inject
-    private Camera camera;
-
     @BeanProperty
     private boolean enabled;
 
@@ -189,7 +186,7 @@ public class SkyboxDrawer implements Drawer {
             shader.setTexturesEnabled(!isDynamic);
 
             // Get camera and projection
-            final Camera camera = config != null && config.camera != null ? config.camera : this.camera;
+            final Camera camera = config != null && config.camera != null ? config.camera : model.getActiveScene().getActiveCamera();
             final Projection projection = camera.getProjection();
 
             // Center skybox at the scene's absolute center (or 0,0,0)

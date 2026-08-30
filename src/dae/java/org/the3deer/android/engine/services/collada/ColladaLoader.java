@@ -140,7 +140,7 @@ public class ColladaLoader {
 
             // Then, build the flat list of renderable Object3D instances.
             List<Object3D> finalModels = new ArrayList<>();
-            List<Node> rootParserNodes = parser.getRootNodes(); // <--- Your caret was here.
+            List<Node> rootParserNodes = parser.getRootNodes();
 
             if (!rootParserNodes.isEmpty()) {
                 // Iterate through each root node and build its part of the scene

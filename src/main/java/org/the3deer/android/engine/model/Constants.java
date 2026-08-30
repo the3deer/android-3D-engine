@@ -22,7 +22,7 @@ public class Constants {
     /**
      * Bean name for the Engine Controller
      */
-    public static final String BEAN_ID_CONTROLLER = "controller";
+    public static final String BEAN_ID_CONTROLLER = "system.controller";
     /**
      * Bean for the Android Context
      */

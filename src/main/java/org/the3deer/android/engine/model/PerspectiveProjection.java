@@ -3,12 +3,16 @@ package org.the3deer.android.engine.model;
 import org.the3deer.util.bean.BeanInit;
 import org.the3deer.android.util.Matrix;
 
+import java.util.logging.Logger;
+
 import javax.inject.Inject;
 
 /**
  * Regular standard perspective projection.
  */
 public final class PerspectiveProjection implements Projection {
+
+    private static final Logger logger = Logger.getLogger(PerspectiveProjection.class.getSimpleName());
 
     // projection matrix
     private final float[] matrix = new float[16];
@@ -35,6 +39,10 @@ public final class PerspectiveProjection implements Projection {
         this.znear = znear;
         this.zfar = zfar;
         this.custom = true;
+    }
+
+    public void setScreen(Screen screen) {
+        this.screen = screen;
     }
 
     @Override

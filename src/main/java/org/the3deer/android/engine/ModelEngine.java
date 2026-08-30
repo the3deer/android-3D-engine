@@ -24,7 +24,6 @@ import org.the3deer.android.engine.model.Constants;
 import org.the3deer.android.engine.model.Light;
 import org.the3deer.android.engine.model.Object3D;
 import org.the3deer.android.engine.model.OrthographicProjection;
-import org.the3deer.android.engine.model.PerspectiveProjection;
 import org.the3deer.android.engine.model.Scene;
 import org.the3deer.android.engine.model.Screen;
 import org.the3deer.android.engine.objects.Point;
@@ -177,58 +176,57 @@ public final class ModelEngine {
 
         // model
         beanManager.add("model", this.model);
+        beanManager.add(Constants.BEAN_ID_SCREEN, this.screen);
+
         // activity
         beanManager.add(Constants.BEAN_ID_CONTEXT, this.context);
         // FIXME: remove this
         beanManager.add("handler", this.handler);
 
         // core
-        beanManager.add(Constants.BEAN_ID_SCREEN, this.screen);
-        beanManager.add("engine", ModelEngine.this);
-        beanManager.add("shader.factory", ShaderFactory.class);
-        beanManager.add("shader.manager", ShaderManager.class);
+        beanManager.add("system.engine", ModelEngine.this);
+        beanManager.add("system.shaderFactory", ShaderFactory.class);
+        beanManager.add("system.shaderManager", ShaderManager.class);
         beanManager.add(Constants.BEAN_ID_CONTROLLER, eventManager);
 
         // Technical engine API implementation
-        beanManager.add("engine.api", org.the3deer.android.engine.api.EngineAPIImpl.class);
+        beanManager.add("system.api", org.the3deer.android.engine.api.EngineAPIImpl.class);
 
         // system
-        beanManager.add("10.gpuManager", GpuManager.class);
-        beanManager.add("10.touchController", TouchController.class);
+        beanManager.add("system.gpuManager", GpuManager.class);
+        beanManager.add("system.touchController", TouchController.class);
+
+        // animation
+        beanManager.add("animation.controller", AnimationController.class);
+
+        // collision
+        beanManager.add("collision.controller", CollisionController.class);
 
         // camera
-        beanManager.add("camera.animation", AnimationController.class);
-        beanManager.add("camera.projection", PerspectiveProjection.class);
-        beanManager.add("camera.default", new Camera("default", Constants.DEFAULT_CAMERA_POSITION));
-        beanManager.add("camera.1arcBall", ArcBallCameraHandler.class);
-        beanManager.add("camera.2firstPerson", FirstPersonCameraHandler.class);
-        beanManager.add("camera.3isometric", IsometricCameraHandler.class);
-        beanManager.add("camera.4ortho", OrthographicCameraHandler.class);
+        beanManager.add("camera.arcBall", ArcBallCameraHandler.class);
+        beanManager.add("camera.ortho", OrthographicCameraHandler.class);
+        beanManager.add("camera.isometric", IsometricCameraHandler.class);
+        beanManager.add("camera.firstPerson", FirstPersonCameraHandler.class);
         beanManager.add("camera.manager", CameraManager.class);
 
         // objects
-        beanManager.add("20.scene.primitiveManager", org.the3deer.android.engine.objects.PrimitiveManager.class);
-        beanManager.add("20.scene.light", new Light(new float[]{50f, 100f, 50f}));
-
-        // projections
-        beanManager.add("20.scene.projections.orthographic", OrthographicProjection.class);
-
-        // controllers
-        //beanFactory.add("20.controller.animationController", AnimationController.class);
-        beanManager.add("30.controller.collisionController", CollisionController.class);
+        beanManager.add("scene.primitiveManager", org.the3deer.android.engine.objects.PrimitiveManager.class);
+        beanManager.add("scene.light", new Light(new float[]{50f, 100f, 50f}));
 
         // drawers
-        beanManager.add("40.drawer0.SkyboxDrawer", SkyboxDrawer.class);
-        beanManager.add("40.drawer1.SceneDrawer", SceneDrawer.class);
-        beanManager.add("40.drawer1.screenshotDrawer", org.the3deer.android.engine.renderer.ScreenshotDrawer.class);
-        beanManager.add("40.drawer2.boundingBoxDrawer", BoundingBoxDrawer.class);
-        beanManager.add("40.drawer3.lightBulb", Point.build(Constants.VECTOR_ZERO)
+        beanManager.add("drawer.skybox", SkyboxDrawer.class);
+        beanManager.add("drawer.scene", SceneDrawer.class);
+        beanManager.add("drawer.lightBulb-", Point.build(Constants.VECTOR_ZERO)
                 .setId("light").setColor(Constants.COLOR_YELLOW));
-        beanManager.add("40.drawer3.lightBulbDrawer", LightBulbDrawer.class);
-        beanManager.add("40.drawer4.wireframeDrawer", WireframeDrawer.class);
-        beanManager.add("40.drawer5.skeletonDrawer", SkeletonDrawer.class);
-        beanManager.add("40.drawer6.shadowRenderer", ShadowDrawer.class);
-        beanManager.add("40.drawer7.collisionDrawer", CollisionDrawer.class);
+        beanManager.add("drawer.lightBulbDrawer", LightBulbDrawer.class);
+        beanManager.add("drawer.shadow", ShadowDrawer.class);
+
+        // debuggers
+        beanManager.add("debugger.wireframe", WireframeDrawer.class);
+        beanManager.add("debugger.skeleton", SkeletonDrawer.class);
+        beanManager.add("debugger.boundingBox", BoundingBoxDrawer.class);
+        beanManager.add("debugger.collision", CollisionDrawer.class);
+        beanManager.add("debugger.screenshot", org.the3deer.android.engine.renderer.ScreenshotDrawer.class);
 
         // renderer
         beanManager.add("renderer.default", DefaultRenderer.class);
@@ -247,10 +245,10 @@ public final class ModelEngine {
     private void initUserInterface() {
 
         // visualization
-        beanManager.add("gui.projection", OrthographicProjection.class);
-        beanManager.add("gui.camera", new Camera("gui", new float[]{0, 0, 1}));
+        beanManager.add("gui.projection-", OrthographicProjection.class);
+        beanManager.add("gui.camera-", new Camera("gui", new float[]{0, 0, 1}));
         beanManager.add("gui.renderer", new GUIDrawer());
-        beanManager.add("gui.3default", GUI.class);
+        beanManager.add("gui.default", GUI.class);
     }
 
     /**

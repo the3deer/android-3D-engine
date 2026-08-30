@@ -45,8 +45,6 @@ public class SkeletonDrawer implements Drawer {
     private ShaderManager shaderFactory;
     @Inject
     private Model sceneManager;
-    @Inject
-    private Camera camera;
     // The skeleton associated
     private final Map<String, AnimatedModel> skeleton = new HashMap<>();
 

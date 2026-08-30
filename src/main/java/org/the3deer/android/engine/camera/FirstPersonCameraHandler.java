@@ -3,7 +3,10 @@ package org.the3deer.android.engine.camera;
 import org.the3deer.android.engine.Model;
 import org.the3deer.android.engine.event.TouchEvent;
 import org.the3deer.android.engine.model.Camera;
+import org.the3deer.android.engine.model.PerspectiveProjection;
+import org.the3deer.android.engine.model.Projection;
 import org.the3deer.android.engine.model.Screen;
+import org.the3deer.util.bean.BeanInit;
 import org.the3deer.util.math.Math3DUtils;
 
 import java.util.EventObject;
@@ -22,17 +25,30 @@ public class FirstPersonCameraHandler implements Camera.Controller {
     @Inject
     private Screen screen;
 
-    private Camera camera;
+    @Inject
+    private Projection projection = new PerspectiveProjection();
+
+    @Inject
+    private Camera camera = new Camera("fps", org.the3deer.android.engine.model.Constants.DEFAULT_CAMERA_POSITION);
 
     private float[] target = new float[]{0, 0, 0};
 
     private boolean gravity = true;
 
+    @BeanInit
+    public void setUp() {
+
+        // configure the default camera
+        projection.setScreen(screen);
+        camera.setProjection(projection);
+        camera.setController(this);
+
+        // register camera
+        model.addCamera(camera);
+    }
+
     @Override
     public Camera getCamera() {
-        if (camera == null) {
-            camera = new Camera("fps", org.the3deer.android.engine.model.Constants.DEFAULT_CAMERA_POSITION);
-        }
         return camera;
     }
 

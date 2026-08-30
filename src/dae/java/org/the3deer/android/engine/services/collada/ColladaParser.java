@@ -1367,12 +1367,6 @@ public class ColladaParser {
 
     /**
      * Parses the <library_materials> section. This creates the final Material objects
-     * by connecting a material ID to an effect ID, and then resolving the texture file.
-     */
-    // In ColladaParser.java, REPLACE the method at your caret with this.
-
-    /**
-     * Parses the <library_materials> section. This creates the final Material objects
      * by connecting a material ID to a pre-parsed effect, and then resolving the texture file.
      */
     private void parseLibraryMaterials(XmlPullParser parser) throws Exception {

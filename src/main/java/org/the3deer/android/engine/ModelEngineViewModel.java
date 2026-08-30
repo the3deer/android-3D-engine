@@ -57,7 +57,7 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
     static {
         // Configure Global Java Logging Interceptor
         final Logger rootLogger = Logger.getLogger("");
-        rootLogger.setLevel(Level.INFO);
+        rootLogger.setLevel(Level.ALL);
         // Remove existing instances if any (e.g. during dev/re-deploy)
         for (java.util.logging.Handler handler : rootLogger.getHandlers()) {
             if (handler instanceof LogInterceptor) {
@@ -317,9 +317,9 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
         logger.info("Requesting engine reset: " + uriString);
 
         // Try to reset on GL Thread if surface is available
-        final Object surface = engine.getBeanFactory().get("gl.surfaceView");
-        if (surface instanceof GLSurfaceView) {
-            ((GLSurfaceView) surface).queueEvent(engine::reset);
+        final GLSurfaceView surface = engine.getBeanFactory().find(GLSurfaceView.class);
+        if (surface != null) {
+            surface.queueEvent(engine::reset);
         } else {
             // Fallback to current thread (might miss some GL resource deletion if no context)
             engine.reset();
@@ -687,14 +687,19 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
         final LoadListener listener = new LoadListener() {
             @Override public void onLoadStart() { model.setStatus(Model.Status.LOADING, "Loading started..."); }
             @Override public void onProgress(String progress) { model.setStatus(Model.Status.LOADING, progress); }
-            @Override public void onLoadCamera(Scene scene, Camera camera) { if (glScreen != null) camera.getProjection().setAspectRatio(glScreen.getRatio()); }
+            @Override public void onLoadCamera(Scene scene, Camera camera) {
+                if (glScreen != null) {
+                    camera.getProjection().setAspectRatio(-1);
+                }
+            }
             @Override public void onLoadError(Exception ex) { model.setStatus(Model.Status.ERROR, ex.getMessage()); Model.CURRENT.remove(); }
             @Override public void onLoadObject(Scene scene, Object3D data) { scene.addObject(data); }
             @Override public void onLoadScene(Scene scene) {
                 // Ensure the scene has a camera to work with
                 if (scene.getActiveCamera() == null) {
-                    final Camera defaultCamera = engine.getBeanFactory().get("camera.default", Camera.class);
-                    if (defaultCamera != null) {
+                    final Map<String, Camera> cameras = model.getCameras();
+                    if (!cameras.isEmpty()) {
+                        final Camera defaultCamera = cameras.values().iterator().next();
                         scene.setActiveCamera(defaultCamera);
                         scene.addCamera(defaultCamera);
                     }
@@ -717,7 +722,7 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
 
                 scene.update();
                 for (Camera camera : model.getCameras().values()) {
-                    CameraUtils.frameModel(camera, scene.getObjects());
+                    CameraUtils.frameModel(camera, scene.getObjects(), false);
                 }
                 model.addScene(scene);
             }

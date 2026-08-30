@@ -26,6 +26,17 @@ public class CameraUtils {
      * @param objects the objects to frame
      */
     public static void frameModel(Camera camera, List<Object3D> objects) {
+        frameModel(camera, objects, false);
+    }
+
+    /**
+     * Frames the model(s) in the camera's view.
+     *
+     * @param camera         the camera to position
+     * @param objects        the objects to frame
+     * @param worldRelative if true, frame relative to world origin (0,0,0)
+     */
+    public static void frameModel(Camera camera, List<Object3D> objects, boolean worldRelative) {
         if (camera == null || objects == null || objects.isEmpty()) {
             return;
         }
@@ -65,25 +76,49 @@ public class CameraUtils {
         }
 
         // 2. Calculate center and radius of the bounding sphere
-        float centerX = (minX + maxX) / 2.0f;
-        float centerY = (minY + maxY) / 2.0f;
-        float centerZ = (minZ + maxZ) / 2.0f;
+        final float centerX;
+        final float centerY;
+        final float centerZ;
+        final float radius;
 
-        float dx = maxX - minX;
-        float dy = maxY - minY;
-        float dz = maxZ - minZ;
-        
-        // Sphere radius that perfectly encloses the AABB
-        final float radius = (float) Math.sqrt(dx * dx + dy * dy + dz * dz) / 2.0f;
+        if (worldRelative) {
+            centerX = centerY = centerZ = 0;
+            // Radius is the max distance from any corner of the AABB to the origin
+            float maxDistSq = 0;
+            for (float x : new float[]{minX, maxX}) {
+                for (float y : new float[]{minY, maxY}) {
+                    for (float z : new float[]{minZ, maxZ}) {
+                        maxDistSq = Math.max(maxDistSq, x * x + y * y + z * z);
+                    }
+                }
+            }
+            radius = (float) Math.sqrt(maxDistSq);
+        } else {
+            centerX = (minX + maxX) / 2.0f;
+            centerY = (minY + maxY) / 2.0f;
+            centerZ = (minZ + maxZ) / 2.0f;
+
+            float dx = maxX - minX;
+            float dy = maxY - minY;
+            float dz = maxZ - minZ;
+            radius = (float) Math.sqrt(dx * dx + dy * dy + dz * dz) / 2.0f;
+        }
 
         // 3. Calculate distance based on FOV
         Projection projection = camera.getProjection();
-        float fov = (projection != null && projection.getFov() > 0) ? projection.getFov() : 60.0f; 
+        float fov = (projection != null && projection.getFov() > 0) ? projection.getFov() : 60.0f;
+        float ratio = (projection != null && projection.getAspectRatio() > 0) ? projection.getAspectRatio() : 1.0f;
 
         // distance = radius / sin(fov / 2)
         // Adding 20% padding for a comfortable view
         double halfFovRad = Math.toRadians(fov / 2.0);
-        float distance = (float) (radius / Math.sin(halfFovRad)) * 1.2f;
+        float distanceV = (float) (radius / Math.sin(halfFovRad));
+
+        // Horizontal FOV distance
+        double halfFovHRad = Math.atan(Math.tan(halfFovRad) * ratio);
+        float distanceH = (float) (radius / Math.sin(halfFovHRad));
+
+        float distance = Math.max(distanceV, distanceH) * 1.2f;
 
         // --- ATOMIC AVOCADO / TINY MODEL HANDLING ---
         if (radius < 0.1f) {

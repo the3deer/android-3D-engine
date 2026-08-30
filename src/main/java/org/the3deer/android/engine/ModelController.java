@@ -27,6 +27,7 @@ import java.util.EventObject;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.logging.Logger;
 
 import javax.inject.Inject;
 
@@ -43,6 +44,7 @@ import javax.inject.Inject;
  */
 public class ModelController implements EventManager, TouchHandler {
 
+    private static final Logger logger = Logger.getLogger(ModelController.class.getSimpleName());
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
     // dependencies
@@ -58,6 +60,8 @@ public class ModelController implements EventManager, TouchHandler {
     private CollisionController collisionController;
     @Inject
     private CameraManager cameraManager;
+    @Inject
+    private List<Camera> cameras;
     @Inject
     private List<EventListener> listeners;
     @Inject
@@ -93,22 +97,15 @@ public class ModelController implements EventManager, TouchHandler {
     }
 
     private boolean propagateInternal(final EventObject event) {
+
         if (event instanceof GLEvent) {
             final GLEvent rev = (GLEvent) event;
-            //logger.finest("propagate. RenderEvent:" + rev.getCode());
             if (rev.getCode() == GLEvent.Code.SURFACE_CREATED) {
 
                 // Note: Shader and Texture reset logic moved to ModelEngine.reset(),
                 // which is called by GLRenderer.onSurfaceCreated on the GL Thread.
 
             } else if (rev.getCode() == GLEvent.Code.SURFACE_CHANGED) {
-
-                // update aspect ratio of all cameras in the scene
-
-                for (Camera camera : sceneManager.getCameras().values()) {
-                    camera.setProjection(rev.getWidth(), rev.getHeight());
-                }
-
 
                 if (gui != null){
                     gui.onEvent(event);

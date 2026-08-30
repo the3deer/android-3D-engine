@@ -1,5 +1,6 @@
 package org.the3deer.android.engine.camera;
 
+import org.the3deer.android.engine.Model;
 import org.the3deer.android.engine.animation.AnimationController;
 import org.the3deer.android.engine.event.TouchEvent;
 import org.the3deer.android.engine.model.Camera;
@@ -8,9 +9,9 @@ import org.the3deer.android.engine.model.OrthographicProjection;
 import org.the3deer.android.engine.model.Projection;
 import org.the3deer.android.engine.model.Screen;
 import org.the3deer.android.util.Matrix;
+import org.the3deer.util.bean.BeanInit;
 import org.the3deer.util.math.Math3DUtils;
 
-import java.util.Arrays;
 import java.util.EventObject;
 import java.util.logging.Logger;
 
@@ -25,7 +26,14 @@ public class OrthographicCameraHandler implements Camera.Controller {
 
     private static final Logger logger = Logger.getLogger(OrthographicCameraHandler.class.getSimpleName());
 
-    private Camera camera;
+    @Inject
+    private Model model;
+
+    @Inject
+    private Projection projection = new OrthographicProjection();
+
+    @Inject
+    private Camera camera = new Camera("ortho", Constants.DEFAULT_CAMERA_POSITION);
 
     @Inject
     private AnimationController animationController;
@@ -35,19 +43,30 @@ public class OrthographicCameraHandler implements Camera.Controller {
 
     private float[] target = new float[]{0, 0, 0};
 
-    @Override
-    public Camera getCamera() {
-        if (camera == null) {
-            camera = new Camera("ortho", Constants.DEFAULT_CAMERA_POSITION);
-            final OrthographicProjection ortho = new OrthographicProjection();
+    @BeanInit
+    public void setUp() {
+
+        // configure the default camera
+        projection.setScreen(screen);
+
+        if (projection instanceof OrthographicProjection) {
+            final OrthographicProjection ortho = (OrthographicProjection) projection;
             // Initial magnification to match a ~60 deg FOV at the default distance
             final float distance = Math3DUtils.length(Constants.DEFAULT_CAMERA_POSITION);
             final float mag = (float) (distance * Math.tan(Math.toRadians(30)));
             ortho.setXmag(mag);
             ortho.setYmag(mag);
-            camera.setProjection(ortho);
-            camera.setController(this);
         }
+
+        camera.setProjection(projection);
+        camera.setController(this);
+
+        // register camera
+        model.addCamera(camera);
+    }
+
+    @Override
+    public Camera getCamera() {
         return camera;
     }
 
@@ -143,16 +162,27 @@ public class OrthographicCameraHandler implements Camera.Controller {
         camera.getView()[1] = target[1];
         camera.getView()[2] = target[2];
 
-        float dXabs2 = Math.abs(dX);
-        float dYabs2 = Math.abs(dY);
-        if (dXabs2 > dYabs2 && dX < 0) {
-            translateCameraIsometricRight();
-        } else if (dXabs2 > dYabs2 && dX > 0) {
-            translateCameraIsometricLeft();
-        } else if (dXabs2 < dYabs2 && dY > 0) {
-            translateCameraIsometricUp();
-        } else if (dXabs2 < dYabs2 && dY < 0) {
-            translateCameraIsometricDown();
+        final float dXabs = Math.abs(dX);
+        final float dYabs = Math.abs(dY);
+
+        if (dXabs > dYabs) {
+            // Horizontal swipe
+            final float[] relPos = Math3DUtils.substract(camera.getPos(), target);
+            final float[] up = camera.getUp();
+            final float[] moveDir = Math3DUtils.crossProduct(up[0], up[1], up[2], -relPos[0], -relPos[1], -relPos[2]);
+            if (dX < 0) {
+                // Swipe left -> Pull surface left -> Rotate camera right
+                Math3DUtils.invert(moveDir);
+            }
+            rotateWithMatrix(moveDir);
+        } else {
+            // Vertical swipe
+            final float[] moveDir = camera.getUp().clone();
+            if (dY > 0) {
+                // Swipe down -> Pull surface down -> Rotate camera up
+                Math3DUtils.invert(moveDir);
+            }
+            rotateWithMatrix(moveDir);
         }
     }
 
@@ -160,7 +190,8 @@ public class OrthographicCameraHandler implements Camera.Controller {
     public synchronized void rotate(float angle) {
         if (camera == null) getCamera();
         final double rotationAngle = (angle > 0 ? -Math.PI : Math.PI) * 2 / 3;
-        final float[] posN = Math3DUtils.normalize2(camera.getPos());
+        final float[] relPos = Math3DUtils.substract(camera.getPos(), target);
+        final float[] posN = Math3DUtils.normalize2(relPos);
         final float[] rotMatrix = new float[16];
         Math3DUtils.createRotationMatrixAroundVector(rotMatrix, 0, rotationAngle, posN[0], posN[1], posN[2]);
 
@@ -170,40 +201,6 @@ public class OrthographicCameraHandler implements Camera.Controller {
         Math3DUtils.snapToGrid(newUp);
 
         animate(camera.getxPos(), camera.getyPos(), camera.getzPos(), newUp[0], newUp[1], newUp[2]);
-    }
-
-    private void translateCameraIsometricDown() {
-        if (camera == null) getCamera();
-        final float[] relPos = Math3DUtils.substract(camera.getPos(), target);
-        final float length = Math3DUtils.length(relPos);
-        animate(target[0] - camera.getxUp() * length, target[1] - camera.getyUp() * length, target[2] - camera.getzUp() * length,
-                relPos[0]/length, relPos[1]/length, relPos[2]/length);
-    }
-
-    private void translateCameraIsometricUp() {
-        if (camera == null) getCamera();
-        final float[] relPos = Math3DUtils.substract(camera.getPos(), target);
-        final float length = Math3DUtils.length(relPos);
-        animate(target[0] + camera.getxUp() * length, target[1] + camera.getyUp() * length, target[2] + camera.getzUp() * length,
-                -relPos[0]/length, -relPos[1]/length, -relPos[2]/length);
-    }
-
-    private void translateCameraIsometricRight() {
-        if (camera == null) getCamera();
-        final float[] relPos = Math3DUtils.substract(camera.getPos(), target);
-        float[] right = Math3DUtils.crossProduct(camera.getUp()[0], camera.getUp()[1], camera.getUp()[2], -relPos[0], -relPos[1], -relPos[2]);
-        Math3DUtils.normalizeVector(right);
-        Math3DUtils.snapToGrid(right);
-        rotateWithMatrix(right);
-    }
-
-    private void translateCameraIsometricLeft() {
-        if (camera == null) getCamera();
-        final float[] relPos = Math3DUtils.substract(camera.getPos(), target);
-        float[] left = Math3DUtils.crossProduct(-relPos[0], -relPos[1], -relPos[2], camera.getUp()[0], camera.getUp()[1], camera.getUp()[2]);
-        Math3DUtils.normalizeVector(left);
-        Math3DUtils.snapToGrid(left);
-        rotateWithMatrix(left);
     }
 
     private void rotateWithMatrix(float[] cross) {
@@ -272,13 +269,13 @@ public class OrthographicCameraHandler implements Camera.Controller {
             Object[] args = new Object[]{"moveTo",
                     camera.getxPos(), camera.getyPos(), camera.getzPos(),
                     camera.getxUp(), camera.getyUp(), camera.getzUp(),
-                    xp, yp, zp, 
-                    xu, yu, zu, 
+                    xp, yp, zp,
+                    xu, yu, zu,
                     camera.getxView(), camera.getyView(), camera.getzView(),
                     target[0], target[1], target[2]}; // Target view is always target for isometric/orthographic
-            
+
             if (animationController != null && (animation == null || animation.isFinished())) {
-                logger.finest("New animation: " + Arrays.toString(args));
+                //logger.finest("New animation: " + Arrays.toString(args));
                 animation = new CameraAnimation(camera, args);
                 animationController.add(animation);
             }

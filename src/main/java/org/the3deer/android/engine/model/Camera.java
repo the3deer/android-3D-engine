@@ -187,11 +187,6 @@ public class Camera {
         this.listeners.add(eventListener);
     }
 
-    // kotlin
-    public void setProjection(int width, int height) {
-        getProjection().setAspectRatio((float) width / height);
-    }
-
     public void move(float dX, float dY) {
         if (controller != null)
             controller.move(dX, dY);

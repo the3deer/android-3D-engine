@@ -41,8 +41,6 @@ public class WireframeDrawer implements Drawer, EventListener {
     private ShaderManager shaderFactory;
     @Inject
     private Model sceneManager;
-    @Inject
-    private Camera camera;
     // The wireframe associated shape (it should be made of lines only)
     private Map<String, Object3D> wireframes = new HashMap<>();
 
@@ -128,7 +126,8 @@ public class WireframeDrawer implements Drawer, EventListener {
                     //animator.update(wireframe, scene.isShowBindPose());
                     //animator.update(scene.getRootNodes(), scene.getCurrentAnimation(), false);
                     shader.draw(wireframe, camera.getProjectionMatrix(), camera.getViewMatrix(), null, null, camera.getPos(), wireframe.getDrawMode(), wireframe.getDrawSize());
-                } catch (Error e) {
+                } catch (Exception e) {
+                    setEnabled(false);
                     logger.log(Level.SEVERE,  e.getMessage(), e);
                 }
             }

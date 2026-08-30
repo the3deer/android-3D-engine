@@ -25,7 +25,7 @@ public class AnimationController implements RenderListener {
 
     public void add(Animation<?> animation) {
         synchronized (animations_new) {
-            logger.info("New animation...." + animation);
+            //logger.finest("New animation...." + animation);
             this.animations_new.add(animation);
         }
     }

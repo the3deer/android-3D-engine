@@ -21,4 +21,6 @@ public interface Projection {
     float getAspectRatio();
 
     void setAspectRatio(float aspectRatio);
+
+    void setScreen(Screen screen);
 }

@@ -798,7 +798,7 @@ public class Math3DUtils {
         return Math3DUtils.equals(n1, n2);
     }
 
-    private static void invert(float[] v) {
+    public static void invert(float[] v) {
         v[0] = -v[0];
         v[1] = -v[1];
         v[2] = -v[2];

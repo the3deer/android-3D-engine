@@ -3,9 +3,11 @@ package org.the3deer.android.engine.camera;
 import org.the3deer.android.engine.Model;
 import org.the3deer.android.engine.event.TouchEvent;
 import org.the3deer.android.engine.model.Camera;
+import org.the3deer.android.engine.model.PerspectiveProjection;
 import org.the3deer.android.engine.model.Projection;
 import org.the3deer.android.engine.model.Scene;
 import org.the3deer.android.engine.model.Screen;
+import org.the3deer.util.bean.BeanInit;
 import org.the3deer.util.math.Math3DUtils;
 
 import java.util.EventObject;
@@ -27,15 +29,27 @@ public class ArcBallCameraHandler implements Camera.Controller {
     private Model model;
 
     @Inject
-    private Camera camera;
+    private Projection projection = new PerspectiveProjection();
 
     @Inject
-    private Projection projection;
+    private Camera camera = new Camera("arcBall", org.the3deer.android.engine.model.Constants.DEFAULT_CAMERA_POSITION);
 
     @Inject
     private Screen screen;
 
     private float[] target = new float[]{0, 0, 0};
+
+    @BeanInit
+    public void setUp(){
+
+        // configure the default camera
+        projection.setScreen(screen);
+        camera.setProjection(projection);
+        camera.setController(this);
+
+        // register camera
+        model.addCamera(camera);
+    }
 
     @Override
     public Camera getCamera() {

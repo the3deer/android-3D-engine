@@ -12,6 +12,7 @@ import org.the3deer.android.engine.ModelEngineViewModel;
 import org.the3deer.android.engine.animation.Animation;
 import org.the3deer.android.engine.api.dto.Mapper;
 import org.the3deer.android.engine.model.Camera;
+import org.the3deer.android.engine.model.Constants;
 import org.the3deer.android.engine.model.Material;
 import org.the3deer.android.engine.model.Object3D;
 import org.the3deer.android.engine.model.Scene;
@@ -58,9 +59,6 @@ public class EngineAPIImpl implements EngineAPI {
 
     @Inject
     private BeanManager beanManager;
-
-    @Inject
-    private Camera defaultCamera;
 
     @Inject
     private PrimitiveManager primitiveManager;
@@ -144,14 +142,14 @@ public class EngineAPIImpl implements EngineAPI {
     public void createModel(Model model, List<Map<String, Object>> initialObjects, List<Map<String, Object>> operations) {
         // Initialize an empty model with a default scene
         if (model.getActiveScene() == null) {
-            org.the3deer.android.engine.model.Scene scene = new org.the3deer.android.engine.model.Scene();
+            Scene scene = new Scene();
             scene.setId("default");
             scene.setName("Default Scene");
             model.addScene(scene);
             model.setActiveScene(scene);
         }
         if (model.getActiveScene().getActiveCamera() == null){
-            model.getActiveScene().setActiveCamera(defaultCamera);
+            model.getActiveScene().setActiveCamera(new Camera("default", Constants.DEFAULT_CAMERA_POSITION));
         }
 
         // Populate initial objects (Primitives)

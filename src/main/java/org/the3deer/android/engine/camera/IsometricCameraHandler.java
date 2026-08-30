@@ -1,44 +1,59 @@
 package org.the3deer.android.engine.camera;
 
+import org.the3deer.android.engine.Model;
 import org.the3deer.android.engine.animation.AnimationController;
+import org.the3deer.android.engine.event.CameraEvent;
 import org.the3deer.android.engine.event.TouchEvent;
 import org.the3deer.android.engine.model.Camera;
 import org.the3deer.android.engine.model.Constants;
 import org.the3deer.android.engine.model.OrthographicProjection;
 import org.the3deer.android.engine.model.Projection;
 import org.the3deer.android.engine.model.Screen;
-import org.the3deer.android.util.Matrix;
+import org.the3deer.util.bean.BeanInit;
 import org.the3deer.util.math.Math3DUtils;
 
-import java.util.Arrays;
 import java.util.EventObject;
 import java.util.logging.Logger;
 
 import javax.inject.Inject;
 
 /**
- * Isometric camera implementation that support rotation in all 3 axis.
+ * Discrete Isometric Camera Handler.
  * 
- * This implementation support all possible isometric positions,
- * that is 8 (points) * 3 (directions) = 24 total
- *
- * Every position corresponds to 1 isometric key point (i.e. 1x,1y,1z)
- * Every position is facing the world origin (0,0,0)
- *
- * For every rotation, the camera will land on the next isometric key point
- *
+ * Logic:
+ * 1. Has 8 fixed base positions (corners of a cube).
+ * 2. Camera position = Target + (BasePosition * Distance).
+ * 3. Camera view = Target.
+ * 4. Swipe interactions cycle through the 8 fixed positions.
+ * 
+ * @author andresoviedo
+ * @author Gemini AI
  */
 public class IsometricCameraHandler implements Camera.Controller {
 
     private static final Logger logger = Logger.getLogger(IsometricCameraHandler.class.getSimpleName());
 
-    /**
-     * The distance between the origin and the isometric coordinate
-     * This should be greater than the near view so it's not clipped
-     */
-    public static final float UNIT = Constants.UNIT; 
+    // 8 fixed corners of a cube (normalized)
+    private static final float s = Constants.UNIT_SIN_1; // ~0.577
+    private static final float[][] BASE_POSITIONS = {
+        { s,  s,  s}, // 0: Top Front Right
+        {-s,  s,  s}, // 1: Top Front Left
+        {-s,  s, -s}, // 2: Top Back Left
+        { s,  s, -s}, // 3: Top Back Right
+        { s, -s,  s}, // 4: Bottom Front Right
+        {-s, -s,  s}, // 5: Bottom Front Left
+        {-s, -s, -s}, // 6: Bottom Back Left
+        { s, -s, -s}  // 7: Bottom Back Right
+    };
 
-    private Camera camera;
+    @Inject
+    private Model model;
+
+    @Inject
+    private Projection projection = new OrthographicProjection();
+
+    @Inject
+    private Camera camera = new Camera("iso", 100, 100, 100, 0, 0, 0, 0, 1, 0);
 
     @Inject
     private AnimationController animationController;
@@ -47,20 +62,40 @@ public class IsometricCameraHandler implements Camera.Controller {
     private Screen screen;
 
     private float[] target = new float[]{0, 0, 0};
+    private int posIndex = 0; // Top Front Right
+    private float distance = 100f;
 
-    @Override
-    public Camera getCamera() {
-        if (camera == null) {
-            final float s = Constants.UNIT_SIN_1 * 100f;
-            camera = new Camera("iso", s, s, s, 0, 0, 0, 0, 1, 0);
-            final OrthographicProjection ortho = new OrthographicProjection();
+    // Accumulators for discrete movement
+    private float accumX = 0;
+    private float accumY = 0;
+    private static final float MOVE_THRESHOLD = 0.15f; // 15% of screen
+
+    @BeanInit
+    public void setUp() {
+        projection.setScreen(screen);
+        if (projection instanceof OrthographicProjection) {
+            final OrthographicProjection ortho = (OrthographicProjection) projection;
             // Initial magnification to match a ~60 deg FOV at the default distance
             final float distance = 100f;
             final float mag = (float) (distance * Math.tan(Math.toRadians(30)));
             ortho.setXmag(mag);
             ortho.setYmag(mag);
-            camera.setProjection(ortho);
+            
+            // Tighten clipping planes for better depth precision in ortho mode
+            ortho.setNear(0.1f);
+            ortho.setFar(1000f);
         }
+
+        camera.setProjection(projection);
+        camera.setController(this);
+        camera.addListener(this);
+        model.addCamera(camera);
+
+        updateCameraImmediate();
+    }
+
+    @Override
+    public Camera getCamera() {
         return camera;
     }
 
@@ -77,224 +112,125 @@ public class IsometricCameraHandler implements Camera.Controller {
     @Override
     public void setTarget(float[] target) {
         this.target = target;
+        updateCameraImmediate();
     }
-
-    // vars
-    private CameraAnimation animation;
 
     @Override
     public boolean onEvent(EventObject event) {
-        if (!(event instanceof TouchEvent)) {
+        if (event instanceof CameraEvent) {
+            final CameraEvent cameraEvent = (CameraEvent) event;
+            if (cameraEvent.getCode() == CameraEvent.Code.CAMERA_UPDATED && cameraEvent.getSource() != this) {
+                // External update (e.g. framing). Synchronize internal state.
+                syncFromCamera();
+            }
             return false;
         }
+
+        if (!(event instanceof TouchEvent)) return false;
 
         final TouchEvent touchEvent = (TouchEvent) event;
-        if (camera == null) {
-            getCamera();
-        }
-        if (camera == null) {
-            return false;
-        }
-
         switch (touchEvent.getAction()) {
             case MOVE:
                 final float max = Math.max(screen.getWidth(), screen.getHeight());
-                final float dx = (float) (-touchEvent.getdX() / max * Math.PI * 2);
-                final float dy = (float) (touchEvent.getdY() / max * Math.PI * 2);
-                move(dx, dy);
-                return true;
-            case ROTATE:
-                rotate(touchEvent.getAngle());
+                move(-touchEvent.getdX() / max, touchEvent.getdY() / max);
                 return true;
             case PINCH:
                 zoom(touchEvent.getZoom());
                 return true;
-            case SPREAD:
-                pan(-touchEvent.getdX(), touchEvent.getdY());
+            case UP:
+                accumX = 0;
+                accumY = 0;
                 return true;
         }
         return false;
     }
 
-    @Override
-    public void zoom(float direction) {
-        if (camera == null) getCamera();
-        final Projection projection = camera.getProjection();
-        if (projection instanceof OrthographicProjection) {
-            final OrthographicProjection ortho = (OrthographicProjection) projection;
-            // direction > 0 means spreading fingers (zoom in)
-            final float sensitivity = 0.005f;
-            final float factor = 1.0f - direction * sensitivity;
-            if (factor > 0) {
-                ortho.setXmag(ortho.getXmag() * factor);
-                ortho.setYmag(ortho.getYmag() * factor);
-            }
-        } else {
-            // For perspective projection, we move the camera
-            final float[] relPos = Math3DUtils.substract(camera.getPos(), target);
-            final float length = Math3DUtils.length(relPos);
-            // direction > 0 means spreading fingers (zoom in)
-            final float sensitivity = 0.005f;
-            final float amount = direction * length * sensitivity;
-            float newLength = length - amount;
-            if (newLength < 0.01f) newLength = 0.01f;
-
-            final float factor = newLength / length;
-            camera.getPos()[0] = target[0] + relPos[0] * factor;
-            camera.getPos()[1] = target[1] + relPos[1] * factor;
-            camera.getPos()[2] = target[2] + relPos[2] * factor;
-            camera.setChanged(true);
-        }
+    private void syncFromCamera() {
+        if (camera == null) return;
+        this.target[0] = camera.getxView();
+        this.target[1] = camera.getyView();
+        this.target[2] = camera.getzView();
+        this.distance = Math3DUtils.length(Math3DUtils.substract(camera.getPos(), camera.getView()));
     }
 
     @Override
     public synchronized void move(float dX, float dY) {
-        if (camera == null) getCamera();
-        
-        // Enforce target-centric view for isometric
-        camera.getView()[0] = target[0];
-        camera.getView()[1] = target[1];
-        camera.getView()[2] = target[2];
+        accumX += dX;
+        accumY += dY;
 
-        float dXabs2 = Math.abs(dX);
-        float dYabs2 = Math.abs(dY);
-        if (dXabs2 > dYabs2 && dX < 0) {
-            translateCameraIsometricRight();
-        } else if (dXabs2 > dYabs2 && dX > 0) {
-            translateCameraIsometricLeft();
-        } else if (dXabs2 < dYabs2 && dY > 0) {
-            translateCameraIsometricUp();
-        } else if (dXabs2 < dYabs2 && dY < 0) {
-            translateCameraIsometricDown();
+        if (Math.abs(accumX) > MOVE_THRESHOLD) {
+            int currentLayer = posIndex / 4;
+            int currentOffset = posIndex % 4;
+            int newOffset;
+            
+            // Logic: Slide LEFT (dX > 0) -> Rotate camera RIGHT (offset -1)
+            // Logic: Slide RIGHT (dX < 0) -> Rotate camera LEFT (offset +1)
+            if (accumX > 0) newOffset = (currentOffset + 3) % 4;
+            else newOffset = (currentOffset + 1) % 4;
+            
+            accumX = 0; // reset
+            animateTo(currentLayer * 4 + newOffset);
+        } else if (Math.abs(accumY) > MOVE_THRESHOLD) {
+            int currentLayer = posIndex / 4;
+            
+            // Logic: Slide DOWN (dY > 0) -> See TOP (Layer 0)
+            // Logic: Slide UP (dY < 0) -> See BOTTOM (Layer 1)
+            int targetLayer = (accumY > 0) ? 0 : 1;
+            
+            accumY = 0; // reset
+            if (targetLayer != currentLayer) {
+                animateTo(targetLayer * 4 + (posIndex % 4));
+            }
         }
     }
 
     @Override
-    public synchronized void rotate(float angle) {
-        if (camera == null) getCamera();
-        final double rotationAngle = (angle > 0 ? -Math.PI : Math.PI) * 2 / 3;
-        final float[] posN = Math3DUtils.normalize2(camera.getPos());
-        final float[] rotMatrix = new float[16];
-        Math3DUtils.createRotationMatrixAroundVector(rotMatrix, 0, rotationAngle, posN[0], posN[1], posN[2]);
-
-        float[] newUp = new float[4];
-        Matrix.multiplyMV(newUp, 0, rotMatrix, 0, camera.getUp(), 0);
-        Math3DUtils.normalizeVector(newUp);
-        Math3DUtils.snapToGrid(newUp);
-
-        animate(camera.getxPos(), camera.getyPos(), camera.getzPos(), newUp[0], newUp[1], newUp[2]);
-    }
-
-    private void translateCameraIsometricDown() {
-        if (camera == null) getCamera();
-        final float[] relPos = Math3DUtils.substract(camera.getPos(), target);
-        final float length = Math3DUtils.length(relPos);
-        animate(target[0] - camera.getxUp() * length, target[1] - camera.getyUp() * length, target[2] - camera.getzUp() * length,
-                relPos[0]/length, relPos[1]/length, relPos[2]/length);
-    }
-
-    private void translateCameraIsometricUp() {
-        if (camera == null) getCamera();
-        final float[] relPos = Math3DUtils.substract(camera.getPos(), target);
-        final float length = Math3DUtils.length(relPos);
-        animate(target[0] + camera.getxUp() * length, target[1] + camera.getyUp() * length, target[2] + camera.getzUp() * length,
-                -relPos[0]/length, -relPos[1]/length, -relPos[2]/length);
-    }
-
-    private void translateCameraIsometricRight() {
-        if (camera == null) getCamera();
-        final float[] relPos = Math3DUtils.substract(camera.getPos(), target);
-        float[] right = Math3DUtils.crossProduct(camera.getUp()[0], camera.getUp()[1], camera.getUp()[2], -relPos[0], -relPos[1], -relPos[2]);
-        Math3DUtils.normalizeVector(right);
-        Math3DUtils.snapToGrid(right);
-        rotateWithMatrix(right);
-    }
-
-    private void translateCameraIsometricLeft() {
-        if (camera == null) getCamera();
-        final float[] relPos = Math3DUtils.substract(camera.getPos(), target);
-        float[] left = Math3DUtils.crossProduct(-relPos[0], -relPos[1], -relPos[2], camera.getUp()[0], camera.getUp()[1], camera.getUp()[2]);
-        Math3DUtils.normalizeVector(left);
-        Math3DUtils.snapToGrid(left);
-        rotateWithMatrix(left);
-    }
-
-    private void rotateWithMatrix(float[] cross) {
-        if (camera == null) getCamera();
-
-        // 1. Determine the ideal rotation axis based on current position and desired movement direction
-        final float[] relPos = Math3DUtils.substract(camera.getPos(), target);
-        final float[] posN = Math3DUtils.normalize2(relPos);
-        final float[] idealAxis = Math3DUtils.crossProduct(posN, cross);
-        Math3DUtils.normalizeVector(idealAxis);
-
-        // 2. Select the primary world axis that is most aligned with the ideal axis
-        final float dotX = Math3DUtils.dotProduct(idealAxis, Math3DUtils.VECTOR_UNIT_X);
-        final float dotY = Math3DUtils.dotProduct(idealAxis, Math3DUtils.VECTOR_UNIT_Y);
-        final float dotZ = Math3DUtils.dotProduct(idealAxis, Math3DUtils.VECTOR_UNIT_Z);
-
-        final float absX = Math.abs(dotX);
-        final float absY = Math.abs(dotY);
-        final float absZ = Math.abs(dotZ);
-
-        final float[] worldAxis;
-        final float alignment;
-        if (absX > absY && absX > absZ) {
-            worldAxis = Math3DUtils.VECTOR_UNIT_X;
-            alignment = dotX;
-        } else if (absY > absX && absY > absZ) {
-            worldAxis = Math3DUtils.VECTOR_UNIT_Y;
-            alignment = dotY;
-        } else {
-            worldAxis = Math3DUtils.VECTOR_UNIT_Z;
-            alignment = dotZ;
-        }
-
-        // 3. Perform a 90-degree rotation around the selected world axis
-        final double angle = Math.signum(alignment) * Math.PI / 2;
-        final float[] rotMatrix = new float[16];
-        Math3DUtils.createRotationMatrixAroundVector(rotMatrix, 0, angle, worldAxis);
-
-        // 4. Calculate new position (maintaining distance)
-        final float[] newRelPos = new float[4];
-        Matrix.multiplyMV(newRelPos, 0, rotMatrix, 0, new float[]{relPos[0], relPos[1], relPos[2], 1}, 0);
-        newRelPos[3] = 1.0f;
-
-        final float length = Math3DUtils.length(relPos);
-        Math3DUtils.normalizeVector(newRelPos);
-        Math3DUtils.snapToGrid(newRelPos);
-        Math3DUtils.normalizeVector(newRelPos); // re-normalize after snap
-        newRelPos[0] *= length;
-        newRelPos[1] *= length;
-        newRelPos[2] *= length;
-
-        final float[] newPos = Math3DUtils.add(target, newRelPos);
-
-        // 5. Calculate new UP vector
-        final float[] newUp = new float[4];
-        Matrix.multiplyMV(newUp, 0, rotMatrix, 0, camera.getUp(), 0);
-        Math3DUtils.normalizeVector(newUp);
-        Math3DUtils.snapToGrid(newUp);
-
-        animate(newPos[0], newPos[1], newPos[2], newUp[0], newUp[1], newUp[2]);
-    }
-
-    private void animate(float xp, float yp, float zp, float xu, float yu, float zu) {
-        if (camera == null) getCamera();
-        synchronized (camera) {
-            Object[] args = new Object[]{"moveTo",
-                    camera.getxPos(), camera.getyPos(), camera.getzPos(),
-                    camera.getxUp(), camera.getyUp(), camera.getzUp(),
-                    xp, yp, zp, 
-                    xu, yu, zu, 
-                    camera.getxView(), camera.getyView(), camera.getzView(),
-                    target[0], target[1], target[2]}; // Target view is always target for isometric/orthographic
-            
-            if (animationController != null && (animation == null || animation.isFinished())) {
-                logger.finest("New animation: " + Arrays.toString(args));
-                animation = new CameraAnimation(camera, args);
-                animationController.add(animation);
+    public void zoom(float direction) {
+        final float sensitivity = 0.01f;
+        float factor = 1.0f - direction * sensitivity;
+        if (factor > 0) {
+            distance *= factor;
+            if (projection instanceof OrthographicProjection) {
+                OrthographicProjection ortho = (OrthographicProjection) projection;
+                ortho.setXmag(ortho.getXmag() * factor);
+                ortho.setYmag(ortho.getYmag() * factor);
             }
+            updateCameraImmediate();
         }
+    }
+
+    private void animateTo(int newIndex) {
+        if (posIndex == newIndex) return;
+        posIndex = newIndex;
+
+        float[] base = BASE_POSITIONS[posIndex];
+        float xp = target[0] + base[0] * distance;
+        float yp = target[1] + base[1] * distance;
+        float zp = target[2] + base[2] * distance;
+
+        float upY = (posIndex < 4) ? 1.0f : -1.0f; 
+
+        Object[] args = new Object[]{"moveTo",
+                camera.getxPos(), camera.getyPos(), camera.getzPos(),
+                camera.getxUp(), camera.getyUp(), camera.getzUp(),
+                xp, yp, zp,
+                0f, upY, 0f, // Up vector
+                camera.getxView(), camera.getyView(), camera.getzView(),
+                target[0], target[1], target[2]};
+
+        if (animationController != null) {
+            animationController.add(new CameraAnimation(camera, args));
+        }
+    }
+
+    private void updateCameraImmediate() {
+        float[] base = BASE_POSITIONS[posIndex];
+        camera.set(
+            target[0] + base[0] * distance,
+            target[1] + base[1] * distance,
+            target[2] + base[2] * distance,
+            target[0], target[1], target[2],
+            0, (posIndex < 4 ? 1f : -1f), 0
+        );
     }
 }

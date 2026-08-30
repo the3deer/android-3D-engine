@@ -22,10 +22,10 @@ public class CameraAnimation extends Animation<Camera> {
 
     public synchronized void animate() {
         if (animationCounter == 0){
-            logger.finest("Starting animation: "+ Arrays.toString(args));
+            //logger.finest("Starting animation: "+ Arrays.toString(args));
         }
         else if (animationCounter == -1 || animationCounter > Constants.TOTAL_ANIMATION_FRAMES) {
-            logger.finest("Animation finished: "+ Arrays.toString(args));
+            //logger.finest("Animation finished: "+ Arrays.toString(args));
             animationCounter = -1;
             finished = true;
             return;

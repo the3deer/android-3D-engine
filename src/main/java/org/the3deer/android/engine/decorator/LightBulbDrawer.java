@@ -1,9 +1,11 @@
 package org.the3deer.android.engine.decorator;
 
+import org.the3deer.android.engine.Model;
 import org.the3deer.android.engine.model.Camera;
 import org.the3deer.android.engine.model.Constants;
 import org.the3deer.android.engine.model.Light;
 import org.the3deer.android.engine.model.Object3D;
+import org.the3deer.android.engine.model.Scene;
 import org.the3deer.android.engine.renderer.Drawer;
 import org.the3deer.android.engine.renderer.Renderer;
 import org.the3deer.android.engine.shader.Program;
@@ -20,7 +22,6 @@ import java.util.List;
 import java.util.logging.Logger;
 
 import javax.inject.Inject;
-import javax.inject.Named;
 
 @Bean
 public class LightBulbDrawer implements Drawer, EventListener {
@@ -30,10 +31,10 @@ public class LightBulbDrawer implements Drawer, EventListener {
     @Inject
     private ShaderManager shaderFactory;
     @Inject
-    private Camera camera;
+    private Model model;
     @Inject
     private Light light;
-    @Inject @Named("lightBulb")
+    @Inject
     private Object3D lightBulb;
 
     @BeanProperty
@@ -69,6 +70,10 @@ public class LightBulbDrawer implements Drawer, EventListener {
 
         // check
         if (!enabled) return;
+
+        // get camera
+        final Scene scene = model.getActiveScene();
+        final Camera camera = config != null && config.camera != null ? config.camera : (scene != null ? scene.getActiveCamera() : null);
 
         // assert
         if (camera == null || light == null || lightBulb == null) {

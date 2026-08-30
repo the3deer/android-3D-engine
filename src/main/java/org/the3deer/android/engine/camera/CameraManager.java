@@ -32,16 +32,11 @@ public final class CameraManager implements EventListener {
     @Inject
     private Model model;
     @Inject
-    private Camera defaultCamera;
-    @Inject
     private Map<String, Camera.Controller> controllersMap;
     @Inject
     private EventManager eventManager;
 
     private Camera.Controller activeController;
-    
-    public CameraManager() {
-    }
 
     public List<Camera.Controller> getControllersMap() {
         return List.copyOf(controllersMap.values());
@@ -51,8 +46,6 @@ public final class CameraManager implements EventListener {
         return activeController;
     }
 
-
-
     @BeanInit
     public void setUp(){
 
@@ -60,15 +53,6 @@ public final class CameraManager implements EventListener {
         if (this.controllersMap == null || this.controllersMap.isEmpty()){
             logger.warning("No Camera.Controller implementations found. Register 1 controller to handle the Camera movement.");
             return;
-        }
-
-        // register system cameras in the model
-        for (Camera.Controller controller : controllersMap.values()){
-            final Camera camera = controller.getCamera();
-            if (camera != null) {
-                camera.setController(controller);
-                model.addCamera(camera);
-            }
         }
 
         // Set the first controller as active by default
@@ -138,12 +122,9 @@ public final class CameraManager implements EventListener {
         // Identify which camera should be used with this controller
         final Camera camera = controller.getCamera();
 
-        // Link the controller to the camera
-        if (camera != null) {
-            camera.setController(controller);
-
-            // Update the active scene camera
-            if (model != null && model.getActiveScene() != null) {
+        // Update the active scene camera
+        if (model != null && model.getActiveScene() != null) {
+            if (camera != null) {
                 model.getActiveScene().setActiveCamera(camera);
             }
         }
@@ -181,7 +162,7 @@ public final class CameraManager implements EventListener {
         // get active camera
         Camera activeCamera = model.getActiveScene().getActiveCamera();
         if (activeCamera == null) {
-            activeCamera = defaultCamera;
+            activeCamera = activeController != null ? activeController.getCamera() : null;
         }
 
         // check
