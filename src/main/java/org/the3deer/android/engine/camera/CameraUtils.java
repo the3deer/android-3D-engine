@@ -196,30 +196,30 @@ public class CameraUtils {
                 Math.pow(camPos[2] - centerZ, 2)
         );
 
-        // --- ROBUST CLIPPING PLANE LOGIC ---
-        // We set near to a balanced fraction of the distance,
-        // but we must ensure it's closer than the front of the model.
-        float suggestedNear = (distance - radius) * 0.9f;
-        float suggestedFar = distance + radius * 1.1f;
+        // --- ENHANCED CLIPPING PLANE LOGIC ---
+        // We want to see the model, the background (skybox), and be able to zoom in close.
+        final float safeRadius = Math.max(radius, 1.0f);
 
-        // Minimum near plane to avoid numerical issues (0.1% of radius or 0.01)
-        final float floor = Math.max(0.001f, radius * 0.001f);
-        if (suggestedNear < floor) {
-            suggestedNear = floor;
-        }
+        // Far plane should be enough to see the back of the model and any environment (skybox).
+        // We use a generous factor of the model's radius to avoid back-clipping background elements.
+        float suggestedFar = distance + safeRadius * 20.0f;
+        
+        // Near plane should be as small as possible to allow close inspection.
+        float suggestedNear = 0.01f;
 
         // --- HARDWARE-AWARE DEPTH PRECISION ---
-        // Note: We avoid direct GL calls here as this may be called from non-GL threads (e.g. background loaders)
+        // Typical modern hardware (24-bit depth) handles a ratio of 10,000:1 well.
+        // Old hardware (16-bit) might need 1,000:1.
         final float maxHealthyRatio = 10000f;
 
         if (suggestedFar / suggestedNear > maxHealthyRatio) {
             // If the ratio is too high, we must increase 'near' to preserve depth precision.
             suggestedNear = suggestedFar / maxHealthyRatio;
-        } else {
-            // If we have "extra" precision, let's expand the far plane to the healthy limit.
-            // This ensures background elements like skyboxes/grids are never clipped.
-            suggestedFar = suggestedNear * maxHealthyRatio;
         }
+
+        // Final safety check: near and far must be positive and far > near
+        suggestedNear = Math.max(suggestedNear, 0.001f);
+        suggestedFar = Math.max(suggestedFar, suggestedNear + 1.0f);
 
         // Apply to projection
         projection.setNear(suggestedNear);

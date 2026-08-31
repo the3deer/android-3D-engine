@@ -99,6 +99,10 @@ public final class PerspectiveProjection implements Projection {
 
     @Override
     public void setNear(float near) {
+        if (near <= 0) {
+            logger.warning("Invalid near plane value: " + near + ". Ignoring.");
+            return;
+        }
         this.znear = near;
     }
 
@@ -111,7 +115,10 @@ public final class PerspectiveProjection implements Projection {
     public void setFar(float far) {
 
         // check
-        if (far <= 0) throw new IllegalArgumentException("far must be greater than 0");
+        if (far <= 0) {
+            logger.warning("Invalid far plane value: " + far + ". Ignoring.");
+            return;
+        }
 
         // update
         this.zfar = far;
