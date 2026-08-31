@@ -123,6 +123,11 @@ public class DefaultRenderer implements Renderer, EventListener {
         // check
         if (!enabled) return;
 
+        // Reset the default camera configuration.
+        // This ensures that the active camera is fetched from the scene every frame,
+        // avoiding stale camera references when switching between different controllers (e.g., FPS vs ArcBall).
+        defaultConfig.camera = null;
+
         // update viewport
         if (screen != null){
             defaultConfig.viewPortWidth = screen.width;
