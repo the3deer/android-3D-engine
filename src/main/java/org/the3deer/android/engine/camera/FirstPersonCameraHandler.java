@@ -90,10 +90,6 @@ public class FirstPersonCameraHandler implements Camera.Controller {
         }
 
         final TouchEvent touchEvent = (TouchEvent) event;
-        if (camera == null) {
-            getCamera();
-        }
-
         switch (touchEvent.getAction()) {
             case MOVE:
                 final float max = Math.max(screen.getWidth(), screen.getHeight());
@@ -116,7 +112,6 @@ public class FirstPersonCameraHandler implements Camera.Controller {
 
     @Override
     public void move(final float dX, final float dY) {
-        if (camera == null) getCamera();
 
         // Apply sensitivity scaling to rotation (Look Around).
         // We factor in the scene dimensions to ensure the rotation "grooves" with the world's scale.
@@ -193,7 +188,6 @@ public class FirstPersonCameraHandler implements Camera.Controller {
      */
     @Override
     public void pan(final float dX, final float dY) {
-        if (camera == null) getCamera();
 
         // Calculate current orientation vectors
         final float[] look = Math3DUtils.substract(camera.getView(), camera.getPos());
@@ -263,7 +257,6 @@ public class FirstPersonCameraHandler implements Camera.Controller {
     }
 
     private void walk(final float distance) {
-        if (camera == null) getCamera();
 
         final float[] look = Math3DUtils.substract(camera.getView(), camera.getPos());
         Math3DUtils.normalizeVector(look);

@@ -227,4 +227,50 @@ public class CameraUtils {
 
         //logger.info("- Scene projection updated: near=" + suggestedNear + ", far=" + suggestedFar);
     }
+
+    /**
+     * Calculates the focal distance (convergence point) for stereoscopic rendering.
+     * It uses the camera's controller target if available, or falls back to a safe default.
+     * @param camera the camera to calculate focal distance for
+     * @param scene the active scene to derive scaling from
+     * @return the focal distance in world units
+     */
+    public static float getFocalDistance(Camera camera, Scene scene) {
+        if (camera == null) return 1.0f;
+
+        float focalDistance = 1.0f;
+        if (camera.getController() != null && camera.getController().getTarget() != null) {
+            final float[] target = camera.getController().getTarget();
+            final float[] pos = camera.getPos();
+            focalDistance = (float) Math.sqrt(
+                    Math.pow(pos[0] - target[0], 2) +
+                    Math.pow(pos[1] - target[1], 2) +
+                    Math.pow(pos[2] - target[2], 2)
+            );
+        }
+
+        // Safety floor: Prevent extreme eye convergence when camera is too close to the target.
+        // We use a small fraction of the scene's radius to ensure a comfortable 3D effect.
+        final float sceneRadius = (scene != null && scene.getDimensions() != null) ? scene.getDimensions().getRadius() : 10.0f;
+        return Math.max(focalDistance, sceneRadius * 0.1f);
+    }
+
+    /**
+     * Calculates the appropriate eye distance for stereoscopic rendering based on scene scale.
+     * @param scene the active scene
+     * @return scaled eye distance
+     */
+    public static float getEyeDistance(Scene scene) {
+        if (scene == null || scene.getDimensions() == null) {
+            return org.the3deer.android.engine.model.Constants.EYE_DISTANCE;
+        }
+
+        final float radius = scene.getDimensions().getRadius();
+        
+        // Dynamic Eye Separation: 
+        // For very small models, we must reduce the eye distance to prevent divergence.
+        // A ratio of 1/30th of the model's radius provides a natural sense of depth.
+        // We cap it at the human standard (Constants.EYE_DISTANCE) for large models.
+        return Math.min(org.the3deer.android.engine.model.Constants.EYE_DISTANCE, Math.max(0.001f, radius / 30.0f));
+    }
 }

@@ -1,5 +1,6 @@
 package org.the3deer.android.engine.renderer;
 
+import org.the3deer.android.engine.camera.CameraUtils;
 import org.the3deer.android.engine.model.Camera;
 import org.the3deer.android.engine.model.Constants;
 import org.the3deer.android.engine.model.Scene;
@@ -31,7 +32,9 @@ public class StereoscopicRenderer extends DefaultRenderer {
         if (scene == null || scene.getActiveCamera() == null) return;
 
         // 2 cameras
-        final Camera[] stereoCamera = scene.getActiveCamera().toStereo(Constants.EYE_DISTANCE, Constants.UNIT);
+        final float eyeDistance = CameraUtils.getEyeDistance(scene);
+        final float focalDistance = CameraUtils.getFocalDistance(scene.getActiveCamera(), scene);
+        final Camera[] stereoCamera = scene.getActiveCamera().toStereo(eyeDistance, focalDistance);
         final Camera leftCamera = stereoCamera[0];
         final Camera rightCamera = stereoCamera[1];
 
