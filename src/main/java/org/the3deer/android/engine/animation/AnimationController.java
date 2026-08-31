@@ -1,9 +1,8 @@
 package org.the3deer.android.engine.animation;
 
-import org.the3deer.util.bean.Bean;
-import org.the3deer.util.bean.BeanProperty;
 import org.the3deer.android.engine.model.Animation;
 import org.the3deer.android.engine.renderer.RenderListener;
+import org.the3deer.util.bean.Bean;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -16,7 +15,8 @@ public class AnimationController implements RenderListener {
     private static final Logger logger = Logger.getLogger(AnimationController.class.getSimpleName());
 
     // state
-    @BeanProperty
+    // bean hidden for now.
+    // @BeanProperty
     private boolean enabled = true;
 
     // vars
