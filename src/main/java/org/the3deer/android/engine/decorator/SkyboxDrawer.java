@@ -238,8 +238,12 @@ public class SkyboxDrawer implements Drawer {
             skyboxProjection.setNear(skyboxNear);
             skyboxProjection.setFar(skyboxFar);
 
+            // Disable depth writing for the skybox to avoid depth-pollution.
+            // This prevents the skybox's private projection from interfering with the main scene's models.
+            GLES20.glDepthMask(false);
             shader.draw(skybox3D, skyboxProjection.getMatrix(), viewMatrix,
                     null, null, camera.getPos(), skybox3D.getDrawMode(), skybox3D.getDrawSize());
+            GLES20.glDepthMask(true);
 
             // debug
             if (!traced && model.getActiveScene() != null){
