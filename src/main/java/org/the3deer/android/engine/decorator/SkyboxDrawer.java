@@ -142,6 +142,15 @@ public class SkyboxDrawer implements Drawer {
         // enabled?
         if (!enabled) return;
 
+        // get camera
+        Camera camera = config != null && config.camera != null ? config.camera : null;
+        if (camera == null && model.getActiveScene()!= null) {
+            camera = model.getActiveScene().getActiveCamera();
+        }
+
+        // check
+        if (camera == null) return;
+
         // configured?
         if (this.activeSkyBox == null) return;
 
@@ -185,9 +194,8 @@ public class SkyboxDrawer implements Drawer {
             final boolean isDynamic = "day_night".equals(this.activeSkyBox);
             shader.setTexturesEnabled(!isDynamic);
 
-            // Get camera and projection
-            final Camera camera = config != null && config.camera != null ? config.camera : model.getActiveScene().getActiveCamera();
-            final Projection projection = camera.getProjection();
+
+
 
             // Center skybox at the scene's absolute center (or 0,0,0)
             final Scene activeScene = model.getActiveScene();
@@ -211,7 +219,7 @@ public class SkyboxDrawer implements Drawer {
                     Math.pow(camera.getPos()[2] - center[2], 2));
 
             // Set up private projection aspect ratio
-            skyboxProjection.setAspectRatio(projection.getAspectRatio());
+            skyboxProjection.setScreen(screen);
 
             // Calculate safe near and far planes for the skybox universe pass
             // A factor of 2.0 ensures that corners of the skybox (at sqrt(3) ~ 1.732 distance from its center) are not clipped

@@ -74,6 +74,8 @@ public class ShaderImplV2 implements Shader {
     private final boolean supportsNormalTexture;
 
     private final boolean supportsTextureCube;
+    private final boolean supportsTime;
+    private final boolean supportsTexturedUniform;
     private final boolean supportBlending;
     private final boolean supportsTexturesTransformed;
     private final boolean supportsTransmissionTexture;
@@ -103,6 +105,7 @@ public class ShaderImplV2 implements Shader {
 
 
     private boolean texturesEnabled = true;
+    private float time = 0.0f;
     private boolean lightingEnabled = true;
     private boolean animationEnabled = true;
 
@@ -175,6 +178,8 @@ public class ShaderImplV2 implements Shader {
         this.supportsAnimation = testShaderFeature(shaderFeatures, shaderCode, "in_jointIndices")
                 && testShaderFeature(shaderFeatures, shaderCode, "in_weights");
         this.supportsTextureCube = testShaderFeature(shaderFeatures, fragmentShaderCode, "u_TextureCube");
+        this.supportsTime = testShaderFeature(shaderFeatures, shaderCode, "u_Time");
+        this.supportsTexturedUniform = testShaderFeature(shaderFeatures, fragmentShaderCode, "u_Textured");
         this.supportBlending = testShaderFeature(shaderFeatures, fragmentShaderCode, "u_AlphaCutoff") &&
                 testShaderFeature(shaderFeatures, fragmentShaderCode, "u_AlphaMode");
         this.supportsTexturesTransformed = testShaderFeature(shaderFeatures, fragmentShaderCode, "u_TextureTransformed");
@@ -228,7 +233,7 @@ public class ShaderImplV2 implements Shader {
 
     @Override
     public void setTime(float time) {
-
+        this.time = time;
     }
 
     public void setLightingEnabled(boolean lightingEnabled) {
@@ -345,6 +350,11 @@ public class ShaderImplV2 implements Shader {
         // pass in color mask - i.e. stereoscopic
         setUniform4(colorMask != null ? colorMask : NO_COLOR_MASK, "u_ColorMask");
 
+        // pass in time
+        if (supportsTime) {
+            setUniform1(time, "u_Time");
+        }
+
         // --- NEW: BLENDING LOGIC ---
         Material material = obj.getMaterial();
         if (supportBlending && material != null && material.getAlphaMode() != Material.AlphaMode.OPAQUE) {
@@ -390,6 +400,9 @@ public class ShaderImplV2 implements Shader {
         if (obj.getMaterial() != null && obj.getMaterial().getColorTexture() != null && supportsTextureCube) {
             loadTexture(obj.getMaterial().getColorTexture());
             setTextureCube(obj.getMaterial().getColorTexture().getId(), 3);
+            if (supportsTexturedUniform) {
+                setFeatureFlag("u_Textured", texturesEnabled);
+            }
         }
 
         // pass in light position for lighting
