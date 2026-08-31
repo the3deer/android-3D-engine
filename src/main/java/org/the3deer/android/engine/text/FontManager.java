@@ -9,7 +9,7 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
-@Bean(category = "rendering")
+@Bean(category = "render")
 public class FontManager
 {
 
