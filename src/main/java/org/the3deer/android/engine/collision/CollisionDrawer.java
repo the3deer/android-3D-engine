@@ -35,6 +35,8 @@ public class CollisionDrawer implements Drawer, EventListener {
     private Model sceneManager;
     @Inject
     private Light light;
+    @Inject
+    private CollisionController collisionController;
 
     @BeanProperty
     private boolean enabled = false;
@@ -54,6 +56,10 @@ public class CollisionDrawer implements Drawer, EventListener {
     @Override
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
+
+        if (collisionController != null){
+            collisionController.setEnabled(enabled);
+        }
     }
 
     @Override
