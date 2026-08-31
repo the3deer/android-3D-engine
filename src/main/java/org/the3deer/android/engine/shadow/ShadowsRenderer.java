@@ -54,11 +54,6 @@ public class ShadowsRenderer {
     private final float[] mLightMvpMatrix_dynamicShapes = new float[16];
 
     /**
-     * Projection matrix from point of light source
-     */
-    private final float[] mLightProjectionMatrix = new float[16];
-
-    /**
      * View matrix of light source
      */
     private final float[] mLightViewMatrix = new float[16];
@@ -97,6 +92,7 @@ public class ShadowsRenderer {
     // Uniform locations for scene render program
     private int scene_normalMatrixUniform;
     private int scene_schadowLightViewMatrixUniform;
+    private int scene_schadowLightProjectionMatrixUniform;
     private int scene_textureUniform;
     private int scene_mapStepXUniform;
     private int scene_mapStepYUniform;
@@ -206,14 +202,14 @@ public class ShadowsRenderer {
         }
     }
 
-    public void onDrawFrame(ShaderManager shaderFactory, Renderer.Config config, float[] mProjectionMatrix, float[] mViewMatrix, float[] mActualLightPosition, Scene scene) {
+    public void onDrawFrame(ShaderManager shaderFactory, Renderer.Config config, float[] mProjectionMatrix, float[] mViewMatrix, float[] mLightProjectionMatrix, float[] mActualLightPosition, Scene scene) {
 
         GLES20.glViewport(0, 0, config.viewPortWidth, config.viewPortHeigth);
 
         GLES20.glEnable(GLES20.GL_CULL_FACE);
         GLES20.glCullFace(GLES20.GL_BACK);
 
-     	renderScene(shaderFactory, config, scene, mProjectionMatrix, mViewMatrix, mActualLightPosition);
+     	renderScene(shaderFactory, config, scene, mProjectionMatrix, mViewMatrix, mLightProjectionMatrix, mActualLightPosition);
 
         // Print openGL errors to console
         int debugInfo = GLES20.glGetError();
@@ -225,20 +221,11 @@ public class ShadowsRenderer {
 
     }
 
-    public void onPrepareFrame(ShaderManager shaderFactory, Renderer.Config config, float[] mProjectionMatrix, float[] mViewMatrix, float[] mActualLightPosition, Scene scene) {
+    public void onPrepareFrame(ShaderManager shaderFactory, Renderer.Config config, float[] mProjectionMatrix, float[] mViewMatrix, float[] mLightProjectionMatrix, float[] mActualLightPosition, Scene scene) {
 
         GLES20.glViewport(0, 0, config.viewPortWidth, config.viewPortHeigth);
 
         generateShadowFBO(config);
-
-        float ratio = (float) config.viewPortWidth / config.viewPortHeigth;
-
-        float bottom = -1.0f;
-        float top = 1.0f;
-        float near = 1.0f;
-        float far = 1000.0f;
-
-        Matrix.frustumM(mLightProjectionMatrix, 0, -1.1f*ratio, 1.1f*ratio, 1.1f*bottom, 1.1f*top, near, far);
 
         mDepthMapProgram = shaderFactory.getShader(Program.SHADOW_MAP);
         mDepthMapProgram.setAutoUseProgram(false);
@@ -267,11 +254,11 @@ public class ShadowsRenderer {
         GLES20.glEnable(GLES20.GL_CULL_FACE);
         GLES20.glCullFace(GLES20.GL_FRONT);
 
-        renderShadowMap(mProjectionMatrix, scene);
+        renderShadowMap(mLightProjectionMatrix, scene);
     }
 
 
-    private void renderShadowMap(float[] mProjectionMatrix, Scene scene) {
+    private void renderShadowMap(float[] mLightProjectionMatrix, Scene scene) {
         // bind the generated framebuffer
         GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, fboId[0]);
 
@@ -290,12 +277,12 @@ public class ShadowsRenderer {
             }
 
             mDepthMapProgram.useProgram();
-            this.mDepthMapProgram.draw(objData, mProjectionMatrix, mLightViewMatrix,
+            this.mDepthMapProgram.draw(objData, mLightProjectionMatrix, mLightViewMatrix,
                     null, null, null, objData.getDrawMode(), objData.getDrawSize());
         }
     }
 
-    private void renderScene(ShaderManager shaderFactory, Renderer.Config config, Scene scene, float[] mProjectionMatrix, float[] mViewMatrix, float[] mActualLightPosition) {
+    private void renderScene(ShaderManager shaderFactory, Renderer.Config config, Scene scene, float[] mProjectionMatrix, float[] mViewMatrix, float[] mLightProjectionMatrix, float[] mActualLightPosition) {
 
         // bind default framebuffer
         GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0);
@@ -307,15 +294,15 @@ public class ShadowsRenderer {
         float[] tempResultMatrix = new float[16];
 
         // plane where the shadow is projected
-        drawObject(shaderFactory, mProjectionMatrix, mViewMatrix, mActualLightPosition, plane, tempResultMatrix);
+        drawObject(shaderFactory, mProjectionMatrix, mViewMatrix, mLightProjectionMatrix, mActualLightPosition, plane, tempResultMatrix);
 
         for (int i=0; i<scene.getObjects().size(); i++) {
             final Object3D data = scene.getObjects().get(i);
-            drawObject(shaderFactory, mProjectionMatrix, mViewMatrix, mActualLightPosition, data, tempResultMatrix);
+            drawObject(shaderFactory, mProjectionMatrix, mViewMatrix, mLightProjectionMatrix, mActualLightPosition, data, tempResultMatrix);
         }
     }
 
-    private void drawObject(ShaderManager shaderFactory, float[] mProjectionMatrix, float[] mViewMatrix, float[] mActualLightPosition, Object3D data, float[] tempResultMatrix) {
+    private void drawObject(ShaderManager shaderFactory, float[] mProjectionMatrix, float[] mViewMatrix, float[] mLightProjectionMatrix, float[] mActualLightPosition, Object3D data, float[] tempResultMatrix) {
 
         final float[] mModelMatrix = data.getModelMatrix();
 
@@ -331,6 +318,7 @@ public class ShadowsRenderer {
 
         scene_normalMatrixUniform = GLES20.glGetUniformLocation(mActiveProgram, "u_NormalMatrix");
         scene_schadowLightViewMatrixUniform = GLES20.glGetUniformLocation(mActiveProgram, "u_LVMatrix");
+        scene_schadowLightProjectionMatrixUniform = GLES20.glGetUniformLocation(mActiveProgram, "u_LPMatrix");
         scene_textureUniform = GLES20.glGetUniformLocation(mActiveProgram, "uShadowTexture");
         scene_mapStepXUniform = GLES20.glGetUniformLocation(mActiveProgram, "u_ShadowTexelSizeX");
         scene_mapStepYUniform = GLES20.glGetUniformLocation(mActiveProgram, "u_ShadowTexelSizeY");
@@ -344,6 +332,7 @@ public class ShadowsRenderer {
 
         //MVP matrix that was used during depth map render
         GLES20.glUniformMatrix4fv(scene_schadowLightViewMatrixUniform, 1, false, mLightViewMatrix, 0);
+        GLES20.glUniformMatrix4fv(scene_schadowLightProjectionMatrixUniform, 1, false, mLightProjectionMatrix, 0);
 
         // Pass dynamic texel size for PCF
         GLES20.glUniform1f(scene_mapStepXUniform, 1.0f / mShadowMapWidth);

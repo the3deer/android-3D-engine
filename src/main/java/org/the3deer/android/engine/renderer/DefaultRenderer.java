@@ -107,8 +107,14 @@ public class DefaultRenderer implements Renderer, EventListener {
             }
         }
 
+        // update viewport
+        if (screen != null){
+            defaultConfig.viewPortWidth = screen.width;
+            defaultConfig.viewPortHeigth = screen.height;
+        }
+
         // prepare frame
-        prepareFrame(null);
+        prepareFrame(defaultConfig);
     }
 
     @Override

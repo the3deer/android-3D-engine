@@ -42,6 +42,7 @@ uniform mat4 u_BindShapeMatrix;
 uniform mat4 jointTransforms[MAX_JOINTS];
 
 // shadow
+uniform mat4 u_LPMatrix;
 uniform mat4 u_LVMatrix;
 varying vec4 vShadowCoord;
 
@@ -101,7 +102,7 @@ void main(){
         // to get it into world space for lighting calculations.
         //mat3 u_NormalMatrix = mat3(transpose(inverse(u_MMatrix)));
         v_Normal = mat3(u_NormalMatrix) * animatedNormal;
-        vShadowCoord = u_PMatrix * u_LVMatrix * u_MMatrix * animatedPos;
+        vShadowCoord = u_LPMatrix * u_LVMatrix * u_MMatrix * animatedPos;
     }
 
     if (u_NormalTextured) {

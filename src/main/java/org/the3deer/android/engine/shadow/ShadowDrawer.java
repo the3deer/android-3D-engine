@@ -3,6 +3,7 @@ package org.the3deer.android.engine.shadow;
 import android.app.Activity;
 import android.opengl.GLES20;
 
+import org.the3deer.android.util.Matrix;
 import org.the3deer.util.bean.Bean;
 import org.the3deer.util.bean.BeanInit;
 import org.the3deer.util.bean.BeanProperty;
@@ -41,6 +42,10 @@ public class ShadowDrawer implements Drawer {
     private boolean enabled = false;
     private ShadowsRenderer shadowsRenderer = new ShadowsRenderer();
     private final float[] lightViewMatrix = new float[16];
+    /**
+     * Projection matrix from point of light source
+     */
+    private final float[] mLightProjectionMatrix = new float[16];
 
     public ShadowDrawer() throws IOException, IllegalAccessException {
     }
@@ -97,13 +102,26 @@ public class ShadowDrawer implements Drawer {
         // check
         if (scene.getObjects().isEmpty()) return;
 
+        float ratio = (float) config.viewPortWidth / config.viewPortHeigth;
+
+        float bottom = -1.0f;
+        float top = 1.0f;
+        float near = 1.0f;
+        float far = 10000.0f;
+
+        Matrix.frustumM(mLightProjectionMatrix, 0, -1.1f*ratio, 1.1f*ratio, 1.1f*bottom, 1.1f*top, near, far);
+
         // 1. Shadow Map Pass: Cull front faces to reduce shadow acne
         GLES20.glEnable(GLES20.GL_CULL_FACE);
         GLES20.glCullFace(GLES20.GL_FRONT);
-        shadowsRenderer.onPrepareFrame(shaderFactory, config, camera.getProjectionMatrix(), camera.getViewMatrix(), light.getLocation(), scene);
+        //light.setLocation(new float[]{10,10,10});
+        float[] location = light.getLocation();
+        //location = new float[]{10,10,10};
+
+        shadowsRenderer.onPrepareFrame(shaderFactory, config, camera.getProjectionMatrix(), camera.getViewMatrix(), mLightProjectionMatrix, location, scene);
 
         // 2. Main Render Pass: Restore standard back-face culling
         GLES20.glCullFace(GLES20.GL_BACK);
-        shadowsRenderer.onDrawFrame(shaderFactory, config, camera.getProjectionMatrix(), camera.getViewMatrix(), light.getLocation(), scene);
+        shadowsRenderer.onDrawFrame(shaderFactory, config, camera.getProjectionMatrix(), camera.getViewMatrix(), mLightProjectionMatrix, location, scene);
     }
 }

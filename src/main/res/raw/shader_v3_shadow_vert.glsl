@@ -26,6 +26,7 @@ uniform bool u_Lighted;
 uniform bool u_NormalTextured;
 
 // shadow
+uniform mat4 u_LPMatrix;
 uniform mat4 u_LVMatrix;
 out vec4 vShadowCoord;
 
@@ -86,7 +87,7 @@ void main() {
 
     // shadow mapping
     if (u_Lighted){
-        vShadowCoord = u_PMatrix * u_LVMatrix * u_MMatrix * localPos;
+        vShadowCoord = u_LPMatrix * u_LVMatrix * u_MMatrix * localPos;
     }
 
     gl_Position = u_PMatrix * u_VMatrix * u_MMatrix * localPos;
