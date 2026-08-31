@@ -116,7 +116,7 @@ public class FirstPersonCameraHandler implements Camera.Controller {
         // Apply sensitivity scaling to rotation (Look Around).
         // We factor in the scene dimensions to ensure the rotation "grooves" with the world's scale.
         // For larger environments, we dampen the speed slightly to maintain precision and avoid dizziness.
-        float baseSensitivity = 0.1f;
+        float baseSensitivity = 0.05f;
         if (model.getActiveScene() != null && model.getActiveScene().getDimensions() != null) {
             final float sceneScale = model.getActiveScene().getDimensions().getLargest();
             if (sceneScale > 0) {
@@ -172,7 +172,20 @@ public class FirstPersonCameraHandler implements Camera.Controller {
     @Override
     public void zoom(final float direction) {
         // Pinch can still be used for fast-forward/backward movement (Walk)
-        final float sensitivity = 0.01f;
+        float sensitivity = 0.01f;
+        if (model.getActiveScene() != null && model.getActiveScene().getDimensions() != null) {
+            final float sceneRadius = model.getActiveScene().getDimensions().getRadius();
+            final float baseSensitivity = Math.max(0.001f, sceneRadius / 500.0f);
+
+            // Proximity adaptation: Slow down as we approach the target for higher precision.
+            final float distToTarget = (float) Math.sqrt(
+                    Math.pow(camera.getPos()[0] - target[0], 2) +
+                    Math.pow(camera.getPos()[1] - target[1], 2) +
+                    Math.pow(camera.getPos()[2] - target[2], 2)
+            );
+            final float proximityModifier = Math.max(0.1f, Math.min(1.0f, distToTarget / Math.max(1.0f, sceneRadius)));
+            sensitivity = baseSensitivity * proximityModifier;
+        }
         walk(direction * sensitivity);
     }
 
@@ -199,6 +212,19 @@ public class FirstPersonCameraHandler implements Camera.Controller {
 
         // Sensitivity scaling based on scene size
         float sensitivity = 0.1f;
+        if (model.getActiveScene() != null && model.getActiveScene().getDimensions() != null) {
+            final float sceneRadius = model.getActiveScene().getDimensions().getRadius();
+            final float baseSensitivity = Math.max(0.01f, sceneRadius / 100.0f);
+
+            // Proximity adaptation: Slow down as we approach the target for higher precision.
+            final float distToTarget = (float) Math.sqrt(
+                    Math.pow(camera.getPos()[0] - target[0], 2) +
+                    Math.pow(camera.getPos()[1] - target[1], 2) +
+                    Math.pow(camera.getPos()[2] - target[2], 2)
+            );
+            final float proximityModifier = Math.max(0.1f, Math.min(1.0f, distToTarget / Math.max(1.0f, sceneRadius)));
+            sensitivity = baseSensitivity * proximityModifier;
+        }
 
         final float moveX;
         final float moveY;
