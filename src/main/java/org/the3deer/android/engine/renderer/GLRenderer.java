@@ -12,6 +12,7 @@ import org.the3deer.android.engine.model.Constants;
 import org.the3deer.android.engine.model.Screen;
 import org.the3deer.android.engine.shader.ShaderManager;
 import org.the3deer.util.bean.Bean;
+import org.the3deer.util.bean.BeanInit;
 import org.the3deer.util.bean.BeanProperty;
 import org.the3deer.util.event.EventManager;
 
@@ -134,22 +135,40 @@ public class GLRenderer implements GLSurfaceView.Renderer {
         this.renderer = rendererId;
 
         // init
-        initRenderer();
+        refresh();
     }
 
-    private void initRenderer() {
+    @BeanInit
+    public void init() {
+        logger.info("Initializing GLRenderer bean...");
+
+        if (renderers != null && !renderers.isEmpty()){
+            final Map.Entry<String, Renderer> first = renderers.entrySet().iterator().next();
+            this.renderer = first.getKey();
+            refresh();
+        }
+    }
+
+    private void refresh() {
 
         // check
-        if (this.renderer == null || renderers == null) return;  // engine still loading
+        if (this.renderer == null) {
+            throw new IllegalArgumentException("renderer not set");
+        }
 
         // get renderer
         final Renderer renderer = renderers.get(this.renderer);
 
         // check
-        if (renderer == null) return;
+        if (renderer == null) {
+            logger.warning("Renderer not found in map: " + this.renderer + ". Available: " + renderers.keySet());
+            return;
+        }
 
         // disable current renderer
-        if (this.rendererObject != null) this.rendererObject.setEnabled(false);
+        if (this.rendererObject != null && this.rendererObject != renderer) {
+            this.rendererObject.setEnabled(false);
+        }
 
         // reset new renderer
         renderer.reset();
@@ -161,7 +180,7 @@ public class GLRenderer implements GLSurfaceView.Renderer {
         this.rendererObject = renderer;
 
         // debug
-        logger.config("Active renderer: " + this.renderer);
+        logger.info("Active renderer set to: " + this.renderer);
     }
 
     @Override
@@ -236,11 +255,6 @@ public class GLRenderer implements GLSurfaceView.Renderer {
 
     @Override
     public void onDrawFrame(GL10 unused) {
-
-        //  deferred renderer init
-        if (this.rendererObject == null) {
-            initRenderer();
-        }
 
         // check
         if (rendererObject == null || !rendererObject.isEnabled()) return;
