@@ -3,19 +3,14 @@ package org.the3deer.android.engine.renderer;
 import android.opengl.GLES20;
 
 import org.the3deer.util.bean.Bean;
-import org.the3deer.android.engine.Model;
 import org.the3deer.android.engine.model.Camera;
 import org.the3deer.android.engine.model.Constants;
 import org.the3deer.android.engine.model.Scene;
 import org.the3deer.util.event.EventListener;
 
-import java.util.ArrayList;
 import java.util.EventObject;
-import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import javax.inject.Inject;
 
 /**
  * An anaglyph is a technique used to create a 3D effect by encoding
@@ -29,22 +24,10 @@ public class AnaglyphRenderer extends DefaultRenderer {
 
     private static final Logger logger = Logger.getLogger(AnaglyphRenderer.class.getSimpleName());
 
-    @Inject
-    private List<Drawer> drawers;
-    @Inject
-    private Model sceneManager;
-    @Inject
-    private List<EventListener> listeners = new ArrayList<>();
-
     // camera:  (left red eye) (right blue eye)
     private final Config leftConf = new Config();
 
-    private Config rightConf = new Config();
-
-    public AnaglyphRenderer addListener(EventListener listener) {
-        this.listeners.add(listener);
-        return this;
-    }
+    private final Config rightConf = new Config();
 
     public void onDrawFrame() {
 
@@ -61,7 +44,12 @@ public class AnaglyphRenderer extends DefaultRenderer {
 
         // camera:  (left red eye) (right blue eye)
         leftConf.camera = leftCamera;
+        leftConf.viewPortWidth = screen.width;
+        leftConf.viewPortHeigth = screen.height;
+
         rightConf.camera = rightCamera;
+        rightConf.viewPortWidth = screen.width;
+        rightConf.viewPortHeigth = screen.height;
 
         GLES20.glClearColor(0, 0, 0, 1);
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
@@ -94,9 +82,9 @@ public class AnaglyphRenderer extends DefaultRenderer {
 
        GLES20.glClear(GLES20.GL_DEPTH_BUFFER_BIT);
 
-        // 2. Draw Right Eye (Blue)
+        // 2. Draw Right Eye (Cyan)
         GLES20.glEnable(GLES20.GL_BLEND);
-        GLES20.glColorMask(false, false, true, false); // Write only to Blue channel
+        GLES20.glColorMask(false, true, true, false); // Write to Green and Blue channels (Cyan)
         GLES20.glBlendFunc(GLES20.GL_ONE, GLES20.GL_ZERO);
         GLES20.glDepthMask(true); // Enable depth writing (so it depth tests against itself correctly)
 
