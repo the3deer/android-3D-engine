@@ -143,7 +143,7 @@ public class SkyboxDrawer implements Drawer {
         if (!enabled) return;
 
         // get camera
-        Camera camera = config != null && config.camera != null ? config.camera : null;
+        Camera camera = config != null ? config.camera : null;
         if (camera == null && model.getActiveScene()!= null) {
             camera = model.getActiveScene().getActiveCamera();
         }

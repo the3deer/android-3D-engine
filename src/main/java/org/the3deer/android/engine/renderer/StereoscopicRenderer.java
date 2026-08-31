@@ -1,17 +1,9 @@
 package org.the3deer.android.engine.renderer;
 
-import org.the3deer.util.bean.Bean;
-import org.the3deer.android.engine.Model;
 import org.the3deer.android.engine.model.Camera;
 import org.the3deer.android.engine.model.Constants;
 import org.the3deer.android.engine.model.Scene;
-import org.the3deer.android.engine.model.Screen;
-import org.the3deer.util.event.EventListener;
-
-import java.util.ArrayList;
-import java.util.List;
-
-import javax.inject.Inject;
+import org.the3deer.util.bean.Bean;
 
 /**
  * A stereoscopic rendering is a technique used to create a 3D effect by encoding
@@ -22,20 +14,6 @@ import javax.inject.Inject;
 //public class AnaglyphRenderer implements Renderer, EventListener {
 @Bean
 public class StereoscopicRenderer extends DefaultRenderer {
-
-    @Inject
-    private Screen screen;
-    @Inject
-    private List<Drawer> drawers;
-    @Inject
-    private Model sceneManager;
-    @Inject
-    private List<EventListener> listeners = new ArrayList<>();
-
-    public StereoscopicRenderer addListener(EventListener listener) {
-        this.listeners.add(listener);
-        return this;
-    }
 
     @Override
     public void onDrawFrame() {

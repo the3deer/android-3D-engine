@@ -34,10 +34,10 @@ public class DefaultRenderer implements Renderer, EventListener {
     private boolean traced;
 
     @Inject
-    private Model sceneManager;
+    protected Model sceneManager;
 
     @Inject
-    private List<Drawer> drawers;
+    protected List<Drawer> drawers;
 
     @Inject
     private Light light;
@@ -53,7 +53,7 @@ public class DefaultRenderer implements Renderer, EventListener {
      * width if the screen. with default value just in case the onSurfaceChanged is not called
      */
     @Inject
-    private Screen screen;
+    protected Screen screen;
 
     /**
      * Default drawer configuration

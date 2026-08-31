@@ -5,7 +5,6 @@ import org.the3deer.android.engine.model.Camera;
 import org.the3deer.android.engine.model.Constants;
 import org.the3deer.android.engine.model.Light;
 import org.the3deer.android.engine.model.Object3D;
-import org.the3deer.android.engine.model.Scene;
 import org.the3deer.android.engine.renderer.Drawer;
 import org.the3deer.android.engine.renderer.Renderer;
 import org.the3deer.android.engine.shader.Program;
@@ -72,8 +71,10 @@ public class SunDrawer implements Drawer, EventListener {
         if (!enabled) return;
 
         // get camera
-        final Scene scene = model.getActiveScene();
-        final Camera camera = config != null && config.camera != null ? config.camera : (scene != null ? scene.getActiveCamera() : null);
+        Camera camera = config != null ? config.camera : null;
+        if (camera == null && model.getActiveScene() != null) {
+            camera = model.getActiveScene().getActiveCamera();
+        }
 
         // assert
         if (camera == null || light == null || lightBulb == null) {

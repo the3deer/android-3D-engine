@@ -64,10 +64,8 @@ public class SceneDrawer implements Drawer, EventListener {
 
         // camera selection logic:
         // 1) use config camera if provided (when stereo rendering, for example)
-        Camera activeCamera = scene.getActiveCamera();
-        //if (camera == null) camera = cameraManager.getActiveCamera();
-        if (activeCamera != null) {
-            config.camera = activeCamera;
+        if (config.camera == null && scene.getActiveCamera() != null) {
+            config.camera = scene.getActiveCamera();
         }
 
         List<Object3D> objects = scene.getObjects();
