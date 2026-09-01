@@ -87,11 +87,17 @@ public class SceneDrawer implements Drawer, EventListener {
     }
 
     private boolean drawObject(Camera camera, float[] lightPos, float[] colorMask, float[] cameraPos, List<Object3D> objects, int i) {
-        Object3D objData = null;
-
-        objData = objects.get(i);
+        Object3D objData = objects.get(i);
         if (!objData.isVisible() || !objData.isRender()) {
             return false;
+        }
+
+        // Culling Control: Disable if material is double-sided (default is true for legacy/obj)
+        final boolean doubleSided = objData.getMaterial() != null && objData.getMaterial().isDoubleSided();
+        if (doubleSided) {
+            android.opengl.GLES20.glDisable(android.opengl.GLES20.GL_CULL_FACE);
+        } else {
+            android.opengl.GLES20.glEnable(android.opengl.GLES20.GL_CULL_FACE);
         }
 
         // Determine the appropriate program based on model features

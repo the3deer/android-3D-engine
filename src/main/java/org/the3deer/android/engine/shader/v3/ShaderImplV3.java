@@ -220,8 +220,12 @@ public class ShaderImplV3 implements Shader {
     }
 
     private void bindMaterial(GpuAsset asset, Material material) {
-        // Color
+        // Color - Smart Tinting: If material is black but has a texture, use white to allow texture to show.
         float[] color = (material != null && material.getColor() != null) ? material.getColor() : Constants.COLOR_WHITE;
+        if (material != null && material.getColorTexture() != null &&
+                color[0] == 0 && color[1] == 0 && color[2] == 0) {
+            color = Constants.COLOR_WHITE;
+        }
         setUniform4(color, "u_Color");
 
         // Blending

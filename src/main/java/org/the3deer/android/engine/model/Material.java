@@ -35,6 +35,7 @@ public class Material {
     private float alpha = 1.0f;
     private float alphaCutoff = 0f;
     private AlphaMode alphaMode = AlphaMode.BLEND;
+    private boolean doubleSided = true;
 
     // final color
     private float[] color;
@@ -88,6 +89,14 @@ public class Material {
 
     public void setAlphaMode(AlphaMode alphaMode) {
         this.alphaMode = alphaMode;
+    }
+
+    public boolean isDoubleSided() {
+        return doubleSided;
+    }
+
+    public void setDoubleSided(boolean doubleSided) {
+        this.doubleSided = doubleSided;
     }
 
     public void setShininess(float val) {
@@ -205,23 +214,38 @@ public class Material {
      */
     public float[] getColor() {
         if (this.color == null) {
-            this.color = Constants.COLOR_WHITE.clone();
+            this.color = new float[4];
         }
+
+        // 1. Set Baseline (Always reset to prevent accumulating values)
+        this.color[0] = 1.0f;
+        this.color[1] = 1.0f;
+        this.color[2] = 1.0f;
+        this.color[3] = 1.0f;
+
+        // 2. Apply Diffuse
         if (this.diffuse != null) {
             this.color[0] = this.diffuse[0];
             this.color[1] = this.diffuse[1];
             this.color[2] = this.diffuse[2];
-            if (this.diffuse.length >= 4)
+            if (this.diffuse.length >= 4) {
                 this.color[3] = this.diffuse[3];
+            }
         }
+
+        // 3. Apply Ambient (Additive)
         if (this.ambient != null) {
             this.color[0] += this.ambient[0];
             this.color[1] += this.ambient[1];
             this.color[2] += this.ambient[2];
-            if (this.ambient.length >= 4)
+            if (this.ambient.length >= 4) {
                 this.color[3] += this.ambient[3];
+            }
         }
+
+        // 4. Final Alpha Scaling
         this.color[3] *= this.alpha;
+
         return color;
     }
 
@@ -246,6 +270,7 @@ public class Material {
         ret.setDiffuse(this.getDiffuse());
         ret.setAlpha(this.getAlpha());
         ret.setAlphaMode(this.getAlphaMode());
+        ret.setDoubleSided(this.isDoubleSided());
         ret.setAlphaCutoff(this.getAlphaCutoff());
         ret.setColorTexture(this.getColorTexture());
         ret.setEmissiveTexture(this.getEmissiveTexture());

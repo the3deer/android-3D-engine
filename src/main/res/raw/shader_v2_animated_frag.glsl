@@ -85,6 +85,9 @@ void main(){
     float diffuse = 0.25;
     float specular = 0.0;
     vec3 N = normalize(v_Normal);
+    if (!gl_FrontFacing) {
+        N = -N;
+    }
 
     if (u_Lighted) {
         // Normal mapping logic
@@ -110,8 +113,8 @@ void main(){
         // Diffuse (Lambert)
         float diff = max(dot(lightVec, N), 0.0);
 
-        // Attenuation
-        float attenuation = 1.0 / (1.0 + 0.025 * dist);
+        // Attenuation - Reduced from 0.025 to 0.005 for better large model support
+        float attenuation = 1.0 / (1.0 + 0.005 * dist);
         diffuse = diff * attenuation;
 
         // Specular (Blinn-Phong)
