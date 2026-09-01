@@ -142,18 +142,19 @@ public class GLRenderer implements GLSurfaceView.Renderer {
     public void init() {
         logger.info("Initializing GLRenderer bean...");
 
-        if (renderers != null && !renderers.isEmpty()){
+        if (renderer == null && renderers != null && !renderers.isEmpty()){
             final Map.Entry<String, Renderer> first = renderers.entrySet().iterator().next();
             this.renderer = first.getKey();
-            refresh();
         }
+
+        refresh();
     }
 
     private void refresh() {
 
         // check
-        if (this.renderer == null) {
-            throw new IllegalArgumentException("renderer not set");
+        if (this.renderer == null || this.renderers == null) {
+            return; // bean not ready
         }
 
         // get renderer
