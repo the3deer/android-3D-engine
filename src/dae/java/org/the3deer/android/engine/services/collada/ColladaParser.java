@@ -601,18 +601,18 @@ public class ColladaParser {
                     break;
                 case "vcount":
                     String vcountData = parser.nextText();
-                    String[] vcountStrings = vcountData.trim().split("\\s+");
-                    vcount = new int[vcountStrings.length];
-                    for (int i = 0; i < vcountStrings.length; i++) {
-                        vcount[i] = Integer.parseInt(vcountStrings[i]);
+                    java.util.StringTokenizer vcountTokenizer = new java.util.StringTokenizer(vcountData.trim());
+                    vcount = new int[vcountTokenizer.countTokens()];
+                    for (int i = 0; i < vcount.length; i++) {
+                        vcount[i] = Integer.parseInt(vcountTokenizer.nextToken());
                     }
                     break;
                 case "p":
                     String indexData = parser.nextText();
-                    String[] pStrings = indexData.trim().split("\\s+");
-                    rawIndices = new int[pStrings.length];
-                    for (int i = 0; i < pStrings.length; i++) {
-                        rawIndices[i] = Integer.parseInt(pStrings[i]);
+                    java.util.StringTokenizer pTokenizer = new java.util.StringTokenizer(indexData.trim());
+                    rawIndices = new int[pTokenizer.countTokens()];
+                    for (int i = 0; i < rawIndices.length; i++) {
+                        rawIndices[i] = Integer.parseInt(pTokenizer.nextToken());
                     }
                     break;
             }
