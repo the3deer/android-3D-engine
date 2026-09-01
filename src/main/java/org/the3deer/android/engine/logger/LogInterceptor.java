@@ -37,7 +37,10 @@ public class LogInterceptor extends Handler {
         }
 
         // 1. Format the message
-        final String message = getFormatter().formatMessage(record);
+        final String formattedMessage = getFormatter().formatMessage(record);
+        final String message = record.getThrown() != null ?
+                formattedMessage + "\n" + Log.getStackTraceString(record.getThrown()) :
+                formattedMessage;
 
         // 2. Forward to Logcat
         final String tag = record.getLoggerName() != null ? record.getLoggerName() : "JUL";

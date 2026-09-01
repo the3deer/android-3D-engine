@@ -60,11 +60,9 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
         // Configure Global Java Logging Interceptor
         final Logger rootLogger = Logger.getLogger("");
         rootLogger.setLevel(Level.ALL);
-        // Remove existing instances if any (e.g. during dev/re-deploy)
+        // Remove all existing handlers to prevent double logging (e.g. default Android JUL handler)
         for (java.util.logging.Handler handler : rootLogger.getHandlers()) {
-            if (handler instanceof LogInterceptor) {
-                rootLogger.removeHandler(handler);
-            }
+            rootLogger.removeHandler(handler);
         }
         rootLogger.addHandler(new LogInterceptor());
     }
