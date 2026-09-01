@@ -109,14 +109,15 @@ public class Model {
     }
 
     public URI getUriModel() {
-        if (uriModel != null) {
-            return uriModel;
-        }
-        return uri;
+        return uriModel;
     }
 
     public void setUriModel(URI uriModel) {
         this.uriModel = uriModel;
+    }
+
+    public URI getLocation() {
+        return uriModel != null ? uriModel : uri;
     }
 
     public String getName() {

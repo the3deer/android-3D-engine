@@ -71,7 +71,7 @@ public class GltfLoader {
 
     public GltfSceneData load(Model model, LoadListener callback) throws Exception {
 
-        final URI url = model.getUriModel();
+        final URI url = model.getLocation();
         try (InputStream stream = url.toURL().openStream()) {
             logger.info("Loading and parsing model file... " + url);
             callback.onProgress("Parsing " + url);

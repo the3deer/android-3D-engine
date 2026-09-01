@@ -302,7 +302,7 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
         if (engine == null) throw new IllegalStateException("Engine not initialized");
 
         // notify observers
-        _activeEngine.postValue(engine);
+            _activeEngine.postValue(engine);
 
         // log success
         logger.info("Engine activated. uri: " + uriString);
@@ -645,12 +645,12 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
             }
         }
 
-        logger.info("Loading model... uri: " + model.getUriModel() + ", type: " + model.getType());
+        logger.info("Loading model... uri: " + model.getLocation() + ", type: " + model.getType());
         Model.CURRENT.set(model);
-        model.setStatus(Model.Status.LOADING, "Loading model: " + model.getUriModel());
+        model.setStatus(Model.Status.LOADING, "Loading model: " + model.getLocation());
 
         // ZIP extraction logic
-        if ("zip".equalsIgnoreCase(model.getType()) || model.getUriModel().toString().toLowerCase().endsWith(".zip")) {
+        if (model.getUriModel() == null && ("zip".equalsIgnoreCase(model.getType()) || model.getUri().toString().toLowerCase().endsWith(".zip"))) {
 
             if (model.getCacheDir() == null) throw new IllegalStateException("Cache directory not set for ZIP extraction");
 
@@ -660,7 +660,7 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
             final File zipCacheDir = new File(model.getCacheDir(), "models/" + folderName);
             if (!zipCacheDir.exists() && !zipCacheDir.mkdirs()) throw new IOException("Failed to create cache directory");
 
-            try (InputStream is = model.getUriModel().toURL().openStream()) {
+            try (InputStream is = model.getUri().toURL().openStream()) {
                 IOUtils.extract(is, zipCacheDir);
             }
 
@@ -682,8 +682,22 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
             } else {
                 throw new IllegalArgumentException("No supported model found in zip");
             }
-        } else if ("file".equals(model.getUri().getScheme())) {
-            model.setCurrentDir(new File(model.getUri().getPath()).getParentFile());
+        } else {
+            if ("file".equals(model.getLocation().getScheme())) {
+                File locationFile = new File(model.getLocation().getPath());
+                model.setCurrentDir(locationFile.getParentFile());
+                
+                // If this is a cached model (e.g. from history), re-scan its directory to populate includes (textures)
+                if (model.getUriModel() != null) {
+                    List<File> allFiles = new ArrayList<>();
+                    scanFiles(locationFile.getParentFile(), allFiles);
+                    for (File file : allFiles) {
+                        final String relativePath = locationFile.getParentFile().toURI().relativize(file.toURI()).getPath();
+                        if (relativePath.startsWith("__MACOSX") || relativePath.contains("/._")) continue;
+                        model.addUri(relativePath, file.toURI());
+                    }
+                }
+            }
         }
 
         final LoadListener listener = new LoadListener() {
@@ -804,7 +818,7 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
 
     private void loadTextureDatas(Model model, Texture texture) {
         if (texture == null || texture.getData() != null || texture.getFile() == null) return;
-        final URI textureUri = model.getUriModel().resolve(texture.getFile().replace('\\', '/').replace(' ', '+'));
+        final URI textureUri = model.getLocation().resolve(texture.getFile().replace('\\', '/').replace(' ', '+'));
         try (InputStream stream = textureUri.toURL().openStream()) {
             texture.setUri(textureUri);
             texture.setData(IOUtils.read(stream));

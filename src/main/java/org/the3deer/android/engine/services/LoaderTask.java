@@ -42,7 +42,7 @@ public abstract class LoaderTask {
      */
     public LoaderTask(Model model, LoadListener callback) {
         this.model = model;
-        this.uri = model.getUriModel();
+        this.uri = model.getLocation();
         this.callback = callback;
     }
 
