@@ -104,6 +104,10 @@ public class CameraUtils {
             radius = (float) Math.sqrt(dx * dx + dy * dy + dz * dz) / 2.0f;
         }
 
+        if (camera.getController() != null) {
+            camera.getController().setTarget(new float[]{centerX, centerY, centerZ});
+        }
+
         // 3. Calculate distance based on FOV
         Projection projection = camera.getProjection();
         float fov = (projection != null && projection.getFov() > 0) ? projection.getFov() : 60.0f;
