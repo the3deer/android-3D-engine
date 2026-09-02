@@ -30,7 +30,8 @@ public class ShaderFactory {
         SHADOW_MAP_v2("shader.v2.shadow_map", Program.SHADOW_MAP, 2, R.raw.shader_v2_shadow_depth_map_vert, R.raw.shader_v2_shadow_depth_map_frag),
         SHADOW_MAP_v3("shader.v3.shadow_map", Program.SHADOW_MAP, 3, R.raw.shader_v3_shadow_depth_map_vert, R.raw.shader_v3_shadow_depth_map_frag),
         SHADOW_v2("shader.v2.shadow",  Program.SHADOW, 2, R.raw.shader_v2_shadow_vert, R.raw.shader_v2_shadow_frag),
-        SHADOW_v3("shader.v3.shadow",  Program.SHADOW, 3, R.raw.shader_v3_shadow_vert, R.raw.shader_v3_shadow_frag);
+        SHADOW_v3("shader.v3.shadow",  Program.SHADOW, 3, R.raw.shader_v3_shadow_vert, R.raw.shader_v3_shadow_frag),
+        DEBUG_SHADOW_v3("shader.v3.debug_shadow", Program.DEBUG_SHADOW, 3, R.raw.shader_v3_static_vert, R.raw.shader_v3_debug_shadow_frag);
 
         final String beanId;
         final int programId;

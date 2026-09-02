@@ -211,7 +211,7 @@ public final class ModelEngine {
 
         // objects
         beanManager.add("scene.primitiveManager", org.the3deer.android.engine.objects.PrimitiveManager.class);
-        beanManager.add("scene.light", new Light(new float[]{50f, 100f, 50f}));
+        beanManager.add("scene.light", new Light(new float[]{100f, 500f, 100f}));
 
         // drawers
         beanManager.add("drawer.skybox", SkyboxDrawer.class);

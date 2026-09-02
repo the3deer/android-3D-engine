@@ -4,8 +4,11 @@ import android.opengl.GLES20;
 
 import org.the3deer.android.engine.model.Camera;
 import org.the3deer.android.engine.model.Constants;
+import org.the3deer.android.engine.model.Material;
 import org.the3deer.android.engine.model.Object3D;
 import org.the3deer.android.engine.model.Scene;
+import org.the3deer.android.engine.model.Texture;
+import org.the3deer.android.engine.objects.Plane;
 import org.the3deer.android.engine.objects.Plane2;
 import org.the3deer.android.engine.renderer.Renderer;
 import org.the3deer.android.engine.shader.Program;
@@ -13,7 +16,6 @@ import org.the3deer.android.engine.shader.Shader;
 import org.the3deer.android.engine.shader.ShaderManager;
 import org.the3deer.android.engine.util.GLUtil;
 import org.the3deer.android.util.Matrix;
-import org.the3deer.util.math.Math3DUtils;
 
 import java.util.List;
 import java.util.logging.Level;
@@ -108,16 +110,29 @@ public class ShadowsRenderer {
     private Camera camera = new Camera("default", Constants.DEFAULT_CAMERA_POSITION);
 
     final Object3D plane = Plane2.build();
+    final Object3D debugPlane = Plane.buildTextured();
+    final Texture debugTexture = new Texture();
 
     {
         plane.setColor(Constants.COLOR_GRAY.clone());
         plane.setLocation(new float[]{0f, -Constants.DEFAULT_MODEL_SIZE/2, 0f});
         plane.setPinned(true);
+
+        debugPlane.setId("debugShadowMap");
+        debugPlane.setScale(5f, 1f, 5f);
+        debugPlane.setLocation(0f, 5f, 0f);
+        debugPlane.setRotation(new float[]{90f, 0f, 0f});
+        debugPlane.setPinned(true);
+        //debugPlane.getMaterial().setColorTexture(debugTexture);
+        debugPlane.setMaterial(new Material().setColorTexture(debugTexture));
     }
 
     public void onSurfaceCreated(GL10 unused, EGLConfig config) {
 		// Test OES_depth_texture extension
 		String extensions = GLES20.glGetString(GLES20.GL_EXTENSIONS);
+        if (extensions != null && extensions.contains("OES_depth_texture")) {
+            mHasDepthTextureExtension = true;
+        }
 
         //Set the background frame color
         GLES20.glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -202,12 +217,15 @@ public class ShadowsRenderer {
         }
     }
 
-    public void onDrawFrame(ShaderManager shaderFactory, Renderer.Config config, float[] mProjectionMatrix, float[] mViewMatrix, float[] mLightProjectionMatrix, float[] mActualLightPosition, Scene scene) {
+    public void onDrawFrame(ShaderManager shaderFactory, Renderer.Config config, float[] mProjectionMatrix, float[] mViewMatrix, float[] mLightProjectionMatrix, float[] mLightViewMatrix, float[] mActualLightPosition, Scene scene) {
 
         GLES20.glViewport(0, 0, config.viewPortWidth, config.viewPortHeigth);
 
         GLES20.glEnable(GLES20.GL_CULL_FACE);
         GLES20.glCullFace(GLES20.GL_BACK);
+
+        // sync
+        System.arraycopy(mLightViewMatrix, 0, this.mLightViewMatrix, 0, 16);
 
      	renderScene(shaderFactory, config, scene, mProjectionMatrix, mViewMatrix, mLightProjectionMatrix, mActualLightPosition);
 
@@ -221,7 +239,7 @@ public class ShadowsRenderer {
 
     }
 
-    public void onPrepareFrame(ShaderManager shaderFactory, Renderer.Config config, float[] mProjectionMatrix, float[] mViewMatrix, float[] mLightProjectionMatrix, float[] mActualLightPosition, Scene scene) {
+    public void onPrepareFrame(ShaderManager shaderFactory, Renderer.Config config, float[] mProjectionMatrix, float[] mViewMatrix, float[] mLightProjectionMatrix, float[] mLightViewMatrix, float[] mActualLightPosition, Scene scene) {
 
         GLES20.glViewport(0, 0, config.viewPortWidth, config.viewPortHeigth);
 
@@ -232,23 +250,8 @@ public class ShadowsRenderer {
 
         Matrix.setIdentityM(mModelMatrix, 0);
 
-        float[] look = Math3DUtils.negate(mActualLightPosition);
-        Math3DUtils.normalizeVector(look);
-
-        float[] upTemp = new float[]{0,1,0};
-        Math3DUtils.normalizeVector(upTemp);
-
-        float[] right = Math3DUtils.crossProduct(look, upTemp);
-        Math3DUtils.normalizeVector(right);
-
-        float[] up = Math3DUtils.crossProduct(right, look);
-        Math3DUtils.normalizeVector(up);
-
-        //Set view matrix from light source position
-        Matrix.setLookAtM(mLightViewMatrix, 0,
-                mActualLightPosition[0], mActualLightPosition[1], mActualLightPosition[2],
-                0,0,0,
-                up[0],up[1],up[2]);
+        // sync
+        System.arraycopy(mLightViewMatrix, 0, this.mLightViewMatrix, 0, 16);
 
         // Cull front faces for shadow generation to avoid self shadowing
         GLES20.glEnable(GLES20.GL_CULL_FACE);
@@ -265,8 +268,12 @@ public class ShadowsRenderer {
         GLES20.glViewport(0, 0, mShadowMapWidth, mShadowMapHeight);
 
         // Clear color and buffers
-        GLES20.glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        GLES20.glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
         GLES20.glClear( GLES20.GL_DEPTH_BUFFER_BIT | GLES20.GL_COLOR_BUFFER_BIT);
+
+        // Disable blending to ensure depth values are not mixed
+        GLES20.glDisable(GLES20.GL_BLEND);
+        GLES20.glEnable(GLES20.GL_DEPTH_TEST);
 
         // Render all stationary shapes on scene
         List<Object3D> objects = scene.getObjects();
@@ -291,10 +298,31 @@ public class ShadowsRenderer {
 
         GLES20.glViewport(0, 0, config.viewPortWidth, config.viewPortHeigth);
 
+        // Re-enable blending for the main scene pass
+        GLES20.glEnable(GLES20.GL_BLEND);
+        GLES20.glBlendFunc(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA);
+
+        // 1. Update ground plane to be proportional to scene
+        if (scene.getDimensions() != null) {
+            final org.the3deer.android.engine.model.Dimensions dim = scene.getDimensions();
+            float size = Math.max(dim.getWidth(), dim.getDepth()) * 2.5f; // 5x padding
+            if (size <= 0) size = Constants.DEFAULT_MODEL_SIZE * 5.0f;
+            
+            plane.setScale(size, 1.0f, size);
+            // Place it at the bottom of the bounding box
+            plane.setLocation(dim.getCenter()[0], dim.getMin()[1], dim.getCenter()[2]);
+        }
+
         float[] tempResultMatrix = new float[16];
 
-        // plane where the shadow is projected
+        // 2. Draw plane where the shadow is projected
         drawObject(shaderFactory, mProjectionMatrix, mViewMatrix, mLightProjectionMatrix, mActualLightPosition, plane, tempResultMatrix);
+
+        // draw debug plane
+        if (renderTextureId != null && renderTextureId[0] > 0) {
+            debugTexture.setId(renderTextureId[0]);
+            //drawDebugPlane(shaderFactory, mProjectionMatrix, mViewMatrix, debugPlane, tempResultMatrix);
+        }
 
         for (int i=0; i<scene.getObjects().size(); i++) {
             final Object3D data = scene.getObjects().get(i);
@@ -344,6 +372,13 @@ public class ShadowsRenderer {
         GLES20.glUniform1i(scene_textureUniform, 10);
 
         mActiveRenderer.draw(data, mProjectionMatrix, mViewMatrix, mActualLightPosition, null, camera.getPos(), data.getDrawMode(), data.getDrawSize());
+    }
+
+    private void drawDebugPlane(ShaderManager shaderFactory, float[] mProjectionMatrix, float[] mViewMatrix, Object3D data, float[] tempResultMatrix) {
+        Shader debugShader = shaderFactory.getShader(Program.DEBUG_SHADOW);
+        debugShader.setLightingEnabled(false);
+        debugShader.draw(data, mProjectionMatrix, mViewMatrix, null, null, camera.getPos(), data.getDrawMode(), data.getDrawSize());
+        debugShader.setLightingEnabled(true);
     }
 
     public int getPositionHandler() {

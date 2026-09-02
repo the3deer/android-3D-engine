@@ -18,6 +18,13 @@ public class Plane {
         return obj;
     }
 
+    public static Object3D buildTextured() {
+        Object3D obj = build();
+        float[] texCoords = generateTextureCoordinateData();
+        obj.setTextureCoordsArrayBuffer(IOUtils.createFloatBuffer(texCoords.length).put(texCoords));
+        return obj;
+    }
+
     public static float[] generatePositionData() {
         return new float[]{
                 -0.5f, 0.0f, -0.5f,
@@ -37,6 +44,17 @@ public class Plane {
                 0.0f, 1.0f, 0.0f,
                 0.0f, 1.0f, 0.0f,
                 0.0f, 1.0f, 0.0f
+        };
+    }
+
+    public static float[] generateTextureCoordinateData() {
+        return new float[]{
+                0.0f, 1.0f,
+                0.0f, 0.0f,
+                1.0f, 0.0f,
+                0.0f, 1.0f,
+                1.0f, 0.0f,
+                1.0f, 1.0f
         };
     }
 }

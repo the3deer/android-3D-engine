@@ -11,6 +11,7 @@ public class Program {
     public static final int SUN = 11;
     public static final int SHADOW_MAP = 100;
     public static final int SHADOW = 101;
+    public static final int DEBUG_SHADOW = 102;
 
     final int id;
     final int openGLVersion;

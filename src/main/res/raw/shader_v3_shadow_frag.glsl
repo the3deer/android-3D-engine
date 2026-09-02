@@ -77,6 +77,11 @@ float shadowPCF()
     vec4 shadowMapPosition = vShadowCoord / vShadowCoord.w;
     shadowMapPosition = (shadowMapPosition + 1.0) / 2.0;
 
+    // Bounds check: If outside the light's frustum, don't shadow.
+    if (shadowMapPosition.z > 1.0 || shadowMapPosition.x < 0.0 || shadowMapPosition.x > 1.0 || shadowMapPosition.y < 0.0 || shadowMapPosition.y > 1.0) {
+        return 1.0;
+    }
+
     float bias = 0.0005;
     float shadow = 0.0;
 
