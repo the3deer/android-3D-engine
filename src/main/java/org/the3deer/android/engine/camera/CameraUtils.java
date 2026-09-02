@@ -6,6 +6,7 @@ import org.the3deer.android.engine.model.Object3D;
 import org.the3deer.android.engine.model.OrthographicProjection;
 import org.the3deer.android.engine.model.Projection;
 import org.the3deer.android.engine.model.Scene;
+import org.the3deer.android.engine.model.Screen;
 
 import java.util.List;
 import java.util.logging.Logger;
@@ -167,14 +168,7 @@ public class CameraUtils {
         updateProjection(camera, centerX, centerY, centerZ, radius);
     }
 
-    /**
-     * Updates the camera's projection clipping planes (near/far) based on the scene's current state.
-     * This ensures the entire model is visible regardless of camera movement.
-     *
-     * @param camera the camera to update
-     * @param scene the scene containing the model dimensions
-     */
-    public static void updateProjection(Camera camera, Scene scene) {
+    public static void updateProjection(Camera camera, Scene scene, Screen screen) {
         if (camera == null || scene == null || scene.getDimensions() == null) {
             return;
         }
@@ -182,13 +176,17 @@ public class CameraUtils {
         final float[] center = scene.getDimensions().getCenter();
         final float radius = scene.getDimensions().getRadius();
 
-        updateProjection(camera, center[0], center[1], center[2], radius);
+        updateProjection(camera, center[0], center[1], center[2], radius, screen);
     }
 
     /**
      * Updates the camera's projection clipping planes (near/far) based on camera position and target sphere.
      */
     public static void updateProjection(Camera camera, float centerX, float centerY, float centerZ, float radius) {
+        updateProjection(camera, centerX, centerY, centerZ, radius, null);
+    }
+
+    public static void updateProjection(Camera camera, float centerX, float centerY, float centerZ, float radius, Screen screen) {
         final Projection projection = camera.getProjection();
         if (projection == null) return;
 
@@ -214,7 +212,8 @@ public class CameraUtils {
         // --- HARDWARE-AWARE DEPTH PRECISION ---
         // Typical modern hardware (24-bit depth) handles a ratio of 10,000:1 well.
         // Old hardware (16-bit) might need 1,000:1.
-        final float maxHealthyRatio = 10000f;
+        final int depthBits = screen != null ? screen.capabilities.getDepthBits() : 16;
+        final float maxHealthyRatio = (depthBits >= 24) ? 10000f : 1000f;
 
         if (suggestedFar / suggestedNear > maxHealthyRatio) {
             // If the ratio is too high, we must increase 'near' to preserve depth precision.
@@ -222,7 +221,7 @@ public class CameraUtils {
         }
 
         // Final safety check: near and far must be positive and far > near
-        suggestedNear = Math.max(suggestedNear, 0.001f);
+        suggestedNear = Math.max(suggestedNear, 0.01f);
         suggestedFar = Math.max(suggestedFar, suggestedNear + 1.0f);
 
         // Apply to projection

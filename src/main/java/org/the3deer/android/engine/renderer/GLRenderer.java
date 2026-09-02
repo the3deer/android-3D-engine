@@ -186,8 +186,15 @@ public class GLRenderer implements GLSurfaceView.Renderer {
 
     @Override
     public void onSurfaceCreated(GL10 unused, EGLConfig config) {
+        // Query hardware depth bits
+        final int[] depthBitsBuffer = new int[1];
+        GLES20.glGetIntegerv(GLES20.GL_DEPTH_BITS, depthBitsBuffer, 0);
+        if (depthBitsBuffer[0] > 0) {
+            this.screen.capabilities.setDepthBits(depthBitsBuffer[0]);
+        }
+
         // log event
-        logger.config("onSurfaceCreated. config: " + config);
+        logger.config("onSurfaceCreated. depthBits: " + this.screen.capabilities.getDepthBits() + ", config: " + config);
 
         // Set the background frame color
         GLES20.glClearColor(backgroundColorSelected[0], backgroundColorSelected[1], backgroundColorSelected[2], backgroundColorSelected[3]);

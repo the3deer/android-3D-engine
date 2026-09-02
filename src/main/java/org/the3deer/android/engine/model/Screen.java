@@ -27,6 +27,28 @@ public class Screen {
     public int toolbarHeight;
     public int bottomBarHeight;
 
+    public static class Capabilities {
+        private int depthBits = 24;
+
+        public int getDepthBits() {
+            return depthBits;
+        }
+
+        public void setDepthBits(int depthBits) {
+            this.depthBits = depthBits;
+        }
+
+        @NonNull
+        @Override
+        public String toString() {
+            return "Capabilities{" +
+                    "depthBits=" + depthBits +
+                    '}';
+        }
+    }
+
+    public final Capabilities capabilities = new Capabilities();
+
     public Screen(int width, int height) {
         this.setSize(width, height);
     }
@@ -119,6 +141,7 @@ public class Screen {
                 ", insets={left=" + left + ", top=" + top + ", right=" + right + ", bottom=" + bottom + "}" +
                 ", toolbarHeight=" + toolbarHeight +
                 ", bottomBarHeight=" + bottomBarHeight +
+                ", capabilities=" + capabilities +
                 '}';
     }
 }

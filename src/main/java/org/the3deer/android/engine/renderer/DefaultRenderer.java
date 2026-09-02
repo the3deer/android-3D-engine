@@ -103,7 +103,7 @@ public class DefaultRenderer implements Renderer, EventListener {
         if (sceneManager != null && sceneManager.getActiveScene() != null) {
             final Camera activeCamera = sceneManager.getActiveScene().getActiveCamera();
             if (activeCamera != null) {
-                CameraUtils.updateProjection(activeCamera, sceneManager.getActiveScene());
+                CameraUtils.updateProjection(activeCamera, sceneManager.getActiveScene(), screen);
             }
         }
 

@@ -55,7 +55,7 @@ public class SkyboxDrawer implements Drawer {
 
     // data
     @BeanProperty(name = "skybox", values = {"sea", "sand", "day_night"})
-    private String activeSkyBox;
+    private String activeSkyBox = "sea";
     private final Map<String, Object3D> skyboxes3D = new HashMap<>();
 
     private final Projection skyboxProjection = new PerspectiveProjection();
@@ -68,6 +68,8 @@ public class SkyboxDrawer implements Drawer {
 
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
+
+
     }
 
     public void setActiveSkyBox(final String id) {
@@ -83,7 +85,11 @@ public class SkyboxDrawer implements Drawer {
 
     @BeanInit
     public void setUp() {
-        // We use the camera's projection matrix dynamically during draw
+
+        if (activeSkyBox != null){
+            // lazy building of the 3d object
+            loadSkyBox(activeSkyBox);
+        }
     }
 
     private void loadSkyBox(final String skyboxId) {
@@ -174,7 +180,7 @@ public class SkyboxDrawer implements Drawer {
 
             // paint
             GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0);
-            GLES20.glDisable(GLES20.GL_CULL_FACE);
+            GLES20.glEnable(GLES20.GL_CULL_FACE);
 
             final Shader shader = shaderManager.getShader(Program.SKYBOX);
 
@@ -228,9 +234,8 @@ public class SkyboxDrawer implements Drawer {
             skyboxNear = Math.max(0.001f, skyboxNear);
 
             // Respect hardware limits for the skybox pass to avoid any face-flickering
-            final int[] depthBits = new int[1];
-            GLES20.glGetIntegerv(GLES20.GL_DEPTH_BITS, depthBits, 0);
-            final float maxHealthyRatio = (depthBits[0] >= 24) ? 10000f : 1000f;
+            final int depthBits = screen != null ? screen.capabilities.getDepthBits() : 16;
+            final float maxHealthyRatio = (depthBits >= 24) ? 10000f : 1000f;
             if (skyboxFar / skyboxNear > maxHealthyRatio) {
                 skyboxNear = skyboxFar / maxHealthyRatio;
             }
