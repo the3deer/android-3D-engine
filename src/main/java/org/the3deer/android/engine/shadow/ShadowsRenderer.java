@@ -262,6 +262,11 @@ public class ShadowsRenderer {
 
 
     private void renderShadowMap(float[] mLightProjectionMatrix, Scene scene) {
+
+        if (fboId == null) {
+            return; // this is an activity restart
+        }
+
         // bind the generated framebuffer
         GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, fboId[0]);
 
@@ -301,6 +306,7 @@ public class ShadowsRenderer {
         // Re-enable blending for the main scene pass
         GLES20.glEnable(GLES20.GL_BLEND);
         GLES20.glBlendFunc(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA);
+        GLES20.glEnable(GLES20.GL_DEPTH_TEST);
 
         // 1. Update ground plane to be proportional to scene
         if (scene.getDimensions() != null) {
@@ -315,8 +321,13 @@ public class ShadowsRenderer {
 
         float[] tempResultMatrix = new float[16];
 
+        // Cull front faces for shadow generation to avoid self shadowing
+        GLES20.glEnable(GLES20.GL_CULL_FACE);
+
         // 2. Draw plane where the shadow is projected
         drawObject(shaderFactory, mProjectionMatrix, mViewMatrix, mLightProjectionMatrix, mActualLightPosition, plane, tempResultMatrix);
+
+        GLES20.glDisable(GLES20.GL_CULL_FACE);
 
         // draw debug plane
         if (renderTextureId != null && renderTextureId[0] > 0) {

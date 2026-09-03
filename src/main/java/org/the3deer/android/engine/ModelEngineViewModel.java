@@ -170,7 +170,7 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
         if (engine == null) throw new IllegalStateException("Engine not initialized");
 
         // check status
-        if (engine.isLoaded()) {
+        if (engine.isLoaded() && engine.getStatus() != ModelEngine.Status.ERROR) {
             logger.info("Engine already loaded. uri: " + uriString);
             handler.post(callback);
             return;
@@ -725,6 +725,7 @@ public class ModelEngineViewModel extends AndroidViewModel implements ComponentC
                         if (obj.getMaterial().getNormalTexture() != null) loadTextureDatas(model, obj.getMaterial().getNormalTexture());
                     }
                 }
+
                 if (scene.getRootNodes().isEmpty()) {
                     for (Object3D obj : scene.getObjects()) {
                         Node node = new Node();

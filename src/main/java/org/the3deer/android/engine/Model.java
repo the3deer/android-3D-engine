@@ -292,6 +292,8 @@ public class Model {
     }
 
     public void addUri(String name, URI uri) {
+        if (name == null || uri == null) return;
+        if (includes.containsKey(name) && uri.equals(includes.get(name))) return;
         includes.put(name, uri);
     }
 
