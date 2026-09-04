@@ -4,8 +4,30 @@ The Engine is a modular OpenGL ES 2.0/3.0 library designed for Android. It uses 
 
 ## Core Architecture
 
+### Design Patterns
+The implementation of the engine follows this software design patterns:
+- **MVC**: Model-View-Controller. The Model holds all the domain data. The View uses the Model to display the data and the Controller to update the Model.
+- **IoC**: Inversion of Control. Together with an Event driven system or Callbacks, the components are simpler free of external dependencies.
+- **CDI**: Component Dependency Injection to manage the properties and lifecycle of components.
+- Adapter, Decorator, Facade, Observer and Strategy are other examples.
+
+### Application Model
+The application Model (MVC) is implemented by the `ModelEngineViewModel`.
+The `ModelEngineViewModel` holds and manages the lifecycle of the 3D `Model` instances.
+The `ModelEngineViewModel` also manages the lifecycle of the 3D `ModelEngine` instances.
+The `ModelEngineViewModel` also monitors the device Memory.
+
+### User Model
+The 3D Model is linked to a `ModelEngine`. It contains mainly the model's uri and the type.
+The Model holds also the Asset data, like the 3D data (`Object3D`) and the Scene data (`Scene`).
+The Model also may have some `Metadata` like name, author and license.
+
+### ModelEngine
+The `ModelEngine` is the main Controller of the application.
+
 ### BeanFactory
-The Engine uses a `BeanFactory` to register, initialize, and manage the lifecycle of different components. This allows for a decoupled system where features can be enabled or disabled dynamically.
+The Engine uses a custom `BeanFactory` CDI implementation to register, initialize, and manage the lifecycle of different components. 
+This allows for a decoupled system where features can be enabled or disabled dynamically.
 
 ### Features
 The engine is composed of several core feature modules:
