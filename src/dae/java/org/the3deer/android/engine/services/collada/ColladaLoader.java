@@ -33,9 +33,17 @@ public class ColladaLoader {
     private static final Logger logger = Logger.getLogger(ColladaLoader.class.getSimpleName());
 
     private String authoringTool;
+    private String author;
+    private String copyright;
+    private String comments;
 
     public ColladaLoader() {
     }
+
+    public String getAuthoringTool() { return authoringTool; }
+    public String getAuthor() { return author; }
+    public String getCopyright() { return copyright; }
+    public String getComments() { return comments; }
 
     public Scene load(URI url) throws Exception {
         Scene scene = new Scene();
@@ -46,6 +54,9 @@ public class ColladaLoader {
 
             // get metadata
             authoringTool = parser.getAuthoringTool();
+            author = parser.getAuthor();
+            copyright = parser.getCopyright();
+            comments = parser.getComments();
 
             // 2. GET ALL PARSED LIBRARIES
             Map<String, Geometry> geometries = parser.getGeometryLibrary();

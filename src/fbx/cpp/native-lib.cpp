@@ -388,6 +388,22 @@ Java_org_the3deer_android_engine_services_fbx_FBXParser_fbxGetModelAttribute(
         jclass intClass = env->FindClass("java/lang/Integer");
         jmethodID intInit = env->GetMethodID(intClass, "<init>", "(I)V");
         result = env->NewObject(intClass, intInit, (jint)model->scene->metadata.version);
+    } else {
+        // Search metadata_objects (SceneInfo / DocumentInfo) for custom properties (Author, Copyright, Comment, etc.)
+        for (size_t i = 0; i < model->scene->metadata_objects.count; i++) {
+            ufbx_metadata_object *meta = model->scene->metadata_objects.data[i];
+            ufbx_prop *prop = ufbx_find_prop(&meta->props, nativeAttributeName);
+            if (prop && prop->value_str.data && prop->value_str.length > 0) {
+                result = env->NewStringUTF(prop->value_str.data);
+                break;
+            }
+        }
+        if (!result && model->scene->root_node) {
+            ufbx_prop *prop = ufbx_find_prop(&model->scene->root_node->props, nativeAttributeName);
+            if (prop && prop->value_str.data && prop->value_str.length > 0) {
+                result = env->NewStringUTF(prop->value_str.data);
+            }
+        }
     }
     env->ReleaseStringUTFChars(attributeName, nativeAttributeName);
     return result;

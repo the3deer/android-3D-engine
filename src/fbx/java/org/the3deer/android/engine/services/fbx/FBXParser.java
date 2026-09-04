@@ -47,6 +47,28 @@ public class FBXParser {
 
         final String creator = (String)fbxGetModelAttribute(handler, "metadata.creator");
         model.setCreator(creator);
+
+        final String author = (String)fbxGetModelAttribute(handler, "Author");
+        if (author != null && !author.trim().isEmpty()) {
+            model.setAuthor(author.trim());
+        }
+
+        String copyright = (String)fbxGetModelAttribute(handler, "Copyright");
+        if (copyright == null || copyright.trim().isEmpty()) {
+            copyright = (String)fbxGetModelAttribute(handler, "License");
+        }
+        if (copyright != null && !copyright.trim().isEmpty()) {
+            model.setLicense(copyright.trim());
+        }
+
+        String comment = (String)fbxGetModelAttribute(handler, "Comment");
+        if (comment == null || comment.trim().isEmpty()) {
+            comment = (String)fbxGetModelAttribute(handler, "Subject");
+        }
+        if (comment != null && !comment.trim().isEmpty()) {
+            model.setDescription(comment.trim());
+        }
+
         final int version = fbxGetVersion(handler);
         model.setVersion(version);
 

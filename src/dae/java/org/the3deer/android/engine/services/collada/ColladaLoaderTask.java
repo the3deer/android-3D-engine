@@ -21,7 +21,25 @@ public class ColladaLoaderTask extends LoaderTask {
         callback.onLoadStart();
 
         // 1. Load the new model using your new parser
-        final Scene scene = new ColladaLoader().load(uri);
+        final ColladaLoader loader = new ColladaLoader();
+        final Scene scene = loader.load(uri);
+        
+        if (loader.getAuthor() != null && !loader.getAuthor().trim().isEmpty()) {
+            if (model.getAuthor() == null || model.getAuthor().trim().isEmpty()) {
+                model.setAuthor(loader.getAuthor().trim());
+            }
+        }
+        if (loader.getCopyright() != null && !loader.getCopyright().trim().isEmpty()) {
+            if (model.getLicense() == null || model.getLicense().trim().isEmpty()) {
+                model.setLicense(loader.getCopyright().trim());
+            }
+        }
+        if (loader.getComments() != null && !loader.getComments().trim().isEmpty()) {
+            if (model.getDescription() == null || model.getDescription().trim().isEmpty()) {
+                model.setDescription(loader.getComments().trim());
+            }
+        }
+
         List<Object3D> loadNew = scene.getObjects();
         //Map<String, Object3D> collectNew = loadNew.stream().collect(Collectors.toMap(Object3D::getId, Function.identity()));
 

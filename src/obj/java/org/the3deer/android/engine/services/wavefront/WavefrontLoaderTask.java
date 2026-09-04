@@ -32,6 +32,17 @@ public class WavefrontLoaderTask extends LoaderTask {
 
         final List<Object3D> load = wfl.load(URI.create(uri.toString()));
 
+        if (wfl.getAuthor() != null && !wfl.getAuthor().trim().isEmpty()) {
+            if (model.getAuthor() == null || model.getAuthor().trim().isEmpty()) {
+                model.setAuthor(wfl.getAuthor().trim());
+            }
+        }
+        if (wfl.getLicense() != null && !wfl.getLicense().trim().isEmpty()) {
+            if (model.getLicense() == null || model.getLicense().trim().isEmpty()) {
+                model.setLicense(wfl.getLicense().trim());
+            }
+        }
+
         return load;
     }
 

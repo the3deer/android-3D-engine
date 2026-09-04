@@ -101,6 +101,25 @@ public class GltfLoader {
             }
 
             GltfModel gltfModel = GltfModels.create(gltfAsset);
+            
+            // Extract metadata from glTF asset header
+            if (gltfAsset.getGltf() instanceof de.javagl.jgltf.impl.v2.GlTF) {
+                de.javagl.jgltf.impl.v2.GlTF gltf = (de.javagl.jgltf.impl.v2.GlTF) gltfAsset.getGltf();
+                if (gltf.getAsset() != null) {
+                    de.javagl.jgltf.impl.v2.Asset asset = gltf.getAsset();
+                    if (asset.getCopyright() != null && !asset.getCopyright().trim().isEmpty()) {
+                        if (model.getLicense() == null || model.getLicense().trim().isEmpty()) {
+                            model.setLicense(asset.getCopyright().trim());
+                        }
+                    }
+                    if (asset.getGenerator() != null && !asset.getGenerator().trim().isEmpty()) {
+                        if (model.getGltf() == null || model.getGltf().trim().isEmpty()) {
+                            model.setGltf(asset.getGenerator().trim());
+                        }
+                    }
+                }
+            }
+
             GltfParser parser = new GltfParser(gltfAsset, gltfModel);
             GltfDto dto = parser.parse();
 

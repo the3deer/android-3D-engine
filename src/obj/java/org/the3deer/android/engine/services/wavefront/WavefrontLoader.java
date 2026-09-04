@@ -40,6 +40,11 @@ public class WavefrontLoader {
 
     private final int triangulationMode;
     private final LoadListener callback;
+    private String author;
+    private String license;
+
+    public String getAuthor() { return author; }
+    public String getLicense() { return license; }
 
     public WavefrontLoader(int triangulationMode, LoadListener callback) {
         this.triangulationMode = triangulationMode;
@@ -362,6 +367,13 @@ public class WavefrontLoader {
                             smoothingGroups.put(smoothingGroupId, currentSmoothingList);
                         }
                     } else if (line.charAt(0) == '#') { // comment line
+                        final String comment = line.substring(1).trim();
+                        final String lower = comment.toLowerCase(java.util.Locale.ENGLISH);
+                        if (lower.startsWith("author:") || lower.startsWith("author ")) {
+                            this.author = comment.substring(comment.indexOf(':') > -1 ? comment.indexOf(':') + 1 : 6).trim();
+                        } else if (lower.startsWith("license:") || lower.startsWith("license ") || lower.startsWith("copyright:") || lower.startsWith("copyright ")) {
+                            this.license = comment.substring(comment.indexOf(':') > -1 ? comment.indexOf(':') + 1 : 7).trim();
+                        }
                         logger.finest(line);
                     } else
                         logger.warning("Ignoring line " + lineNum + " : " + line);

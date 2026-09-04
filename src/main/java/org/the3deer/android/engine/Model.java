@@ -59,6 +59,7 @@ public class Model {
     private String type;
     private String gltf;
     private String description;
+    private String comment;
     private String author;
     private String license;
     private String provider;
@@ -151,6 +152,14 @@ public class Model {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public String getComment() {
+        return comment;
+    }
+
+    public void setComment(String comment) {
+        this.comment = comment;
     }
 
     public String getAuthor() {

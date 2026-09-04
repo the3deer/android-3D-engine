@@ -9,6 +9,9 @@ public class FBXModel implements AutoCloseable {
     // attributes
     private final String name;
     private String creator;
+    private String author;
+    private String license;
+    private String description;
     private String uri;
     private long nativeHandler;
     private int meshCount;
@@ -40,6 +43,30 @@ public class FBXModel implements AutoCloseable {
 
     public String getCreator() {
         return this.creator;
+    }
+
+    public String getAuthor() {
+        return author;
+    }
+
+    public void setAuthor(String author) {
+        this.author = author;
+    }
+
+    public String getLicense() {
+        return license;
+    }
+
+    public void setLicense(String license) {
+        this.license = license;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 
     public long getNativeHandler() {

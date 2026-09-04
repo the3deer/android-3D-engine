@@ -25,10 +25,19 @@ public class FbxLoader {
     private static final Logger logger = Logger.getLogger(FbxLoader.class.getSimpleName());
 
     final FBXParser parser;
+    private String creator;
+    private String author;
+    private String license;
+    private String description;
 
     public FbxLoader() {
         this.parser = new FBXParser();
     }
+
+    public String getCreator() { return creator; }
+    public String getAuthor() { return author; }
+    public String getLicense() { return license; }
+    public String getDescription() { return description; }
 
     public List<Object3D> load(URI url, LoadListener callback) throws Exception {
 
@@ -40,6 +49,11 @@ public class FbxLoader {
 
             FBXModel model = parser.parseModel(stream);
             if (model == null) return ret;
+
+            this.creator = model.getCreator();
+            this.author = model.getAuthor();
+            this.license = model.getLicense();
+            this.description = model.getDescription();
 
             final int meshCount = model.getMeshCount();
             logger.info("FBX Loaded. Mesh Count: " + meshCount);

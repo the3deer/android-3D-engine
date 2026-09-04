@@ -31,6 +31,28 @@ public final class FbxLoaderTask extends LoaderTask {
     protected List<Object3D> build() throws Exception {
         try {
             final List<Object3D> load = loader.load(uri, callback);
+
+            if (loader.getCreator() != null && !loader.getCreator().trim().isEmpty()) {
+                if (model.getGltf() == null || model.getGltf().trim().isEmpty()) {
+                    model.setGltf(loader.getCreator().trim());
+                }
+            }
+            if (loader.getAuthor() != null && !loader.getAuthor().trim().isEmpty()) {
+                if (model.getAuthor() == null || model.getAuthor().trim().isEmpty()) {
+                    model.setAuthor(loader.getAuthor().trim());
+                }
+            }
+            if (loader.getLicense() != null && !loader.getLicense().trim().isEmpty()) {
+                if (model.getLicense() == null || model.getLicense().trim().isEmpty()) {
+                    model.setLicense(loader.getLicense().trim());
+                }
+            }
+            if (loader.getDescription() != null && !loader.getDescription().trim().isEmpty()) {
+                if (model.getDescription() == null || model.getDescription().trim().isEmpty()) {
+                    model.setDescription(loader.getDescription().trim());
+                }
+            }
+
             final Scene sceneDefault = new Scene();
             sceneDefault.getObjects().addAll(load);
             return load;

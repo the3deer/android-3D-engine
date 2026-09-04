@@ -53,6 +53,9 @@ public class ColladaParser {
 
     // metadata
     private String authoringTool;
+    private String author;
+    private String copyright;
+    private String comments;
 
     private static class Accessor {
         final int stride;
@@ -170,6 +173,18 @@ public class ColladaParser {
         return authoringTool;
     }
 
+    public String getAuthor() {
+        return author;
+    }
+
+    public String getCopyright() {
+        return copyright;
+    }
+
+    public String getComments() {
+        return comments;
+    }
+
     /**
      * Parses the <asset> block to find metadata, specifically the <authoring_tool>.
      * This is a direct port of the old loader's logic.
@@ -181,7 +196,6 @@ public class ColladaParser {
      */
     private String parseAsset(XmlPullParser parser) throws Exception {
         String foundAuthoringTool = null;
-        boolean assetParsed = false; // Flag to indicate we are done
 
         // Loop until we are at the end of the <asset> tag
         while (parser.next() != XmlPullParser.END_TAG || !parser.getName().equals("asset")) {
@@ -191,25 +205,23 @@ public class ColladaParser {
 
             // We are looking for <contributor>
             if ("contributor".equals(parser.getName())) {
-                // Now look for <authoring_tool> inside <contributor>
-                while (parser.next() != XmlPullParser.END_TAG || !parser.getName().equals("contributor")) {
+                while (parser.next() != XmlPullParser.END_TAG || !"contributor".equals(parser.getName())) {
                     if (parser.getEventType() != XmlPullParser.START_TAG) {
                         continue;
                     }
 
                     if ("authoring_tool".equals(parser.getName())) {
-                        // Found it. Get the text.
                         foundAuthoringTool = parser.nextText();
-                        // We found what we came for. We can exit all loops.
-                        assetParsed = true;
-                        break; // Exit the inner loop
+                        this.authoringTool = foundAuthoringTool;
+                    } else if ("author".equals(parser.getName())) {
+                        this.author = parser.nextText();
                     } else {
-                        // It's a tag inside <contributor> we don't care about, so skip it.
                         skipTag(parser);
                     }
                 }
+            } else if ("comments".equals(parser.getName()) || "keywords".equals(parser.getName())) {
+                this.comments = parser.nextText();
             } else {
-                // It's a tag inside <asset> we don't care about, so skip it.
                 skipTag(parser);
             }
         }
